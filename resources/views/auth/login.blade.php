@@ -121,8 +121,10 @@
 
                 localStorage.setItem('sporthub_token', data.token);
                 localStorage.setItem('sporthub_user', JSON.stringify(data.user));
-                setAlert('Đăng nhập thành công. Token đã được lưu trong trình duyệt.', 'success');
+                setAlert('Đăng nhập thành công. Đang chuyển đến trang tìm sân…', 'success');
                 form.reset();
+                window.location.href = '{{ route('home') }}';
+                return;
             } catch (error) {
                 setAlert('Không thể kết nối máy chủ. Vui lòng thử lại sau.');
             } finally {

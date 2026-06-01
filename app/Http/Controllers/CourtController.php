@@ -20,10 +20,11 @@ class CourtController extends Controller
             ->where('venues.status', 'active')
             ->where('courts.status', 'active');
 
-        // Full-text style search on court name or venue address
+        // Full-text style search on court name, venue name or address
         if ($search !== '') {
             $query->where(function ($where) use ($search) {
                 $where->where('courts.name', 'like', "%{$search}%")
+                    ->orWhere('venues.name', 'like', "%{$search}%")
                     ->orWhere('venues.address', 'like', "%{$search}%");
             });
         }
@@ -66,6 +67,53 @@ class CourtController extends Controller
         return response()->json($response);
     }
 
+    public function index(Request $request): JsonResponse
+    {
+        $search = trim((string) $request->query('q', ''));
+
+        $paginator = Court::query()
+            ->where('status', 'active')
+            ->whereHas('venue', fn ($venue) => $venue->where('status', 'active'))
+            ->when($search !== '', fn ($q) => $q->where(function ($where) use ($search) {
+                $where->where('name', 'like', "%{$search}%")
+                    ->orWhereHas('venue', fn ($venue) => $venue
+                        ->where('name', 'like', "%{$search}%")
+                        ->orWhere('address', 'like', "%{$search}%"));
+            }))
+            ->with(['venue.sport', 'venue.ownerRegistration'])
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
+
+        $payload = $paginator->getCollection()->map(function (Court $court) {
+            return $this->formatCourt($court, false);
+        });
+
+        $paginator->setCollection($payload);
+
+        $response = [
+            'status' => 'success',
+            'message' => 'Danh sách sân',
+            'data' => $payload,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+            'counts' => $this->countsPerSport(),
+        ];
+
+        if ($paginator->total() === 0) {
+            $response['empty'] = [
+                'message' => 'Không tìm thấy kết quả phù hợp.',
+                'suggestion' => 'Thử thay đổi từ khóa hoặc bỏ lọc môn thể thao.',
+            ];
+        }
+
+        return response()->json($response);
+    }
+
     public function show(int $courtId): JsonResponse
     {
         $court = Court::with(['venue.sport', 'venue.ownerRegistration'])->findOrFail($courtId);
@@ -94,7 +142,6 @@ class CourtController extends Controller
             'address' => $venue->address ?? null,
             'phone_hidden' => $this->maskPhone($phone),
             'phone_full' => $includeFullPhone ? $phone : null,
-            'detail_url' => route('courts.show', ['courtId' => $court->id]),
         ];
     }
 
