@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\SportController;
 use App\Http\Controllers\CourtController;
 
 /*
@@ -26,7 +27,11 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
-// Public court listing & detail (API)
+// Public sports & court listing & detail (API)
+Route::get('/sports', [SportController::class, 'index'])->name('sports.index');
+
+Route::get('/courts', [CourtController::class, 'index'])->name('courts.index');
+
 Route::get('/courts/sport/{sportId}', [CourtController::class, 'indexBySport'])
     ->whereNumber('sportId')
     ->name('courts.index_by_sport');
