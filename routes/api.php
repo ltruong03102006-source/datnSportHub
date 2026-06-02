@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SportController;
+use App\Http\Controllers\Api\VenueController;
 use App\Http\Controllers\CourtController;
 
 /*
@@ -20,7 +21,7 @@ Route::post('/login', [AuthController::class, 'login']);
 */
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
-    
+
     // Test thử API lấy thông tin user đang đăng nhập
     Route::get('/user', function (\Illuminate\Http\Request $request) {
         return $request->user();
@@ -39,3 +40,8 @@ Route::get('/courts/sport/{sportId}', [CourtController::class, 'indexBySport'])
 Route::get('/courts/{courtId}', [CourtController::class, 'show'])
     ->whereNumber('courtId')
     ->name('courts.show');
+
+// Venues API
+Route::get('/venues/{id}', [VenueController::class, 'show'])
+    ->whereNumber('id')
+    ->name('venues.show');
