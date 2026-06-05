@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Court;
+use App\Models\Venue;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,23 +13,24 @@ class CourtController extends Controller
 {
     public function indexBySport(Request $request, int $sportId): JsonResponse
     {
-        return $this->courtListResponse($request, $sportId, 'Danh sách sân theo môn thể thao');
+        return $this->venueListResponse($request, $sportId, 'Danh sách cơ sở theo môn thể thao');
     }
 
     public function index(Request $request): JsonResponse
     {
-        return $this->courtListResponse($request, null, 'Danh sách sân');
+        return $this->venueListResponse($request, null, 'Danh sách cơ sở');
     }
 
     public function search(Request $request): JsonResponse
     {
         $sportId = $request->integer('sport') ?: null;
 
-        return $this->courtListResponse($request, $sportId, 'Kết quả tìm kiếm sân');
+        return $this->venueListResponse($request, $sportId, 'Kết quả tìm kiếm cơ sở');
     }
 
     public function show(int $courtId): JsonResponse
     {
+        // Hàm này giữ nguyên để phục vụ API lấy chi tiết Sân con (Task #08)
         $court = Court::with(['venue.sport', 'venue.ownerRegistration'])->findOrFail($courtId);
 
         return response()->json([
@@ -38,16 +40,26 @@ class CourtController extends Controller
         ]);
     }
 
-    private function courtListResponse(Request $request, ?int $sportId, string $message): JsonResponse
+    private function venueListResponse(Request $request, ?int $sportId, string $message): JsonResponse
     {
         $search = trim((string) $request->query('q', ''));
-        $query = Court::query()
-            ->select('courts.*')
-            ->with(['venue.sport', 'venue.ownerRegistration'])
-            ->join('venues', 'venues.id', '=', 'courts.venue_id')
+        
+        // Chuyển từ query Court sang query Venue
+        $query = Venue::query()
+            ->select('venues.*')
+            ->with(['sport'])
+            ->withCount(['courts' => function ($q) {
+                $q->where('status', 'active');
+            }])
             ->join('sports', 'sports.id', '=', 'venues.sport_id')
-            ->where('courts.status', 'active')
             ->where('venues.status', 'active')
+            ->whereExists(function ($query) {
+                // Chỉ hiển thị các Cơ sở có ít nhất 1 Sân con đang hoạt động
+                $query->select(DB::raw(1))
+                      ->from('courts')
+                      ->whereColumn('courts.venue_id', 'venues.id')
+                      ->where('courts.status', 'active');
+            })
             ->when($sportId !== null, fn (Builder $query) => $query->where('venues.sport_id', $sportId));
 
         $this->applySearch($query, $search);
@@ -55,7 +67,7 @@ class CourtController extends Controller
 
         $paginator = $query->paginate(15)->withQueryString();
         $payload = $paginator->getCollection()
-            ->map(fn (Court $court) => $this->formatCourt($court, false));
+            ->map(fn (Venue $venue) => $this->formatVenue($venue));
 
         $response = [
             'status' => 'success',
@@ -91,14 +103,12 @@ class CourtController extends Controller
 
             $query
                 ->selectRaw(
-                    '(MATCH(courts.name) AGAINST (? IN BOOLEAN MODE) + MATCH(venues.name, venues.address) AGAINST (? IN BOOLEAN MODE)) as search_score',
-                    [$term, $term]
+                    '(MATCH(venues.name, venues.address) AGAINST (? IN BOOLEAN MODE)) as search_score',
+                    [$term]
                 )
                 ->where(function (Builder $where) use ($search, $term) {
                     $where
-                        ->whereRaw('MATCH(courts.name) AGAINST (? IN BOOLEAN MODE)', [$term])
-                        ->orWhereRaw('MATCH(venues.name, venues.address) AGAINST (? IN BOOLEAN MODE)', [$term])
-                        ->orWhere('courts.name', 'like', "%{$search}%")
+                        ->whereRaw('MATCH(venues.name, venues.address) AGAINST (? IN BOOLEAN MODE)', [$term])
                         ->orWhere('venues.name', 'like', "%{$search}%")
                         ->orWhere('venues.address', 'like', "%{$search}%")
                         ->orWhere('sports.name', 'like', "%{$search}%")
@@ -110,8 +120,7 @@ class CourtController extends Controller
 
         $query->where(function (Builder $where) use ($search) {
             $where
-                ->where('courts.name', 'like', "%{$search}%")
-                ->orWhere('venues.name', 'like', "%{$search}%")
+                ->where('venues.name', 'like', "%{$search}%")
                 ->orWhere('venues.address', 'like', "%{$search}%")
                 ->orWhere('sports.name', 'like', "%{$search}%")
                 ->orWhere('sports.slug', 'like', "%{$search}%");
@@ -126,8 +135,7 @@ class CourtController extends Controller
 
         $query
             ->orderBy('venues.name')
-            ->orderBy('courts.name')
-            ->orderByDesc('courts.created_at');
+            ->orderByDesc('venues.created_at');
     }
 
     private function supportsFullTextSearch(): bool
@@ -175,6 +183,24 @@ class CourtController extends Controller
         ];
     }
 
+    private function formatVenue(Venue $venue): array
+    {
+        $phone = $venue->owner_phone ?? null;
+
+        return [
+            'venue_id' => $venue->id,
+            'thumbnail' => $venue->banner ?? null,
+            'name' => $venue->name,
+            'sport_id' => $venue->sport_id,
+            'sport_name' => $venue->sport?->name,
+            'address' => $venue->address,
+            'lat' => $venue->lat,
+            'lng' => $venue->lng,
+            'phone_hidden' => $this->maskPhone($phone),
+            'courts_count' => $venue->courts_count ?? 0, // Trả về số lượng sân con
+        ];
+    }
+
     private function maskPhone(?string $phone): ?string
     {
         if (! $phone) {
@@ -188,12 +214,17 @@ class CourtController extends Controller
 
     private function countsPerSport(): array
     {
-        $rows = DB::table('courts')
-            ->join('venues', 'venues.id', '=', 'courts.venue_id')
+        // Đếm số lượng Cơ sở theo từng môn thể thao
+        $rows = DB::table('venues')
             ->join('sports', 'sports.id', '=', 'venues.sport_id')
-            ->where('courts.status', 'active')
             ->where('venues.status', 'active')
-            ->select('sports.id as sport_id', DB::raw('count(courts.id) as total'))
+            ->whereExists(function ($query) {
+                $query->select(DB::raw(1))
+                      ->from('courts')
+                      ->whereColumn('courts.venue_id', 'venues.id')
+                      ->where('courts.status', 'active');
+            })
+            ->select('sports.id as sport_id', DB::raw('count(venues.id) as total'))
             ->groupBy('sports.id')
             ->get();
 

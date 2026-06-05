@@ -8,7 +8,9 @@
     <title>@yield('title', 'SportHub')</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    
+
+    @yield('styles')
+
     <style>
         [x-cloak] { display: none !important; }
     </style>
@@ -192,5 +194,7 @@
             </div>
         </div>
     </footer>
+
+    @yield('scripts')
 </body>
 </html>

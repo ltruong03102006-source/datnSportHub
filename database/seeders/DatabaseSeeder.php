@@ -7,6 +7,8 @@ use Database\Seeders\SportsTableSeeder;
 use Database\Seeders\OwnerRegistrationsTableSeeder;
 use Database\Seeders\VenuesTableSeeder;
 use Database\Seeders\CourtsTableSeeder;
+use Database\Seeders\TimeSlotTableSeeder;
+use Database\Seeders\SlotPriceTableSeeder;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -26,6 +28,8 @@ class DatabaseSeeder extends Seeder
             OwnerRegistrationsTableSeeder::class,
             VenuesTableSeeder::class,
             CourtsTableSeeder::class,
+            TimeSlotTableSeeder::class,
+            SlotPriceTableSeeder::class,
         ]);
     }
 }

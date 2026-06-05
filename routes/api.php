@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\SportController;
 use App\Http\Controllers\Api\VenueController;
+use App\Http\Controllers\Api\CourtAvailabilityController;
 use App\Http\Controllers\CourtController;
 
 /*
@@ -43,6 +44,9 @@ Route::get('/courts/{courtId}', [CourtController::class, 'show'])
     ->whereNumber('courtId')
     ->name('courts.show');
 
+// Court Availability API
+Route::get('/courts/{courtId}/availability', [CourtAvailabilityController::class, 'show'])
+    ->name('courts.availability');
 // Venues API
 Route::get('/venues/{id}', [VenueController::class, 'show'])
     ->whereNumber('id')
