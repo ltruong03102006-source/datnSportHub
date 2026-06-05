@@ -46,7 +46,6 @@ export default (config = {}) => ({
     selectSport(id) {
         if (this.sport === id) return;
         this.sport = id;
-        this.query = '';
         this.page = 1;
         this.load();
     },
@@ -66,12 +65,15 @@ export default (config = {}) => ({
         this.empty = null;
 
         try {
-            const path = this.sport && this.sport !== 'all'
-                ? `/api/courts/sport/${this.sport}`
-                : '/api/courts';
+            const path = this.query.trim() !== ''
+                ? '/api/courts/search'
+                : (this.sport && this.sport !== 'all' ? `/api/courts/sport/${this.sport}` : '/api/courts');
             const url = new URL(path, window.location.origin);
             if (this.query.trim() !== '') {
                 url.searchParams.set('q', this.query.trim());
+            }
+            if (this.query.trim() !== '' && this.sport && this.sport !== 'all') {
+                url.searchParams.set('sport', this.sport);
             }
             url.searchParams.set('page', this.page);
 
@@ -104,6 +106,13 @@ export default (config = {}) => ({
         this.page = page;
         this.load();
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+
+    clearSearch() {
+        if (this.query === '') return;
+        this.query = '';
+        this.page = 1;
+        this.load();
     },
 
     get pages() {
