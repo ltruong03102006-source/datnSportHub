@@ -33,6 +33,8 @@ Route::get('/sports', [SportController::class, 'index'])->name('sports.index');
 
 Route::get('/courts', [CourtController::class, 'index'])->name('courts.index');
 
+Route::get('/courts/search', [CourtController::class, 'search'])->name('courts.search');
+
 Route::get('/courts/sport/{sportId}', [CourtController::class, 'indexBySport'])
     ->whereNumber('sportId')
     ->name('courts.index_by_sport');

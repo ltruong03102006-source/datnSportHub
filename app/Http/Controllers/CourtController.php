@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Court;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -11,89 +12,54 @@ class CourtController extends Controller
 {
     public function indexBySport(Request $request, int $sportId): JsonResponse
     {
+        return $this->courtListResponse($request, $sportId, 'Danh sách sân theo môn thể thao');
+    }
+
+    public function index(Request $request): JsonResponse
+    {
+        return $this->courtListResponse($request, null, 'Danh sách sân');
+    }
+
+    public function search(Request $request): JsonResponse
+    {
+        $sportId = $request->integer('sport') ?: null;
+
+        return $this->courtListResponse($request, $sportId, 'Kết quả tìm kiếm sân');
+    }
+
+    public function show(int $courtId): JsonResponse
+    {
+        $court = Court::with(['venue.sport', 'venue.ownerRegistration'])->findOrFail($courtId);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Chi tiết sân',
+            'data' => $this->formatCourt($court, true),
+        ]);
+    }
+
+    private function courtListResponse(Request $request, ?int $sportId, string $message): JsonResponse
+    {
         $search = trim((string) $request->query('q', ''));
         $query = Court::query()
             ->select('courts.*')
             ->with(['venue.sport', 'venue.ownerRegistration'])
             ->join('venues', 'venues.id', '=', 'courts.venue_id')
-            ->where('venues.sport_id', $sportId)
+            ->join('sports', 'sports.id', '=', 'venues.sport_id')
+            ->where('courts.status', 'active')
             ->where('venues.status', 'active')
-            ->where('courts.status', 'active');
+            ->when($sportId !== null, fn (Builder $query) => $query->where('venues.sport_id', $sportId));
 
-        // Full-text style search on court name, venue name or address
-        if ($search !== '') {
-            $query->where(function ($where) use ($search) {
-                $where->where('courts.name', 'like', "%{$search}%")
-                    ->orWhere('venues.name', 'like', "%{$search}%")
-                    ->orWhere('venues.address', 'like', "%{$search}%");
-            });
-        }
+        $this->applySearch($query, $search);
+        $this->applySorting($query, $search);
 
-        // Default sort: newest first
-        $paginator = $query
-            ->orderBy('courts.created_at', 'desc')
-            ->paginate(15)
-            ->withQueryString();
-
-        $payload = $paginator->getCollection()->map(function (Court $court) {
-            return $this->formatCourt($court, false);
-        });
-
-        $paginator->setCollection($payload);
-
-        // Sidebar counts: active courts per sport
-        $counts = $this->countsPerSport();
+        $paginator = $query->paginate(15)->withQueryString();
+        $payload = $paginator->getCollection()
+            ->map(fn (Court $court) => $this->formatCourt($court, false));
 
         $response = [
             'status' => 'success',
-            'message' => 'Danh sách sân theo môn thể thao',
-            'data' => $payload,
-            'meta' => [
-                'current_page' => $paginator->currentPage(),
-                'last_page' => $paginator->lastPage(),
-                'per_page' => $paginator->perPage(),
-                'total' => $paginator->total(),
-            ],
-            'counts' => $counts,
-        ];
-
-        if ($paginator->total() === 0) {
-            $response['empty'] = [
-                'message' => 'Không tìm thấy kết quả phù hợp.',
-                'suggestion' => 'Thử thay đổi từ khóa hoặc bỏ lọc môn thể thao.',
-            ];
-        }
-
-        return response()->json($response);
-    }
-
-    public function index(Request $request): JsonResponse
-    {
-        $search = trim((string) $request->query('q', ''));
-
-        $paginator = Court::query()
-            ->where('status', 'active')
-            ->whereHas('venue', fn ($venue) => $venue->where('status', 'active'))
-            ->when($search !== '', fn ($q) => $q->where(function ($where) use ($search) {
-                $where->where('name', 'like', "%{$search}%")
-                    ->orWhereHas('venue', fn ($venue) => $venue
-                        ->where('name', 'like', "%{$search}%")
-                        ->orWhere('address', 'like', "%{$search}%"));
-            }))
-            ->with(['venue.sport', 'venue.ownerRegistration'])
-            ->latest()
-            ->paginate(15)
-            ->withQueryString();
-
-        $payload = $paginator->getCollection()->map(function (Court $court) {
-            return $this->formatCourt($court, false);
-        });
-
-        $paginator->setCollection($payload);
-
-        $response = [
-            'status' => 'success',
-            'message' => 'Danh sách sân',
+            'message' => $message,
             'data' => $payload,
             'meta' => [
                 'current_page' => $paginator->currentPage(),
@@ -114,15 +80,77 @@ class CourtController extends Controller
         return response()->json($response);
     }
 
-    public function show(int $courtId): JsonResponse
+    private function applySearch(Builder $query, string $search): void
     {
-        $court = Court::with(['venue.sport', 'venue.ownerRegistration'])->findOrFail($courtId);
+        if ($search === '') {
+            return;
+        }
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Chi tiết sân',
-            'data' => $this->formatCourt($court, true),
-        ]);
+        if ($this->supportsFullTextSearch()) {
+            $term = $this->toBooleanFullTextTerm($search);
+
+            $query
+                ->selectRaw(
+                    '(MATCH(courts.name) AGAINST (? IN BOOLEAN MODE) + MATCH(venues.name, venues.address) AGAINST (? IN BOOLEAN MODE)) as search_score',
+                    [$term, $term]
+                )
+                ->where(function (Builder $where) use ($search, $term) {
+                    $where
+                        ->whereRaw('MATCH(courts.name) AGAINST (? IN BOOLEAN MODE)', [$term])
+                        ->orWhereRaw('MATCH(venues.name, venues.address) AGAINST (? IN BOOLEAN MODE)', [$term])
+                        ->orWhere('courts.name', 'like', "%{$search}%")
+                        ->orWhere('venues.name', 'like', "%{$search}%")
+                        ->orWhere('venues.address', 'like', "%{$search}%")
+                        ->orWhere('sports.name', 'like', "%{$search}%")
+                        ->orWhere('sports.slug', 'like', "%{$search}%");
+                });
+
+            return;
+        }
+
+        $query->where(function (Builder $where) use ($search) {
+            $where
+                ->where('courts.name', 'like', "%{$search}%")
+                ->orWhere('venues.name', 'like', "%{$search}%")
+                ->orWhere('venues.address', 'like', "%{$search}%")
+                ->orWhere('sports.name', 'like', "%{$search}%")
+                ->orWhere('sports.slug', 'like', "%{$search}%");
+        });
+    }
+
+    private function applySorting(Builder $query, string $search): void
+    {
+        if ($search !== '' && $this->supportsFullTextSearch()) {
+            $query->orderByDesc('search_score');
+        }
+
+        $query
+            ->orderBy('venues.name')
+            ->orderBy('courts.name')
+            ->orderByDesc('courts.created_at');
+    }
+
+    private function supportsFullTextSearch(): bool
+    {
+        return in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true);
+    }
+
+    private function toBooleanFullTextTerm(string $search): string
+    {
+        $tokens = preg_split('/\s+/u', $search, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $tokens = array_map(
+            fn (string $token) => trim(str_replace(['+', '-', '~', '*', '"', '<', '>', '(', ')'], '', $token)),
+            $tokens
+        );
+        $tokens = array_values(array_filter($tokens, fn (string $token) => mb_strlen($token) >= 2));
+
+        if ($tokens === []) {
+            return $search;
+        }
+
+        return collect($tokens)
+            ->map(fn (string $token) => "+{$token}*")
+            ->implode(' ');
     }
 
     private function formatCourt(Court $court, bool $includeFullPhone = false): array
@@ -140,6 +168,8 @@ class CourtController extends Controller
             'sport_id' => $venue->sport?->id,
             'sport_name' => $venue->sport?->name,
             'address' => $venue->address ?? null,
+            'lat' => $venue->lat ?? null,
+            'lng' => $venue->lng ?? null,
             'phone_hidden' => $this->maskPhone($phone),
             'phone_full' => $includeFullPhone ? $phone : null,
         ];
@@ -147,11 +177,10 @@ class CourtController extends Controller
 
     private function maskPhone(?string $phone): ?string
     {
-        if (!$phone) {
+        if (! $phone) {
             return null;
         }
 
-        // show first 6 chars then mask rest
         $visible = mb_substr($phone, 0, 6);
 
         return $visible . '***';
@@ -159,7 +188,6 @@ class CourtController extends Controller
 
     private function countsPerSport(): array
     {
-        // returns [sport_id => count]
         $rows = DB::table('courts')
             ->join('venues', 'venues.id', '=', 'courts.venue_id')
             ->join('sports', 'sports.id', '=', 'venues.sport_id')
@@ -170,8 +198,8 @@ class CourtController extends Controller
             ->get();
 
         $result = [];
-        foreach ($rows as $r) {
-            $result[$r->sport_id] = (int) $r->total;
+        foreach ($rows as $row) {
+            $result[$row->sport_id] = (int) $row->total;
         }
 
         return $result;

@@ -13,7 +13,7 @@
                 Tìm sân thể thao gần bạn
             </h1>
             <p class="mt-3 max-w-2xl text-base leading-relaxed text-zinc-500">
-                Chọn loại môn ở thanh bên và tìm theo tên sân hoặc địa chỉ để xem các sân đang hoạt động.
+                Chọn loại môn ở thanh bên hoặc tìm theo tên sân, địa chỉ, loại môn để xem các sân đang hoạt động.
             </p>
 
             <div class="relative mt-6 max-w-xl">
@@ -24,10 +24,26 @@
                     type="search"
                     x-model="query"
                     @input="onSearch"
-                    placeholder="Tìm theo tên sân hoặc địa chỉ…"
-                    class="w-full rounded-xl border border-stone-300 bg-white py-3.5 pl-12 pr-4 text-sm text-zinc-900 shadow-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10"
+                    placeholder="Tìm theo tên sân, địa chỉ hoặc loại môn…"
+                    class="w-full rounded-xl border border-stone-300 bg-white py-3.5 pl-12 pr-12 text-sm text-zinc-900 shadow-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10"
                 >
+                <button
+                    type="button"
+                    x-show="query"
+                    x-cloak
+                    @click="clearSearch"
+                    class="absolute right-3 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg text-zinc-400 transition hover:bg-stone-100 hover:text-zinc-700"
+                    aria-label="Xóa từ khóa tìm kiếm"
+                >
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
+            <p x-show="query.trim() !== ''" x-cloak class="mt-2 text-sm text-zinc-500">
+                Tìm kiếm realtime theo tên sân, địa chỉ hoặc loại môn:
+                <span class="font-semibold text-zinc-800" x-text="query"></span>
+            </p>
         </section>
 
         <div class="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
