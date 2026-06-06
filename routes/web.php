@@ -1,10 +1,13 @@
 <?php
 
 use App\Http\Controllers\Web\CourtPageController;
+use App\Http\Controllers\Web\CourtBookingController;
 use App\Http\Controllers\Web\VenueController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [CourtPageController::class, 'index'])->name('home');
+
+Route::get('/courts/{court}/booking', [CourtBookingController::class, 'show'])->name('web.courts.booking');
 
 Route::get('/venues/{id}', [VenueController::class, 'show'])
     ->whereNumber('id')
