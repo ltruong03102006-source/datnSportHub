@@ -18,6 +18,7 @@ class SlotAvailabilityResource extends JsonResource
             'price' => (int)$this['price'],
             'price_type' => $this['price_type'],
             'is_available' => (bool)$this['is_available'],
+            'is_booked' => (bool)$this['is_booked'],
         ];
     }
 }

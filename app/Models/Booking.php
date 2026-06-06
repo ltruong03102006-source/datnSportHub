@@ -2,17 +2,27 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['court_id', 'user_id', 'slot_date', 'start_time', 'end_time', 'total_price', 'status', 'note'])]
 class Booking extends Model
 {
     use HasFactory;
 
     protected $table = 'bookings';
+
+    // ĐÂY LÀ CHUẨN CỦA LARAVEL
+    protected $fillable = [
+        'court_id', 
+        'user_id', 
+        'slot_date', 
+        'start_time', 
+        'end_time', 
+        'total_price', 
+        'status', 
+        'note'
+    ];
 
     protected $casts = [
         'total_price' => 'decimal:2',

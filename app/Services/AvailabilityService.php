@@ -13,27 +13,35 @@ class AvailabilityService
         $dayOfWeek = $date->dayOfWeek;
 
         $slots = $court->timeSlots()
-            ->with([
-                'prices' => fn($query) => $query->where('day_of_week', $dayOfWeek)
-            ])
+            ->with(['prices' => fn($query) => $query->where('day_of_week', $dayOfWeek)])
             ->get();
 
         $bookedSlots = $court->bookings()
-            ->where('slot_date', $date->toDateString())
-            ->whereNot('status', 'cancelled')
-            ->select('start_time', 'end_time')
-            ->get()
-            ->keyBy(fn($booking) => $booking->start_time . '-' . $booking->end_time);
+            ->whereDate('slot_date', $date->format('Y-m-d'))
+            ->where('status', '!=', 'cancelled')
+            ->get();
 
-        return $slots->map(fn($slot) => [
-            'slot_id' => $slot->id,
-            'court_id' => $court->id,
-            'start_time' => $slot->start_time,
-            'end_time' => $slot->end_time,
-            'duration_minutes' => $slot->duration_minutes,
-            'price' => $slot->prices?->first()?->price ?? 0,
-            'price_type' => $slot->prices?->first()?->price_type ?? 'normal',
-            'is_available' => !$bookedSlots->has($slot->start_time . '-' . $slot->end_time),
-        ]);
+        $bookedKeys = $bookedSlots->map(function($booking) {
+            return substr($booking->start_time, 0, 5) . '-' . substr($booking->end_time, 0, 5);
+        })->toArray();
+
+        return $slots->map(function($slot) use ($bookedKeys, $date) {
+            $slotTimeKey = substr($slot->start_time, 0, 5) . '-' . substr($slot->end_time, 0, 5);
+            $isBooked = in_array($slotTimeKey, $bookedKeys);
+            $isPast = Carbon::parse($date->format('Y-m-d') . ' ' . $slot->start_time)->isPast();
+
+            return [
+                'slot_id'          => $slot->id,
+                'court_id'         => $slot->court_id,
+                'start_time'       => substr($slot->start_time, 0, 5),
+                'end_time'         => substr($slot->end_time, 0, 5),
+                'duration_minutes' => $slot->duration_minutes,
+                'price'            => $slot->prices?->first()?->price ?? 0,
+                'price_type'       => $slot->prices?->first()?->price_type ?? 'normal',
+                'is_available'     => !$isBooked && !$isPast,
+                'is_past'          => $isPast,
+                'is_booked'        => $isBooked, // Biến này bắt buộc phải có
+            ];
+        });
     }
 }
