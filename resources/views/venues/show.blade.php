@@ -57,7 +57,6 @@
                         <a href="{{ route('web.courts.booking', $court->id) }}"
                            class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-600 focus:ring-4 focus:ring-emerald-500/20 active:scale-95 shadow-sm">
                             Chọn giờ
-                            
                         </a>
                     </div>
                 @empty
