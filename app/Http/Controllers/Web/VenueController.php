@@ -18,7 +18,8 @@ class VenueController extends Controller
 
         return view('venues.show', [
             'venue' => $venue,
-            'ownerPhone' => maskPhone($venue->ownerRegistration?->phone),
+            // ĐÃ BỎ HÀM maskPhone(), truyền trực tiếp dữ liệu gốc
+            'ownerPhone' => $venue->ownerRegistration?->phone, 
         ]);
     }
 }

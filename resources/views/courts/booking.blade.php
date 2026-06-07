@@ -402,8 +402,18 @@
         }
     }
 
-    function submitBooking() {
-        if(document.getElementById('btnSubmitBooking').disabled) return;
+    async function submitBooking() {
+        const submitBtn = document.getElementById('btnSubmitBooking');
+        if (submitBtn.disabled || selectedSlots.length === 0) return;
+
+        const token = localStorage.getItem('sporthub_token');
+        if (!token) {
+            showToast('Vui lòng đăng nhập để đặt sân.');
+            setTimeout(() => {
+                window.location.href = '{{ route('login') }}';
+            }, 800);
+            return;
+        }
 
         const selectedDate = datePicker.value;
         const slotIds = selectedSlots.map(s => s.slot_id);
@@ -411,10 +421,62 @@
         document.getElementById('slotIdInput').value = JSON.stringify(slotIds);
         document.getElementById('selectedDateInput').value = selectedDate;
 
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Đang tạo đơn...';
         showToast('Đang tạo đơn đặt sân...');
-        
-        // Uncomment để submit form cho Task #14
-        // document.getElementById('bookingForm').submit();
+
+        try {
+            const response = await fetch('{{ url('/api/bookings') }}', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    court_id: courtId,
+                    slot_date: selectedDate,
+                    slots: selectedSlots.map(slot => ({
+                        start_time: slot.start_time,
+                        end_time: slot.end_time,
+                    })),
+                }),
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    localStorage.removeItem('sporthub_token');
+                    localStorage.removeItem('sporthub_user');
+                    showToast('Phiên đăng nhập đã hết hạn.');
+                    setTimeout(() => {
+                        window.location.href = '{{ route('login') }}';
+                    }, 800);
+                    return;
+                }
+
+                showToast(data.message || 'Không thể tạo đơn đặt sân.');
+                return;
+            }
+
+            const bookings = Array.isArray(data.data) ? data.data : [data.data];
+            const firstBooking = bookings.find(Boolean);
+
+            if (!firstBooking?.id) {
+                showToast('Đã tạo đơn nhưng không tìm thấy mã booking.');
+                return;
+            }
+
+            const successUrl = @json(route('web.bookings.success', ['booking' => '__BOOKING_ID__']));
+            window.location.href = successUrl.replace('__BOOKING_ID__', firstBooking.id);
+        } catch (error) {
+            showToast('Không thể kết nối máy chủ. Vui lòng thử lại sau.');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        }
     }
 
     function showLoading(show) { 

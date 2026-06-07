@@ -26,7 +26,7 @@ class CourtsTableSeeder extends Seeder
                     'venue_id' => $venue->id,
                     'name' => $names[$i],
                     'status' => 'active',
-                    'is_bookable_online' => (bool) rand(0, 1),
+                    'is_bookable_online' => true,
                     'created_at' => now()->subDays(rand(0, 45)),
                     'updated_at' => now(),
                 ]);

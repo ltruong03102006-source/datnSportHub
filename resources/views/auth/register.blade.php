@@ -154,11 +154,12 @@
             button.textContent = 'Đang đăng ký...';
 
             try {
-                const response = await fetch('{{ url('/api/register') }}', {
+                const response = await fetch('{{ route('web.register') }}', {
                     method: 'POST',
                     headers: {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                     },
                     body: JSON.stringify(Object.fromEntries(new FormData(form))),
                 });
@@ -173,8 +174,9 @@
 
                 localStorage.setItem('sporthub_token', data.token);
                 localStorage.setItem('sporthub_user', JSON.stringify(data.user));
-                setAlert('Đăng ký thành công. Token đã được lưu trong trình duyệt.', 'success');
+                setAlert('Đăng ký thành công. Đang chuyển đến trang tìm sân...', 'success');
                 form.reset();
+                window.location.href = '{{ route('home') }}';
             } catch (error) {
                 setAlert('Không thể kết nối máy chủ. Vui lòng thử lại sau.');
             } finally {
