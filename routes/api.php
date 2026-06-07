@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\SportController;
 use App\Http\Controllers\Api\VenueController;
 use App\Http\Controllers\Api\CourtAvailabilityController;
 use App\Http\Controllers\CourtController;
+use App\Http\Controllers\Api\BookingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -27,6 +28,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (\Illuminate\Http\Request $request) {
         return $request->user();
     });
+
+    Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
+    Route::post('/courts/{courtId}/booking', [BookingController::class, 'store'])->name('courts.booking');
 });
 
 // Public sports & court listing & detail (API)

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [CourtPageController::class, 'index'])->name('home');
 
 Route::get('/courts/{court}/booking', [CourtBookingController::class, 'show'])->name('web.courts.booking');
+Route::post('/courts/booking', [CourtBookingController::class, 'store'])->name('web.courts.booking.store');
 
 Route::get('/venues/{id}', [VenueController::class, 'show'])
     ->whereNumber('id')
