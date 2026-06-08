@@ -120,11 +120,12 @@
             button.textContent = 'Đang đăng nhập...';
 
             try {
-                const response = await fetch('{{ url('/api/login') }}', {
+                const response = await fetch('{{ route('web.login') }}', {
                     method: 'POST',
                     headers: {
                         'Accept': 'application/json',
                         'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                     },
                     body: JSON.stringify(Object.fromEntries(new FormData(form))),
                 });

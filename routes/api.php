@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\VenueController;
 use App\Http\Controllers\Api\CourtAvailabilityController;
 use App\Http\Controllers\CourtController;
 use App\Http\Controllers\Api\BookingController;
+use App\Http\Controllers\Web\UserBookingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -30,6 +31,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
+    Route::post('/bookings/{booking}/cancel', [UserBookingController::class, 'cancel'])->name('bookings.cancel');
     Route::post('/courts/{courtId}/booking', [BookingController::class, 'store'])->name('courts.booking');
 });
 

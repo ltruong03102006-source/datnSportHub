@@ -17,43 +17,7 @@
 </head>
 <body class="flex min-h-screen flex-col bg-stone-50 font-sans text-zinc-900 antialiased">
     
-    <header x-data="{ 
-        open: false,
-        isLoggedIn: false,
-        userName: 'Người dùng',
-        userInitials: 'U',
-        init() {
-            const token = localStorage.getItem('sporthub_token');
-            const userStr = localStorage.getItem('sporthub_user');
-            if (token && userStr) {
-                try {
-                    const user = JSON.parse(userStr);
-                    this.isLoggedIn = true;
-                    this.userName = user.name || 'Khách';
-                    this.userInitials = this.userName.charAt(0).toUpperCase();
-                } catch (e) {
-                    console.error('Lỗi đọc thông tin user', e);
-                }
-            }
-        },
-        async logout() {
-            const token = localStorage.getItem('sporthub_token');
-            if (token) {
-                try {
-                    await fetch('{{ url('/api/logout') }}', {
-                        method: 'POST',
-                        headers: {
-                            'Accept': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        }
-                    });
-                } catch (e) {}
-            }
-            localStorage.removeItem('sporthub_token');
-            localStorage.removeItem('sporthub_user');
-            window.location.href = '{{ route('home') }}';
-        }
-    }" class="sticky top-0 z-30 border-b border-stone-200/80 bg-white/90 backdrop-blur-md">
+    <header x-data="{ open: false }" class="sticky top-0 z-30 border-b border-stone-200/80 bg-white/90 backdrop-blur-md">
         
         <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
             <a href="{{ url('/') }}" class="flex items-center gap-2.5 transition hover:opacity-80">
@@ -63,32 +27,39 @@
 
             <nav class="hidden items-center gap-8 text-sm font-medium text-zinc-600 md:flex">
                 <a href="{{ route('home') }}" class="text-emerald-700 transition hover:text-emerald-800">Tìm sân</a>
-                
             </nav>
 
-            <div x-show="!isLoggedIn" x-cloak class="hidden items-center gap-3 md:flex">
+            @guest
+            <div class="hidden items-center gap-3 md:flex">
                 <a href="{{ route('login') }}" class="text-sm font-semibold text-zinc-600 transition hover:text-emerald-700">Đăng nhập</a>
                 <a href="{{ route('register') }}" class="rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 hover:shadow">Đăng ký ngay</a>
             </div>
+            @endguest
 
-            <div x-show="isLoggedIn" x-cloak class="relative hidden items-center md:flex" x-data="{ profileOpen: false }">
+            @auth
+            <div class="relative hidden items-center md:flex" x-data="{ profileOpen: false }">
                 <button @click="profileOpen = !profileOpen" @click.away="profileOpen = false" class="flex items-center gap-2.5 rounded-full border border-stone-200 bg-white py-1.5 pl-1.5 pr-3 shadow-sm transition hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-emerald-600/20">
-                    <span class="grid h-8 w-8 place-items-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700" x-text="userInitials"></span>
-                    <span class="text-sm font-semibold text-zinc-700" x-text="userName"></span>
+                    <span class="grid h-8 w-8 place-items-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700">
+                        {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                    </span>
+                    <span class="text-sm font-semibold text-zinc-700">{{ Auth::user()->name }}</span>
                     <svg class="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
                 </button>
 
-                <div x-show="profileOpen" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="transform opacity-0 scale-95" x-transition:enter-end="transform opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="transform opacity-100 scale-100" x-transition:leave-end="transform opacity-0 scale-95" class="absolute right-0 top-full mt-2 w-56 origin-top-right rounded-xl border border-stone-100 bg-white py-2 shadow-lg ring-1 ring-black/5 focus:outline-none">
+                <div x-show="profileOpen" x-cloak x-transition:enter="transition ease-out duration-100" x-transition:enter-start="transform opacity-0 scale-95" x-transition:enter-end="transform opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="transform opacity-100 scale-100" x-transition:leave-end="transform opacity-0 scale-95" class="absolute right-0 top-full mt-2 w-56 origin-top-right rounded-xl border border-stone-100 bg-white py-2 shadow-lg ring-1 ring-black/5 focus:outline-none">
                     <div class="px-4 py-3 border-b border-stone-100">
                         <p class="text-xs text-zinc-500">Tài khoản của</p>
-                        <p class="truncate text-sm font-semibold text-zinc-900" x-text="userName"></p>
+                        <p class="truncate text-sm font-semibold text-zinc-900">{{ Auth::user()->name }}</p>
                     </div>
-                    <a href="#" class="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-stone-50 hover:text-emerald-700 transition">Lịch sử đặt sân</a>
+                    
+                    <a href="{{ route('account.bookings.index') }}" class="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-stone-50 hover:text-emerald-700 transition">Lịch sử đặt sân</a>
+                    
                     <a href="#" class="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-stone-50 hover:text-emerald-700 transition">Thông tin cá nhân</a>
                     <div class="my-1 border-t border-stone-100"></div>
-                    <button @click="logout()" class="block w-full px-4 py-2.5 text-left text-sm font-semibold text-red-600 hover:bg-red-50 transition">Đăng xuất</button>
+                    <button onclick="handleLogout()" class="block w-full px-4 py-2.5 text-left text-sm font-semibold text-red-600 hover:bg-red-50 transition">Đăng xuất</button>
                 </div>
             </div>
+            @endauth
 
             <button type="button" @click="open = !open" class="grid h-10 w-10 place-items-center rounded-lg text-zinc-700 transition hover:bg-stone-100 md:hidden">
                 <svg x-show="!open" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
@@ -100,26 +71,26 @@
             <nav class="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3 text-sm font-medium sm:px-6">
                 <a href="{{ route('home') }}" class="rounded-lg px-3 py-2.5 text-emerald-700 bg-emerald-50">Tìm sân</a>
                 
-                <template x-if="!isLoggedIn">
-                    <div class="mt-2 border-t border-stone-100 pt-2 flex flex-col gap-2">
-                        <a href="{{ route('login') }}" class="rounded-lg px-3 py-2.5 text-zinc-600 hover:bg-stone-100">Đăng nhập</a>
-                        <a href="{{ route('register') }}" class="rounded-lg bg-emerald-600 px-3 py-2.5 text-center font-semibold text-white shadow-sm">Đăng ký ngay</a>
-                    </div>
-                </template>
+                @guest
+                <div class="mt-2 border-t border-stone-100 pt-2 flex flex-col gap-2">
+                    <a href="{{ route('login') }}" class="rounded-lg px-3 py-2.5 text-zinc-600 hover:bg-stone-100">Đăng nhập</a>
+                    <a href="{{ route('register') }}" class="rounded-lg bg-emerald-600 px-3 py-2.5 text-center font-semibold text-white shadow-sm">Đăng ký ngay</a>
+                </div>
+                @endguest
 
-                <template x-if="isLoggedIn">
-                    <div class="mt-2 border-t border-stone-100 pt-2 flex flex-col gap-1">
-                        <div class="flex items-center gap-3 px-3 py-3">
-                            <span class="grid h-10 w-10 place-items-center rounded-full bg-emerald-100 text-base font-bold text-emerald-700" x-text="userInitials"></span>
-                            <div>
-                                <p class="text-xs text-zinc-500">Xin chào</p>
-                                <p class="text-sm font-bold text-zinc-900" x-text="userName"></p>
-                            </div>
+                @auth
+                <div class="mt-2 border-t border-stone-100 pt-2 flex flex-col gap-1">
+                    <div class="flex items-center gap-3 px-3 py-3">
+                        <span class="grid h-10 w-10 place-items-center rounded-full bg-emerald-100 text-base font-bold text-emerald-700">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</span>
+                        <div>
+                            <p class="text-xs text-zinc-500">Xin chào</p>
+                            <p class="text-sm font-bold text-zinc-900">{{ Auth::user()->name }}</p>
                         </div>
-                        <a href="#" class="rounded-lg px-3 py-2.5 text-zinc-700 hover:bg-stone-100">Lịch sử đặt sân</a>
-                        <button @click="logout()" class="rounded-lg px-3 py-2.5 text-left font-semibold text-red-600 hover:bg-red-50">Đăng xuất</button>
                     </div>
-                </template>
+                    <a href="{{ route('account.bookings.index') }}" class="rounded-lg px-3 py-2.5 text-zinc-700 hover:bg-stone-100">Lịch sử đặt sân</a>
+                    <button onclick="handleLogout()" class="rounded-lg px-3 py-2.5 text-left font-semibold text-red-600 hover:bg-red-50">Đăng xuất</button>
+                </div>
+                @endauth
             </nav>
         </div>
     </header>
@@ -196,5 +167,25 @@
     </footer>
 
     @yield('scripts')
+    <script>
+        async function handleLogout() {
+            try {
+                await fetch('{{ route('web.logout') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+            } catch (e) {}
+            
+            // Xóa rác trong localStorage
+            localStorage.removeItem('sporthub_token');
+            localStorage.removeItem('sporthub_user');
+            
+            // F5 lại trang để server cập nhật giao diện
+            window.location.href = '{{ route('home') }}';
+        }
+    </script>
 </body>
 </html>

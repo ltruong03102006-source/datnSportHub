@@ -29,6 +29,11 @@ class AuthController extends Controller
 
             $token = $user->createToken('auth_token')->plainTextToken;
 
+            if ($request->hasSession()) {
+                Auth::guard('web')->login($user);
+                $request->session()->regenerate();
+            }
+
             return response()->json([
                 'message' => 'Register successful',
                 'token' => $token,
@@ -69,6 +74,11 @@ class AuthController extends Controller
             // 4. Tạo token mới
             $token = $user->createToken('auth_token')->plainTextToken;
 
+            if ($request->hasSession()) {
+                Auth::guard('web')->login($user);
+                $request->session()->regenerate();
+            }
+
             return response()->json([
                 'message' => 'Login successful',
                 'token' => $token,
@@ -90,7 +100,18 @@ class AuthController extends Controller
     {
         try {
             // Xóa token hiện tại đang được sử dụng cho request này
-            request()->user()->currentAccessToken()->delete();
+            $user = request()->user();
+            $accessToken = $user?->currentAccessToken();
+
+            if ($accessToken) {
+                $accessToken->delete();
+            }
+
+            if (request()->hasSession()) {
+                Auth::guard('web')->logout();
+                request()->session()->invalidate();
+                request()->session()->regenerateToken();
+            }
 
             return response()->json([
                 'message' => 'Logout successful'

@@ -178,7 +178,7 @@ class CourtController extends Controller
             'address' => $venue->address ?? null,
             'lat' => $venue->lat ?? null,
             'lng' => $venue->lng ?? null,
-            'phone_hidden' => $this->maskPhone($phone),
+            'phone' => $phone, // Đã đổi thành phone và trả về SĐT thật
             'phone_full' => $includeFullPhone ? $phone : null,
         ];
     }
@@ -196,20 +196,9 @@ class CourtController extends Controller
             'address' => $venue->address,
             'lat' => $venue->lat,
             'lng' => $venue->lng,
-            'phone_hidden' => $this->maskPhone($phone),
-            'courts_count' => $venue->courts_count ?? 0, // Trả về số lượng sân con
+            'phone' => $phone, // Đã đổi thành phone và trả về SĐT thật
+            'courts_count' => $venue->courts_count ?? 0,
         ];
-    }
-
-    private function maskPhone(?string $phone): ?string
-    {
-        if (! $phone) {
-            return null;
-        }
-
-        $visible = mb_substr($phone, 0, 6);
-
-        return $visible . '***';
     }
 
     private function countsPerSport(): array
