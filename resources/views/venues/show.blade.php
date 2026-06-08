@@ -73,12 +73,8 @@
                 </div>
             </div>
 
-            <div x-show="activeTab === 'reviews'" x-cloak class="rounded-2xl border border-stone-200 bg-white py-16 text-center shadow-sm">
-                <div class="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-full bg-amber-50">
-                    <span class="text-2xl">⭐</span>
-                </div>
-                <h3 class="text-base font-bold text-zinc-900">Chưa có đánh giá nào</h3>
-                <p class="mt-1 text-sm text-stone-500">Tính năng đánh giá sẽ được mở sau khi bạn hoàn tất lượt đặt sân tại đây.</p>
+            <div x-show="activeTab === 'reviews'" x-cloak>
+                @include('reviews.partials.panel', ['venue' => $venue])
             </div>
 
         </div>

@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\VenueController;
 use App\Http\Controllers\Api\CourtAvailabilityController;
 use App\Http\Controllers\CourtController;
 use App\Http\Controllers\Api\BookingController;
+use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Web\UserBookingController;
 
 /*
@@ -33,6 +34,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
     Route::post('/bookings/{booking}/cancel', [UserBookingController::class, 'cancel'])->name('bookings.cancel');
     Route::post('/courts/{courtId}/booking', [BookingController::class, 'store'])->name('courts.booking');
+
+    // Submit a court review (only after the user has booked it)
+    Route::post('/courts/{courtId}/reviews', [ReviewController::class, 'store'])
+        ->whereNumber('courtId')
+        ->name('courts.reviews.store');
 });
 
 // Public sports & court listing & detail (API)
@@ -57,3 +63,8 @@ Route::get('/courts/{courtId}/availability', [CourtAvailabilityController::class
 Route::get('/venues/{id}', [VenueController::class, 'show'])
     ->whereNumber('id')
     ->name('venues.show');
+
+// List reviews for a venue (aggregated across its courts)
+Route::get('/venues/{venueId}/reviews', [ReviewController::class, 'venueReviews'])
+    ->whereNumber('venueId')
+    ->name('venues.reviews');
