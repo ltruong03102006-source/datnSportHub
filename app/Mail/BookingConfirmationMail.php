@@ -20,7 +20,7 @@ class BookingConfirmationMail extends Mailable
 
     public function build()
     {
-        return $this->subject('Xác nhận đặt sân')
+        return $this->subject('Xac nhan dat san')
             ->view('emails.booking_confirmation')
             ->with([
                 'booking' => $this->booking,
