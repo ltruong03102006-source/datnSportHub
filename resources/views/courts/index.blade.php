@@ -54,6 +54,43 @@
             </p>
         </section>
 
+        <!-- Owner Registration Section -->
+        <section class="mb-10 lg:mb-16 rounded-3xl overflow-hidden bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 shadow-sm">
+            <div class="relative">
+                <!-- Background decoration -->
+                <div class="absolute inset-0 overflow-hidden pointer-events-none">
+                    <div class="absolute -right-40 -top-40 w-80 h-80 bg-blue-200/10 rounded-full blur-3xl"></div>
+                    <div class="absolute -left-40 -bottom-40 w-80 h-80 bg-indigo-200/10 rounded-full blur-3xl"></div>
+                </div>
+
+                <div class="relative px-6 py-12 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
+                    <div class="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+                        <div class="flex-1 max-w-2xl">
+                            <p class="text-sm font-bold tracking-wider text-blue-700 uppercase mb-2">Bạn là chủ sân?</p>
+                            <h2 class="text-3xl sm:text-4xl font-extrabold text-gray-900 leading-tight mb-3">
+                                Đăng ký miễn phí để quản lý sân
+                            </h2>
+                            <p class="text-base sm:text-lg text-gray-600 leading-relaxed">
+                                Đăng ký làm chủ sân ngay để quản lý lịch đặt sân, doanh thu và khách hàng trên một nền tảng duy nhất.
+                            </p>
+                        </div>
+
+                        <div class="flex flex-col gap-3 sm:flex-row lg:flex-col">
+                            <a href="{{ route('owner.register') }}" class="inline-flex items-center justify-center px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold text-base transition-all hover:from-blue-700 hover:to-blue-800 hover:shadow-lg hover:-translate-y-1 active:translate-y-0 shadow-md focus:ring-4 focus:ring-blue-300/50 uppercase tracking-wider">
+                                <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                </svg>
+                                Đăng ký ngay
+                            </a>
+                            <a href="#" class="inline-flex items-center justify-center px-8 py-4 rounded-xl border-2 border-blue-300 text-blue-700 font-bold text-base transition-all hover:bg-blue-50 hover:border-blue-400">
+                                Tìm hiểu thêm
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <div class="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
             
             <aside class="min-w-0 lg:sticky lg:top-24 lg:self-start">
