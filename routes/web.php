@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Web\CourtPageController;
 use App\Http\Controllers\Web\CourtBookingController;
+use App\Http\Controllers\Web\OwnerLoginController;
 use App\Http\Controllers\Web\OwnerRegistrationController;
 use App\Http\Controllers\Web\OwnerVenueController;
 use App\Http\Controllers\Web\UserBookingController;
@@ -20,6 +21,8 @@ Route::get('/venues/{id}', [VenueController::class, 'show'])
 
 Route::view('/login', 'auth.login')->name('login');
 Route::view('/register', 'auth.register')->name('register');
+Route::get('/owner/login', [OwnerLoginController::class, 'create'])->name('owner.login.page');
+Route::post('/owner/login', [OwnerLoginController::class, 'store'])->name('owner.login.store');
 Route::get('/owner/register', [OwnerRegistrationController::class, 'create'])->name('owner.register.page');
 Route::post('/owner/register', [OwnerRegistrationController::class, 'store'])->name('owner.register.store');
 Route::post('/login', [ApiAuthController::class, 'login'])->name('web.login');

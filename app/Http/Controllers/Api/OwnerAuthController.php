@@ -103,6 +103,11 @@ class OwnerAuthController extends Controller
             $validated = $request->validate([
                 'email' => 'required|email',
                 'password' => 'required|string',
+            ], [
+                'email.required' => 'Vui lòng nhập email.',
+                'email.email' => 'Email không hợp lệ.',
+                'password.required' => 'Vui lòng nhập mật khẩu.',
+                'password.string' => 'Mật khẩu không hợp lệ.',
             ]);
 
             // Tìm user theo email
