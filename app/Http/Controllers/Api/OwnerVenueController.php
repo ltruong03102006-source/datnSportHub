@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreVenueRequest;
 use App\Models\Venue;
 use App\Models\Sport;
 use Illuminate\Http\JsonResponse;
@@ -41,55 +42,35 @@ class OwnerVenueController extends Controller
      * Tạo sân mới
      * POST /api/owner/venues
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreVenueRequest $request): JsonResponse
     {
-        try {
-            $validated = $request->validate([
-                'sport_id' => 'required|exists:sports,id',
-                'name' => 'required|string|max:255',
-                'address' => 'required|string',
-                'lat' => 'required|numeric',
-                'lng' => 'required|numeric',
-                'description' => 'nullable|string',
-                'banner' => 'nullable|image|max:2048',
-            ]);
+        $validated = $request->validated();
+        $bannerPath = null;
 
-            // Xử lý upload banner
-            $banner = null;
-            if ($request->hasFile('banner')) {
-                $banner = $request->file('banner')->store('venues', 'public');
-            }
-
-            $user = $request->user();
-
-            $venue = Venue::create([
-                'owner_id' => $user->id,
-                'sport_id' => $validated['sport_id'],
-                'name' => $validated['name'],
-                'address' => $validated['address'],
-                'lat' => $validated['lat'],
-                'lng' => $validated['lng'],
-                'description' => $validated['description'] ?? null,
-                'banner' => $banner,
-                'status' => 'pending', // Sân mới cần duyệt
-            ]);
-
-            return response()->json([
-                'message' => 'Tạo sân thành công. Sân của bạn đang chờ duyệt.',
-                'data' => $venue->load('sport')
-            ], 201);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation error',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (Exception $e) {
-            return response()->json([
-                'message' => 'Lỗi khi tạo sân',
-                'error' => $e->getMessage()
-            ], 500);
+        if ($request->hasFile('banner')) {
+            $bannerPath = $request->file('banner')->store('venues', 'public');
         }
+
+        $venue = Venue::create([
+            'owner_id' => $request->user()->id,
+            'sport_id' => $validated['sport_id'],
+            'name' => $validated['name'],
+            'address' => $validated['address'],
+            'description' => $validated['description'] ?? null,
+            'banner' => $bannerPath,
+            'lat' => $validated['lat'] ?? null,
+            'lng' => $validated['lng'] ?? null,
+            'status' => 'pending',
+        ]);
+
+        return response()->json([
+            'message' => 'Venue created successfully',
+            'data' => [
+                'id' => $venue->id,
+                'name' => $venue->name,
+                'banner_url' => $bannerPath ? asset('storage/' . $bannerPath) : null,
+            ],
+        ], 201);
     }
 
     /**

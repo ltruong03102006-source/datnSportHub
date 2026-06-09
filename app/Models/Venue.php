@@ -15,6 +15,11 @@ class Venue extends Model
 
     protected $table = 'venues';
 
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_id');
+    }
+
     public function sport(): BelongsTo
     {
         return $this->belongsTo(Sport::class);
