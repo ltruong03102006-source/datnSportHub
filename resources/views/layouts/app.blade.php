@@ -27,7 +27,7 @@
 
             <nav class="hidden items-center gap-8 text-sm font-medium text-zinc-600 md:flex">
                 <a href="{{ route('home') }}" class="text-emerald-700 transition hover:text-emerald-800">Tìm sân</a>
-                <a href="{{ route('owner.register') }}" class="text-zinc-600 transition hover:text-blue-700 font-semibold">Chủ sân</a>
+                <a href="{{ route('owner.register.page') }}" class="text-zinc-600 transition hover:text-blue-700 font-semibold">Chủ sân</a>
             </nav>
 
             @guest
@@ -71,7 +71,7 @@
         <div x-show="open" x-cloak x-transition class="border-t border-stone-200 bg-white md:hidden">
             <nav class="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3 text-sm font-medium sm:px-6">
                 <a href="{{ route('home') }}" class="rounded-lg px-3 py-2.5 text-emerald-700 bg-emerald-50">Tìm sân</a>
-                <a href="{{ route('owner.register') }}" class="rounded-lg px-3 py-2.5 text-blue-700 hover:bg-blue-50 font-semibold">Đăng ký làm chủ sân</a>
+                <a href="{{ route('owner.register.page') }}" class="rounded-lg px-3 py-2.5 text-blue-700 hover:bg-blue-50 font-semibold">Đăng ký làm chủ sân</a>
                 
                 @guest
                 <div class="mt-2 border-t border-stone-100 pt-2 flex flex-col gap-2">
@@ -128,7 +128,7 @@
                 <div>
                     <h3 class="text-sm font-bold text-zinc-900 uppercase tracking-wider mb-4">Đối tác</h3>
                     <ul class="space-y-3 text-sm text-zinc-500">
-                        <li><a href="{{ route('owner.register') }}" class="hover:text-emerald-600 transition">Đăng ký làm đối tác</a></li>
+                        <li><a href="{{ route('owner.register.page') }}" class="hover:text-emerald-600 transition">Đăng ký làm đối tác</a></li>
                         <li><a href="#" class="hover:text-emerald-600 transition">Quản lý sân (Portal)</a></li>
                         <li><a href="#" class="hover:text-emerald-600 transition">Quy định hợp tác</a></li>
                         <li><a href="#" class="hover:text-emerald-600 transition">Trung tâm hỗ trợ</a></li>

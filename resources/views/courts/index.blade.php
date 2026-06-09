@@ -76,7 +76,7 @@
                         </div>
 
                         <div class="flex flex-col gap-3 sm:flex-row lg:flex-col">
-                            <a href="{{ route('owner.register') }}" class="inline-flex items-center justify-center px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold text-base transition-all hover:from-blue-700 hover:to-blue-800 hover:shadow-lg hover:-translate-y-1 active:translate-y-0 shadow-md focus:ring-4 focus:ring-blue-300/50 uppercase tracking-wider">
+                            <a href="{{ route('owner.register.page') }}" class="inline-flex items-center justify-center px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold text-base transition-all hover:from-blue-700 hover:to-blue-800 hover:shadow-lg hover:-translate-y-1 active:translate-y-0 shadow-md focus:ring-4 focus:ring-blue-300/50 uppercase tracking-wider">
                                 <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                                 </svg>
