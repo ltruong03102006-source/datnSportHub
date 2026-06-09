@@ -57,6 +57,11 @@
         </button>
     </form>
 
+    <div style="margin-top: 16px; padding: 12px 14px; border: 1px solid #dbeafe; border-radius: 10px; background: #eff6ff; color: #1d4ed8; font-size: 14px; line-height: 1.5;">
+        Bạn là chủ sân?
+        <a href="{{ route('owner.login.page') }}" style="font-weight: 700; color: #1d4ed8; text-decoration: underline;">Đăng nhập cho chủ sân</a>
+    </div>
+
     <p class="auth-switch">
         Chưa có tài khoản?
         <a href="{{ route('register') }}">Đăng ký ngay</a>
