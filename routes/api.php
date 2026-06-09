@@ -2,6 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\OwnerAuthController;
+use App\Http\Controllers\Api\OwnerVenueController;
+use App\Http\Controllers\Api\OwnerCourtController;
+use App\Http\Controllers\Api\OwnerBookingController;
 use App\Http\Controllers\Api\SportController;
 use App\Http\Controllers\Api\VenueController;
 use App\Http\Controllers\Api\CourtAvailabilityController;
@@ -68,3 +72,46 @@ Route::get('/venues/{id}', [VenueController::class, 'show'])
 Route::get('/venues/{venueId}/reviews', [ReviewController::class, 'venueReviews'])
     ->whereNumber('venueId')
     ->name('venues.reviews');
+
+/*
+|--------------------------------------------------------------------------
+| Owner Authentication Routes (Public)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('owner')->group(function () {
+    Route::post('/register', [OwnerAuthController::class, 'register'])->name('owner.register');
+    Route::post('/login', [OwnerAuthController::class, 'login'])->name('owner.login');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Owner Protected Routes (Yêu cầu Authentication + Owner Role)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'owner'])->prefix('owner')->group(function () {
+    Route::post('/logout', [OwnerAuthController::class, 'logout'])->name('owner.logout');
+    Route::get('/me', [OwnerAuthController::class, 'me'])->name('owner.me');
+    Route::post('/change-password', [OwnerAuthController::class, 'changePassword'])->name('owner.changePassword');
+    
+    // Owner Venues Management
+    Route::get('/sports', [OwnerVenueController::class, 'getSports'])->name('owner.sports');
+    Route::get('/venues', [OwnerVenueController::class, 'index'])->name('owner.venues.index');
+    Route::post('/venues', [OwnerVenueController::class, 'store'])->name('owner.venues.store');
+    Route::get('/venues/{id}', [OwnerVenueController::class, 'show'])->name('owner.venues.show');
+    Route::put('/venues/{id}', [OwnerVenueController::class, 'update'])->name('owner.venues.update');
+    Route::delete('/venues/{id}', [OwnerVenueController::class, 'destroy'])->name('owner.venues.destroy');
+    
+    // Owner Courts Management
+    Route::get('/courts', [OwnerCourtController::class, 'index'])->name('owner.courts.index');
+    Route::post('/venues/{venueId}/courts', [OwnerCourtController::class, 'store'])->name('owner.courts.store');
+    Route::put('/courts/{courtId}', [OwnerCourtController::class, 'update'])->name('owner.courts.update');
+    Route::delete('/courts/{courtId}', [OwnerCourtController::class, 'destroy'])->name('owner.courts.destroy');
+    Route::get('/courts/{courtId}/time-slots', [OwnerCourtController::class, 'getTimeSlots'])->name('owner.courts.timeSlots');
+    
+    // Owner Bookings Management
+    Route::get('/bookings', [OwnerBookingController::class, 'index'])->name('owner.bookings.index');
+    Route::get('/bookings/stats', [OwnerBookingController::class, 'stats'])->name('owner.bookings.stats');
+    Route::get('/bookings/{id}', [OwnerBookingController::class, 'show'])->name('owner.bookings.show');
+    Route::get('/venues/{venueId}/bookings', [OwnerBookingController::class, 'venueBookings'])->name('owner.venues.bookings');
+    Route::get('/courts/{courtId}/bookings', [OwnerBookingController::class, 'courtBookings'])->name('owner.courts.bookings');
+});
