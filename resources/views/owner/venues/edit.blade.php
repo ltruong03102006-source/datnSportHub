@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thêm điểm sân</title>
+    <title>Sửa điểm sân: {{ $venue->name }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
     <style>
@@ -23,7 +23,7 @@
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{{ route('home') }}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{{ route('owner.web.venues.index') }}">Quản lý sân</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Thêm điểm sân</li>
+            <li class="breadcrumb-item active" aria-current="page">Sửa điểm sân</li>
         </ol>
     </nav>
 
@@ -33,8 +33,8 @@
                 <div class="card-body p-4 p-lg-5">
                     <div class="d-flex justify-content-between align-items-start mb-4">
                         <div>
-                            <h1 class="h3 mb-1">Tạo venue mới</h1>
-                            <p class="text-muted mb-0">Tạo một điểm sân mới trước khi khai báo các sân nhỏ.</p>
+                            <h1 class="h3 mb-1">Cập nhật thông tin</h1>
+                            <p class="text-muted mb-0">Sửa điểm sân: <span class="fw-bold text-dark">{{ $venue->name }}</span></p>
                         </div>
                         <a href="{{ route('owner.web.venues.index') }}" class="btn btn-outline-secondary btn-sm">Quay lại</a>
                     </div>
@@ -43,13 +43,15 @@
 
                     <form id="venueForm" enctype="multipart/form-data" novalidate>
                         @csrf
+                        @method('PUT') 
+                        
                         <div class="row g-3">
                             <div class="col-12 col-md-6">
                                 <label for="sport_id" class="form-label">Loại môn thể thao <span class="text-danger">*</span></label>
                                 <select id="sport_id" name="sport_id" class="form-select" required>
                                     <option value="">-- Chọn môn thể thao --</option>
                                     @foreach($sports as $sport)
-                                        <option value="{{ $sport->id }}" {{ old('sport_id') == $sport->id ? 'selected' : '' }}>{{ $sport->name }}</option>
+                                        <option value="{{ $sport->id }}" {{ old('sport_id', $venue->sport_id) == $sport->id ? 'selected' : '' }}>{{ $sport->name }}</option>
                                     @endforeach
                                 </select>
                                 <div class="invalid-feedback" id="error-sport_id"></div>
@@ -57,24 +59,24 @@
 
                             <div class="col-12 col-md-6">
                                 <label for="name" class="form-label">Tên điểm sân <span class="text-danger">*</span></label>
-                                <input id="name" name="name" type="text" class="form-control" maxlength="255" required value="{{ old('name') }}">
+                                <input id="name" name="name" type="text" class="form-control" maxlength="255" required value="{{ old('name', $venue->name) }}">
                                 <div class="invalid-feedback" id="error-name"></div>
                             </div>
 
                             <div class="col-12">
                                 <label for="address" class="form-label">Địa chỉ <span class="text-danger">*</span></label>
-                                <input id="address" name="address" type="text" class="form-control" maxlength="500" required value="{{ old('address') }}">
+                                <input id="address" name="address" type="text" class="form-control" maxlength="500" required value="{{ old('address', $venue->address) }}">
                                 <div class="invalid-feedback" id="error-address"></div>
                             </div>
 
                             <div class="col-12">
                                 <label for="description" class="form-label">Mô tả</label>
-                                <textarea id="description" name="description" class="form-control" rows="4">{{ old('description') }}</textarea>
+                                <textarea id="description" name="description" class="form-control" rows="4">{{ old('description', $venue->description) }}</textarea>
                                 <div class="invalid-feedback" id="error-description"></div>
                             </div>
 
                             <div class="col-12 col-md-6">
-                                <label for="banner" class="form-label">Banner</label>
+                                <label for="banner" class="form-label">Banner (Để trống nếu không muốn đổi)</label>
                                 <input id="banner" name="banner" type="file" class="form-control" accept="image/jpg,image/jpeg,image/png">
                                 <div class="form-text">Định dạng cho phép: jpg, jpeg, png. Tối đa 2MB.</div>
                                 <div class="invalid-feedback" id="error-banner"></div>
@@ -82,7 +84,11 @@
 
                             <div class="col-12 col-md-6">
                                 <div class="preview-box" id="previewBox">
-                                    <span class="text-muted">Xem trước banner</span>
+                                    @if($venue->banner)
+                                        <img src="{{ asset('storage/' . $venue->banner) }}" alt="Current Banner">
+                                    @else
+                                        <span class="text-muted">Chưa có ảnh</span>
+                                    @endif
                                 </div>
                             </div>
 
@@ -94,13 +100,13 @@
 
                             <div class="col-12 col-md-6">
                                 <label for="lat" class="form-label">Vĩ độ (Latitude)</label>
-                                <input id="lat" name="lat" type="number" step="any" class="form-control" value="{{ old('lat') }}" placeholder="Ví dụ: 21.028511">
+                                <input id="lat" name="lat" type="number" step="any" class="form-control" value="{{ old('lat', $venue->lat) }}">
                                 <div class="invalid-feedback" id="error-lat"></div>
                             </div>
 
                             <div class="col-12 col-md-6">
                                 <label for="lng" class="form-label">Kinh độ (Longitude)</label>
-                                <input id="lng" name="lng" type="number" step="any" class="form-control" value="{{ old('lng') }}" placeholder="Ví dụ: 105.804817">
+                                <input id="lng" name="lng" type="number" step="any" class="form-control" value="{{ old('lng', $venue->lng) }}">
                                 <div class="invalid-feedback" id="error-lng"></div>
                             </div>
                         </div>
@@ -108,9 +114,8 @@
                         <div class="d-flex flex-column flex-md-row gap-2 mt-4">
                             <button id="submitBtn" type="submit" class="btn btn-primary px-4">
                                 <span id="submitSpinner" class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
-                                <span id="submitText">Lưu điểm sân</span>
+                                <span id="submitText">Lưu thay đổi</span>
                             </button>
-                            <button type="reset" class="btn btn-outline-secondary">Làm mới</button>
                         </div>
                     </form>
                 </div>
@@ -121,19 +126,18 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script>
-    // --- 1. XỬ LÝ BẢN ĐỒ THÔNG MINH ---
     const latInput = document.getElementById('lat');
     const lngInput = document.getElementById('lng');
 
-    const defaultLat = 21.028511; 
-    const defaultLng = 105.804817;
+    // Lấy tọa độ cũ từ Database để làm Center cho bản đồ, nếu trống thì lấy tọa độ Hà Nội
+    const initialLat = {{ old('lat', $venue->lat ?? '21.028511') }}; 
+    const initialLng = {{ old('lng', $venue->lng ?? '105.804817') }};
 
-    const map = L.map('map').setView([defaultLat, defaultLng], 14);
+    const map = L.map('map').setView([initialLat, initialLng], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
 
-    let marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+    let marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(map);
 
-    // Cập nhật input khi thao tác trên bản đồ
     function updateInputs(lat, lng) {
         latInput.value = lat.toFixed(6);
         lngInput.value = lng.toFixed(6);
@@ -149,7 +153,6 @@
         updateInputs(e.latlng.lat, e.latlng.lng);
     });
 
-    // Bản đồ nhảy tự động khi nhập tay vào Input
     function syncMapWithInputs() {
         let lat = parseFloat(latInput.value);
         let lng = parseFloat(lngInput.value);
@@ -163,11 +166,7 @@
     latInput.addEventListener('input', syncMapWithInputs);
     lngInput.addEventListener('input', syncMapWithInputs);
 
-    // Khởi tạo tọa độ lần đầu
-    if(!latInput.value) updateInputs(defaultLat, defaultLng);
-    else syncMapWithInputs();
-
-    // --- 2. XỬ LÝ FORM & SUBMIT ---
+    // XỬ LÝ FORM CẬP NHẬT
     const form = document.getElementById('venueForm');
     const alertBox = document.getElementById('formAlert');
     const submitBtn = document.getElementById('submitBtn');
@@ -204,8 +203,9 @@
         alertBox.classList.add('d-none');
 
         try {
-            const response = await fetch('{{ route('owner.web.venues.store') }}', {
-                method: 'POST',
+            // URL gọi tới hàm Update trong Controller
+            const response = await fetch('{{ route('owner.web.venues.update', $venue->id) }}', {
+                method: 'POST', // Chú ý: API fetch vẫn dùng POST, nhưng form data gửi kèm _method=PUT ở HTML
                 headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                 body: new FormData(form)
             });
@@ -226,13 +226,14 @@
                 showAlert(data.message || 'Lỗi hệ thống.', 'danger');
                 return;
             }
-            window.location.href = '{{ route('owner.web.venues.index') }}?created=1';
+            // Quay về index và báo thành công
+            window.location.href = '{{ route('owner.web.venues.index') }}';
         } catch (error) {
             showAlert('Đã xảy ra lỗi khi kết nối máy chủ.', 'danger');
         } finally {
             submitBtn.disabled = false;
             submitSpinner.classList.add('d-none');
-            submitText.textContent = 'Lưu điểm sân';
+            submitText.textContent = 'Lưu thay đổi';
         }
     });
 </script>

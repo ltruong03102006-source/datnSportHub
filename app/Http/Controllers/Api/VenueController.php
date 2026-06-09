@@ -25,7 +25,7 @@ class VenueController extends Controller
                     'name' => $venue->name,
                     'address' => $venue->address,
                     'description' => $venue->description,
-                    'banner' => $venue->banner,
+                    'banner' => $venue->banner ? asset('storage/' . $venue->banner) : null,
                     'status' => $venue->status,
                     'lat' => $venue->lat,
                     'lng' => $venue->lng,

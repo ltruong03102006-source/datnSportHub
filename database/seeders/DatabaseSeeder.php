@@ -21,15 +21,17 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // call individual seeders
+        // Chỉ gọi seeder tạo Users và Sports
         $this->call([
             UsersTableSeeder::class,
             SportsTableSeeder::class,
-            OwnerRegistrationsTableSeeder::class,
-            VenuesTableSeeder::class,
-            CourtsTableSeeder::class,
-            TimeSlotTableSeeder::class,
-            SlotPriceTableSeeder::class,
+            
+            // TẮT TOÀN BỘ SEEDER TẠO DỮ LIỆU GIẢ BÊN DƯỚI BẰNG CÁCH COMMENT (//)
+            // OwnerRegistrationsTableSeeder::class,
+            // VenuesTableSeeder::class,
+            // CourtsTableSeeder::class,
+            // TimeSlotTableSeeder::class,
+            // SlotPriceTableSeeder::class,
         ]);
     }
 }

@@ -8,10 +8,20 @@
     <!-- Hero Section: Clean Profile Card Style -->
     <div class="mb-10 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm transition-shadow hover:shadow-md">
         <div class="flex flex-col md:flex-row">
-            <!-- Image -->
-            <div class="h-48 w-full shrink-0 overflow-hidden md:h-auto md:w-80">
-                <img src="{{ $bannerUrl }}" alt="{{ $court->name }}" class="h-full w-full object-cover">
+            <!-- Image (Đã loại bỏ dữ liệu giả) -->
+            <div class="relative h-48 w-full shrink-0 overflow-hidden bg-stone-100 md:h-auto md:w-80">
+                @if($court->venue && $court->venue->banner)
+                    <img src="{{ asset('storage/' . $court->venue->banner) }}" alt="{{ $court->name }}" class="h-full w-full object-cover">
+                @else
+                    <div class="flex h-full w-full flex-col items-center justify-center text-stone-400">
+                        <svg class="mb-2 h-10 w-10 opacity-50" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>
+                        <span class="text-xs font-medium uppercase tracking-wider">Chưa có ảnh</span>
+                    </div>
+                @endif
             </div>
+            
+            <!-- Phần Info giữ nguyên của bạn -->
+            <!-- ... -->
             
             <!-- Info -->
             <div class="flex flex-1 flex-col justify-center p-6 sm:p-8">
@@ -38,18 +48,6 @@
                     </svg>
                     <span>{{ $court->venue?->address ?? 'Chưa cập nhật địa chỉ' }}</span>
                 </p>
-
-                <!-- Quick Stats -->
-                <div class="flex flex-wrap gap-6 border-t border-stone-100 pt-6">
-                    <div>
-                        <p class="text-xs font-medium text-stone-400 uppercase tracking-wider mb-1">Giờ mở cửa</p>
-                        <p class="text-sm font-semibold text-zinc-900">06:00 - 22:00</p>
-                    </div>
-                    <div>
-                        <p class="text-xs font-medium text-stone-400 uppercase tracking-wider mb-1">Loại giá</p>
-                        <p class="text-sm font-semibold text-zinc-900">Giờ thường / Cao điểm</p>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -87,17 +85,11 @@
             <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-emerald-50 border border-emerald-200">
                 <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
             </span>
-            <span class="font-medium text-zinc-600">Giờ thường</span>
+            <span class="font-medium text-zinc-600">Trống</span>
         </div>
         <div class="flex items-center gap-3">
             <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-red-50 border border-red-200">
                 <span class="h-2 w-2 rounded-full bg-red-500"></span>
-            </span>
-            <span class="font-medium text-zinc-600">Giờ cao điểm</span>
-        </div>
-        <div class="flex items-center gap-3">
-            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-zinc-800 border border-zinc-700">
-                <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>
             </span>
             <span class="font-medium text-zinc-700">Đã đặt</span>
         </div>
@@ -262,75 +254,71 @@
     }
 
     function createSlotCard(slot) {
-        const div = document.createElement('div');
-        const slotDataStr = encodeURIComponent(JSON.stringify(slot));
-        const priceColor = slot.price_type === 'peak' ? 'text-red-600' : 'text-emerald-700';
-        const typeLabel = slot.price_type === 'peak' ? 'Cao điểm' : 'Thường';
+    const div = document.createElement('div');
+    const slotDataStr = encodeURIComponent(JSON.stringify(slot));
+    const priceColor = slot.price_type === 'peak' ? 'text-red-600' : 'text-emerald-700';
 
-        // Base class cho toàn bộ thẻ (Viền mỏng 1px)
-        div.className = `slot-card relative flex flex-col justify-between overflow-hidden rounded-2xl border p-4 transition-all duration-200 ease-out outline-none select-none`;
-        div.dataset.id = slot.slot_id;
+    // Base class cho toàn bộ thẻ (Viền mỏng 1px)
+    div.className = `slot-card relative flex flex-col justify-between overflow-hidden rounded-2xl border p-4 transition-all duration-200 ease-out outline-none select-none`;
+    div.dataset.id = slot.slot_id;
 
-        if (!slot.is_available) {
-            if (slot.is_booked) {
-                // TRẠNG THÁI 1: Đã có người đặt (UI: Đen nhạt, icon Hình người)
-                div.classList.add('border-zinc-200', 'bg-zinc-50', 'opacity-90', 'pointer-events-none');
-                div.innerHTML = `
-                    <div class="mb-3 flex items-start justify-between">
-                        <div>
-                            <h4 class="text-sm font-bold text-zinc-600 line-through decoration-zinc-400">${slot.start_time} - ${slot.end_time}</h4>
-                            <p class="mt-1 text-[11px] font-medium text-zinc-500">${typeLabel}</p>
-                        </div>
-                        <div class="grid h-5 w-5 place-items-center rounded-full bg-zinc-800 text-white shadow-sm">
-                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>
-                        </div>
-                    </div>
-                    <div class="flex items-end justify-between">
-                        <p class="text-base font-bold text-zinc-500">${parseInt(slot.price).toLocaleString('vi-VN')}₫</p>
-                        <span class="rounded bg-zinc-800 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">Đã đặt</span>
-                    </div>
-                `;
-            } else {
-                // TRẠNG THÁI 2: Bị khóa do quá giờ (UI: Xám nhạt, icon Ổ khóa)
-                div.classList.add('border-stone-200', 'bg-stone-50/50', 'opacity-60', 'pointer-events-none');
-                div.innerHTML = `
-                    <div class="mb-3 flex items-start justify-between">
-                        <div>
-                            <h4 class="text-sm font-medium text-stone-400 line-through decoration-stone-300">${slot.start_time} - ${slot.end_time}</h4>
-                            <p class="mt-1 text-[11px] font-medium text-stone-400">${typeLabel}</p>
-                        </div>
-                        <div class="grid h-5 w-5 place-items-center rounded-full bg-stone-200/80">
-                            <svg class="h-3 w-3 text-stone-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
-                        </div>
-                    </div>
-                    <div class="flex items-end justify-between">
-                        <p class="text-base font-medium text-stone-400">${parseInt(slot.price).toLocaleString('vi-VN')}₫</p>
-                        <span class="rounded bg-stone-200/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-stone-500">Khóa</span>
-                    </div>
-                `;
-            }
-        } else {
-            // TRẠNG THÁI 3 & 4: Giờ trống (Cho phép click, viền nhạt, hover lên viền xanh)
-            div.classList.add('cursor-pointer', 'border-stone-200', 'bg-white', 'hover:-translate-y-0.5', 'hover:border-emerald-400', 'hover:shadow-sm');
-            div.setAttribute('onclick', `toggleSlot('${slotDataStr}')`);
-            
+    if (!slot.is_available) {
+        if (slot.is_booked) {
+            // TRẠNG THÁI 1: Đã có người đặt (UI: Nền đỏ nhạt, chấm đỏ)
+            div.classList.add('border-red-200', 'bg-red-50/40', 'opacity-90', 'pointer-events-none');
             div.innerHTML = `
                 <div class="mb-3 flex items-start justify-between">
                     <div>
-                        <h4 class="slot-time text-sm font-semibold text-zinc-800 transition-colors">${slot.start_time} - ${slot.end_time}</h4>
-                        <p class="mt-1 text-[11px] font-medium ${slot.price_type === 'peak' ? 'text-red-500' : 'text-stone-500'}">${typeLabel}</p>
+                        <h4 class="text-sm font-bold text-red-900/50 line-through decoration-red-300">${slot.start_time} - ${slot.end_time}</h4>
                     </div>
-                    <div class="slot-checkbox flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-stone-300 bg-white transition-all duration-200">
+                    <div class="grid h-5 w-5 place-items-center rounded-full bg-red-100 border border-red-200">
+                        <span class="h-2 w-2 rounded-full bg-red-500"></span>
                     </div>
                 </div>
                 <div class="flex items-end justify-between">
-                    <p class="slot-price text-base font-bold ${priceColor} transition-colors">${parseInt(slot.price).toLocaleString('vi-VN')}₫</p>
-                    <span class="rounded bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 ring-1 ring-inset ring-emerald-500/20">Trống</span>
+                    <p class="text-base font-bold text-red-900/40">${parseInt(slot.price).toLocaleString('vi-VN')}₫</p>
+                    <span class="rounded bg-red-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-600 ring-1 ring-inset ring-red-500/20">Đã đặt</span>
+                </div>
+            `;
+        } else {
+            // TRẠNG THÁI 2: Bị khóa do quá giờ (UI: Xám nhạt, icon Ổ khóa)
+            div.classList.add('border-stone-200', 'bg-stone-50/50', 'opacity-60', 'pointer-events-none');
+            div.innerHTML = `
+                <div class="mb-3 flex items-start justify-between">
+                    <div>
+                        <h4 class="text-sm font-medium text-stone-400 line-through decoration-stone-300">${slot.start_time} - ${slot.end_time}</h4>
+                    </div>
+                    <div class="grid h-5 w-5 place-items-center rounded-full bg-stone-200/80">
+                        <svg class="h-3 w-3 text-stone-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
+                    </div>
+                </div>
+                <div class="flex items-end justify-between">
+                    <p class="text-base font-medium text-stone-400">${parseInt(slot.price).toLocaleString('vi-VN')}₫</p>
+                    <span class="rounded bg-stone-200/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-stone-500">Khóa</span>
                 </div>
             `;
         }
-        return div;
+    } else {
+        // TRẠNG THÁI 3 & 4: Giờ trống
+        div.classList.add('cursor-pointer', 'border-stone-200', 'bg-white', 'hover:-translate-y-0.5', 'hover:border-emerald-400', 'hover:shadow-sm');
+        div.setAttribute('onclick', `toggleSlot('${slotDataStr}')`);
+        
+        div.innerHTML = `
+            <div class="mb-3 flex items-start justify-between">
+                <div>
+                    <h4 class="slot-time text-sm font-semibold text-zinc-800 transition-colors">${slot.start_time} - ${slot.end_time}</h4>
+                </div>
+                <div class="slot-checkbox flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-stone-300 bg-white transition-all duration-200">
+                </div>
+            </div>
+            <div class="flex items-end justify-between">
+                <p class="slot-price text-base font-bold ${priceColor} transition-colors">${parseInt(slot.price).toLocaleString('vi-VN')}₫</p>
+                <span class="rounded bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 ring-1 ring-inset ring-emerald-500/20">Trống</span>
+            </div>
+        `;
     }
+    return div;
+}
 
     function toggleSlot(slotDataStr) {
         const slot = JSON.parse(decodeURIComponent(slotDataStr));

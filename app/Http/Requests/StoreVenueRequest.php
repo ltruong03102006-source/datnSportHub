@@ -19,8 +19,8 @@ class StoreVenueRequest extends FormRequest
             'address' => ['required', 'string', 'max:500'],
             'description' => ['nullable', 'string'],
             'banner' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
-            'lat' => ['nullable', 'numeric'],
-            'lng' => ['nullable', 'numeric'],
+            'lat' => ['nullable', 'numeric', 'between:-90,90'],
+'lng' => ['nullable', 'numeric', 'between:-180,180'],
         ];
     }
 }
