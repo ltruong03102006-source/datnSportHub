@@ -1,0 +1,581 @@
+{
+  "info": {
+    "name": "Owner API - Sport Hub",
+    "description": "API testing collection for Owner authentication and management",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Public - Owner Auth",
+      "item": [
+        {
+          "name": "Register - Đăng ký chủ sân",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nguyễn Văn A\",\n  \"email\": \"owner@test.com\",\n  \"password\": \"password123\",\n  \"confirm_password\": \"password123\",\n  \"phone\": \"0901234567\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/owner/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "register"]
+            },
+            "description": "Đăng ký tài khoản chủ sân. Sau đó Admin phải duyệt để thay đổi role thành 'owner'"
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Đăng nhập",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"owner@test.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/owner/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "login"]
+            },
+            "description": "Đăng nhập chủ sân. Lưu token vào biến 'owner_token'"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Protected - Auth Management",
+      "item": [
+        {
+          "name": "Get Me - Lấy thông tin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/owner/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "me"]
+            },
+            "description": "Lấy thông tin chủ sân hiện tại"
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password - Đổi mật khẩu",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"password123\",\n  \"new_password\": \"newpassword456\",\n  \"confirm_password\": \"newpassword456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/owner/change-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "change-password"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout - Đăng xuất",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/owner/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "logout"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Venues Management",
+      "item": [
+        {
+          "name": "Get Sports - Danh sách thể thao",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/owner/sports",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "sports"]
+            },
+            "description": "Lấy danh sách loại thể thao để chọn khi tạo sân"
+          },
+          "response": []
+        },
+        {
+          "name": "List Venues - Danh sách sân",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/owner/venues",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "venues"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Venue - Tạo sân",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sport_id\": 1,\n  \"name\": \"Sân Bóng Đá Minh Châu\",\n  \"address\": \"123 Đường ABC, Hà Nội\",\n  \"lat\": 21.0285,\n  \"lng\": 105.8542,\n  \"description\": \"Sân bóng đá hiện đại\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/owner/venues",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "venues"]
+            },
+            "description": "Tạo sân vận động mới. Lưu venue_id để dùng cho các request khác"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Venue Detail - Chi tiết sân",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/owner/venues/{{venue_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "venues", "{{venue_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Venue - Cập nhật sân",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sân Bóng Đá Minh Châu - Updated\",\n  \"description\": \"Sân bóng đá hiện đại - cập nhật\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/owner/venues/{{venue_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "venues", "{{venue_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Venue - Xóa sân",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/owner/venues/{{venue_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "venues", "{{venue_id}}"]
+            },
+            "description": "Xóa sân (không thể xóa nếu có sân nhỏ)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Courts Management",
+      "item": [
+        {
+          "name": "List Courts - Danh sách sân nhỏ",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/owner/courts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "courts"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Court - Tạo sân nhỏ",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sân 1\",\n  \"type\": \"Bóng đá 5 người\",\n  \"description\": \"Sân bóng đá nhỏ\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/owner/venues/{{venue_id}}/courts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "venues", "{{venue_id}}", "courts"]
+            },
+            "description": "Tạo sân nhỏ trong sân vận động. Lưu court_id"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Court - Cập nhật sân nhỏ",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sân 1 - Updated\",\n  \"type\": \"Bóng đá 5 người\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/owner/courts/{{court_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "courts", "{{court_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Court Time Slots - Khung giờ",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/owner/courts/{{court_id}}/time-slots",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "courts", "{{court_id}}", "time-slots"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Court - Xóa sân nhỏ",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/owner/courts/{{court_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "courts", "{{court_id}}"]
+            },
+            "description": "Xóa sân nhỏ (không thể xóa nếu có booking)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Bookings Management",
+      "item": [
+        {
+          "name": "List All Bookings - Tất cả booking",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/owner/bookings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "bookings"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Bookings Stats - Thống kê",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/owner/bookings/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "bookings", "stats"]
+            },
+            "description": "Lấy thống kê booking (total, confirmed, pending, cancelled)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Booking Detail - Chi tiết booking",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/owner/bookings/{{booking_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "bookings", "{{booking_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Venue Bookings - Booking theo sân",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/owner/venues/{{venue_id}}/bookings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "venues", "{{venue_id}}", "bookings"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Court Bookings - Booking theo sân nhỏ",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/owner/courts/{{court_id}}/bookings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "courts", "{{court_id}}", "bookings"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. Error Testing",
+      "item": [
+        {
+          "name": "Test - Không có token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/owner/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "me"]
+            },
+            "description": "Khi không gửi token → 401 Unauthorized"
+          },
+          "response": []
+        },
+        {
+          "name": "Test - Token user (403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/owner/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "me"]
+            },
+            "description": "Khi dùng user token thay vì owner token → 403 Forbidden"
+          },
+          "response": []
+        },
+        {
+          "name": "Test - Venue không tồn tại (404)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{owner_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/owner/venues/99999",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "venues", "99999"]
+            },
+            "description": "Khi venue ID không tồn tại → 404 Not Found"
+          },
+          "response": []
+        },
+        {
+          "name": "Test - Email đã tồn tại (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Owner 2\",\n  \"email\": \"owner@test.com\",\n  \"password\": \"password123\",\n  \"confirm_password\": \"password123\",\n  \"phone\": \"0901234567\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/owner/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "owner", "register"]
+            },
+            "description": "Khi đăng ký với email đã tồn tại → 422 Validation error"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "owner_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "venue_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "court_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "booking_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
