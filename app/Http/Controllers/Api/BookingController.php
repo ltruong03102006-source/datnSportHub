@@ -45,7 +45,10 @@ class BookingController extends Controller
 
         $dayOfWeek = Carbon::parse($request->slot_date)->dayOfWeek;
 
-        $bookings = DB::transaction(function () use ($request, $slots, $dayOfWeek) {
+        // VÁ LỖI TẠI ĐÂY: Chốt đúng 1 mốc thời gian duy nhất cho tất cả các ca trong đơn này
+        $now = Carbon::now();
+
+        $bookings = DB::transaction(function () use ($request, $slots, $dayOfWeek, $now) {
             $created = collect();
 
             foreach ($slots as $slot) {
@@ -74,24 +77,33 @@ class BookingController extends Controller
                     ->orderByRaw('day_of_week IS NULL ASC')
                     ->value('price') ?? 0;
 
-                $booking = Booking::create([
-                    'court_id' => $request->court_id,
-                    'user_id' => Auth::id(),
-                    'slot_date' => $request->slot_date,
-                    'start_time' => $slot['start_time'],
-                    'end_time' => $slot['end_time'],
-                    'total_price' => $price,
-                    'status' => 'pending',
-                    'note' => $request->note,
-                ]);
+                // VÁ LỖI: Khởi tạo model và tắt tự động timestamp để ép giờ
+                $booking = new Booking();
+                $booking->court_id = $request->court_id;
+                $booking->user_id = Auth::id();
+                $booking->slot_date = $request->slot_date;
+                $booking->start_time = $slot['start_time'];
+                $booking->end_time = $slot['end_time'];
+                $booking->total_price = $price;
+                $booking->status = 'pending';
+                $booking->note = $request->note;
+                
+                $booking->timestamps = false; // Tắt tự động nhảy giờ của Laravel
+                $booking->created_at = $now;  // Gắn mốc thời gian dùng chung
+                $booking->updated_at = $now;
+                $booking->save();
 
-                BookingLog::create([
-                    'booking_id' => $booking->id,
-                    'changed_by' => Auth::id(),
-                    'old_status' => '',
-                    'new_status' => 'pending',
-                    'note' => 'Người dùng tạo booking',
-                ]);
+                // Lưu log cũng dùng chung mốc thời gian đó
+                $log = new BookingLog();
+                $log->booking_id = $booking->id;
+                $log->changed_by = Auth::id();
+                $log->old_status = '';
+                $log->new_status = 'pending';
+                $log->note = 'Người dùng tạo booking';
+                $log->timestamps = false; // Tắt tự động nhảy giờ
+                $log->created_at = $now;  // CHỈ LƯU created_at
+                // (Đã xóa dòng $log->updated_at ở đây)
+                $log->save();
 
                 $created->push($booking);
             }

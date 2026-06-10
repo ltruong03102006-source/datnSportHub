@@ -66,6 +66,16 @@
                         <div class="text-muted small"><strong>Kinh độ:</strong> {{ $venue->lng }}</div>
                     </div>
                 </div>
+                <h5 class="fw-bold text-dark border-bottom pb-2 mt-4 mb-3">Thư viện ảnh</h5>
+                    @if($venue->images && $venue->images->count() > 0)
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach($venue->images as $img)
+                                <img src="{{ asset('storage/' . $img->image_path) }}" class="rounded-3 border" style="height: 90px; width: 120px; object-fit: cover;">
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="text-muted small">Chưa có ảnh nào trong thư viện.</div>
+                    @endif
             </div>
         </div>
     </div>
@@ -96,8 +106,6 @@
                         </div>
                         
                         <div class="d-flex flex-wrap gap-2">
-                            <button class="btn btn-sm btn-dark">Cấu hình ca & giá</button>
-
                             <button class="btn btn-sm btn-outline-primary" 
                                     data-bs-toggle="modal" 
                                     data-bs-target="#generateSlotsModal"
@@ -235,6 +243,33 @@
                         <input type="number" class="form-control" name="duration" min="30" step="5" value="" required placeholder="Nhập số phút (VD: 30, 60, 90, 120)">
                         <div class="invalid-feedback" id="error-duration"></div>
                     </div>
+
+                    <h6 class="fw-bold mt-4 mb-3 border-bottom pb-2">Thiết lập giá & Giờ cao điểm</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Giá giờ thường <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="regular_price" min="0" required placeholder="VD: 100000">
+                            <div class="invalid-feedback" id="error-regular_price"></div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Giá giờ cao điểm <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="peak_price" min="0" required placeholder="VD: 150000">
+                            <div class="invalid-feedback" id="error-peak_price"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Bắt đầu cao điểm <span class="text-danger">*</span></label>
+                            <input type="time" class="form-control" name="peak_start_time" required value="17:00">
+                            <div class="invalid-feedback" id="error-peak_start_time"></div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Kết thúc cao điểm <span class="text-danger">*</span></label>
+                            <input type="time" class="form-control" name="peak_end_time" required value="20:00">
+                            <div class="invalid-feedback" id="error-peak_end_time"></div>
+                        </div>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -258,15 +293,29 @@
                     <div class="row g-3">
                         <div class="col-6">
                             <label class="form-label fw-semibold">Giờ bắt đầu <span class="text-danger">*</span></label>
-                            <!-- Thêm value="07:00" -->
                             <input type="time" class="form-control" name="start_time" required value="06:00">
                             <div class="invalid-feedback" id="error-manual-start_time"></div>
                         </div>
                         <div class="col-6">
                             <label class="form-label fw-semibold">Giờ kết thúc <span class="text-danger">*</span></label>
-                            <!-- Thêm value="08:00" -->
                             <input type="time" class="form-control" name="end_time" required value="22:00">
                             <div class="invalid-feedback" id="error-manual-end_time"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3 mt-1">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Giá ca này <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="price" required min="0" placeholder="VD: 100000">
+                            <div class="invalid-feedback" id="error-manual-price"></div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Loại giá</label>
+                            <select class="form-select" name="price_type">
+                                <option value="normal">Giờ thường</option>
+                                <option value="peak">Giờ cao điểm</option>
+                            </select>
+                            <div class="invalid-feedback" id="error-manual-price_type"></div>
                         </div>
                     </div>
                 </form>

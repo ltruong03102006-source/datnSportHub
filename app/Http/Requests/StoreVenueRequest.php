@@ -21,6 +21,7 @@ class StoreVenueRequest extends FormRequest
             'banner' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
             'lat' => ['nullable', 'numeric', 'between:-90,90'],
 'lng' => ['nullable', 'numeric', 'between:-180,180'],
+'gallery_images.*' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ];
     }
 }

@@ -91,7 +91,28 @@
                                     @endif
                                 </div>
                             </div>
+                                <div class="col-12 mt-4">
+                                <div class="p-4 rounded-3 border border-stone-200 bg-white shadow-sm">
+                                    <label class="form-label fw-bold text-emerald-700">Thư viện hình ảnh (Gallery)</label>
+                                    
+                                    <div id="deletedImagesContainer"></div>
 
+                                    @if($venue->images && $venue->images->count() > 0)
+                                        <div class="row g-2 mb-3 pb-3 border-bottom">
+                                            @foreach($venue->images as $img)
+                                                <div class="col-4 col-md-3 col-lg-2 position-relative" id="img-box-{{ $img->id }}">
+                                                    <img src="{{ asset('storage/' . $img->image_path) }}" class="img-thumbnail w-100" style="height: 100px; object-fit: cover;">
+                                                    <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 py-0 px-2 rounded-circle" onclick="markAsDeleted({{ $img->id }})" title="Xóa ảnh này">×</button>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
+
+                                    <p class="form-text text-muted mb-2 fw-bold">Thêm ảnh mới vào thư viện (Có thể chọn nhiều ảnh)</p>
+                                    <input id="gallery_images" name="gallery_images[]" type="file" class="form-control" accept="image/jpg,image/jpeg,image/png" multiple>
+                                    <div class="invalid-feedback" id="error-gallery_images"></div>
+                                </div>
+                            </div>
                             <div class="col-12 mt-3">
                                 <label class="form-label fw-bold">Chọn vị trí trên bản đồ <span class="text-danger">*</span></label>
                                 <div id="map" style="height: 350px;"></div>
@@ -182,7 +203,7 @@
 
     const showAlert = (message, type = 'danger') => {
         alertBox.className = `alert alert-${type}`;
-        alertBox.textContent = message;
+        alertBox.innerHTML = message;
         alertBox.classList.remove('d-none');
     };
 
@@ -194,6 +215,17 @@
         reader.readAsDataURL(file);
     });
 
+    // Hàm đánh dấu xóa nháp ảnh
+    function markAsDeleted(imageId) {
+        document.getElementById(`img-box-${imageId}`).style.display = 'none';
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'deleted_image_ids[]';
+        input.value = imageId;
+        document.getElementById('deletedImagesContainer').appendChild(input);
+    }
+
+    // CHỈ CÓ ĐÚNG 1 HÀM SUBMIT Ở ĐÂY
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         clearErrors();
@@ -203,9 +235,8 @@
         alertBox.classList.add('d-none');
 
         try {
-            // URL gọi tới hàm Update trong Controller
             const response = await fetch('{{ route('owner.web.venues.update', $venue->id) }}', {
-                method: 'POST', // Chú ý: API fetch vẫn dùng POST, nhưng form data gửi kèm _method=PUT ở HTML
+                method: 'POST',
                 headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                 body: new FormData(form)
             });
@@ -214,22 +245,27 @@
 
             if (!response.ok) {
                 if (response.status === 422 && data.errors) {
-                    Object.entries(data.errors).forEach(([field, messages]) => {
-                        const fieldEl = document.getElementById(field);
-                        const errorEl = document.getElementById(`error-${field}`);
-                        if (fieldEl) fieldEl.classList.add('is-invalid');
-                        if (errorEl) errorEl.textContent = messages[0];
+                    let errorHtml = '<strong>Vui lòng kiểm tra lại các thông tin sau:</strong><ul class="mb-0 mt-1 pl-3">';
+                    Object.values(data.errors).forEach(messages => {
+                        errorHtml += `<li>${messages[0]}</li>`;
                     });
-                    showAlert('Vui lòng kiểm tra lại thông tin.', 'warning');
+                    errorHtml += '</ul>';
+
+                    showAlert(errorHtml, 'warning');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
                     return;
                 }
                 showAlert(data.message || 'Lỗi hệ thống.', 'danger');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
                 return;
             }
-            // Quay về index và báo thành công
-            window.location.href = '{{ route('owner.web.venues.index') }}';
+
+            // Thành công thì chuyển hướng về trang Index kèm thông báo
+            window.location.href = '{{ route('owner.web.venues.index') }}?updated=1';
+
         } catch (error) {
             showAlert('Đã xảy ra lỗi khi kết nối máy chủ.', 'danger');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         } finally {
             submitBtn.disabled = false;
             submitSpinner.classList.add('d-none');
