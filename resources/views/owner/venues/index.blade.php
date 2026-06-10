@@ -20,7 +20,10 @@
             <h1 class="h3 mb-1">Quản lý điểm sân</h1>
             <p class="text-muted mb-0">Tạo và quản lý các điểm sân trước khi thêm sân nhỏ.</p>
         </div>
-        <a href="{{ route('owner.web.venues.create') }}" class="btn btn-primary">+ Thêm điểm sân</a>
+        <div class="d-flex gap-2">
+            <a href="{{ route('owner.web.calendar.index') }}" class="btn btn-outline-success">Lịch đặt sân</a>
+            <a href="{{ route('owner.web.venues.create') }}" class="btn btn-primary">+ Thêm điểm sân</a>
+        </div>
     </div>
 
    @if (session('success'))
