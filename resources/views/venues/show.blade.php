@@ -3,7 +3,7 @@
 @section('title', $venue->name . ' | SportHub')
 
 @section('content')
-<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8" x-data="{ activeTab: 'courts' }">
+<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8" x-data="{ activeTab: 'courts', lightboxOpen: false, lightboxImg: '' }">
     
     <!-- Hero Banner (Đã loại bỏ dữ liệu giả Unsplash) -->
     <div class="overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm">
@@ -42,6 +42,11 @@
                     :class="activeTab === 'info' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-stone-500 hover:text-stone-800 hover:border-stone-300'"
                     class="whitespace-nowrap border-b-2 pb-3 text-sm font-bold transition-all outline-none">
                     Giới thiệu
+                </button>
+                <button @click="activeTab = 'images'" 
+                    :class="activeTab === 'images' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-stone-500 hover:text-stone-800 hover:border-stone-300'"
+                    class="whitespace-nowrap border-b-2 pb-3 text-sm font-bold transition-all outline-none">
+                    Hình ảnh
                 </button>
                 <button @click="activeTab = 'reviews'" 
                     :class="activeTab === 'reviews' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-stone-500 hover:text-stone-800 hover:border-stone-300'"
@@ -82,6 +87,46 @@
                     <h4 class="text-xs font-bold uppercase tracking-wider text-stone-400 mb-2">Về chúng tôi</h4>
                     <p class="text-sm leading-relaxed text-zinc-700 whitespace-pre-line">{{ $venue->description ?? 'Chưa có mô tả chi tiết cho cơ sở này. Vui lòng liên hệ trực tiếp để biết thêm thông tin.' }}</p>
                 </div>
+            </div>
+
+            <div x-show="activeTab === 'images'" x-cloak class="rounded-2xl bg-white">
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    @forelse($venue->images as $img)
+                        <div class="group relative aspect-video overflow-hidden rounded-xl bg-stone-100 border border-stone-200 cursor-pointer"
+                             @click="lightboxOpen = true; lightboxImg = '{{ asset('storage/' . $img->image_path) }}'">
+                            <img src="{{ asset('storage/' . $img->image_path) }}" 
+                                 alt="Ảnh sân" 
+                                 class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105">
+                            
+                            <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="col-span-full py-16 text-center border border-dashed border-stone-300 rounded-2xl bg-stone-50">
+                            <p class="text-sm font-medium text-stone-500">Chủ sân chưa tải lên hình ảnh nào.</p>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+
+            <div x-show="lightboxOpen" 
+                 x-cloak 
+                 style="display: none;"
+                 class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+                 @click="lightboxOpen = false" 
+                 @keydown.escape.window="lightboxOpen = false">
+                
+                <button class="absolute top-6 right-6 text-white/70 hover:text-white transition-colors">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+                
+                <img :src="lightboxImg" 
+                     class="max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl transform transition-transform duration-300" 
+                     x-transition:enter="ease-out duration-300"
+                     x-transition:enter-start="opacity-0 scale-90"
+                     x-transition:enter-end="opacity-100 scale-100"
+                     @click.stop>
             </div>
 
             <!-- Tab: Đánh giá -->

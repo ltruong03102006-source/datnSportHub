@@ -86,6 +86,15 @@
                                 </div>
                             </div>
 
+                            <div class="col-12 mt-4">
+                                <div class="p-4 rounded-3 border border-stone-200 bg-white shadow-sm">
+                                    <label for="gallery_images" class="form-label fw-bold text-emerald-700">Thư viện hình ảnh (Gallery)</label>
+                                    <p class="form-text text-muted mb-3">Bạn có thể ấn giữ phím Ctrl (hoặc Cmd) để chọn nhiều ảnh cùng lúc. Giúp khách hàng có cái nhìn thực tế nhất về sân của bạn.</p>
+                                    
+                                    <input id="gallery_images" name="gallery_images[]" type="file" class="form-control form-control-lg" accept="image/jpg,image/jpeg,image/png" multiple>
+                                    <div class="invalid-feedback" id="error-gallery_images"></div>
+                                </div>
+                            </div>
                             <div class="col-12 mt-3">
                                 <label class="form-label fw-bold">Chọn vị trí trên bản đồ <span class="text-danger">*</span></label>
                                 <div id="map" style="height: 350px;"></div>

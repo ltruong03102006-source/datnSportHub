@@ -118,9 +118,14 @@ class OwnerCourtController extends Controller
             'open_time' => 'required|date_format:H:i',
             'close_time' => 'required|date_format:H:i|after:open_time',
             'duration' => 'required|integer|min:30|max:240', // Đã thêm Validate hợp lý (30 - 240 phút)
+            'regular_price' => 'required|numeric|min:0',
+            'peak_price' => 'required|numeric|min:0',
+            'peak_start_time' => 'required|date_format:H:i',
+            'peak_end_time' => 'required|date_format:H:i|after:peak_start_time',
         ], [
             'duration.min' => 'Thời lượng ca tối thiểu là 30 phút.',
-            'duration.max' => 'Thời lượng ca tối đa không được vượt quá 240 phút (4 tiếng).'
+            'duration.max' => 'Thời lượng ca tối đa không được vượt quá 240 phút (4 tiếng).',
+            'peak_end_time.after' => 'Giờ kết thúc cao điểm phải sau giờ bắt đầu cao điểm.'
         ]);
 
         if (Carbon::parse($validated['open_time'])->gte(Carbon::parse($validated['close_time']))) {
@@ -144,6 +149,32 @@ class OwnerCourtController extends Controller
             $skippedCount = 0;
             $replacedCount = 0;
             $currentTime = $openTime->copy();
+
+            $peakStart = Carbon::createFromFormat('H:i', $validated['peak_start_time']);
+            $peakEnd = Carbon::createFromFormat('H:i', $validated['peak_end_time']);
+
+            $createPricesForSlot = function($slot) use ($validated, $peakStart, $peakEnd) {
+                $slotStart = Carbon::createFromFormat('H:i:s', $slot->start_time);
+                
+                // Kiểm tra xem start_time của ca có nằm lọt vào khoảng cao điểm không
+                $isPeak = $slotStart->gte($peakStart) && $slotStart->lt($peakEnd);
+                
+                $price = $isPeak ? $validated['peak_price'] : $validated['regular_price'];
+$priceType = $isPeak ? 'peak' : 'normal'; // <--- Đổi thành 'normal'
+                
+                $pricesData = [];
+                for ($day = 0; $day <= 6; $day++) {
+                    $pricesData[] = [
+                        'time_slot_id' => $slot->id,
+                        'price' => $price,
+                        'price_type' => $priceType,
+                        'day_of_week' => $day,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+                \App\Models\SlotPrice::insert($pricesData);
+            };
 
             while ($currentTime->copy()->addMinutes($duration)->lte($closeTime)) {
                 $startTimeStr = $currentTime->format('H:i:s');
@@ -182,11 +213,12 @@ class OwnerCourtController extends Controller
                         try {
                             $court->timeSlots()->whereIn('id', $overlappingSlots->pluck('id'))->delete();
                             
-                            $court->timeSlots()->create([
+                            $newSlot = $court->timeSlots()->create([
                                 'start_time' => $startTimeStr,
                                 'end_time' => $endTimeStr,
                                 'duration_minutes' => $duration
                             ]);
+                            $createPricesForSlot($newSlot);
                             $replacedCount++;
                             $createdCount++;
                         } catch (\Exception $e) {
@@ -194,11 +226,12 @@ class OwnerCourtController extends Controller
                         }
                     }
                 } else {
-                    $court->timeSlots()->create([
+                    $newSlot = $court->timeSlots()->create([
                         'start_time' => $startTimeStr,
                         'end_time' => $endTimeStr,
                         'duration_minutes' => $duration
                     ]);
+                    $createPricesForSlot($newSlot);
                     $createdCount++;
                 }
 
@@ -252,8 +285,12 @@ class OwnerCourtController extends Controller
         $validated = $request->validate([
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
+            'price' => 'required|numeric|min:0', 
+            // SỬA CHỮ 'regular' THÀNH 'normal' Ở DÒNG DƯỚI ĐÂY
+            'price_type' => 'required|in:normal,peak' 
         ], [
-            'end_time.after' => 'Giờ kết thúc phải lớn hơn giờ bắt đầu!'
+            'end_time.after' => 'Giờ kết thúc phải lớn hơn giờ bắt đầu!',
+            'price.required' => 'Vui lòng nhập giá cho ca này.'
         ]);
 
         $startTimeStr = $validated['start_time'] . ':00';
@@ -267,8 +304,6 @@ class OwnerCourtController extends Controller
         $message = 'Đã thêm ca mới thành công!';
 
         if ($overlappingSlots->isNotEmpty()) {
-            
-            // --- CHỐT CHẶN MỚI DỰA TRÊN THỜI GIAN THỰC TẾ ---
             $hasBookings = \App\Models\Booking::where('court_id', $court->id)
                 ->where('slot_date', '>=', now()->toDateString())
                 ->whereIn('status', ['pending', 'confirmed'])
@@ -279,22 +314,36 @@ class OwnerCourtController extends Controller
             if ($hasBookings) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Lỗi: Không thể ghi đè! Khung giờ này (hoặc một phần thời gian) đang có khách đặt. Vui lòng hủy đơn hoặc đợi khách đá xong trước khi cấu hình lại ca.'
+                    'message' => 'Lỗi: Không thể ghi đè! Khung giờ này (hoặc một phần thời gian) đang có khách đặt.'
                 ], 400);
             }
 
             $court->timeSlots()->whereIn('id', $overlappingSlots->pluck('id'))->delete();
-            
             $message = 'Đã chèn ca mới và ghi đè (xóa) ' . $overlappingSlots->count() . ' ca cũ bị trùng giờ!';
         }
 
         $duration = Carbon::parse($startTimeStr)->diffInMinutes(Carbon::parse($endTimeStr));
 
-        $court->timeSlots()->create([
+        // 1. Tạo ca (TimeSlot)
+        $newSlot = $court->timeSlots()->create([
             'start_time' => $startTimeStr,
             'end_time' => $endTimeStr,
             'duration_minutes' => $duration
         ]);
+
+        // 2. Tạo giá cho ca đó (SlotPrice - Lặp 7 ngày trong tuần)
+        $pricesData = [];
+        for ($day = 0; $day <= 6; $day++) {
+            $pricesData[] = [
+                'time_slot_id' => $newSlot->id,
+                'price' => $validated['price'],
+                'price_type' => $validated['price_type'],
+                'day_of_week' => $day,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+        \App\Models\SlotPrice::insert($pricesData);
 
         return response()->json(['success' => true, 'message' => $message]);
     }

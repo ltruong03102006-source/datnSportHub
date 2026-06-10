@@ -41,7 +41,8 @@ class OwnerVenueController extends Controller
             $bannerPath = $request->file('banner')->store('venues', 'public');
         }
 
-        Venue::create([
+        // ĐIỀU CHỈNH 1: Gán kết quả trả về vào biến $venue
+        $venue = Venue::create([
             'owner_id' => Auth::id(),
             'sport_id' => $validated['sport_id'],
             'name' => $validated['name'],
@@ -50,8 +51,21 @@ class OwnerVenueController extends Controller
             'banner' => $bannerPath,
             'lat' => $validated['lat'] ?? null,
             'lng' => $validated['lng'] ?? null,
-            'status' => 'active', // Trạng thái đã được đổi thành active
+            'status' => 'active', 
         ]);
+
+        // ĐIỀU CHỈNH 2: Xử lý lưu Thư viện nhiều ảnh (Gallery)
+        if ($request->hasFile('gallery_images')) {
+            foreach ($request->file('gallery_images') as $file) {
+                // Lưu từng ảnh vào thư mục storage/app/public/venues/gallery
+                $path = $file->store('venues/gallery', 'public');
+                
+                // Lưu đường dẫn vào bảng venue_images
+                $venue->images()->create([
+                    'image_path' => $path
+                ]);
+            }
+        }
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -64,13 +78,6 @@ class OwnerVenueController extends Controller
             ->route('owner.web.venues.create')
             ->with('success', 'Venue created successfully');
     }
-    // Trang chỉnh sửa điểm sân
-    public function edit(Venue $venue): View
-    {
-        $this->authorizeOwner($venue);
-        $sports = Sport::query()->orderBy('name')->get();
-        return view('owner.venues.edit', compact('venue', 'sports'));
-    }
 
     // Xử lý lưu cập nhật
     public function update(StoreVenueRequest $request, Venue $venue)
@@ -78,29 +85,43 @@ class OwnerVenueController extends Controller
         $this->authorizeOwner($venue);
         $validated = $request->validated();
 
-        // Kiểm tra xem có đơn đặt lịch trong tương lai không
         $hasUpcomingBookings = Booking::whereIn('court_id', $venue->courts()->pluck('id'))
             ->where('slot_date', '>=', now()->toDateString())
             ->whereIn('status', ['pending', 'confirmed'])
             ->exists();
 
-        // NẾU CÓ KHÁCH ĐẶT: Chỉ cho phép sửa nhóm An toàn
-        // NẾU CÓ KHÁCH ĐẶT: Chỉ cho phép sửa nhóm An toàn
-if ($hasUpcomingBookings) {
-    // Ép kiểu float để so sánh chính xác tọa độ
-    if ($validated['address'] !== $venue->address || 
-        (float)$validated['lat'] !== (float)$venue->lat || 
-        (float)$validated['lng'] !== (float)$venue->lng || 
-        $validated['sport_id'] != $venue->sport_id) {
-        
-        return response()->json([
-            'success' => false, 
-            'message' => 'Lỗi: Không thể thay đổi Địa chỉ, Vị trí bản đồ hoặc Môn thể thao vì sân đang có lịch đặt của khách trong tương lai!'
-        ], 400);
-    }
-}
+        if ($hasUpcomingBookings) {
+            if ($validated['address'] !== $venue->address || 
+                (float)$validated['lat'] !== (float)$venue->lat || 
+                (float)$validated['lng'] !== (float)$venue->lng || 
+                $validated['sport_id'] != $venue->sport_id) {
+                
+                return response()->json([
+                    'success' => false, 
+                    'message' => 'Lỗi: Không thể thay đổi Địa chỉ, Vị trí bản đồ hoặc Môn thể thao vì sân đang có lịch đặt của khách trong tương lai!'
+                ], 400);
+            }
+        }
 
-        // Nếu qua được bước kiểm tra trên, tiến hành lưu
+        // 1. Xử lý XÓA ẢNH nháp
+        if ($request->has('deleted_image_ids')) {
+            $imagesToDelete = \App\Models\VenueImage::whereIn('id', $request->deleted_image_ids)
+                                                    ->where('venue_id', $venue->id)
+                                                    ->get();
+            foreach ($imagesToDelete as $image) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($image->image_path);
+                $image->delete();
+            }
+        }
+
+        // 2. Xử lý LƯU ẢNH MỚI (Chỉ gọi 1 lần duy nhất ở đây)
+        if ($request->hasFile('gallery_images')) {
+            foreach ($request->file('gallery_images') as $file) {
+                $path = $file->store('venues/gallery', 'public');
+                $venue->images()->create(['image_path' => $path]);
+            }
+        }
+
         if ($request->hasFile('banner')) {
             $venue->banner = $request->file('banner')->store('venues', 'public');
         }
@@ -166,5 +187,26 @@ if ($hasUpcomingBookings) {
         $venue->update(['status' => 'active']); 
 
         return back()->with('success', 'Sân đã được mở lại và hoạt động bình thường!');
+    }
+    public function edit(Venue $venue): View
+    {
+        $this->authorizeOwner($venue);
+        $venue->load('images'); // Tải kèm thư viện ảnh
+        $sports = Sport::query()->orderBy('name')->get();
+        return view('owner.venues.edit', compact('venue', 'sports'));
+    }
+    // API Xóa 1 ảnh trong thư viện
+    public function destroyImage($imageId)
+    {
+        $image = \App\Models\VenueImage::findOrFail($imageId);
+        $this->authorizeOwner($image->venue); // Đảm bảo chỉ chủ sân mới được xóa ảnh của mình
+
+        // Xóa file vật lý trong storage
+        \Illuminate\Support\Facades\Storage::disk('public')->delete($image->image_path);
+        
+        // Xóa trong database
+        $image->delete();
+
+        return response()->json(['success' => true, 'message' => 'Đã xóa ảnh']);
     }
 }

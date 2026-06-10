@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+
+use App\Models\VenueImage;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -56,4 +58,8 @@ class Venue extends Model
     {
         return $this->ownerRegistration?->phone;
     }
+    public function images()
+{
+    return $this->hasMany(VenueImage::class);
+}
 }

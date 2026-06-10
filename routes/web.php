@@ -53,6 +53,7 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
     // Thêm route cập nhật thông tin sân con
 Route::put('/courts/{court}', [OwnerCourtController::class, 'update'])->name('courts.update');
 Route::delete('/courts/{court}', [OwnerCourtController::class, 'destroy'])->name('courts.destroy');
+Route::delete('/venues/images/{id}', [\App\Http\Controllers\Web\OwnerVenueController::class, 'destroyImage'])->name('owner.venues.images.destroy');
 });
 
 Route::middleware('auth')->group(function () {
