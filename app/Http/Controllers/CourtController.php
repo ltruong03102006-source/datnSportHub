@@ -165,7 +165,7 @@ class CourtController extends Controller
     {
         $venue = $court->venue;
         $phone = $venue?->owner_phone;
-        $thumbnail = $venue?->banner ?? null;
+        $thumbnail = $venue?->banner ? asset('storage/' . $venue->banner) : null;
 
         return [
             'court_id' => $court->id,
@@ -189,7 +189,7 @@ class CourtController extends Controller
 
         return [
             'venue_id' => $venue->id,
-            'thumbnail' => $venue->banner ?? null,
+            'thumbnail' => $venue->banner ? asset('storage/' . $venue->banner) : null,
             'name' => $venue->name,
             'sport_id' => $venue->sport_id,
             'sport_name' => $venue->sport?->name,
