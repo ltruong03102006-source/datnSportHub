@@ -27,7 +27,15 @@
 
             <nav class="hidden items-center gap-8 text-sm font-medium text-zinc-600 md:flex">
                 <a href="{{ route('home') }}" class="text-emerald-700 transition hover:text-emerald-800">Tìm sân</a>
-                <a href="{{ route('owner.register.page') }}" class="text-zinc-600 transition hover:text-blue-700 font-semibold">Chủ sân</a>
+                @auth
+                    @if (Auth::user()->role === 'owner')
+                        <a href="{{ route('owner.dashboard') }}" class="font-semibold text-zinc-600 transition hover:text-emerald-700">Quản lý sân</a>
+                    @else
+                        <a href="{{ route('owner.register.page') }}" class="text-zinc-600 transition hover:text-blue-700 font-semibold">Chủ sân</a>
+                    @endif
+                @else
+                    <a href="{{ route('owner.register.page') }}" class="text-zinc-600 transition hover:text-blue-700 font-semibold">Chủ sân</a>
+                @endauth
             </nav>
 
             @guest
@@ -71,7 +79,15 @@
         <div x-show="open" x-cloak x-transition class="border-t border-stone-200 bg-white md:hidden">
             <nav class="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3 text-sm font-medium sm:px-6">
                 <a href="{{ route('home') }}" class="rounded-lg px-3 py-2.5 text-emerald-700 bg-emerald-50">Tìm sân</a>
-                <a href="{{ route('owner.register.page') }}" class="rounded-lg px-3 py-2.5 text-blue-700 hover:bg-blue-50 font-semibold">Đăng ký làm chủ sân</a>
+                @auth
+                    @if (Auth::user()->role === 'owner')
+                        <a href="{{ route('owner.dashboard') }}" class="rounded-lg px-3 py-2.5 font-semibold text-emerald-700 hover:bg-emerald-50">Quản lý sân</a>
+                    @else
+                        <a href="{{ route('owner.register.page') }}" class="rounded-lg px-3 py-2.5 text-blue-700 hover:bg-blue-50 font-semibold">Đăng ký làm chủ sân</a>
+                    @endif
+                @else
+                    <a href="{{ route('owner.register.page') }}" class="rounded-lg px-3 py-2.5 text-blue-700 hover:bg-blue-50 font-semibold">Đăng ký làm chủ sân</a>
+                @endauth
                 
                 @guest
                 <div class="mt-2 border-t border-stone-100 pt-2 flex flex-col gap-2">

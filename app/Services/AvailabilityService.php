@@ -18,7 +18,7 @@ class AvailabilityService
 
         $bookedSlots = $court->bookings()
             ->whereDate('slot_date', $date->format('Y-m-d'))
-            ->where('status', '!=', 'cancelled')
+            ->whereNotIn('status', ['cancelled', 'rejected'])
             ->get();
 
         $bookedKeys = $bookedSlots->map(function($booking) {

@@ -4,6 +4,7 @@ use App\Http\Controllers\Web\CourtPageController;
 use App\Http\Controllers\Web\CourtBookingController;
 use App\Http\Controllers\Web\OwnerLoginController;
 use App\Http\Controllers\Web\OwnerRegistrationController;
+use App\Http\Controllers\Web\OwnerBookingCalendarController;
 use App\Http\Controllers\Web\OwnerVenueController;
 use App\Http\Controllers\Web\UserBookingController;
 use App\Http\Controllers\Web\VenueController;
@@ -33,8 +34,19 @@ Route::post('/logout', [ApiAuthController::class, 'logout'])
     ->middleware('auth')
     ->name('web.logout');
 
+Route::get('/owner', function () {
+    return redirect()->route('owner.web.venues.index');
+})
+    ->middleware(['auth', 'owner'])
+    ->name('owner.dashboard');
+
 // --- KHU VỰC QUẢN LÝ CỦA CHỦ SÂN (OWNER) ---
 Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group(function () {
+    Route::get('/calendar', [OwnerBookingCalendarController::class, 'index'])->name('calendar.index');
+    Route::get('/calendar/events', [OwnerBookingCalendarController::class, 'events'])->name('calendar.events');
+    Route::patch('/calendar/bookings/{booking}/status', [OwnerBookingCalendarController::class, 'updateStatus'])
+        ->name('calendar.bookings.status');
+
     Route::get('/venues', [OwnerVenueController::class, 'index'])->name('venues.index');
     Route::get('/venues/create', [OwnerVenueController::class, 'create'])->name('venues.create');
     Route::post('/venues/create', [OwnerVenueController::class, 'store'])->name('venues.store');
