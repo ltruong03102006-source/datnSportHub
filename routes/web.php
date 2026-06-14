@@ -46,6 +46,8 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
     Route::get('/calendar/events', [OwnerBookingCalendarController::class, 'events'])->name('calendar.events');
     Route::patch('/calendar/bookings/{booking}/status', [OwnerBookingCalendarController::class, 'updateStatus'])
         ->name('calendar.bookings.status');
+    Route::patch('/calendar/bookings/{booking}/cancel', [OwnerBookingCalendarController::class, 'cancel'])
+        ->name('calendar.bookings.cancel');
 
     Route::get('/venues', [OwnerVenueController::class, 'index'])->name('venues.index');
     Route::get('/venues/create', [OwnerVenueController::class, 'create'])->name('venues.create');
