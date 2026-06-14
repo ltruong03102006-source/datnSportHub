@@ -131,6 +131,49 @@ class OwnerBookingCalendarController extends Controller
         ]);
     }
 
+    public function cancel(Request $request, Booking $booking): JsonResponse
+    {
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'max:1000'],
+        ], [
+            'reason.required' => 'Vui lòng nhập lý do hủy.',
+            'reason.max' => 'Lý do hủy tối đa 1000 ký tự.',
+        ]);
+
+        $booking = DB::transaction(function () use ($booking, $request, $validated) {
+            $lockedBooking = Booking::query()
+                ->whereKey($booking->id)
+                ->whereHas('court.venue', fn ($query) => $query->where('owner_id', $request->user()->id))
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedBooking->status !== 'confirmed') {
+                abort(409, 'Chỉ có thể hủy booking đã được xác nhận.');
+            }
+
+            $oldStatus = $lockedBooking->status;
+            $lockedBooking->update([
+                'status' => 'cancelled',
+                'cancel_reason' => $validated['reason'],
+            ]);
+
+            BookingLog::create([
+                'booking_id' => $lockedBooking->id,
+                'changed_by' => $request->user()->id,
+                'old_status' => $oldStatus,
+                'new_status' => 'cancelled',
+                'note' => $validated['reason'],
+            ]);
+
+            return $lockedBooking->load(['court.venue', 'user']);
+        });
+
+        return response()->json([
+            'message' => 'Đã hủy booking và lưu lý do hủy.',
+            'event' => $this->formatEvent($booking),
+        ]);
+    }
+
     private function formatEvent(Booking $booking): array
     {
         $status = $this->statusMeta($booking->status);
@@ -154,6 +197,7 @@ class OwnerBookingCalendarController extends Controller
                 'status_label' => $status['label'],
                 'total_price' => number_format((float) $booking->total_price, 0, ',', '.').' đ',
                 'note' => $booking->note,
+                'cancel_reason' => $booking->cancel_reason,
                 'date_label' => $booking->slot_date->format('d/m/Y'),
                 'time_label' => substr($booking->start_time, 0, 5).' - '.substr($booking->end_time, 0, 5),
             ],

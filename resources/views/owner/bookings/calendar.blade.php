@@ -207,11 +207,20 @@
                     <dd class="col-8 fw-semibold" id="detail-price"></dd>
                     <dt class="col-4 text-secondary fw-normal">Ghi chú</dt>
                     <dd class="col-8 mb-0" id="detail-note"></dd>
+                    <dt class="col-4 text-secondary fw-normal d-none" id="detail-cancel-label">Lý do hủy</dt>
+                    <dd class="col-8 mb-0 text-danger fw-semibold d-none" id="detail-cancel-reason"></dd>
                 </dl>
             </div>
             <div id="booking-actions" class="modal-footer d-none">
                 <button type="button" id="reject-booking" class="btn btn-outline-danger">Từ chối</button>
                 <button type="button" id="confirm-booking" class="btn btn-success">Xác nhận</button>
+            </div>
+            <div id="booking-cancel" class="modal-footer d-none flex-column align-items-stretch gap-2">
+                <div class="w-100 text-start">
+                    <label for="cancel-reason" class="form-label small fw-semibold text-danger mb-1">Lý do hủy (gửi cho khách)</label>
+                    <textarea id="cancel-reason" class="form-control form-control-sm" rows="2" maxlength="1000" placeholder="Ví dụ: Sân bảo trì đột xuất, xin lỗi quý khách..."></textarea>
+                </div>
+                <button type="button" id="cancel-booking" class="btn btn-danger w-100">Hủy đơn đã xác nhận</button>
             </div>
         </div>
     </div>
@@ -233,6 +242,12 @@
         const rejectButton = document.getElementById('reject-booking');
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         const statusUrlTemplate = @js(route('owner.web.calendar.bookings.status', ['booking' => '__BOOKING__']));
+        const cancelUrlTemplate = @js(route('owner.web.calendar.bookings.cancel', ['booking' => '__BOOKING__']));
+        const bookingCancel = document.getElementById('booking-cancel');
+        const cancelReason = document.getElementById('cancel-reason');
+        const cancelButton = document.getElementById('cancel-booking');
+        const detailCancelLabel = document.getElementById('detail-cancel-label');
+        const detailCancelReason = document.getElementById('detail-cancel-reason');
         let selectedBookingId = null;
         const statusClasses = {
             pending: 'text-bg-warning',
@@ -292,6 +307,14 @@
                 status.className = `badge ${statusClasses[booking.status] || 'text-bg-secondary'}`;
                 selectedBookingId = booking.booking_id;
                 bookingActions.classList.toggle('d-none', booking.status !== 'pending');
+                bookingCancel.classList.toggle('d-none', booking.status !== 'confirmed');
+                cancelReason.value = '';
+
+                const showCancelReason = booking.status === 'cancelled' && !!booking.cancel_reason;
+                detailCancelLabel.classList.toggle('d-none', !showCancelReason);
+                detailCancelReason.classList.toggle('d-none', !showCancelReason);
+                detailCancelReason.textContent = booking.cancel_reason || '';
+
                 actionAlert.className = 'alert d-none';
                 actionAlert.textContent = '';
                 detailModal.show();
@@ -339,8 +362,53 @@
             }
         }
 
+        async function cancelConfirmedBooking() {
+            if (!selectedBookingId) return;
+
+            const reason = cancelReason.value.trim();
+            if (!reason) {
+                actionAlert.textContent = 'Vui lòng nhập lý do hủy.';
+                actionAlert.className = 'alert alert-danger';
+                return;
+            }
+
+            const originalText = cancelButton.textContent;
+            cancelButton.disabled = true;
+            cancelButton.textContent = 'Đang hủy...';
+
+            try {
+                const response = await fetch(
+                    cancelUrlTemplate.replace('__BOOKING__', selectedBookingId),
+                    {
+                        method: 'PATCH',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken,
+                        },
+                        body: JSON.stringify({ reason }),
+                    }
+                );
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Không thể hủy booking.');
+                }
+
+                detailModal.hide();
+                calendar.refetchEvents();
+            } catch (error) {
+                actionAlert.textContent = error.message;
+                actionAlert.className = 'alert alert-danger';
+            } finally {
+                cancelButton.disabled = false;
+                cancelButton.textContent = originalText;
+            }
+        }
+
         confirmButton.addEventListener('click', () => updateBookingStatus('confirmed'));
         rejectButton.addEventListener('click', () => updateBookingStatus('rejected'));
+        cancelButton.addEventListener('click', cancelConfirmedBooking);
 
         venueFilter.addEventListener('change', () => {
             courtOptions.forEach((option) => {

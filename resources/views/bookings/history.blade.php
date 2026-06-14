@@ -70,10 +70,13 @@
                             </td>
                             <td class="whitespace-nowrap px-5 py-4 text-sm font-semibold text-zinc-700">{{ $slotDate }}<br><span class="text-zinc-500">{{ $startTime }} - {{ $endTime }} ({{ $booking->slot_count ?? 1 }} ca)</span></td>
                             <td class="whitespace-nowrap px-5 py-4 text-sm font-bold text-emerald-700">{{ number_format((float) $booking->total_price, 0, ',', '.') }}đ</td>
-                            <td class="whitespace-nowrap px-5 py-4">
+                            <td class="px-5 py-4">
                                 <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset {{ $statusMeta['class'] }}">
                                     {{ $statusMeta['label'] }}
                                 </span>
+                                @if($booking->status === 'cancelled' && $booking->cancel_reason)
+                                    <p class="mt-1.5 max-w-[200px] text-xs text-red-600"><span class="font-semibold">Lý do hủy:</span> {{ $booking->cancel_reason }}</p>
+                                @endif
                             </td>
                             <td class="px-5 py-4 text-right">
     <div class="flex items-center justify-end gap-2">
@@ -133,6 +136,12 @@
                             <p class="mt-1 font-black text-emerald-700">{{ number_format((float) $booking->total_price, 0, ',', '.') }}đ</p>
                         </div>
                     </div>
+
+                    @if($booking->status === 'cancelled' && $booking->cancel_reason)
+                        <div class="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
+                            <span class="font-semibold">Lý do hủy:</span> {{ $booking->cancel_reason }}
+                        </div>
+                    @endif
 
                     @if($canCancel)
                         <form method="POST" action="{{ route('account.bookings.cancel', $booking) }}" class="mt-4" onsubmit="return confirm('Bạn chắc chắn muốn hủy lịch đặt sân này?');">
