@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendBookingCancelledMail;
 use App\Models\Booking;
+use App\Models\BookingLog;
 use App\Models\Venue;
 use App\Models\Court;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Exception;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class OwnerBookingController extends Controller
 {
@@ -180,6 +184,7 @@ class OwnerBookingController extends Controller
             $stats = [
                 'total' => (clone $allBookings)->count(),
                 'confirmed' => (clone $allBookings)->where('status', 'confirmed')->count(),
+                'completed' => (clone $allBookings)->where('status', 'completed')->count(),
                 'pending' => (clone $allBookings)->where('status', 'pending')->count(),
                 'cancelled' => (clone $allBookings)->where('status', 'cancelled')->count(),
             ];
@@ -193,6 +198,72 @@ class OwnerBookingController extends Controller
             return response()->json([
                 'message' => 'Lỗi khi lấy thống kê',
                 'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function cancel(Request $request, $bookingId): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $reason = $request->input('reason');
+
+            $booking = Booking::where('id', $bookingId)
+                ->whereHas('court', function ($query) use ($user) {
+                    $query->whereHas('venue', function ($q) use ($user) {
+                        $q->where('owner_id', $user->id);
+                    });
+                })
+                ->first();
+
+            if (!$booking) {
+                return response()->json([
+                    'message' => 'Booking không được tìm thấy hoặc bạn không có quyền'
+                ], 404);
+            }
+
+            if (!is_string($reason) || mb_strlen(trim($reason)) > 500) {
+                return response()->json([
+                    'message' => 'Lý do hủy không hợp lệ'
+                ], 422);
+            }
+
+            $result = DB::transaction(function () use ($booking, $user, $reason) {
+                $lockedBooking = Booking::where('id', $booking->id)->lockForUpdate()->first();
+
+                if (!$lockedBooking) {
+                    throw new HttpException(404, 'Booking không được tìm thấy');
+                }
+
+                if ($lockedBooking->status !== 'confirmed') {
+                    throw new HttpException(422, 'Chỉ booking đã xác nhận mới có thể hủy');
+                }
+
+                $oldStatus = $lockedBooking->status;
+                $lockedBooking->status = 'cancelled';
+                $lockedBooking->save();
+
+                $lockedBooking->recordStatusChange($user->id, $oldStatus, 'cancelled', $reason ?: 'Owner cancelled booking');
+                dispatch(new SendBookingCancelledMail($lockedBooking));
+
+                return $lockedBooking;
+            });
+
+            return response()->json([
+                'message' => 'Booking cancelled successfully',
+                'data' => [
+                    'booking_id' => $result->id,
+                    'status' => $result->status,
+                ],
+            ], 200);
+        } catch (HttpException $exception) {
+            return response()->json([
+                'message' => $exception->getMessage(),
+            ], $exception->getStatusCode());
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Lỗi khi hủy booking',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

@@ -457,14 +457,15 @@
 
             const bookings = Array.isArray(data.data) ? data.data : [data.data];
             const firstBooking = bookings.find(Boolean);
+            const bookingId = firstBooking?.id ?? firstBooking?.booking_id;
 
-            if (!firstBooking?.id) {
+            if (!bookingId) {
                 showToast('Đã tạo đơn nhưng không tìm thấy mã booking.');
                 return;
             }
 
             const successUrl = @json(route('web.bookings.success', ['booking' => '__BOOKING_ID__']));
-            window.location.href = successUrl.replace('__BOOKING_ID__', firstBooking.id);
+            window.location.href = successUrl.replace('__BOOKING_ID__', bookingId);
         } catch (error) {
             showToast('Không thể kết nối máy chủ. Vui lòng thử lại sau.');
         } finally {

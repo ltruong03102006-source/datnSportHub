@@ -130,6 +130,7 @@ Route::middleware(['auth:sanctum', 'owner'])->prefix('owner')->group(function ()
     Route::get('/bookings', [OwnerBookingController::class, 'index'])->name('owner.bookings.index');
     Route::get('/bookings/stats', [OwnerBookingController::class, 'stats'])->name('owner.bookings.stats');
     Route::get('/bookings/{id}', [OwnerBookingController::class, 'show'])->name('owner.bookings.show');
+    Route::post('/bookings/{id}/cancel', [OwnerBookingController::class, 'cancel'])->name('owner.bookings.cancel');
     Route::get('/venues/{venueId}/bookings', [OwnerBookingController::class, 'venueBookings'])->name('owner.venues.bookings');
     Route::get('/courts/{courtId}/bookings', [OwnerBookingController::class, 'courtBookings'])->name('owner.courts.bookings');
 });
