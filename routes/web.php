@@ -34,9 +34,7 @@ Route::post('/logout', [ApiAuthController::class, 'logout'])
     ->middleware('auth')
     ->name('web.logout');
 
-Route::get('/owner', function () {
-    return redirect()->route('owner.web.venues.index');
-})
+Route::get('/owner', [\App\Http\Controllers\Web\OwnerDashboardController::class, 'index'])
     ->middleware(['auth', 'owner'])
     ->name('owner.dashboard');
 

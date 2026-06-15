@@ -54,6 +54,6 @@ class OwnerLoginController extends Controller
 
     $request->session()->regenerate();
 
-    return redirect()->route('owner.web.venues.index');
+    return redirect()->route('owner.dashboard');
 }
 }
