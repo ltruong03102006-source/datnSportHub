@@ -54,6 +54,11 @@ class Venue extends Model
         return $this->belongsTo(OwnerRegistration::class, 'owner_id', 'user_id');
     }
 
+    public function logs(): HasMany
+    {
+        return $this->hasMany(VenueLog::class);
+    }
+
     public function getOwnerPhoneAttribute(): ?string
     {
         return $this->ownerRegistration?->phone;

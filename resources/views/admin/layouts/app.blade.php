@@ -286,7 +286,10 @@
                 <i class="fa-solid fa-user-check"></i> Đăng ký chủ sân
             </a>
             <a href="{{ route('admin.venues.index') }}" class="nav-item {{ request()->routeIs('admin.venues.*') ? 'active' : '' }}">
-                <i class="fa-solid fa-building"></i> Quản lý sân
+                <i class="fa-solid fa-building"></i> Quản lý cơ sở
+            </a>
+            <a href="{{ route('admin.courts.index') }}" class="nav-item {{ request()->routeIs('admin.courts.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-list-check"></i> Quản lý sân
             </a>
             <a href="{{ route('admin.bookings.index') }}" class="nav-item {{ request()->routeIs('admin.bookings.*') ? 'active' : '' }}">
                 <i class="fa-regular fa-calendar-check"></i> Quản lý đặt sân
