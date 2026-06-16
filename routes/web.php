@@ -74,6 +74,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         
         // Quản lý Lịch đặt
         Route::get('/bookings', [AdminBookingController::class, 'index'])->name('bookings.index');
+        
+        // Quản lý đăng ký chủ sân
+        Route::get('/owner-registrations', [\App\Http\Controllers\Web\AdminOwnerRegistrationController::class, 'index'])->name('owner-registrations.index');
+        Route::post('/owner-registrations/{id}/approve', [\App\Http\Controllers\Web\AdminOwnerRegistrationController::class, 'approve'])->name('owner-registrations.approve');
+        Route::post('/owner-registrations/{id}/reject', [\App\Http\Controllers\Web\AdminOwnerRegistrationController::class, 'reject'])->name('owner-registrations.reject');
     });
 });
 
