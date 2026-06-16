@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\OwnerBookingController;
 use App\Http\Controllers\Api\SportController;
 use App\Http\Controllers\Api\VenueController;
 use App\Http\Controllers\Api\CourtAvailabilityController;
+use App\Http\Controllers\Api\AdminOwnerRegistrationController;
 use App\Http\Controllers\CourtController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\ReviewController;
@@ -133,4 +134,11 @@ Route::middleware(['auth:sanctum', 'owner'])->prefix('owner')->group(function ()
     Route::post('/bookings/{id}/cancel', [OwnerBookingController::class, 'cancel'])->name('owner.bookings.cancel');
     Route::get('/venues/{venueId}/bookings', [OwnerBookingController::class, 'venueBookings'])->name('owner.venues.bookings');
     Route::get('/courts/{courtId}/bookings', [OwnerBookingController::class, 'courtBookings'])->name('owner.courts.bookings');
+});
+
+Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+    Route::get('/owner-registrations', [AdminOwnerRegistrationController::class, 'index']);
+    Route::get('/owner-registrations/{id}', [AdminOwnerRegistrationController::class, 'show']);
+    Route::post('/owner-registrations/{id}/approve', [AdminOwnerRegistrationController::class, 'approve']);
+    Route::post('/owner-registrations/{id}/reject', [AdminOwnerRegistrationController::class, 'reject']);
 });
