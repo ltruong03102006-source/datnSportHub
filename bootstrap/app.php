@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Alias middleware
         $middleware->alias([
             'owner' => \App\Http\Middleware\EnsureOwnerRole::class,
+            'admin' => \App\Http\Middleware\EnsureAdminRole::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
