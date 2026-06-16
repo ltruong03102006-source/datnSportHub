@@ -9,6 +9,11 @@ use App\Http\Controllers\Web\OwnerVenueController;
 use App\Http\Controllers\Web\UserBookingController;
 use App\Http\Controllers\Web\VenueController;
 use App\Http\Controllers\Api\AuthController as ApiAuthController;
+use App\Http\Controllers\Web\AdminLoginController;
+use App\Http\Controllers\Web\AdminDashboardController;
+use App\Http\Controllers\Web\AdminUserController;
+use App\Http\Controllers\Web\AdminVenueController;
+use App\Http\Controllers\Web\AdminBookingController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Web\OwnerCourtController;
@@ -37,6 +42,38 @@ Route::post('/logout', [ApiAuthController::class, 'logout'])
 Route::get('/owner', [\App\Http\Controllers\Web\OwnerDashboardController::class, 'index'])
     ->middleware(['auth', 'owner'])
     ->name('owner.dashboard');
+
+// --- KHU VỰC QUẢN TRỊ VIÊN (ADMIN) ---
+Route::prefix('admin')->name('admin.')->group(function () {
+    // Đăng nhập Admin (Không yêu cầu đăng nhập)
+    Route::middleware('guest')->group(function () {
+        Route::get('/login', [AdminLoginController::class, 'create'])->name('login');
+        Route::post('/login', [AdminLoginController::class, 'store'])->name('login.store');
+    });
+
+    // Đăng xuất
+    Route::post('/logout', [AdminLoginController::class, 'destroy'])->name('logout')->middleware('auth');
+
+    // Các route yêu cầu quyền admin
+    Route::middleware(['auth', 'admin'])->group(function () {
+        Route::get('/', function () {
+            return redirect()->route('admin.dashboard');
+        });
+        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+        
+        // Quản lý Users
+        Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+        
+        // Quản lý Cơ sở sân
+        Route::get('/venues', [AdminVenueController::class, 'index'])->name('venues.index');
+        Route::get('/venues/{venue}', function() { return redirect()->route('admin.venues.index'); });
+        Route::put('/venues/{venue}', [AdminVenueController::class, 'update'])->name('venues.update');
+        Route::delete('/venues/{venue}', [AdminVenueController::class, 'destroy'])->name('venues.destroy');
+        
+        // Quản lý Lịch đặt
+        Route::get('/bookings', [AdminBookingController::class, 'index'])->name('bookings.index');
+    });
+});
 
 // --- KHU VỰC QUẢN LÝ CỦA CHỦ SÂN (OWNER) ---
 Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group(function () {
