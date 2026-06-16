@@ -33,80 +33,95 @@ class BookingController extends Controller
             ];
         })->sortBy('start_time')->values();
 
-        foreach ($slots as $index => $slot) {
-            if ($index > 0) {
-                $previous = $slots[$index - 1];
-
-                if ($previous['end_time'] > $slot['start_time']) {
-                    throw new HttpException(409, 'Các ca không được xếp chồng lên nhau');
-                }
-            }
-        }
-
         $dayOfWeek = Carbon::parse($request->slot_date)->dayOfWeek;
+        $now = Carbon::now();
 
-        $bookings = DB::transaction(function () use ($request, $slots, $dayOfWeek) {
-            $created = collect();
+        try {
+            foreach ($slots as $index => $slot) {
+                if ($index > 0) {
+                    $previous = $slots[$index - 1];
 
-            foreach ($slots as $slot) {
-                $conflict = Booking::where('court_id', $request->court_id)
-                    ->where('slot_date', $request->slot_date)
-                    ->whereNotIn('status', ['cancelled', 'rejected'])
-                    ->where(function ($q) use ($slot) {
-                        $q->where('start_time', '<', $slot['end_time'])
-                          ->where('end_time', '>', $slot['start_time']);
-                    })
-                    ->lockForUpdate()
-                    ->exists();
-
-                if ($conflict) {
-                    throw new HttpException(409, 'Khung giờ này đã được đặt');
+                    if ($previous['end_time'] > $slot['start_time']) {
+                        throw new HttpException(409, 'Các ca không được xếp chồng lên nhau');
+                    }
                 }
-
-                $price = DB::table('slot_prices')
-                    ->join('time_slots', 'slot_prices.time_slot_id', '=', 'time_slots.id')
-                    ->where('time_slots.court_id', $request->court_id)
-                    ->where('time_slots.start_time', $slot['start_time'])
-                    ->where(function ($q) use ($dayOfWeek) {
-                        $q->where('slot_prices.day_of_week', $dayOfWeek)
-                          ->orWhereNull('slot_prices.day_of_week');
-                    })
-                    ->orderByRaw('day_of_week IS NULL ASC')
-                    ->value('price') ?? 0;
-
-                $booking = Booking::create([
-                    'court_id' => $request->court_id,
-                    'user_id' => Auth::id(),
-                    'slot_date' => $request->slot_date,
-                    'start_time' => $slot['start_time'],
-                    'end_time' => $slot['end_time'],
-                    'total_price' => $price,
-                    'status' => 'pending',
-                    'note' => $request->note,
-                ]);
-
-                BookingLog::create([
-                    'booking_id' => $booking->id,
-                    'changed_by' => Auth::id(),
-                    'old_status' => '',
-                    'new_status' => 'pending',
-                    'note' => 'Người dùng tạo booking',
-                ]);
-
-                $created->push($booking);
             }
 
-            return $created;
-        });
+            $bookings = DB::transaction(function () use ($request, $slots, $dayOfWeek, $now) {
+                $created = collect();
+
+                foreach ($slots as $slot) {
+                    $conflict = Booking::where('court_id', $request->court_id)
+                        ->where('slot_date', $request->slot_date)
+                        ->whereIn('status', ['confirmed', 'completed'])
+                        ->where(function ($q) use ($slot) {
+                            $q->where('start_time', '<', $slot['end_time'])
+                                ->where('end_time', '>', $slot['start_time']);
+                        })
+                        ->lockForUpdate()
+                        ->exists();
+
+                    if ($conflict) {
+                        throw new HttpException(409, 'This time slot has already been booked');
+                    }
+
+                    $price = DB::table('slot_prices')
+                        ->join('time_slots', 'slot_prices.time_slot_id', '=', 'time_slots.id')
+                        ->where('time_slots.court_id', $request->court_id)
+                        ->where('time_slots.start_time', $slot['start_time'])
+                        ->where(function ($q) use ($dayOfWeek) {
+                            $q->where('slot_prices.day_of_week', $dayOfWeek)
+                                ->orWhereNull('slot_prices.day_of_week');
+                        })
+                        ->orderByRaw('day_of_week IS NULL ASC')
+                        ->value('price') ?? 0;
+
+                    $booking = new Booking();
+                    $booking->court_id = $request->court_id;
+                    $booking->user_id = Auth::id();
+                    $booking->slot_date = $request->slot_date;
+                    $booking->start_time = $slot['start_time'];
+                    $booking->end_time = $slot['end_time'];
+                    $booking->total_price = $price;
+                    $booking->status = 'confirmed';
+                    $booking->payment_status = 'unpaid';
+                    $booking->note = $request->note;
+
+                    $booking->timestamps = false;
+                    $booking->created_at = $now;
+                    $booking->updated_at = $now;
+                    $booking->save();
+
+                    $booking->recordStatusChange(Auth::id(), '', 'confirmed', 'Người dùng tạo booking', $now);
+
+                    $created->push($booking);
+                }
+
+                return $created;
+            });
+        } catch (HttpException $exception) {
+            return response()->json([
+                'message' => $exception->getMessage(),
+            ], $exception->getStatusCode());
+        }
 
         $bookings = $bookings->map(function ($booking) {
             dispatch(new SendBookingConfirmation($booking));
             return $booking->load('court.venue');
         });
 
+        $data = $bookings->map(function ($booking) {
+            return [
+                'id' => $booking->id,
+                'booking_id' => $booking->id,
+                'status' => $booking->status,
+                'payment_status' => $booking->payment_status,
+            ];
+        });
+
         return response()->json([
-            'message' => 'Đặt sân thành công',
-            'data' => $bookings,
+            'message' => 'Booking confirmed successfully',
+            'data' => $bookings->count() === 1 ? $data->first() : $data,
         ], 201);
     }
 }

@@ -71,7 +71,8 @@ class UserBookingController extends Controller
                 DB::raw('MIN(start_time) as start_time'), // Giờ bắt đầu sớm nhất
                 DB::raw('MAX(end_time) as end_time'), // Giờ kết thúc muộn nhất
                 DB::raw('SUM(total_price) as total_price'), // Tổng tiền các ca
-                DB::raw('COUNT(id) as slot_count') // Đếm số ca
+                DB::raw('COUNT(id) as slot_count'), // Đếm số ca
+                DB::raw('MAX(cancel_reason) as cancel_reason') // cancellation reason (if any)
             )
             ->where('user_id', Auth::id())
             ->groupBy('court_id', 'slot_date', 'created_at', 'status')

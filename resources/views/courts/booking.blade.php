@@ -6,51 +6,33 @@
 <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
     
     <!-- Hero Section: Clean Profile Card Style -->
-    <div class="mb-10 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm transition-shadow hover:shadow-md">
-        <div class="flex flex-col md:flex-row">
-            <!-- Image -->
-            <div class="h-48 w-full shrink-0 overflow-hidden md:h-auto md:w-80">
-                <img src="{{ $bannerUrl }}" alt="{{ $court->name }}" class="h-full w-full object-cover">
+    <div class="mb-8 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+        <div class="flex flex-col p-6 sm:p-8">
+            <div class="mb-3 flex flex-wrap items-center gap-3">
+                @if($court->venue?->sport)
+                    <span class="inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                        {{ $court->venue->sport->name }}
+                    </span>
+                @endif
+                @if($court->status === 'active')
+                    <span class="inline-flex items-center gap-1.5 rounded-md bg-stone-50 px-2.5 py-1 text-xs font-semibold text-stone-600 ring-1 ring-inset ring-stone-500/20">
+                        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                        Đang hoạt động
+                    </span>
+                @endif
             </div>
+
+            <h1 class="mb-3 text-3xl font-extrabold tracking-tight text-zinc-900 sm:text-4xl">{{ $court->name }}</h1>
             
-            <!-- Info -->
-            <div class="flex flex-1 flex-col justify-center p-6 sm:p-8">
-                <div class="mb-2 flex flex-wrap items-center gap-3">
-                    @if($court->venue?->sport)
-                        <span class="inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
-                            {{ $court->venue->sport->name }}
-                        </span>
-                    @endif
-                    @if($court->status === 'active')
-                        <span class="inline-flex items-center gap-1.5 rounded-md bg-stone-50 px-2.5 py-1 text-xs font-semibold text-stone-600 ring-1 ring-inset ring-stone-500/20">
-                            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                            Đang hoạt động
-                        </span>
-                    @endif
-                </div>
+            <p class="mb-6 flex items-start gap-2 text-sm text-zinc-500">
+                <svg class="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                </svg>
+                <span>{{ $court->venue?->address ?? 'Chưa cập nhật địa chỉ' }}</span>
+            </p>
 
-                <h1 class="mb-3 text-3xl font-extrabold tracking-tight text-zinc-900 sm:text-4xl">{{ $court->name }}</h1>
-                
-                <p class="mb-6 flex items-start gap-2 text-sm text-zinc-500">
-                    <svg class="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
-                    </svg>
-                    <span>{{ $court->venue?->address ?? 'Chưa cập nhật địa chỉ' }}</span>
-                </p>
-
-                <!-- Quick Stats -->
-                <div class="flex flex-wrap gap-6 border-t border-stone-100 pt-6">
-                    <div>
-                        <p class="text-xs font-medium text-stone-400 uppercase tracking-wider mb-1">Giờ mở cửa</p>
-                        <p class="text-sm font-semibold text-zinc-900">06:00 - 22:00</p>
-                    </div>
-                    <div>
-                        <p class="text-xs font-medium text-stone-400 uppercase tracking-wider mb-1">Loại giá</p>
-                        <p class="text-sm font-semibold text-zinc-900">Giờ thường / Cao điểm</p>
-                    </div>
-                </div>
-            </div>
+           
         </div>
     </div>
 
@@ -80,35 +62,35 @@
                 </div>
 
                 <!-- Legend Card -->
-                <div class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm hidden sm:block">
-    <h4 class="mb-4 text-xs font-bold uppercase tracking-wider text-zinc-400">Chú thích trạng thái</h4>
-    <div class="space-y-4 text-sm">
-        <div class="flex items-center gap-3">
-            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-emerald-50 border border-emerald-200">
-                <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-            </span>
-            <span class="font-medium text-zinc-600">Giờ thường</span>
-        </div>
-        <div class="flex items-center gap-3">
-            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-red-50 border border-red-200">
-                <span class="h-2 w-2 rounded-full bg-red-500"></span>
-            </span>
-            <span class="font-medium text-zinc-600">Giờ cao điểm</span>
-        </div>
-        <div class="flex items-center gap-3">
-            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-zinc-800 border border-zinc-700">
-                <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>
-            </span>
-            <span class="font-medium text-zinc-700">Đã đặt</span>
-        </div>
-        <div class="flex items-center gap-3">
-            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-stone-100 border border-stone-200 opacity-80">
-                <svg class="h-3.5 w-3.5 text-stone-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
-            </span>
-            <span class="font-medium text-stone-400">Khóa</span>
-        </div>
-    </div>
-</div>
+               <div class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm hidden sm:block">
+                    <h4 class="mb-4 text-xs font-bold uppercase tracking-wider text-zinc-400">Chú thích trạng thái</h4>
+                    <div class="space-y-4 text-sm">
+                        <div class="flex items-center gap-3">
+                            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-white border-2 border-emerald-200">
+                                <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                            </span>
+                            <span class="font-medium text-zinc-700">Giờ thường</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-orange-50 border border-orange-300">
+                                <span class="h-2.5 w-2.5 rounded-full bg-orange-400"></span>
+                            </span>
+                            <span class="font-medium text-orange-700">Giờ cao điểm</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-rose-50 border border-rose-200">
+                                <span class="h-2 w-2 rounded-full bg-rose-500"></span>
+                            </span>
+                            <span class="font-medium text-zinc-700">Đã đặt</span>
+                        </div>
+                        <div class="flex items-center gap-3 opacity-70">
+                            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-slate-100 border border-slate-200">
+                                <svg class="h-3.5 w-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
+                            </span>
+                            <span class="font-medium text-slate-500">Khóa / Quá giờ</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -264,70 +246,85 @@
     function createSlotCard(slot) {
         const div = document.createElement('div');
         const slotDataStr = encodeURIComponent(JSON.stringify(slot));
-        const priceColor = slot.price_type === 'peak' ? 'text-red-600' : 'text-emerald-700';
-        const typeLabel = slot.price_type === 'peak' ? 'Cao điểm' : 'Thường';
 
-        // Base class cho toàn bộ thẻ (Viền mỏng 1px)
+        // Base class cho toàn bộ thẻ
         div.className = `slot-card relative flex flex-col justify-between overflow-hidden rounded-2xl border p-4 transition-all duration-200 ease-out outline-none select-none`;
         div.dataset.id = slot.slot_id;
 
         if (!slot.is_available) {
             if (slot.is_booked) {
-                // TRẠNG THÁI 1: Đã có người đặt (UI: Đen nhạt, icon Hình người)
-                div.classList.add('border-zinc-200', 'bg-zinc-50', 'opacity-90', 'pointer-events-none');
+                // TRẠNG THÁI 1: ĐÃ ĐẶT (Màu Đỏ Hồng - Rose)
+                div.classList.add('border-rose-200', 'bg-rose-50/60', 'pointer-events-none');
                 div.innerHTML = `
-                    <div class="mb-3 flex items-start justify-between">
+                    <div class="mb-3 flex items-start justify-between opacity-70">
                         <div>
-                            <h4 class="text-sm font-bold text-zinc-600 line-through decoration-zinc-400">${slot.start_time} - ${slot.end_time}</h4>
-                            <p class="mt-1 text-[11px] font-medium text-zinc-500">${typeLabel}</p>
+                            <h4 class="text-sm font-bold text-rose-900 line-through decoration-rose-400">${slot.start_time} - ${slot.end_time}</h4>
                         </div>
-                        <div class="grid h-5 w-5 place-items-center rounded-full bg-zinc-800 text-white shadow-sm">
-                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" /></svg>
+                        <div class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-rose-100 border border-rose-200">
+                            <span class="h-2 w-2 rounded-full bg-rose-500"></span>
                         </div>
                     </div>
-                    <div class="flex items-end justify-between">
-                        <p class="text-base font-bold text-zinc-500">${parseInt(slot.price).toLocaleString('vi-VN')}₫</p>
-                        <span class="rounded bg-zinc-800 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">Đã đặt</span>
+                    <div class="flex items-end justify-between opacity-70">
+                        <p class="text-base font-bold text-rose-900">${parseInt(slot.price).toLocaleString('vi-VN')}₫</p>
+                        <span class="rounded-md bg-rose-100 border border-rose-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-rose-600">Đã đặt</span>
                     </div>
                 `;
             } else {
-                // TRẠNG THÁI 2: Bị khóa do quá giờ (UI: Xám nhạt, icon Ổ khóa)
-                div.classList.add('border-stone-200', 'bg-stone-50/50', 'opacity-60', 'pointer-events-none');
+                // TRẠNG THÁI 2: KHÓA / QUÁ GIỜ (Màu Xám - Slate)
+                div.classList.add('border-slate-200', 'bg-slate-100/50', 'pointer-events-none');
                 div.innerHTML = `
-                    <div class="mb-3 flex items-start justify-between">
+                    <div class="mb-3 flex items-start justify-between opacity-60">
                         <div>
-                            <h4 class="text-sm font-medium text-stone-400 line-through decoration-stone-300">${slot.start_time} - ${slot.end_time}</h4>
-                            <p class="mt-1 text-[11px] font-medium text-stone-400">${typeLabel}</p>
+                            <h4 class="text-sm font-medium text-slate-500 line-through decoration-slate-300">${slot.start_time} - ${slot.end_time}</h4>
                         </div>
-                        <div class="grid h-5 w-5 place-items-center rounded-full bg-stone-200/80">
-                            <svg class="h-3 w-3 text-stone-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
+                        <div class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 border border-slate-300">
+                            <svg class="h-3 w-3 text-slate-500" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
                         </div>
                     </div>
-                    <div class="flex items-end justify-between">
-                        <p class="text-base font-medium text-stone-400">${parseInt(slot.price).toLocaleString('vi-VN')}₫</p>
-                        <span class="rounded bg-stone-200/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-stone-500">Khóa</span>
+                    <div class="flex items-end justify-between opacity-60">
+                        <p class="text-base font-medium text-slate-500">${parseInt(slot.price).toLocaleString('vi-VN')}₫</p>
+                        <span class="rounded-md bg-slate-200 border border-slate-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">Khóa</span>
                     </div>
                 `;
             }
         } else {
-            // TRẠNG THÁI 3 & 4: Giờ trống (Cho phép click, viền nhạt, hover lên viền xanh)
-            div.classList.add('cursor-pointer', 'border-stone-200', 'bg-white', 'hover:-translate-y-0.5', 'hover:border-emerald-400', 'hover:shadow-sm');
+            // CÁC TRẠNG THÁI CÓ THỂ ĐẶT (Cho phép click chọn)
+            div.classList.add('cursor-pointer');
             div.setAttribute('onclick', `toggleSlot('${slotDataStr}')`);
-            
-            div.innerHTML = `
-                <div class="mb-3 flex items-start justify-between">
-                    <div>
-                        <h4 class="slot-time text-sm font-semibold text-zinc-800 transition-colors">${slot.start_time} - ${slot.end_time}</h4>
-                        <p class="mt-1 text-[11px] font-medium ${slot.price_type === 'peak' ? 'text-red-500' : 'text-stone-500'}">${typeLabel}</p>
+
+            if (slot.price_type === 'peak') {
+                // TRẠNG THÁI 3: CAO ĐIỂM (Màu Cam - Orange)
+                div.classList.add('border-orange-200', 'bg-orange-50/50', 'hover:border-orange-400', 'hover:-translate-y-0.5', 'hover:shadow-md');
+                div.innerHTML = `
+                    <div class="mb-2 flex items-start justify-between">
+                        <div>
+                            <h4 class="slot-time text-sm font-bold text-orange-900 transition-colors">${slot.start_time} - ${slot.end_time}</h4>
+                            <span class="mt-1 inline-block text-[10px] font-bold text-orange-700 bg-orange-100 px-1.5 py-0.5 rounded uppercase tracking-wider">Cao điểm</span>
+                        </div>
+                        <div class="slot-checkbox flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-orange-300 bg-white transition-all duration-200"></div>
                     </div>
-                    <div class="slot-checkbox flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-stone-300 bg-white transition-all duration-200">
+                    <div class="flex items-end justify-between">
+                        <p class="slot-price text-base font-black text-orange-600 transition-colors">${parseInt(slot.price).toLocaleString('vi-VN')}₫</p>
+                        <span class="rounded-md bg-white border border-orange-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-orange-600 shadow-sm">Trống</span>
                     </div>
-                </div>
-                <div class="flex items-end justify-between">
-                    <p class="slot-price text-base font-bold ${priceColor} transition-colors">${parseInt(slot.price).toLocaleString('vi-VN')}₫</p>
-                    <span class="rounded bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-600 ring-1 ring-inset ring-emerald-500/20">Trống</span>
-                </div>
-            `;
+                `;
+            } else {
+                // TRẠNG THÁI 4: GIỜ THƯỜNG (Màu Xanh Lá - Emerald, thêm nhãn "Thường")
+                div.classList.add('border-emerald-200', 'bg-white', 'hover:border-emerald-400', 'hover:-translate-y-0.5', 'hover:shadow-md');
+                div.innerHTML = `
+                    <div class="mb-2 flex items-start justify-between">
+                        <div>
+                            <h4 class="slot-time text-sm font-semibold text-zinc-800 transition-colors">${slot.start_time} - ${slot.end_time}</h4>
+                            <span class="mt-1 inline-block text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded uppercase tracking-wider">Thường</span>
+                        </div>
+                        <div class="slot-checkbox flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-stone-300 bg-white transition-all duration-200"></div>
+                    </div>
+                    <div class="flex items-end justify-between">
+                        <p class="slot-price text-base font-bold text-emerald-600 transition-colors">${parseInt(slot.price).toLocaleString('vi-VN')}₫</p>
+                        <span class="rounded-md bg-emerald-50 border border-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600">Trống</span>
+                    </div>
+                `;
+            }
         }
         return div;
     }
@@ -358,30 +355,26 @@
             const id = parseInt(card.dataset.id);
             const isSelected = selectedSlots.some(s => s.slot_id === id);
             const checkbox = card.querySelector('.slot-checkbox');
-            const timeText = card.querySelector('.slot-time');
 
             if (isSelected) {
-                // ĐÃ SỬA: Làm nhẹ màu nền khi được chọn (bg-emerald-50/40)
-                card.classList.replace('border-stone-200', 'border-emerald-500');
-                card.classList.replace('hover:border-emerald-400', 'hover:border-emerald-500');
-                card.classList.add('bg-emerald-50/40', 'ring-1', 'ring-emerald-500');
-                card.classList.remove('bg-white');
+                // Ép thẻ thành viền và nền xanh ngọc đậm khi được chọn
+                card.style.borderColor = '#10b981'; // Emerald 500
+                card.style.backgroundColor = '#ecfdf5'; // Emerald 50
+                card.style.transform = 'translateY(-2px)';
+                card.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
                 
-                timeText.classList.replace('text-zinc-800', 'text-emerald-800');
-                
-                checkbox.classList.replace('border-stone-300', 'border-emerald-500');
-                checkbox.classList.replace('bg-white', 'bg-emerald-500');
+                checkbox.style.borderColor = '#10b981';
+                checkbox.style.backgroundColor = '#10b981';
                 checkbox.innerHTML = `<svg class="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>`;
             } else {
-                card.classList.replace('border-emerald-500', 'border-stone-200');
-                card.classList.replace('hover:border-emerald-500', 'hover:border-emerald-400');
-                card.classList.remove('bg-emerald-50/40', 'ring-1', 'ring-emerald-500');
-                card.classList.add('bg-white');
-
-                timeText.classList.replace('text-emerald-800', 'text-zinc-800');
-
-                checkbox.classList.replace('border-emerald-500', 'border-stone-300');
-                checkbox.classList.replace('bg-emerald-500', 'bg-white');
+                // Bỏ chọn: Xóa style nội tuyến để thẻ tự trả về màu CSS mặc định (Cam hoặc Trắng)
+                card.style.borderColor = '';
+                card.style.backgroundColor = '';
+                card.style.transform = '';
+                card.style.boxShadow = '';
+                
+                checkbox.style.borderColor = '';
+                checkbox.style.backgroundColor = '';
                 checkbox.innerHTML = '';
             }
         });
@@ -407,13 +400,6 @@
         if (submitBtn.disabled || selectedSlots.length === 0) return;
 
         const token = localStorage.getItem('sporthub_token');
-        if (!token) {
-            showToast('Vui lòng đăng nhập để đặt sân.');
-            setTimeout(() => {
-                window.location.href = '{{ route('login') }}';
-            }, 800);
-            return;
-        }
 
         const selectedDate = datePicker.value;
         const slotIds = selectedSlots.map(s => s.slot_id);
@@ -427,13 +413,19 @@
         showToast('Đang tạo đơn đặt sân...');
 
         try {
+            const headers = {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            };
+
+            if (token) {
+                headers.Authorization = `Bearer ${token}`;
+            }
+
             const response = await fetch('{{ url('/api/bookings') }}', {
                 method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
+                credentials: 'same-origin',
+                headers,
                 body: JSON.stringify({
                     court_id: courtId,
                     slot_date: selectedDate,
@@ -448,9 +440,11 @@
 
             if (!response.ok) {
                 if (response.status === 401) {
-                    localStorage.removeItem('sporthub_token');
-                    localStorage.removeItem('sporthub_user');
-                    showToast('Phiên đăng nhập đã hết hạn.');
+                    if (token) {
+                        localStorage.removeItem('sporthub_token');
+                        localStorage.removeItem('sporthub_user');
+                    }
+                    showToast('Vui lòng đăng nhập để đặt sân.');
                     setTimeout(() => {
                         window.location.href = '{{ route('login') }}';
                     }, 800);
@@ -463,14 +457,15 @@
 
             const bookings = Array.isArray(data.data) ? data.data : [data.data];
             const firstBooking = bookings.find(Boolean);
+            const bookingId = firstBooking?.id ?? firstBooking?.booking_id;
 
-            if (!firstBooking?.id) {
+            if (!bookingId) {
                 showToast('Đã tạo đơn nhưng không tìm thấy mã booking.');
                 return;
             }
 
             const successUrl = @json(route('web.bookings.success', ['booking' => '__BOOKING_ID__']));
-            window.location.href = successUrl.replace('__BOOKING_ID__', firstBooking.id);
+            window.location.href = successUrl.replace('__BOOKING_ID__', bookingId);
         } catch (error) {
             showToast('Không thể kết nối máy chủ. Vui lòng thử lại sau.');
         } finally {

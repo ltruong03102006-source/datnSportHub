@@ -12,13 +12,16 @@ class VenueController extends Controller
     {
         $venue = Venue::with([
             'sport',
-            'courts',
-            'ownerRegistration'
+            'ownerRegistration',
+            // Lọc: Chỉ lấy các sân con đang hoạt động và cho đặt online
+            'courts' => function ($query) {
+                $query->where('status', 'active')
+                      ->where('is_bookable_online', true);
+            }
         ])->findOrFail($id);
 
         return view('venues.show', [
             'venue' => $venue,
-            // ĐÃ BỎ HÀM maskPhone(), truyền trực tiếp dữ liệu gốc
             'ownerPhone' => $venue->ownerRegistration?->phone, 
         ]);
     }

@@ -21,9 +21,15 @@ class CourtAvailabilityController extends Controller
     {
         $date = Carbon::createFromFormat('Y-m-d', $request->validated('date'));
 
-        // Đổi $court thành $courtId ở đây nhé
+        // Lấy dữ liệu các ca trống từ Service
         $availability = $this->availabilityService->getAvailability($courtId, $date);
 
-        return SlotAvailabilityResource::collection($availability);
+        // THÊM LOGIC SẮP XẾP Ở ĐÂY:
+        // Chuyển kết quả thành Collection, dùng sortBy để sắp xếp theo giờ bắt đầu (start_time)
+        // Lệnh ->values() rất quan trọng để reset lại index của mảng (từ 0, 1, 2...) giúp JSON trả về chuẩn array thay vì object.
+        $sortedAvailability = collect($availability)->sortBy('start_time')->values();
+
+        // Trả kết quả đã sắp xếp qua Resource
+        return SlotAvailabilityResource::collection($sortedAvailability);
     }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\OwnerAuthController;
@@ -79,8 +80,25 @@ Route::get('/venues/{venueId}/reviews', [ReviewController::class, 'venueReviews'
 |--------------------------------------------------------------------------
 */
 Route::prefix('owner')->group(function () {
-    Route::post('/register', [OwnerAuthController::class, 'register'])->name('owner.register');
-    Route::post('/login', [OwnerAuthController::class, 'login'])->name('owner.login');
+    Route::match(['GET', 'POST'], '/register', function (Request $request) {
+        if ($request->isMethod('GET')) {
+            return response()->json([
+                'message' => 'Use POST /api/owner/register to create an owner account.',
+            ], 405);
+        }
+
+        return app(OwnerAuthController::class)->register($request);
+    })->name('owner.register');
+
+    Route::match(['GET', 'POST'], '/login', function (Request $request) {
+        if ($request->isMethod('GET')) {
+            return response()->json([
+                'message' => 'Use POST /api/owner/login to log in as an owner.',
+            ], 405);
+        }
+
+        return app(OwnerAuthController::class)->login($request);
+    })->name('owner.login');
 });
 
 /*
@@ -112,6 +130,7 @@ Route::middleware(['auth:sanctum', 'owner'])->prefix('owner')->group(function ()
     Route::get('/bookings', [OwnerBookingController::class, 'index'])->name('owner.bookings.index');
     Route::get('/bookings/stats', [OwnerBookingController::class, 'stats'])->name('owner.bookings.stats');
     Route::get('/bookings/{id}', [OwnerBookingController::class, 'show'])->name('owner.bookings.show');
+    Route::post('/bookings/{id}/cancel', [OwnerBookingController::class, 'cancel'])->name('owner.bookings.cancel');
     Route::get('/venues/{venueId}/bookings', [OwnerBookingController::class, 'venueBookings'])->name('owner.venues.bookings');
     Route::get('/courts/{courtId}/bookings', [OwnerBookingController::class, 'courtBookings'])->name('owner.courts.bookings');
 });

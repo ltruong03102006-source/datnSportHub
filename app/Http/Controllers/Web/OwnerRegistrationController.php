@@ -55,7 +55,7 @@ class OwnerRegistrationController extends Controller
         ]);
 
         return redirect()
-            ->route('owner.register')
+            ->route('owner.register.page')
             ->with('owner_registration_status', 'pending')
             ->with('owner_registration_message', 'Đã gửi đơn đăng ký chủ sân. Trạng thái hiện tại: pending.');
     }

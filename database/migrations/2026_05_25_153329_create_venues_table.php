@@ -40,8 +40,9 @@ return new class extends Migration
 
             $table->enum('status', [
                 'active',
-                'inactive'
-            ])->default('inactive');
+                'inactive',
+                'pending'
+            ])->default('pending');
 
             $table->timestamps();
         });

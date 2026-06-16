@@ -14,14 +14,16 @@ class Booking extends Model
 
     // ĐÂY LÀ CHUẨN CỦA LARAVEL
     protected $fillable = [
-        'court_id', 
-        'user_id', 
-        'slot_date', 
-        'start_time', 
-        'end_time', 
-        'total_price', 
-        'status', 
-        'note'
+        'court_id',
+        'user_id',
+        'slot_date',
+        'start_time',
+        'end_time',
+        'total_price',
+        'status',
+        'payment_status',
+        'note',
+        'cancel_reason'
     ];
 
     protected $casts = [
@@ -37,5 +39,24 @@ class Booking extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function recordStatusChange(int $changedBy, string $oldStatus, string $newStatus, ?string $note = null, $createdAt = null): BookingLog
+    {
+        $log = new BookingLog();
+        $log->booking_id = $this->id;
+        $log->changed_by = $changedBy;
+        $log->old_status = $oldStatus;
+        $log->new_status = $newStatus;
+        $log->note = $note;
+        $log->timestamps = false;
+
+        if ($createdAt !== null) {
+            $log->created_at = $createdAt;
+        }
+
+        $log->save();
+
+        return $log;
     }
 }

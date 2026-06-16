@@ -3,24 +3,33 @@
 @section('title', $venue->name . ' | SportHub')
 
 @section('content')
-<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8" x-data="{ activeTab: 'courts' }">
+<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8" x-data="{ activeTab: 'courts', lightboxOpen: false, lightboxImg: '' }">
     
+    <!-- Hero Banner (Đã loại bỏ dữ liệu giả Unsplash) -->
     <div class="overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm">
-        <div class="relative h-64 w-full bg-stone-100 sm:h-80">
-            <img src="{{ $venue->banner ?? 'https://images.unsplash.com/photo-1521587760476-6c12a4b040da' }}" class="h-full w-full object-cover">
-            <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+        <div class="relative h-64 w-full bg-zinc-900 sm:h-80">
+            @if($venue->banner)
+                <img src="{{ asset('storage/' . $venue->banner) }}" alt="{{ $venue->name }}" class="h-full w-full object-cover opacity-60">
+            @else
+                <!-- Nếu không có ảnh, hiện nền pattern hoặc nền gradient tối -->
+                <div class="absolute inset-0 bg-gradient-to-br from-emerald-900 to-zinc-900 opacity-90"></div>
+            @endif
+            
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
             
             <div class="absolute bottom-6 left-6 right-6 sm:bottom-8 sm:left-8 flex flex-col items-start">
                 <span class="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/90 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white backdrop-blur-md shadow-sm">
-                    {{ $venue->sport->name }}
+                    {{ $venue->sport->name ?? 'Thể thao' }}
                 </span>
                 <h1 class="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">{{ $venue->name }}</h1>
             </div>
         </div>
     </div>
 
+    <!-- Main Content -->
     <div class="grid gap-8 lg:grid-cols-12">
         
+        <!-- Cột Trái: Tab Danh sách sân / Giới thiệu / Đánh giá -->
         <div class="lg:col-span-8 xl:col-span-8">
             
             <div class="mb-6 flex space-x-6 border-b border-stone-200 overflow-x-auto hide-scrollbar">
@@ -34,6 +43,11 @@
                     class="whitespace-nowrap border-b-2 pb-3 text-sm font-bold transition-all outline-none">
                     Giới thiệu
                 </button>
+                <button @click="activeTab = 'images'" 
+                    :class="activeTab === 'images' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-stone-500 hover:text-stone-800 hover:border-stone-300'"
+                    class="whitespace-nowrap border-b-2 pb-3 text-sm font-bold transition-all outline-none">
+                    Hình ảnh
+                </button>
                 <button @click="activeTab = 'reviews'" 
                     :class="activeTab === 'reviews' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-stone-500 hover:text-stone-800 hover:border-stone-300'"
                     class="whitespace-nowrap border-b-2 pb-3 text-sm font-bold transition-all outline-none flex items-center gap-1">
@@ -41,6 +55,7 @@
                 </button>
             </div>
 
+            <!-- Tab: Danh sách sân -->
             <div x-show="activeTab === 'courts'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-4">
                 @forelse ($venue->courts as $court)
                     <div class="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-md">
@@ -48,7 +63,7 @@
                             <h3 class="text-lg font-bold text-zinc-900 transition-colors group-hover:text-emerald-700">{{ $court->name }}</h3>
                             <div class="mt-2 flex items-center gap-2">
                                 <span class="flex items-center gap-1.5 rounded bg-emerald-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-emerald-600 ring-1 ring-inset ring-emerald-500/20">
-                                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> {{ $court->status === 'active' ? 'Hoạt động' : 'Bảo trì' }}
+                                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> HOẠT ĐỘNG
                                 </span>
                                 <span class="text-xs font-medium text-stone-400">Sẵn sàng đặt lịch</span>
                             </div>
@@ -66,22 +81,66 @@
                 @endforelse
             </div>
 
+            <!-- Tab: Giới thiệu -->
             <div x-show="activeTab === 'info'" x-cloak class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8 space-y-6">
                 <div>
                     <h4 class="text-xs font-bold uppercase tracking-wider text-stone-400 mb-2">Về chúng tôi</h4>
-                    <p class="text-sm leading-relaxed text-zinc-700">{{ $venue->description ?? 'Chưa có mô tả chi tiết cho cơ sở này. Vui lòng liên hệ trực tiếp để biết thêm thông tin.' }}</p>
+                    <p class="text-sm leading-relaxed text-zinc-700 whitespace-pre-line">{{ $venue->description ?? 'Chưa có mô tả chi tiết cho cơ sở này. Vui lòng liên hệ trực tiếp để biết thêm thông tin.' }}</p>
                 </div>
             </div>
 
+            <div x-show="activeTab === 'images'" x-cloak class="rounded-2xl bg-white">
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    @forelse($venue->images as $img)
+                        <div class="group relative aspect-video overflow-hidden rounded-xl bg-stone-100 border border-stone-200 cursor-pointer"
+                             @click="lightboxOpen = true; lightboxImg = '{{ asset('storage/' . $img->image_path) }}'">
+                            <img src="{{ asset('storage/' . $img->image_path) }}" 
+                                 alt="Ảnh sân" 
+                                 class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105">
+                            
+                            <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="col-span-full py-16 text-center border border-dashed border-stone-300 rounded-2xl bg-stone-50">
+                            <p class="text-sm font-medium text-stone-500">Chủ sân chưa tải lên hình ảnh nào.</p>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+
+            <div x-show="lightboxOpen" 
+                 x-cloak 
+                 style="display: none;"
+                 class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+                 @click="lightboxOpen = false" 
+                 @keydown.escape.window="lightboxOpen = false">
+                
+                <button class="absolute top-6 right-6 text-white/70 hover:text-white transition-colors">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+                
+                <img :src="lightboxImg" 
+                     class="max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl transform transition-transform duration-300" 
+                     x-transition:enter="ease-out duration-300"
+                     x-transition:enter-start="opacity-0 scale-90"
+                     x-transition:enter-end="opacity-100 scale-100"
+                     @click.stop>
+            </div>
+
+            <!-- Tab: Đánh giá -->
             <div x-show="activeTab === 'reviews'" x-cloak>
-                @include('reviews.partials.panel', ['venue' => $venue])
+                @includeIf('reviews.partials.panel', ['venue' => $venue])
             </div>
 
         </div>
 
+        <!-- Cột Phải: Thông tin liên hệ & Bản đồ -->
         <div class="lg:col-span-4 xl:col-span-4">
             <div class="sticky top-24 space-y-6">
                 
+                <!-- Thông tin liên hệ -->
                 <div class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
                     <h3 class="mb-4 text-sm font-bold text-zinc-900">Thông tin liên hệ</h3>
                     
@@ -106,12 +165,14 @@
                     </div>
                 </div>
 
+                <!-- Vị trí Bản đồ (Sử dụng dữ liệu tự động từ Chủ sân) -->
                 <div class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
                     <div class="border-b border-stone-100 bg-stone-50/50 px-5 py-3">
                         <h3 class="text-xs font-bold uppercase tracking-wider text-stone-500">Vị trí bản đồ</h3>
                     </div>
                     <div class="aspect-square w-full bg-stone-100 relative">
                         @if ($venue->lat && $venue->lng)
+                            <!-- Dòng này sẽ lấy tọa độ $venue->lat và $venue->lng truyền vào Google Maps -->
                             <iframe class="absolute inset-0 h-full w-full"
                                 src="https://maps.google.com/maps?q={{ $venue->lat }},{{ $venue->lng }}&hl=vi&z=15&output=embed"
                                 style="border: none;" allowfullscreen="" loading="lazy"></iframe>

@@ -21,7 +21,10 @@ class SportsTableSeeder extends Seeder
         ];
 
         foreach ($sports as $s) {
-            Sport::create($s);
+            Sport::firstOrCreate(
+                ['slug' => $s['slug']],
+                $s
+            );
         }
     }
 }
