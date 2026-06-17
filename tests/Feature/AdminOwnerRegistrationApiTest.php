@@ -96,6 +96,74 @@ class AdminOwnerRegistrationApiTest extends TestCase
         $this->assertSame('active', $user->status);
     }
 
+    public function test_admin_can_approve_owner_registration_when_user_id_is_missing_but_email_matches(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'status' => 'active',
+        ]);
+
+        $user = User::factory()->create([
+            'role' => 'user',
+            'status' => 'active',
+            'email' => 'owner-missing-user@example.com',
+        ]);
+
+        $registration = OwnerRegistration::create([
+            'user_id' => null,
+            'name' => 'Nguyen Van E',
+            'email' => $user->email,
+            'phone' => '0123456789',
+            'status' => 'pending',
+        ]);
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/admin/owner-registrations/{$registration->id}/approve");
+
+        $response->assertOk();
+        $response->assertJson(['message' => 'Owner account approved successfully']);
+
+        $registration->refresh();
+        $user->refresh();
+
+        $this->assertSame('active', $registration->status);
+        $this->assertSame('owner', $user->role);
+        $this->assertSame('active', $user->status);
+        $this->assertSame($user->id, $registration->user_id);
+    }
+
+    public function test_admin_can_create_user_when_approving_registration_without_existing_user(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'status' => 'active',
+        ]);
+
+        $registration = OwnerRegistration::create([
+            'user_id' => null,
+            'name' => 'Nguyen Van F',
+            'email' => 'owner-missing-account@example.com',
+            'phone' => '0123456789',
+            'status' => 'pending',
+        ]);
+
+        $response = $this->actingAs($admin, 'sanctum')
+            ->postJson("/api/admin/owner-registrations/{$registration->id}/approve");
+
+        $response->assertOk();
+        $response->assertJson(['message' => 'Owner account approved successfully']);
+
+        $registration->refresh();
+
+        $this->assertSame('active', $registration->status);
+        $this->assertNotNull($registration->user_id);
+
+        $user = User::where('email', $registration->email)->first();
+        $this->assertNotNull($user);
+        $this->assertSame('owner', $user->role);
+        $this->assertSame('active', $user->status);
+    }
+
     public function test_admin_can_reject_owner_registration(): void
     {
         $admin = User::factory()->create([
