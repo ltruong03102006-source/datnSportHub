@@ -88,6 +88,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/owner-registrations', [\App\Http\Controllers\Web\AdminOwnerRegistrationController::class, 'index'])->name('owner-registrations.index');
         Route::post('/owner-registrations/{id}/approve', [\App\Http\Controllers\Web\AdminOwnerRegistrationController::class, 'approve'])->name('owner-registrations.approve');
         Route::post('/owner-registrations/{id}/reject', [\App\Http\Controllers\Web\AdminOwnerRegistrationController::class, 'reject'])->name('owner-registrations.reject');
+        Route::get('/reports', [\App\Http\Controllers\Web\AdminReportController::class, 'index'])->name('reports.index');
+        Route::patch('/reports/{report}/status', [\App\Http\Controllers\Web\AdminReportController::class, 'updateStatus'])->name('reports.update-status');
     });
 });
 
@@ -122,6 +124,8 @@ Route::delete('/venues/images/{id}', [\App\Http\Controllers\Web\OwnerVenueContro
 });
 
 Route::middleware('auth')->group(function () {
+    // Gửi báo cáo sân
+    Route::post('/courts/{court}/report', [\App\Http\Controllers\Web\CourtReportController::class, 'store'])->name('web.courts.report');
     Route::get('/bookings/{booking}/success', [UserBookingController::class, 'success'])
         ->name('web.bookings.success');
 

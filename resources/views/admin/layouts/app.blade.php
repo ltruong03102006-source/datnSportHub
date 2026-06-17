@@ -295,12 +295,14 @@
                 <i class="fa-regular fa-calendar-check"></i> Quản lý đặt sân
             </a>
             <!-- Mock links matching the screenshot -->
-            <a href="#" class="nav-item"><i class="fa-solid fa-wallet"></i> Thanh toán</a>
-            <a href="#" class="nav-item"><i class="fa-regular fa-star"></i> Đánh giá</a>
-            <a href="#" class="nav-item"><i class="fa-solid fa-triangle-exclamation"></i> Báo cáo vi phạm</a>
-            <a href="#" class="nav-item"><i class="fa-regular fa-bell"></i> Thông báo</a>
+            {{-- <a href="#" class="nav-item"><i class="fa-solid fa-wallet"></i> Thanh toán</a>
+            <a href="#" class="nav-item"><i class="fa-regular fa-star"></i> Đánh giá</a> --}}
+            <a href="{{ route('admin.reports.index') }}" class="nav-item {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-triangle-exclamation"></i> Báo cáo vi phạm
+            </a>
+            {{-- <a href="#" class="nav-item"><i class="fa-regular fa-bell"></i> Thông báo</a>
             <a href="#" class="nav-item"><i class="fa-solid fa-chart-simple"></i> Thống kê</a>
-            <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i> Cài đặt hệ thống</a>
+            <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i> Cài đặt hệ thống</a> --}}
         </nav>
 
         <div class="sidebar-footer">
