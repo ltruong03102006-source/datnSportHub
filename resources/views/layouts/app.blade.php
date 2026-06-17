@@ -7,6 +7,8 @@
 
     <title>@yield('title', 'SportHub')</title>
 
+    @stack('meta')
+    
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     @yield('styles')
@@ -27,15 +29,7 @@
 
             <nav class="hidden items-center gap-8 text-sm font-medium text-zinc-600 md:flex">
                 <a href="{{ route('home') }}" class="text-emerald-700 transition hover:text-emerald-800">Tìm sân</a>
-                @auth
-                    @if (Auth::user()->role === 'owner')
-                        <a href="{{ route('owner.dashboard') }}" class="font-semibold text-zinc-600 transition hover:text-emerald-700">Quản lý sân</a>
-                    @else
-                        <a href="{{ route('owner.register.page') }}" class="text-zinc-600 transition hover:text-blue-700 font-semibold">Chủ sân</a>
-                    @endif
-                @else
-                    <a href="{{ route('owner.register.page') }}" class="text-zinc-600 transition hover:text-blue-700 font-semibold">Chủ sân</a>
-                @endauth
+                
             </nav>
 
             @guest
