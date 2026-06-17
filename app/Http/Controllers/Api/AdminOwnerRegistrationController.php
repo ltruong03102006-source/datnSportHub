@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RejectOwnerRegistrationRequest;
 use App\Models\OwnerRegistration;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class AdminOwnerRegistrationController extends Controller
 {
@@ -72,14 +74,33 @@ class AdminOwnerRegistrationController extends Controller
 
         $registration->status = 'active';
         $registration->rejection_reason = null;
-        $registration->save();
 
-        if ($registration->user) {
-            $registration->user->update([
+        $user = $registration->user;
+
+        if (!$user && !empty($registration->email)) {
+            $user = User::where('email', $registration->email)->first();
+        }
+
+        if (!$user) {
+            $user = User::create([
+                'name' => $registration->name,
+                'email' => $registration->email,
+                'password' => Hash::make('12345678'),
+                'role' => 'owner',
+                'status' => 'active',
+            ]);
+        } else {
+            $user->update([
                 'role' => 'owner',
                 'status' => 'active',
             ]);
         }
+
+        if ($user) {
+            $registration->user_id = $user->id;
+        }
+
+        $registration->save();
 
         return response()->json([
             'message' => 'Owner account approved successfully',
