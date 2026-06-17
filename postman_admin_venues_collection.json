@@ -1,0 +1,251 @@
+{
+  "info": {
+    "name": "Admin Venues Management API",
+    "description": "API endpoints for Admin to manage venue status (activate/deactivate)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Venues Management",
+      "item": [
+        {
+          "name": "1. List All Venues",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/venues?status=&search=&owner_id=&sport_id=&sort_by=created_at&sort_order=desc&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "venues"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Filter by status: active, inactive, pending"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search by venue name or address"
+                },
+                {
+                  "key": "owner_id",
+                  "value": "",
+                  "description": "Filter by owner ID"
+                },
+                {
+                  "key": "sport_id",
+                  "value": "",
+                  "description": "Filter by sport ID"
+                },
+                {
+                  "key": "sort_by",
+                  "value": "created_at",
+                  "description": "Sort field"
+                },
+                {
+                  "key": "sort_order",
+                  "value": "desc",
+                  "description": "asc or desc"
+                },
+                {
+                  "key": "per_page",
+                  "value": "15",
+                  "description": "Items per page"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "2. Get Venue Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/venues/{{venue_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "venues", "{{venue_id}}"]
+            }
+          }
+        },
+        {
+          "name": "3. Activate Venue",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Sân đã đạt tiêu chuẩn\",\n  \"notes\": \"Kiểm tra lần 2 passed - all equipment ok\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/venues/{{venue_id}}/activate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "venues", "{{venue_id}}", "activate"]
+            }
+          }
+        },
+        {
+          "name": "4. Deactivate Venue",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Báo cáo vi phạm từ khách hàng\",\n  \"notes\": \"Cần điều tra và cải thiện chất lượng\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/venues/{{venue_id}}/deactivate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "venues", "{{venue_id}}", "deactivate"]
+            }
+          }
+        },
+        {
+          "name": "5. View Venue Activity Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/venues/{{venue_id}}/logs?per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "venues", "{{venue_id}}", "logs"],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "20",
+                  "description": "Items per page"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Setup & Variables",
+      "item": [
+        {
+          "name": "Set Admin Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('admin_token', jsonData.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"your_admin_password\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "login"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "your_admin_token_here",
+      "type": "string"
+    },
+    {
+      "key": "venue_id",
+      "value": "1",
+      "type": "string"
+    }
+  ]
+}

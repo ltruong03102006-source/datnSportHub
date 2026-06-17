@@ -22,6 +22,16 @@ class CourtBookingController extends Controller
      */
     public function show(Court $court): View
     {
+        // Kiểm tra sân có hoạt động không
+        if ($court->status !== 'active') {
+            abort(404, 'Sân này hiện không hoạt động hoặc đã bị ẩn.');
+        }
+
+        // Kiểm tra sân có thể đặt trực tuyến không
+        if (!$court->is_bookable_online) {
+            abort(403, 'Sân này không cho phép đặt trực tuyến. Vui lòng liên hệ quản lý.');
+        }
+
         $court->load([
             'venue' => fn($query) => $query->select('id', 'name', 'address', 'sport_id', 'banner'),
             'venue.sport' => fn($query) => $query->select('id', 'name'),
@@ -91,6 +101,11 @@ class CourtBookingController extends Controller
                 $court = Court::where('id', $courtId)
                     ->lockForUpdate()
                     ->firstOrFail();
+
+                // Kiểm tra xem sân có hoạt động không
+                if ($court->status !== 'active') {
+                    throw new Exception("Sân thể thao này hiện tại không hoạt động. Vui lòng chọn sân khác.", 403);
+                }
 
                 // Kiểm tra xem sân có cho phép đặt trực tuyến hay không
                 if (isset($court->is_bookable_online) && !$court->is_bookable_online) {

@@ -507,6 +507,7 @@
                                     <div class="cell-subtitle">Không có thông tin khách</div>
                                 @endif
                             </td>
+                            
                             <td>
                                 @if($booking->court && $booking->court->venue)
                                     <div class="cell-title">{{ $booking->court->venue->name }}</div>
@@ -516,6 +517,7 @@
                                     <div class="cell-subtitle">Dữ liệu sân đã bị thay đổi</div>
                                 @endif
                             </td>
+                            
                             <td>
                                 <div class="time-stack">
                                     <div>

@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\SportController;
 use App\Http\Controllers\Api\VenueController;
 use App\Http\Controllers\Api\CourtAvailabilityController;
 use App\Http\Controllers\Api\AdminOwnerRegistrationController;
+use App\Http\Controllers\Api\AdminVenueController;
 use App\Http\Controllers\CourtController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\ReviewController;
@@ -141,4 +142,11 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::get('/owner-registrations/{id}', [AdminOwnerRegistrationController::class, 'show']);
     Route::post('/owner-registrations/{id}/approve', [AdminOwnerRegistrationController::class, 'approve']);
     Route::post('/owner-registrations/{id}/reject', [AdminOwnerRegistrationController::class, 'reject']);
+
+    // Admin Venues Management (kích hoạt / ẩn sân)
+    Route::get('/venues', [AdminVenueController::class, 'index'])->name('admin.venues.index');
+    Route::get('/venues/{venue}', [AdminVenueController::class, 'show'])->name('admin.venues.show');
+    Route::post('/venues/{venue}/activate', [AdminVenueController::class, 'activate'])->name('admin.venues.activate');
+    Route::post('/venues/{venue}/deactivate', [AdminVenueController::class, 'deactivate'])->name('admin.venues.deactivate');
+    Route::get('/venues/{venue}/logs', [AdminVenueController::class, 'logs'])->name('admin.venues.logs');
 });

@@ -14,6 +14,7 @@ use App\Http\Controllers\Web\AdminDashboardController;
 use App\Http\Controllers\Web\AdminUserController;
 use App\Http\Controllers\Web\AdminVenueController;
 use App\Http\Controllers\Web\AdminBookingController;
+use App\Http\Controllers\Web\AdminCourtController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Web\OwnerCourtController;
@@ -73,10 +74,20 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Quản lý Lịch đặt
         Route::get('/bookings', [AdminBookingController::class, 'index'])->name('bookings.index');
         
+        // Quản lý Sân con (Courts)
+        Route::get('/courts', [AdminCourtController::class, 'index'])->name('courts.index');
+        Route::get('/courts/{court}', [AdminCourtController::class, 'show'])->name('courts.show');
+        Route::patch('/courts/{court}/toggle-status', [AdminCourtController::class, 'toggleStatus'])->name('courts.toggle-status');
+        Route::put('/courts/{court}', [AdminCourtController::class, 'update'])->name('courts.update');
+        Route::delete('/courts/{court}', [AdminCourtController::class, 'destroy'])->name('courts.destroy');
+        Route::post('/courts/batch-update-status', [AdminCourtController::class, 'batchUpdateStatus'])->name('courts.batch-update-status');
+        
         // Quản lý đăng ký chủ sân
         Route::get('/owner-registrations', [\App\Http\Controllers\Web\AdminOwnerRegistrationController::class, 'index'])->name('owner-registrations.index');
         Route::post('/owner-registrations/{id}/approve', [\App\Http\Controllers\Web\AdminOwnerRegistrationController::class, 'approve'])->name('owner-registrations.approve');
         Route::post('/owner-registrations/{id}/reject', [\App\Http\Controllers\Web\AdminOwnerRegistrationController::class, 'reject'])->name('owner-registrations.reject');
+        Route::get('/reports', [\App\Http\Controllers\Web\AdminReportController::class, 'index'])->name('reports.index');
+        Route::patch('/reports/{report}/status', [\App\Http\Controllers\Web\AdminReportController::class, 'updateStatus'])->name('reports.update-status');
     });
 });
 
@@ -111,6 +122,8 @@ Route::delete('/venues/images/{id}', [\App\Http\Controllers\Web\OwnerVenueContro
 });
 
 Route::middleware('auth')->group(function () {
+    // Gửi báo cáo sân
+    Route::post('/courts/{court}/report', [\App\Http\Controllers\Web\CourtReportController::class, 'store'])->name('web.courts.report');
     Route::get('/bookings/{booking}/success', [UserBookingController::class, 'success'])
         ->name('web.bookings.success');
 
