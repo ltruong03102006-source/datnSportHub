@@ -35,10 +35,24 @@ class OwnerBookingCalendarController extends Controller
             ->where('status', 'pending')
             ->count();
 
+        $weekBookings = (clone $ownerBookings)
+            ->whereBetween('slot_date', [today()->startOfWeek(), today()->endOfWeek()])
+            ->whereNotIn('status', ['cancelled', 'rejected'])
+            ->count();
+
+        $confirmedBookings = (clone $ownerBookings)
+            ->where('status', 'confirmed')
+            ->count();
+
+        $totalCourts = $venues->sum(fn (Venue $venue) => $venue->courts->count());
+
         return view('owner.bookings.calendar', compact(
             'venues',
             'todayBookings',
-            'pendingBookings'
+            'pendingBookings',
+            'weekBookings',
+            'confirmedBookings',
+            'totalCourts'
         ));
     }
 
