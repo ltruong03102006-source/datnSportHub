@@ -119,6 +119,11 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
 Route::put('/courts/{court}', [OwnerCourtController::class, 'update'])->name('courts.update');
 Route::delete('/courts/{court}', [OwnerCourtController::class, 'destroy'])->name('courts.destroy');
 Route::delete('/venues/images/{id}', [\App\Http\Controllers\Web\OwnerVenueController::class, 'destroyImage'])->name('owner.venues.images.destroy');
+    // Quản lý Đánh giá (Bên trong block của Owner)
+    Route::get('/reviews', [\App\Http\Controllers\Web\OwnerReviewController::class, 'index'])->name('reviews.index');
+    Route::post('/reviews/{review}/reply', [\App\Http\Controllers\Web\OwnerReviewController::class, 'reply'])->name('reviews.reply');
+    Route::post('/courts/{court}/lock', [\App\Http\Controllers\Web\OwnerCourtController::class, 'lockSlot']);
+    Route::delete('/courts/locks/{lock}', [\App\Http\Controllers\Web\OwnerCourtController::class, 'unlockSlot']);
 });
 
 Route::middleware('auth')->group(function () {

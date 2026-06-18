@@ -10,7 +10,8 @@ class AdminReportController extends Controller
 {
     public function index()
     {
-        $reports = CourtReport::with(['user', 'court.venue'])
+        // Đã bổ sung 'court.venue.ownerRegistration' để lấy thông tin liên hệ của Chủ sân
+        $reports = CourtReport::with(['user', 'court.venue.ownerRegistration'])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 

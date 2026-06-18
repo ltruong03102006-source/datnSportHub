@@ -70,4 +70,8 @@ class Court extends Model
             ->where('status', '!=', 'cancelled')
             ->exists();
     }
+    public function courtLocks()
+    {
+        return $this->hasMany(CourtLock::class);
+    }
 }

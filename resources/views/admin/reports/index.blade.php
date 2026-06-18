@@ -4,119 +4,31 @@
 
 @push('styles')
 <style>
-    .page-header {
-        margin-bottom: 24px;
-    }
-    .page-title {
-        font-size: 24px;
-        font-weight: 700;
-        color: var(--text-dark);
-        margin-bottom: 8px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    .page-desc {
-        color: var(--text-muted);
-        font-size: 14px;
-    }
-    .report-card {
-        background: var(--card-bg);
-        border-radius: var(--radius-md);
-        border: 1px solid var(--border-color);
-        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-        overflow: hidden;
-    }
-    .table-responsive {
-        width: 100%;
-        overflow-x: auto;
-    }
-    .report-table {
-        width: 100%;
-        border-collapse: collapse;
-        min-width: 900px;
-    }
-    .report-table th {
-        background-color: #f8f9fa;
-        color: var(--text-muted);
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        padding: 16px 20px;
-        text-align: left;
-        border-bottom: 1px solid var(--border-color);
-    }
-    .report-table td {
-        padding: 16px 20px;
-        border-bottom: 1px solid var(--border-color);
-        font-size: 14px;
-        color: var(--text-dark);
-        vertical-align: middle;
-    }
-    .report-table tbody tr:hover {
-        background-color: #fafbfc;
-    }
-    .custom-badge {
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-    }
-    .badge-pending {
-        background-color: #fff3cd;
-        color: #856404;
-    }
-    .badge-resolved {
-        background-color: var(--primary-light);
-        color: var(--primary);
-    }
-    .btn-action {
-        background-color: var(--primary);
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 6px;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        text-decoration: none;
-    }
-    .btn-action:hover {
-        background-color: #27ae60;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 6px rgba(46, 204, 113, 0.2);
-    }
-    .empty-state {
-        padding: 60px 20px;
-        text-align: center;
-    }
-    .empty-state i {
-        font-size: 48px;
-        color: #bdc3c7;
-        margin-bottom: 16px;
-    }
-    .empty-state h5 {
-        font-size: 18px;
-        color: var(--text-dark);
-        margin-bottom: 8px;
-    }
-    .empty-state p {
-        color: var(--text-muted);
-        font-size: 14px;
-    }
-    .pagination-container {
-        padding: 16px 20px;
-        border-top: 1px solid var(--border-color);
-        background: #fff;
-    }
+    .page-header { margin-bottom: 24px; }
+    .page-title { font-size: 24px; font-weight: 700; color: var(--text-dark); margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+    .page-desc { color: var(--text-muted); font-size: 14px; }
+    .report-card { background: var(--card-bg); border-radius: var(--radius-md); border: 1px solid var(--border-color); box-shadow: 0 2px 10px rgba(0,0,0,0.02); overflow: hidden; }
+    .table-responsive { width: 100%; overflow-x: auto; }
+    .report-table { width: 100%; border-collapse: collapse; min-width: 900px; }
+    .report-table th { background-color: #f8f9fa; color: var(--text-muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; padding: 16px 20px; text-align: left; border-bottom: 1px solid var(--border-color); }
+    .report-table td { padding: 16px 20px; border-bottom: 1px solid var(--border-color); font-size: 14px; color: var(--text-dark); vertical-align: middle; }
+    .report-table tbody tr:hover { background-color: #fafbfc; }
+    .custom-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+    .badge-pending { background-color: #fff3cd; color: #856404; }
+    .badge-resolved { background-color: var(--primary-light); color: var(--primary); }
+    .btn-action { background-color: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+    .btn-action:hover { background-color: #27ae60; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(46, 204, 113, 0.2); }
+    
+    /* STYLE MỚI CHO NÚT KHÓA SÂN VÀ BOX CHỦ SÂN */
+    .btn-lock { background-color: #e74c3c; }
+    .btn-lock:hover { background-color: #c0392b; box-shadow: 0 4px 6px rgba(231, 76, 60, 0.2); }
+    .owner-info-box { background: #fff8e1; border-left: 3px solid #f39c12; padding: 8px 12px; margin-top: 8px; border-radius: 4px; font-size: 12px; display: inline-block; min-width: 100%;}
+    
+    .empty-state { padding: 60px 20px; text-align: center; }
+    .empty-state i { font-size: 48px; color: #bdc3c7; margin-bottom: 16px; }
+    .empty-state h5 { font-size: 18px; color: var(--text-dark); margin-bottom: 8px; }
+    .empty-state p { color: var(--text-muted); font-size: 14px; }
+    .pagination-container { padding: 16px 20px; border-top: 1px solid var(--border-color); background: #fff; }
 </style>
 @endpush
 
@@ -141,11 +53,11 @@
                 <thead>
                     <tr>
                         <th style="width: 5%;">ID</th>
-                        <th style="width: 20%;">Người gửi</th>
-                        <th style="width: 20%;">Cơ sở / Sân</th>
-                        <th style="width: 25%;">Lý do phản ánh</th>
-                        <th style="width: 15%;">Ngày gửi</th>
-                        <th style="width: 15%; text-align: right;">Trạng thái & Hành động</th>
+                        <th style="width: 18%;">Người gửi</th>
+                        <th style="width: 25%;">Cơ sở / Sân</th>
+                        <th style="width: 22%;">Lý do phản ánh</th>
+                        <th style="width: 10%;">Ngày gửi</th>
+                        <th style="width: 20%; text-align: right;">Trạng thái & Hành động</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -158,8 +70,19 @@
                         </td>
                         <td>
                             @if($report->court)
-                                <div style="color: var(--primary); font-weight: 600; margin-bottom: 4px;">{{ $report->court->venue->name ?? 'N/A' }}</div>
+                                <a href="{{ url('/admin/venues') }}" style="color: var(--primary); font-weight: 700; margin-bottom: 4px; display: block; text-decoration: none;" title="Đến trang quản lý cơ sở">
+                                    {{ $report->court->venue->name ?? 'N/A' }} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 10px; margin-left: 2px;"></i>
+                                </a>
                                 <div style="font-size: 12px; color: var(--text-muted);"><i class="fa-solid fa-layer-group" style="font-size: 10px;"></i> Sân: {{ $report->court->name }}</div>
+                                
+                                <div class="owner-info-box">
+                                    <div style="color: #d35400; font-weight: 600; margin-bottom: 4px;">
+                                        <i class="fa-solid fa-user-shield"></i> Thông tin Chủ sân
+                                    </div>
+                                    <div style="color: #7f8c8d; font-size: 11px;">
+                                        <i class="fa-solid fa-phone" style="font-size: 10px; margin-right: 4px;"></i> {{ $report->court->venue->ownerRegistration->phone ?? 'Chưa cập nhật SĐT' }}
+                                    </div>
+                                </div>
                             @else
                                 <div style="color: #e74c3c; font-style: italic; font-size: 13px;">Sân đã bị xóa</div>
                             @endif
@@ -179,13 +102,19 @@
                                     <span class="custom-badge badge-pending">
                                         <i class="fa-regular fa-clock"></i> Chờ xử lý
                                     </span>
-                                    <form action="{{ route('admin.reports.update-status', $report->id) }}" method="POST" style="margin: 0;">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit" class="btn-action" onclick="return confirm('Xác nhận đã xử lý xong báo cáo này?');">
-                                            <i class="fa-solid fa-check"></i> Đã xử lý
-                                        </button>
-                                    </form>
+                                    <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                                        <a href="{{ url('/admin/venues') }}" class="btn-action btn-lock" title="Đến trang Quản lý Cơ sở để khóa sân này">
+                                            <i class="fa-solid fa-lock"></i> Khóa Sân
+                                        </a>
+
+                                        <form action="{{ route('admin.reports.update-status', $report->id) }}" method="POST" style="margin: 0;">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="btn-action" onclick="return confirm('Xác nhận bạn ĐÃ XỬ LÝ xong vi phạm của sân này?');">
+                                                <i class="fa-solid fa-check"></i> Đã xử lý
+                                            </button>
+                                        </form>
+                                    </div>
                                 </div>
                             @else
                                 <span class="custom-badge badge-resolved">

@@ -41,51 +41,15 @@
 
             <div class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
                 <template x-if="canReview">
-                    <div>
-                        <h4 class="text-sm font-bold text-zinc-900">Viết đánh giá của bạn</h4>
-
-                        <div x-show="message" x-cloak class="mt-4 rounded-lg px-4 py-3 text-sm"
-                            :class="message?.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'"
-                            x-text="message?.text"></div>
-
-                        <div class="mt-4 grid gap-4">
-                            <div x-show="courts.length > 1">
-                                <label class="mb-1.5 block text-xs font-semibold text-stone-500">Chọn sân đã đặt</label>
-                                <select x-model="form.courtId" class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10">
-                                    <template x-for="c in courts" :key="c.id">
-                                        <option :value="c.id" x-text="c.name"></option>
-                                    </template>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label class="mb-1.5 block text-xs font-semibold text-stone-500">Chấm sao</label>
-                                <div class="flex gap-1" @mouseleave="hoverRating = 0">
-                                    <template x-for="i in 5" :key="i">
-                                        <button type="button" @click="form.rating = i" @mouseenter="hoverRating = i" class="transition-transform hover:scale-110">
-                                            <svg class="h-8 w-8" :class="i <= (hoverRating || form.rating) ? 'text-amber-400' : 'text-stone-300'" viewBox="0 0 24 24" fill="currentColor">
-                                                <path d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006Z" />
-                                            </svg>
-                                        </button>
-                                    </template>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label class="mb-1.5 block text-xs font-semibold text-stone-500">Nhận xét (tuỳ chọn)</label>
-                                <textarea x-model="form.content" rows="3" maxlength="1000" placeholder="Chia sẻ trải nghiệm của bạn…"
-                                    class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10"></textarea>
-                            </div>
-
-                            <div>
-                                <button type="button" @click="submit" :disabled="submitting"
-                                    class="inline-flex items-center justify-center rounded-lg bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:opacity-60">
-                                    <span x-show="!submitting">Gửi đánh giá</span>
-                                    <span x-show="submitting" x-cloak>Đang gửi…</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="rounded-xl border border-stone-200 bg-stone-50 p-6 text-center shadow-sm">
+    <div class="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-emerald-100">
+        <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 0 0-.182.557l1.285 5.385a.562.562 0 0 1-.84.61l-4.725-2.885a.562.562 0 0 0-.586 0L6.982 20.54a.562.562 0 0 1-.84-.61l1.285-5.386a.562.562 0 0 0-.182-.557l-4.204-3.602a.562.562 0 0 1 .321-.988l5.518-.442a.563.563 0 0 0 .475-.345L11.48 3.5Z" />
+        </svg>
+    </div>
+    <h4 class="text-sm font-bold text-zinc-900 mb-1">Đánh giá khách quan, minh bạch</h4>
+    <p class="text-xs text-stone-500">Chỉ những khách hàng đã trải nghiệm và hoàn thành đặt sân mới có thể viết đánh giá. Bạn có thể đánh giá sân trong phần <a href="{{ route('account.bookings.index') }}" class="font-semibold text-emerald-600 hover:underline">Lịch sử đặt sân</a>.</p>
+</div>
                 </template>
 
                 <template x-if="!canReview">
@@ -119,6 +83,20 @@
                                     </template>
                                 </div>
                                 <p x-show="review.content" class="mt-2 text-sm leading-relaxed text-zinc-700" x-text="review.content"></p>
+                                
+                                <template x-if="review.owner_reply">
+                                    <div class="mt-3 rounded-xl border border-emerald-100 bg-emerald-50/50 p-4 relative overflow-hidden">
+                                        <div class="absolute -right-2 -top-2 opacity-10">
+                                            <svg class="w-16 h-16 text-emerald-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                                        </div>
+                                        <div class="bg-emerald-50 rounded p-3 mt-3">
+                                            <div class="text-xs font-bold text-emerald-700 uppercase mb-1">
+                                                <i class="fa-solid fa-reply"></i> {{ $venue->owner->name ?? 'Quản trị viên' }}
+                                            </div>
+                                            <p class="text-sm text-emerald-900/80 relative z-10" x-text="review.owner_reply"></p>
+                                        </div>
+                                    </div>
+                                </template>
                             </div>
                         </div>
                     </div>
