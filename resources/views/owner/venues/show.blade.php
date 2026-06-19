@@ -37,6 +37,9 @@
             <p class="text-muted mb-0">Thông tin chi tiết điểm sân và quản lý các sân con.</p>
         </div>
         <div>
+            <a href="{{ route('owner.web.reviews.index', ['venue_id' => $venue->id]) }}" class="btn btn-warning btn-sm me-2 fw-bold text-dark">
+                Xem đánh giá
+            </a>
             <a href="{{ route('owner.web.venues.edit', $venue->id) }}" class="btn btn-outline-primary btn-sm me-2">Sửa thông tin</a>
             <a href="{{ route('owner.web.venues.index') }}" class="btn btn-outline-secondary btn-sm">Quay lại</a>
         </div>
@@ -90,50 +93,71 @@
         <div class="card-body p-0">
             <div class="list-group list-group-flush rounded-bottom" style="border-bottom-left-radius: 18px; border-bottom-right-radius: 18px;">
                 @forelse($venue->courts as $court)
-                    <div class="list-group-item d-flex flex-column flex-md-row justify-content-between align-items-md-center py-3 px-4">
-                        <div class="mb-3 mb-md-0">
-                            <h6 class="mb-1 fw-bold text-dark fs-5">{{ $court->name }}</h6>
-                            <div class="d-flex flex-wrap gap-2 align-items-center mt-2">
-                                <span class="text-muted small">Trạng thái:</span>
-                                @if($court->status === 'active')
-                                    <span class="badge bg-success">Hoạt động</span>
-                                @else
-                                    <span class="badge bg-secondary">Bảo trì</span>
-                                @endif
+                    <div class="list-group-item py-4 px-4">
+                        
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3">
+                            
+                            <div class="mb-2 mb-md-0">
+                                <h6 class="mb-1 fw-bold text-dark fs-5">{{ $court->name }}</h6>
+                                <div class="d-flex flex-wrap gap-2 align-items-center mt-2">
+                                    <span class="text-muted small">Trạng thái:</span>
+                                    @if($court->status === 'active')
+                                        <span class="badge bg-success">Hoạt động</span>
+                                    @else
+                                        <span class="badge bg-secondary">Bảo trì</span>
+                                    @endif
+                                    
+                                    <span class="text-muted small ms-2 border-start ps-2">Tổng ca: <strong class="text-dark">{{ $court->timeSlots->count() ?? 0 }}</strong></span>
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex flex-wrap gap-2 justify-content-md-end align-items-center">
                                 
-                                <span class="text-muted small ms-2">Tổng ca: <strong class="text-dark">{{ $court->timeSlots->count() ?? 0 }}</strong></span>
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#generateSlotsModal" onclick="setGenerateCourtId({{ $court->id }}, '{{ $court->name }}')">
+                                    Sinh ca tự động
+                                </button>
+
+                                <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#manualSlotModal" onclick="setManualCourtId({{ $court->id }}, '{{ $court->name }}')">
+                                    + Thêm ca lẻ
+                                </button>
+
+                                <button class="btn btn-sm btn-outline-warning text-dark fw-medium" data-bs-toggle="modal" data-bs-target="#lockSlotModal" onclick="setLockCourtId({{ $court->id }}, '{{ $court->name }}')">
+                                    <i class="fa-solid fa-lock"></i> Khóa ca
+                                </button>
+                                
+                                <div class="vr mx-1 d-none d-md-block text-secondary" style="width: 1.5px; opacity: 0.3;"></div>
+
+                                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editCourtModal" data-id="{{ $court->id }}" data-name="{{ $court->name }}" data-status="{{ $court->status }}" onclick="populateCourtEditModal(this)">
+                                    Sửa
+                                </button>
+
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteCourt({{ $court->id }}, '{{ $court->name }}')">
+                                    Xóa
+                                </button>
+
                             </div>
                         </div>
-                        
-                        <div class="d-flex flex-wrap gap-2">
-                            <button class="btn btn-sm btn-outline-primary" 
-                                    data-bs-toggle="modal" 
-                                    data-bs-target="#generateSlotsModal"
-                                    onclick="setGenerateCourtId({{ $court->id }}, '{{ $court->name }}')">
-                                Sinh ca tự động
-                            </button>
 
-                            <button class="btn btn-sm btn-outline-success" 
-                                    data-bs-toggle="modal" 
-                                    data-bs-target="#manualSlotModal"
-                                    onclick="setManualCourtId({{ $court->id }}, '{{ $court->name }}')">
-                                + Thêm ca lẻ
-                            </button>
-                            
-                            <button class="btn btn-sm btn-outline-secondary"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#editCourtModal"
-                                    data-id="{{ $court->id }}"
-                                    data-name="{{ $court->name }}"
-                                    data-status="{{ $court->status }}"
-                                    onclick="populateCourtEditModal(this)">
-                                Sửa
-                            </button>
+                        @if($court->courtLocks()->where('lock_date', '>=', now()->toDateString())->count() > 0)
+                            <div class="mt-4 p-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 rounded-3">
+                                <h6 class="text-danger fw-bold mb-2" style="font-size: 0.9rem;">
+                                    <i class="fa-solid fa-triangle-exclamation me-1"></i> Lịch đang Khóa / Bảo trì:
+                                </h6>
+                                <ul class="list-group list-group-flush gap-2">
+                                    @foreach($court->courtLocks()->where('lock_date', '>=', now()->toDateString())->orderBy('lock_date')->orderBy('start_time')->get() as $lock)
+                                        <li class="list-group-item d-flex justify-content-between align-items-center rounded bg-white shadow-sm border-0" style="border-left: 4px solid #dc3545 !important;">
+                                            <div>
+                                                <span class="badge bg-danger mb-1">{{ \Carbon\Carbon::parse($lock->lock_date)->format('d/m/Y') }}</span>
+                                                <strong class="text-dark ms-2">{{ substr($lock->start_time, 0, 5) }} - {{ substr($lock->end_time, 0, 5) }}</strong>
+                                                <div class="text-muted mt-1" style="font-size: 0.85rem;"><i class="fa-solid fa-quote-left me-1 opacity-50"></i> {{ $lock->reason }}</div>
+                                            </div>
+                                            <button class="btn btn-sm btn-outline-success fw-bold px-3" onclick="unlockSlot({{ $lock->id }})">Mở khóa</button>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
 
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteCourt({{ $court->id }}, '{{ $court->name }}')">
-                                Xóa
-                            </button>
-                        </div>
                     </div>
                 @empty
                     <div class="list-group-item py-5 text-center text-muted bg-light">
@@ -142,6 +166,7 @@
                     </div>
                 @endforelse
             </div>
+        </div>
         </div>
     </div>
 </div>
@@ -327,7 +352,59 @@
         </div>
     </div>
 </div>
+<div class="modal fade" id="lockSlotModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius: 14px;">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Khóa sân (Bảo trì): <span id="lockCourtName" class="text-warning"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="lockSlotForm">
+                    <input type="hidden" id="lockCourtId">
+                    <input type="hidden" name="selected_slots" id="selectedSlotsInput">
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Chọn ngày khóa <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control form-control-lg bg-light" name="lock_date" id="lockDateInput" required min="{{ now()->toDateString() }}">
+                        <div class="invalid-feedback" id="error-lock-lock_date"></div>
+                    </div>
 
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold text-dark">
+                            <i class="fa-solid fa-calendar-day text-primary me-1"></i> Sơ đồ ca sân trong ngày
+                        </label>
+                        
+                        <div class="d-flex flex-wrap gap-3 mb-2" style="font-size: 0.8rem; font-weight: 600;">
+                            <span class="d-flex align-items-center gap-1"><span class="d-inline-block border rounded-circle shadow-sm" style="width:12px;height:12px;background:#fff;"></span> Trống</span>
+                            <span class="d-flex align-items-center gap-1"><span class="d-inline-block rounded-circle" style="width:12px;height:12px;background:#0d6efd;"></span> Đang chọn</span>
+                            <span class="d-flex align-items-center gap-1"><span class="d-inline-block border border-danger-subtle rounded-circle" style="width:12px;height:12px;background:#f8d7da;"></span> Có khách</span>
+                            <span class="d-flex align-items-center gap-1"><span class="d-inline-block border border-warning-subtle rounded-circle" style="width:12px;height:12px;background:#fff3cd;"></span> Đang khóa</span>
+                        </div>
+
+                        <div id="lockSlotVisualizer" class="d-flex flex-wrap gap-2 p-3 rounded-4" style="min-height: 90px; background: #f8f9fa; border: 1px dashed #dee2e6;">
+                            <span class="text-muted small m-auto">Vui lòng chọn ngày để xem lịch...</span>
+                        </div>
+                        <div class="invalid-feedback text-danger mt-1 d-block fw-bold" id="error-lock-selected_slots"></div>
+                        <div class="alert alert-info py-2 mt-2 mb-0" style="font-size: 0.85rem;">
+                            💡 Bạn có thể <b>click chọn các ca rời rạc</b> hoặc nhảy cóc qua các ca đã có người đặt để khóa!
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold">Lý do khóa sân <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="reason" required placeholder="VD: Sửa mặt sân, Nghỉ lễ...">
+                        <div class="invalid-feedback" id="error-lock-reason"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-warning fw-bold text-dark" id="btnSaveLockSlot">Thực hiện Khóa</button>
+            </div>
+        </div>
+    </div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script>
@@ -565,6 +642,187 @@
             submitBtn.innerText = 'Lưu ca'; 
         }
     });
+    // --- LOGIC KHÓA SÂN & CHỌN NHIỀU CA (MULTI-SELECT) ---
+    let currentLockUrl = '';
+    let selectedLockSlots = []; // Mảng lưu các ca đang được click chọn
+
+    function setLockCourtId(courtId, courtName) {
+        document.getElementById('lockCourtName').innerText = courtName;
+        document.getElementById('lockCourtId').value = courtId;
+        currentLockUrl = `/owner/courts/${courtId}/lock`;
+        
+        // CẬP NHẬT: Reset lại mảng và input ẩn mới
+        selectedLockSlots = []; 
+        document.getElementById('selectedSlotsInput').value = '';
+
+        const dateInput = document.getElementById('lockDateInput').value;
+        fetchSlotsForLock(courtId, dateInput);
+    }
+
+    document.getElementById('lockDateInput').addEventListener('change', function() {
+        const courtId = document.getElementById('lockCourtId').value;
+        
+        // CẬP NHẬT: Reset lại mảng và input ẩn mới khi đổi ngày
+        selectedLockSlots = []; 
+        document.getElementById('selectedSlotsInput').value = '';
+        
+        fetchSlotsForLock(courtId, this.value);
+    });
+
+    document.getElementById('lockDateInput').addEventListener('change', function() {
+        const courtId = document.getElementById('lockCourtId').value;
+        selectedLockSlots = []; // Đổi ngày thì reset lại mảng chọn
+        document.querySelector('#lockSlotForm input[name="start_time"]').value = '';
+        document.querySelector('#lockSlotForm input[name="end_time"]').value = '';
+        fetchSlotsForLock(courtId, this.value);
+    });
+
+    async function fetchSlotsForLock(courtId, dateStr) {
+        const vis = document.getElementById('lockSlotVisualizer');
+        vis.innerHTML = '<div class="m-auto"><span class="spinner-border spinner-border-sm text-primary"></span> <span class="text-muted small ms-2">Đang tải lịch...</span></div>';
+
+        if(!dateStr || !courtId) return;
+
+        try {
+            const res = await fetch(`/api/courts/${courtId}/availability?date=${dateStr}`);
+            const responseData = await res.json();
+            
+            if(responseData.data && responseData.data.length > 0) {
+                vis.innerHTML = '';
+                responseData.data.forEach(slot => {
+                    const start = slot.start_time.substring(0,5);
+                    const end = slot.end_time.substring(0,5);
+                    
+                    const badge = document.createElement('div');
+                    // Style cơ bản của thẻ (Pill mềm mại)
+                    badge.className = 'px-3 py-2 rounded-pill text-center user-select-none transition-all duration-200';
+                    badge.style.fontSize = '0.85rem';
+                    badge.style.fontWeight = '600';
+                    
+                    if(slot.is_past) {
+                        badge.className += ' bg-secondary-subtle text-secondary border border-secondary-subtle text-decoration-line-through opacity-75';
+                        badge.innerText = `${start} - ${end}`;
+                    } else if(slot.is_booked) {
+                        badge.className += ' bg-danger-subtle text-danger-emphasis border border-danger-subtle';
+                        badge.innerText = `${start} - ${end} (Khách)`;
+                    } else if(slot.is_locked_by_owner) {
+                        badge.className += ' bg-warning-subtle text-warning-emphasis border border-warning-subtle';
+                        badge.innerText = `${start} - ${end} (Khóa)`;
+                    } else {
+                        // Ca Trống (Cho phép Click)
+                        badge.className += ' bg-white text-dark border shadow-sm';
+                        badge.style.cursor = 'pointer';
+                        badge.innerText = `${start} - ${end}`;
+                        
+                        // SỰ KIỆN: CLICK CHỌN NHIỀU CA CÙNG LÚC
+                        // SỰ KIỆN: CLICK CHỌN NHIỀU CA CÙNG LÚC
+                        // SỰ KIỆN: CLICK CHỌN NHIỀU CA CÙNG LÚC (Cho phép chọn rời rạc)
+                        badge.onclick = () => {
+                            const slotIdx = selectedLockSlots.findIndex(s => s.start === slot.start_time);
+                            if (slotIdx > -1) {
+                                // Bỏ chọn
+                                selectedLockSlots.splice(slotIdx, 1);
+                                badge.classList.remove('bg-primary', 'text-white', 'border-primary', 'shadow');
+                                badge.classList.add('bg-white', 'text-dark', 'border', 'shadow-sm');
+                            } else {
+                                // Chọn thêm
+                                selectedLockSlots.push({ start: slot.start_time, end: slot.end_time });
+                                badge.classList.remove('bg-white', 'text-dark', 'border', 'shadow-sm');
+                                badge.classList.add('bg-primary', 'text-white', 'border-primary', 'shadow');
+                            }
+                            // Sort và gắn thẳng vào input ẩn dưới dạng JSON chuỗi
+                            selectedLockSlots.sort((a, b) => a.start.localeCompare(b.start));
+                            document.getElementById('selectedSlotsInput').value = JSON.stringify(selectedLockSlots);
+                        };
+                    }
+                    vis.appendChild(badge);
+                });
+            } else {
+                vis.innerHTML = '<span class="text-muted small m-auto">Ngày này chưa có lịch được tạo.</span>';
+            }
+        } catch(e) {
+            vis.innerHTML = '<span class="text-danger small m-auto">Lỗi tải lịch.</span>';
+        }
+    }
+
+   
+
+    // ... (Giữ nguyên đoạn document.getElementById('btnSaveLockSlot').addEventListener... của bạn ở dưới)
+    // Nút Lưu Khóa sân (Giữ nguyên logic gọi API)
+    document.getElementById('btnSaveLockSlot').addEventListener('click', async function() {
+        const form = document.getElementById('lockSlotForm');
+        const formData = new FormData(form);
+        const submitBtn = this;
+        
+        // FIX: Xóa sạch các thông báo lỗi cũ trước khi gửi Request mới
+        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        form.querySelectorAll('.invalid-feedback').forEach(el => el.innerText = '');
+
+        submitBtn.disabled = true; 
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang xử lý...';
+
+        try {
+            const response = await fetch(currentLockUrl, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                alert(result.message); 
+                window.location.reload();
+            } else if (response.status === 422) {
+                // FIX: Map lỗi Validation trả về từ Backend vào thẳng các ô Input
+                if(result.errors) {
+                    for (const key in result.errors) {
+                        const input = form.querySelector(`[name="${key}"]`);
+                        if (input) {
+                            input.classList.add('is-invalid');
+                            document.getElementById(`error-lock-${key}`).innerText = result.errors[key][0];
+                        }
+                    }
+                } else {
+                    alert(result.message);
+                }
+            } else { 
+                alert(result.message || 'Thao tác thất bại.'); 
+            }
+        } catch (error) { 
+            alert('Lỗi kết nối máy chủ.'); 
+        } finally { 
+            submitBtn.disabled = false; 
+            submitBtn.innerText = 'Thực hiện Khóa'; 
+        }
+    });
+    // --- LOGIC MỞ KHÓA SÂN (UNLOCK) ---
+    async function unlockSlot(lockId) {
+        if (!confirm('Bạn có chắc chắn muốn mở khóa ca này không? Khách hàng sẽ có thể đặt sân trở lại.')) return;
+
+        try {
+            const response = await fetch(`/owner/courts/locks/${lockId}`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'Accept': 'application/json', 
+                    'X-CSRF-TOKEN': csrfToken 
+                },
+                // Gửi Request dưới dạng DELETE
+                body: JSON.stringify({ _method: 'DELETE' })
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                alert(result.message);
+                window.location.reload();
+            } else {
+                alert(result.message || 'Không thể mở khóa lúc này.');
+            }
+        } catch (err) {
+            alert('Lỗi kết nối đến máy chủ.');
+        }
+    }
 </script>
 </body>
 </html>

@@ -51,7 +51,7 @@
                 <button @click="activeTab = 'reviews'" 
                     :class="activeTab === 'reviews' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-stone-500 hover:text-stone-800 hover:border-stone-300'"
                     class="whitespace-nowrap border-b-2 pb-3 text-sm font-bold transition-all outline-none flex items-center gap-1">
-                    Đánh giá <span class="text-amber-400 text-xs">★★★★★</span>
+                    Đánh giá
                 </button>
             </div>
 

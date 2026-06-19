@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('reviews', function (Blueprint $table) {
@@ -22,26 +19,20 @@ return new class extends Migration
                 ->constrained('users')
                 ->cascadeOnDelete();
 
+            // THÊM CỘT BOOKING_ID VÀO ĐÂY
+            $table->foreignId('booking_id')
+                ->constrained('bookings')
+                ->cascadeOnDelete();
+
             $table->tinyInteger('rating');
-
-            $table->text('content')
-                ->nullable();
-
-            $table->boolean('is_hidden')
-                ->default(false);
-
+            $table->text('content')->nullable();
+            $table->boolean('is_hidden')->default(false);
             $table->timestamps();
 
-            $table->unique([
-                'court_id',
-                'user_id'
-            ]);
+            // ĐÃ XÓA UNIQUE('court_id', 'user_id') ĐỂ CHO PHÉP ĐÁNH GIÁ NHIỀU LẦN
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('reviews');
