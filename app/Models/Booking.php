@@ -23,7 +23,10 @@ class Booking extends Model
         'status',
         'payment_status',
         'note',
-        'cancel_reason'
+        'cancel_reason',
+        'cancellation_fee',
+         'refund_amount', 
+         'refund_status',
     ];
 
     protected $casts = [
@@ -58,5 +61,25 @@ class Booking extends Model
         $log->save();
 
         return $log;
+    }
+    public function getCancellationPolicy(): array
+    {
+        $slotDate = $this->slot_date instanceof \Carbon\Carbon 
+            ? $this->slot_date->format('Y-m-d') 
+            : \Carbon\Carbon::parse($this->slot_date)->format('Y-m-d');
+            
+        $startsAt = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $slotDate . ' ' . $this->start_time, 'Asia/Ho_Chi_Minh');
+        $now = \Carbon\Carbon::now('Asia/Ho_Chi_Minh');
+        
+        // Tính số giờ còn lại trước khi đá (false để giữ số âm nếu đã quá giờ)
+        $hoursDiff = $now->diffInHours($startsAt, false);
+
+        if ($hoursDiff >= 24) {
+            return ['fee_percent' => 0, 'refund_percent' => 100, 'hours' => $hoursDiff];
+        } elseif ($hoursDiff >= 12) {
+            return ['fee_percent' => 50, 'refund_percent' => 50, 'hours' => $hoursDiff];
+        } else {
+            return ['fee_percent' => 100, 'refund_percent' => 0, 'hours' => $hoursDiff];
+        }
     }
 }

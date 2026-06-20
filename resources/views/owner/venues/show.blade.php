@@ -138,13 +138,28 @@
                             </div>
                         </div>
 
-                        @if($court->courtLocks()->where('lock_date', '>=', now()->toDateString())->count() > 0)
+                        @php
+                            // Tự động lọc: Bỏ qua các ca khóa ở ngày hôm qua, VÀ bỏ qua các ca khóa hôm nay nhưng giờ kết thúc đã qua đi
+                            $activeLocks = $court->courtLocks()
+                                ->where(function($query) {
+                                    $query->where('lock_date', '>', now()->toDateString())
+                                          ->orWhere(function($q) {
+                                              $q->where('lock_date', now()->toDateString())
+                                                ->where('end_time', '>', now()->format('H:i:s'));
+                                          });
+                                })
+                                ->orderBy('lock_date')
+                                ->orderBy('start_time')
+                                ->get();
+                        @endphp
+
+                        @if($activeLocks->count() > 0)
                             <div class="mt-4 p-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 rounded-3">
                                 <h6 class="text-danger fw-bold mb-2" style="font-size: 0.9rem;">
                                     <i class="fa-solid fa-triangle-exclamation me-1"></i> Lịch đang Khóa / Bảo trì:
                                 </h6>
                                 <ul class="list-group list-group-flush gap-2">
-                                    @foreach($court->courtLocks()->where('lock_date', '>=', now()->toDateString())->orderBy('lock_date')->orderBy('start_time')->get() as $lock)
+                                    @foreach($activeLocks as $lock)
                                         <li class="list-group-item d-flex justify-content-between align-items-center rounded bg-white shadow-sm border-0" style="border-left: 4px solid #dc3545 !important;">
                                             <div>
                                                 <span class="badge bg-danger mb-1">{{ \Carbon\Carbon::parse($lock->lock_date)->format('d/m/Y') }}</span>
@@ -669,13 +684,6 @@
         fetchSlotsForLock(courtId, this.value);
     });
 
-    document.getElementById('lockDateInput').addEventListener('change', function() {
-        const courtId = document.getElementById('lockCourtId').value;
-        selectedLockSlots = []; // Đổi ngày thì reset lại mảng chọn
-        document.querySelector('#lockSlotForm input[name="start_time"]').value = '';
-        document.querySelector('#lockSlotForm input[name="end_time"]').value = '';
-        fetchSlotsForLock(courtId, this.value);
-    });
 
     async function fetchSlotsForLock(courtId, dateStr) {
         const vis = document.getElementById('lockSlotVisualizer');

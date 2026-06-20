@@ -80,7 +80,7 @@
 
             <div class="space-y-3">
                 <div class="flex items-start gap-x-4">
-    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Ngày đá:</p>
+    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Ngày chơi:</p>
     <div class="flex-1">
         <p class="text-sm font-bold text-zinc-900 mb-1.5">{{ $slotDate }}</p>
         @php
@@ -144,7 +144,43 @@
                 </div>
             </div>
 
-        </div>
+            @if($booking->status === 'cancelled')
+                @php
+                    // FIX: Tính tổng phí phạt và hoàn lại của TẤT CẢ các ca trong đơn
+                    $totalCancelFee = $bookingGroup->sum('cancellation_fee');
+                    $totalRefund = $bookingGroup->sum('refund_amount');
+                @endphp
+                <div class="border-t border-stone-100 border-dashed"></div>
+                
+                <div class="rounded-xl border border-rose-200 bg-rose-50/50 p-4 sm:p-5">
+                    <h4 class="mb-4 text-sm font-extrabold uppercase tracking-wider text-rose-700">Thông tin Hủy & Hoàn tiền</h4>
+                    
+                    <div class="space-y-3">
+                        <div class="flex items-start justify-between gap-4">
+                            <span class="text-sm font-medium text-stone-500">Lý do hủy:</span>
+                            <span class="text-sm font-bold text-rose-600 text-right">{{ $booking->cancel_reason ?? 'Không có lý do' }}</span>
+                        </div>
+
+                        <div class="flex items-start justify-between gap-4">
+                            <span class="text-sm font-medium text-stone-500">Phí phạt hủy:</span>
+                            <span class="text-sm font-semibold text-zinc-700">{{ number_format($totalCancelFee, 0, ',', '.') }} ₫</span>
+                        </div>
+
+                        <div class="mt-3 flex items-start justify-between gap-4 border-t border-rose-100 pt-3">
+                            <span class="text-sm font-bold text-zinc-900">Số tiền hoàn lại:</span>
+                            <span class="text-lg font-black text-emerald-600">{{ number_format($totalRefund, 0, ',', '.') }} ₫</span>
+                        </div>
+                        
+                        {{-- <div class="mt-1 text-right">
+                            <span class="text-xs font-medium italic text-amber-600">
+                                * Trạng thái: {{ ($booking->refund_status ?? '') === 'completed' ? 'Đã hoàn tất' : 'Đang xử lý (1-3 ngày làm việc)' }}
+                            </span>
+                        </div> --}}
+                    </div>
+                </div>
+            @endif
+
+            </div>
     </div>
 
     <div class="mt-6 flex flex-col sm:flex-row gap-3">

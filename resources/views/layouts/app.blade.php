@@ -29,7 +29,14 @@
 
             <nav class="hidden items-center gap-8 text-sm font-medium text-zinc-600 md:flex">
                 <a href="{{ route('home') }}" class="text-emerald-700 transition hover:text-emerald-800">Tìm sân</a>
-                
+                @auth
+                <a href="{{ route('account.favorites.index') }}" class="flex items-center gap-1.5 transition hover:text-rose-600">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        
+                    </svg>
+                    Yêu thích
+                </a>
+                @endauth
             </nav>
 
             @guest
@@ -73,6 +80,14 @@
         <div x-show="open" x-cloak x-transition class="border-t border-stone-200 bg-white md:hidden">
             <nav class="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3 text-sm font-medium sm:px-6">
                 <a href="{{ route('home') }}" class="rounded-lg px-3 py-2.5 text-emerald-700 bg-emerald-50">Tìm sân</a>
+                @auth
+                <a href="{{ route('account.favorites.index') }}" class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-zinc-700 hover:bg-rose-50 hover:text-rose-600 transition">
+                    <svg class="h-4 w-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                    Sân yêu thích
+                </a>
+                @endauth
                 @auth
                     @if (Auth::user()->role === 'owner')
                         <a href="{{ route('owner.dashboard') }}" class="rounded-lg px-3 py-2.5 font-semibold text-emerald-700 hover:bg-emerald-50">Quản lý sân</a>
@@ -177,9 +192,39 @@
             </div>
         </div>
     </footer>
-
+    <div id="toast-container" class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-3 pointer-events-none"></div>
     @yield('scripts')
     <script>
+        // HÀM TẠO THÔNG BÁO TOAST TOÀN CỤC
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            // Chọn màu và icon dựa theo trạng thái (thành công hay lỗi)
+            const isSuccess = type === 'success';
+            const bgColor = isSuccess ? 'bg-emerald-600' : 'bg-rose-500';
+            const icon = isSuccess 
+                ? `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`
+                : `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`;
+
+            toast.className = `flex items-center gap-2 px-4 py-3 text-sm font-bold text-white shadow-xl rounded-xl transition-all duration-300 transform translate-y-12 opacity-0 ${bgColor}`;
+            toast.innerHTML = `${icon} <span>${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            // Hiệu ứng trượt lên (Slide up)
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-12', 'opacity-0');
+                toast.classList.add('translate-y-0', 'opacity-100');
+            });
+
+            // Tự động mờ dần và biến mất sau 3 giây
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-12', 'opacity-0');
+                setTimeout(() => toast.remove(), 300); // Xóa thẻ div sau khi animation chạy xong
+            }, 3000);
+        }
         async function handleLogout() {
             try {
                 await fetch('{{ route('web.logout') }}', {

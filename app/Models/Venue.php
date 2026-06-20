@@ -67,4 +67,16 @@ class Venue extends Model
 {
     return $this->hasMany(VenueImage::class);
 }
+    // Sân này được những người dùng nào yêu thích
+    public function favoritedBy()
+    {
+        return $this->belongsToMany(User::class, 'favorites', 'venue_id', 'user_id')->withTimestamps();
+    }
+
+    // Helper: Kiểm tra nhanh xem 1 user cụ thể đã thả tim sân này chưa
+    public function isFavoritedBy(?User $user): bool
+    {
+        if (!$user) return false;
+        return $this->favoritedBy()->where('user_id', $user->id)->exists();
+    }
 }
