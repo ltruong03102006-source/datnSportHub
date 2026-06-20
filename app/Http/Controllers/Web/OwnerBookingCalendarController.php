@@ -17,6 +17,37 @@ class OwnerBookingCalendarController extends Controller
 {
     public function index(): View
     {
+        // TỰ ĐỘNG CHUYỂN TRẠNG THÁI "ĐÃ HOÀN THÀNH" CHO CÁC CA ĐÃ QUA
+        $now = now('Asia/Ho_Chi_Minh');
+        
+        // 1. Lấy tất cả các ca đang "Đã xác nhận" của Chủ sân
+        $confirmedBookings = Booking::where('status', 'confirmed')
+            ->whereHas('court.venue', function ($query) {
+                $query->where('owner_id', Auth::id());
+            })
+            ->get();
+
+        // 2. Nhóm các ca lại thành từng "Đơn hàng" (cùng user, sân, ngày, thời điểm tạo)
+        $groupedBookings = $confirmedBookings->groupBy(function($item) {
+            return $item->user_id . '_' . $item->court_id . '_' . $item->slot_date->format('Y-m-d') . '_' . $item->created_at;
+        });
+
+        // 3. Kiểm tra: Chỉ ghi nhận Hoàn thành khi CA CUỐI CÙNG đã kết thúc
+        $idsToComplete = [];
+        foreach ($groupedBookings as $group) {
+            $maxEndTime = $group->max('end_time');
+            $slotDate = $group->first()->slot_date->format('Y-m-d');
+            $maxEndDateTime = \Carbon\Carbon::parse($slotDate . ' ' . $maxEndTime, 'Asia/Ho_Chi_Minh');
+
+            if ($now->greaterThanOrEqualTo($maxEndDateTime)) {
+                $idsToComplete = array_merge($idsToComplete, $group->pluck('id')->toArray());
+            }
+        }
+
+        // 4. Cập nhật 1 lần vào Database
+        if (!empty($idsToComplete)) {
+            Booking::whereIn('id', $idsToComplete)->update(['status' => 'completed']);
+        }
         $venues = Venue::query()
             ->where('owner_id', Auth::id())
             ->with(['courts' => fn ($query) => $query->orderBy('name')])
@@ -166,9 +197,14 @@ class OwnerBookingCalendarController extends Controller
             }
 
             $oldStatus = $lockedBooking->status;
+            
+            // CẬP NHẬT: Thêm tiền tố và lưu logic hoàn tiền (Chủ sân hủy -> Khách không mất phí, hoàn 100% ca đó)
             $lockedBooking->update([
                 'status' => 'cancelled',
-                'cancel_reason' => $validated['reason'],
+                'cancel_reason' => 'Chủ sân hủy: ' . $validated['reason'],
+                'cancellation_fee' => 0, 
+                'refund_amount' => $lockedBooking->total_price, 
+                'refund_status' => 'pending'
             ]);
 
             BookingLog::create([
@@ -176,22 +212,35 @@ class OwnerBookingCalendarController extends Controller
                 'changed_by' => $request->user()->id,
                 'old_status' => $oldStatus,
                 'new_status' => 'cancelled',
-                'note' => $validated['reason'],
+                'note' => 'Chủ sân chủ động hủy. Lý do: ' . $validated['reason'],
             ]);
 
             return $lockedBooking->load(['court.venue', 'user']);
         });
 
         return response()->json([
-            'message' => 'Đã hủy booking và lưu lý do hủy.',
+            'message' => 'Đã hủy ca sân và ghi nhận hoàn tiền 100% cho khách!',
             'event' => $this->formatEvent($booking),
         ]);
     }
-
     private function formatEvent(Booking $booking): array
     {
         $status = $this->statusMeta($booking->status);
         $date = $booking->slot_date->format('Y-m-d');
+        
+        // --- LOGIC MỚI: GHI ĐÈ HIỂN THỊ (VISUAL OVERRIDE) ---
+        $now = now('Asia/Ho_Chi_Minh');
+        $endDateTime = \Carbon\Carbon::parse($date . ' ' . $booking->end_time, 'Asia/Ho_Chi_Minh');
+        $isPast = $now->greaterThanOrEqualTo($endDateTime);
+
+        // Nếu DB đang là "Đã xác nhận" nhưng giờ đã qua -> Khoác áo "Đã hoàn thành"
+        if ($booking->status === 'confirmed' && $isPast) {
+            $status = ['label' => 'Đã đá xong', 'color' => '#2563eb']; // Đổi màu xanh dương
+        }
+        
+        // Trạng thái giả lập gửi xuống Frontend để giấu nút "Hủy sân"
+        $displayStatus = ($booking->status === 'confirmed' && $isPast) ? 'completed' : $booking->status;
+        // --- KẾT THÚC LOGIC ---
 
         return [
             'id' => (string) $booking->id,
@@ -207,8 +256,11 @@ class OwnerBookingCalendarController extends Controller
                 'court_name' => $booking->court->name,
                 'customer_name' => $booking->user->name,
                 'customer_email' => $booking->user->email,
-                'status' => $booking->status,
-                'status_label' => $status['label'],
+                'customer_phone' => $booking->user->phone ?? 'Chưa cập nhật SĐT', 
+                
+                'status' => $displayStatus, // Gửi status đã ghi đè
+                'status_label' => $status['label'], // Gửi nhãn tên đã ghi đè
+                
                 'total_price' => number_format((float) $booking->total_price, 0, ',', '.').' đ',
                 'note' => $booking->note,
                 'cancel_reason' => $booking->cancel_reason,

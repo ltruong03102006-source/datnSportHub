@@ -91,7 +91,7 @@
                                         </div>
                                         <div class="bg-emerald-50 rounded p-3 mt-3">
                                             <div class="text-xs font-bold text-emerald-700 uppercase mb-1">
-                                                <i class="fa-solid fa-reply"></i> {{ $venue->owner->name ?? 'Quản trị viên' }}
+                                                <i class="fa-solid fa-reply"></i>{{ $venue->name }}
                                             </div>
                                             <p class="text-sm text-emerald-900/80 relative z-10" x-text="review.owner_reply"></p>
                                         </div>

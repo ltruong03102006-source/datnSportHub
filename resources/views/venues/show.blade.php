@@ -21,7 +21,24 @@
                 <span class="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/90 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white backdrop-blur-md shadow-sm">
                     {{ $venue->sport->name ?? 'Thể thao' }}
                 </span>
-                <h1 class="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">{{ $venue->name }}</h1>
+                
+                <div class="flex items-center justify-between w-full pr-2">
+                    <h1 class="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">{{ $venue->name }}</h1>
+                    
+                    @auth
+                    <button onclick="toggleFavorite({{ $venue->id }})" class="group flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/20 backdrop-blur-md transition-all hover:bg-white/40 hover:scale-105 shadow-lg">
+                        <svg id="iconFavorite" class="h-6 w-6 transition-colors duration-300 {{ $venue->isFavoritedBy(Auth::user()) ? 'text-rose-500 fill-rose-500' : 'text-white' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                    </button>
+                    @else
+                    <a href="{{ route('login') }}" class="group flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/20 backdrop-blur-md transition-all hover:bg-white/40 hover:scale-105 shadow-lg">
+                        <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                    </a>
+                    @endauth
+                </div>
             </div>
         </div>
     </div>
@@ -201,4 +218,34 @@
         scrollbar-width: none;
     }
 </style>
+@endsection
+@section('scripts')
+<script>
+    async function toggleFavorite(venueId) {
+        try {
+            const response = await fetch(`/venues/${venueId}/favorite`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            });
+            const data = await response.json();
+            if (response.ok) {
+                const icon = document.getElementById('iconFavorite');
+                if (data.status === 'added') {
+                    icon.classList.remove('text-white');
+                    icon.classList.add('text-rose-500', 'fill-rose-500');
+                } else {
+                    icon.classList.remove('text-rose-500', 'fill-rose-500');
+                    icon.classList.add('text-white');
+                }
+                // Bạn có thể đổi alert thành showToast cho đẹp nhé
+                alert(data.message); 
+            }
+        } catch (error) {
+            alert('Lỗi kết nối, vui lòng thử lại.');
+        }
+    }
+</script>
 @endsection

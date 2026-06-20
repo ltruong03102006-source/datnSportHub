@@ -126,7 +126,7 @@
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(5, minmax(0, 1fr));
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 16px;
             margin-bottom: 18px;
         }
@@ -392,6 +392,8 @@
             overflow: hidden;
             padding: 2px 4px;
             box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+            pointer-events: auto !important; /* FIX LỖI KHÔNG CLICK ĐƯỢC */
+            z-index: 5 !important; /* FIX LỖI KHÔNG CLICK ĐƯỢC */
         }
 
         .fc-daygrid-event {
@@ -570,11 +572,7 @@
             <div class="value" id="today-booking-count">{{ $todayBookings }}</div>
             <div class="hint">Không tính đơn đã hủy/từ chối</div>
         </div>
-        <div class="stat-card">
-            <div class="label">Chờ xác nhận</div>
-            <div class="value text-warning" id="pending-booking-count">{{ $pendingBookings }}</div>
-            <div class="hint">Cần xử lý sớm</div>
-        </div>
+
         <div class="stat-card">
             <div class="label">Đã xác nhận</div>
             <div class="value text-success">{{ $confirmedBookings }}</div>
@@ -620,11 +618,9 @@
                 <label for="status-filter">Trạng thái</label>
                 <select id="status-filter" class="form-select">
                     <option value="">Tất cả trạng thái</option>
-                    <option value="pending">Chờ xác nhận</option>
                     <option value="confirmed">Đã xác nhận</option>
                     <option value="completed">Đã hoàn thành</option>
                     <option value="cancelled">Đã hủy</option>
-                    <option value="rejected">Đã từ chối</option>
                 </select>
             </div>
             <div>
@@ -634,11 +630,9 @@
         </div>
 
         <div class="legend-strip" aria-label="Chú thích trạng thái">
-            <span class="legend-item"><i class="legend-dot" style="background:#d97706"></i> Chờ xác nhận</span>
             <span class="legend-item"><i class="legend-dot" style="background:#047857"></i> Đã xác nhận</span>
             <span class="legend-item"><i class="legend-dot" style="background:#2563eb"></i> Đã hoàn thành</span>
             <span class="legend-item"><i class="legend-dot" style="background:#64748b"></i> Đã hủy</span>
-            <span class="legend-item"><i class="legend-dot" style="background:#dc2626"></i> Đã từ chối</span>
         </div>
     </section>
 
@@ -672,23 +666,33 @@
             <div class="modal-body">
                 <div id="booking-action-alert" class="alert d-none" role="alert"></div>
                 <dl class="detail-grid">
+                    <dt>Khách hàng</dt>
+                    <dd>
+                        <div id="detail-customer" class="fw-bold"></div>
+                        <small class="text-secondary fw-normal d-block" id="detail-email"></small>
+                        
+                        <div class="mt-2 d-flex align-items-center gap-2">
+                            <span id="detail-phone" class="badge bg-light text-dark border border-secondary-subtle fs-6"></span>
+                            <a href="#" id="btn-call-customer" class="btn btn-sm btn-success p-1 px-2" title="Gọi điện">
+                                <svg class="w-4 h-4" style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                            </a>
+                            <a href="#" target="_blank" id="btn-zalo-customer" class="btn btn-sm btn-primary p-1 px-2" title="Chat Zalo">
+                                <span style="font-size: 12px; font-weight: bold;">Zalo</span>
+                            </a>
+                        </div>
+                        </dd>
                     <dt>Điểm sân</dt>
                     <dd id="detail-venue"></dd>
                     <dt>Sân con</dt>
                     <dd id="detail-court"></dd>
                     <dt>Thời gian</dt>
                     <dd id="detail-time"></dd>
-                    <dt>Khách hàng</dt>
-                    <dd>
-                        <div id="detail-customer"></div>
-                        <small class="text-secondary fw-normal" id="detail-email"></small>
-                    </dd>
+
                     <dt>Trạng thái</dt>
                     <dd><span class="status-pill" id="detail-status"></span></dd>
                     <dt>Tổng tiền</dt>
                     <dd id="detail-price"></dd>
-                    <dt>Ghi chú</dt>
-                    <dd id="detail-note"></dd>
+               
                     <dt class="d-none" id="detail-cancel-label">Lý do hủy</dt>
                     <dd class="d-none text-danger" id="detail-cancel-reason"></dd>
                 </dl>
@@ -867,30 +871,56 @@
 
         function showBookingDetail(event) {
             const booking = event.extendedProps;
+            
+            // FIX QUAN TRỌNG: Gán ID đơn hàng để Lệnh Hủy biết đang thao tác trên đơn nào
+            selectedBookingId = booking.booking_id;
+
             document.getElementById('booking-code').textContent = `Mã booking #${booking.booking_id}`;
             document.getElementById('detail-venue').textContent = booking.venue_name;
             document.getElementById('detail-court').textContent = booking.court_name;
             document.getElementById('detail-time').textContent = `${booking.date_label}, ${booking.time_label}`;
             document.getElementById('detail-customer').textContent = booking.customer_name;
             document.getElementById('detail-email').textContent = booking.customer_email;
+            
+            const phoneStr = booking.customer_phone || 'Chưa cập nhật SĐT';
+            document.getElementById('detail-phone').textContent = phoneStr;
+            const btnCall = document.getElementById('btn-call-customer');
+            const btnZalo = document.getElementById('btn-zalo-customer');
+            if (phoneStr !== 'Chưa cập nhật SĐT' && phoneStr !== '') {
+                btnCall.href = `tel:${phoneStr}`;
+                btnZalo.href = `https://zalo.me/${phoneStr}`; 
+                btnCall.style.display = 'inline-flex';
+                btnZalo.style.display = 'inline-flex';
+            } else {
+                btnCall.style.display = 'none';
+                btnZalo.style.display = 'none';
+            }
+
             document.getElementById('detail-price').textContent = booking.total_price;
-            document.getElementById('detail-note').textContent = booking.note || 'Không có';
+            document.getElementById('detail-status').className = `status-pill ${statusClasses[booking.status] || 'status-cancelled'}`;
+            document.getElementById('detail-status').textContent = booking.status_label;
 
-            const status = document.getElementById('detail-status');
-            status.textContent = booking.status_label;
-            status.className = `status-pill ${statusClasses[booking.status] || 'status-cancelled'}`;
-            selectedBookingId = booking.booking_id;
-            bookingActions.classList.toggle('d-none', booking.status !== 'pending');
-            bookingCancel.classList.toggle('d-none', booking.status !== 'confirmed');
-            cancelReason.value = '';
+            // FIX QUAN TRỌNG: Dùng ĐÚNG tên biến HTML của bạn để chống sập JS
+            actionAlert.className = 'alert d-none';
+            bookingActions.classList.add('d-none');
+            bookingCancel.classList.add('d-none');
+            
+            if (cancelReason) cancelReason.value = '';
 
-            const showCancelReason = booking.status === 'cancelled' && !!booking.cancel_reason;
+            if (booking.status === 'pending') {
+                bookingActions.classList.remove('d-none');
+            } else if (booking.status === 'confirmed') {
+                bookingCancel.classList.remove('d-none');
+            }
+
+            const showCancelReason = booking.status === 'cancelled';
             detailCancelLabel.classList.toggle('d-none', !showCancelReason);
             detailCancelReason.classList.toggle('d-none', !showCancelReason);
-            detailCancelReason.textContent = booking.cancel_reason || '';
+            
+            if (showCancelReason) {
+                detailCancelReason.textContent = booking.cancel_reason || 'Khách tự hủy';
+            }
 
-            actionAlert.className = 'alert d-none';
-            actionAlert.textContent = '';
             detailModal.show();
         }
 
@@ -935,47 +965,58 @@
             }
         }
 
-        async function cancelConfirmedBooking() {
+        // THỰC THI TRƯỜNG HỢP A: CHỦ SÂN CHỦ ĐỘNG HỦY CA
+        // Bổ sung tham số (event) để chặn hành vi mặc định của Form
+        async function cancelConfirmedBooking(event) {
+            // Ngăn chặn trình duyệt tự động validate popup HTML5 (Chống lỗi validate 2 lần)
+            if (event) event.preventDefault();
+
+            // Dùng đúng biến selectedBookingId của bạn
             if (!selectedBookingId) return;
 
+            // Dùng đúng biến cancelReason của bạn
             const reason = cancelReason.value.trim();
             if (!reason) {
-                actionAlert.textContent = 'Vui lòng nhập lý do hủy.';
-                actionAlert.className = 'alert alert-danger';
+                actionAlert.textContent = 'Vui lòng nhập lý do hủy sân để thông báo cho khách!';
+                actionAlert.className = 'alert alert-danger mt-3';
+                actionAlert.classList.remove('d-none');
+                cancelReason.focus(); // Tự động trỏ chuột vào ô nhập cho tiện
                 return;
             }
 
-            const originalText = cancelButton.textContent;
+            const originalText = cancelButton.innerHTML;
             cancelButton.disabled = true;
-            cancelButton.textContent = 'Đang hủy...';
+            cancelButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang hủy...';
+            actionAlert.classList.add('d-none'); // Ẩn cảnh báo lỗi màu đỏ đi
 
             try {
-                const response = await fetch(
-                    cancelUrlTemplate.replace('__BOOKING__', selectedBookingId),
-                    {
-                        method: 'PATCH',
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': csrfToken,
-                        },
-                        body: JSON.stringify({ reason }),
-                    }
-                );
+                // Dùng đúng biến cancelUrlTemplate của bạn
+                const response = await fetch(cancelUrlTemplate.replace('__BOOKING__', selectedBookingId), {
+                    method: 'PATCH',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    },
+                    body: JSON.stringify({ reason: reason })
+                });
+                
                 const data = await response.json();
 
                 if (!response.ok) {
                     throw new Error(data.message || 'Không thể hủy booking.');
                 }
 
+                alert(data.message);
                 detailModal.hide();
                 calendar.refetchEvents();
             } catch (error) {
                 actionAlert.textContent = error.message;
-                actionAlert.className = 'alert alert-danger';
+                actionAlert.className = 'alert alert-danger mt-3';
+                actionAlert.classList.remove('d-none');
             } finally {
                 cancelButton.disabled = false;
-                cancelButton.textContent = originalText;
+                cancelButton.innerHTML = originalText;
             }
         }
 
