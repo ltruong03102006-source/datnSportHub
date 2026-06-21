@@ -25,7 +25,12 @@ class Venue extends Model
         'lng', 
         'description', 
         'banner', 
-        'status'
+        'status',
+        'phone',
+        'email',
+        'open_hours',
+        'close_hours',
+        'google_maps_address'
     ];
 
     // Ép kiểu (Casts) tọa độ sang số thực để tránh lỗi hiển thị bản đồ
@@ -64,19 +69,12 @@ class Venue extends Model
         return $this->ownerRegistration?->phone;
     }
     public function images()
-{
-    return $this->hasMany(VenueImage::class);
-}
-    // Sân này được những người dùng nào yêu thích
-    public function favoritedBy()
     {
-        return $this->belongsToMany(User::class, 'favorites', 'venue_id', 'user_id')->withTimestamps();
+        return $this->hasMany(VenueImage::class);
     }
 
-    // Helper: Kiểm tra nhanh xem 1 user cụ thể đã thả tim sân này chưa
-    public function isFavoritedBy(?User $user): bool
+    public function legalDocument()
     {
-        if (!$user) return false;
-        return $this->favoritedBy()->where('user_id', $user->id)->exists();
+        return $this->hasOne(VenueLegalDocument::class);
     }
 }

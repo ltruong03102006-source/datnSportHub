@@ -17,8 +17,7 @@ class AdminLoginController extends Controller
      */
     public function create(): View|RedirectResponse
     {
-        // Nếu đã đăng nhập và là admin thì chuyển hướng luôn tới dashboard
-        if (Auth::check() && strtolower(Auth::user()->role) === 'admin') {
+        if (Auth::guard('web')->check() && strtolower(Auth::guard('web')->user()->role) === 'admin') {
             return redirect()->route('admin.dashboard');
         }
 
@@ -61,6 +60,8 @@ class AdminLoginController extends Controller
                 ->with('admin_login_error', 'Tài khoản đang bị khóa.');
         }
 
+        Auth::shouldUse('web');
+        Auth::guard('web')->login($user, $request->boolean('remember'));
         Auth::login($user, $request->boolean('remember'));
 
         $request->session()->regenerate();
@@ -78,6 +79,6 @@ class AdminLoginController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('admin.login');
+        return redirect('/admin/login');
     }
 }

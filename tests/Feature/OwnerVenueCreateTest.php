@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Sport;
 use App\Models\User;
 use App\Models\Venue;
+use App\Models\VenueLegalDocument;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -36,6 +37,22 @@ class OwnerVenueCreateTest extends TestCase
             'banner' => UploadedFile::fake()->image('banner.png', 600, 400)->size(120),
             'lat' => 21.0285,
             'lng' => 105.8542,
+            'phone' => '0123456789',
+            'email' => 'venue@example.com',
+            'open_hours' => '06:00',
+            'close_hours' => '22:00',
+            'google_maps_address' => '123 Nguyễn Văn Huyên, Hà Nội',
+            'owner_name' => 'Nguyễn Văn A',
+            'citizen_id' => '001234567890',
+            'business_license_number' => 'BL-001',
+            'bank_name' => 'Techcombank',
+            'bank_account_number' => '123456789',
+            'bank_account_holder' => 'Nguyễn Văn A',
+            'citizen_front_image' => UploadedFile::fake()->image('front.png', 600, 400)->size(120),
+            'citizen_back_image' => UploadedFile::fake()->image('back.png', 600, 400)->size(120),
+            'business_license_file' => UploadedFile::fake()->image('license.png', 600, 400)->size(120),
+            'rental_contract_file' => UploadedFile::fake()->image('contract.png', 600, 400)->size(120),
+            'land_certificate_file' => UploadedFile::fake()->image('land.png', 600, 400)->size(120),
         ]);
 
         $response->assertCreated();
@@ -48,6 +65,41 @@ class OwnerVenueCreateTest extends TestCase
         $this->assertEquals('pending', $venue->status);
         $this->assertNotNull($venue->banner);
         $this->assertTrue(Storage::disk('public')->exists($venue->banner));
+
+        $legalDocument = VenueLegalDocument::where('venue_id', $venue->id)->first();
+        $this->assertNotNull($legalDocument);
+        $this->assertEquals('pending', $legalDocument->status);
+    }
+
+    public function test_owner_cannot_create_court_for_unapproved_venue_via_api(): void
+    {
+        $owner = User::factory()->create([
+            'role' => 'owner',
+            'status' => 'active',
+        ]);
+
+        $sport = Sport::create([
+            'name' => 'Badminton',
+            'slug' => 'badminton',
+        ]);
+
+        $venue = Venue::create([
+            'owner_id' => $owner->id,
+            'sport_id' => $sport->id,
+            'name' => 'Venue chưa duyệt',
+            'address' => '123 Test Street',
+            'status' => 'pending',
+        ]);
+
+        $response = $this->actingAs($owner, 'sanctum')
+            ->postJson('/api/owner/venues/' . $venue->id . '/courts', [
+                'name' => 'Sân 1',
+                'type' => 'indoor',
+                'description' => 'Test court',
+            ]);
+
+        $response->assertStatus(403);
+        $response->assertJsonPath('message', 'Bạn phải được Admin duyệt cơ sở trước khi tạo sân.');
     }
 
     public function test_invalid_sport_id_returns_validation_error(): void

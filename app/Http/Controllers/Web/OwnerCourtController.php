@@ -20,6 +20,13 @@ class OwnerCourtController extends Controller
             return response()->json(['success' => false, 'message' => 'Bạn không có quyền thao tác trên sân này.'], 403);
         }
 
+        if ($venue->status !== 'approved') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bạn phải được Admin duyệt cơ sở trước khi tạo sân.'
+            ], 403);
+        }
+
         $validated = $request->validate([
             'name' => [
                 'required',

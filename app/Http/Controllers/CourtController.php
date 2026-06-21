@@ -52,7 +52,7 @@ class CourtController extends Controller
                 $q->where('status', 'active');
             }])
             ->join('sports', 'sports.id', '=', 'venues.sport_id')
-            ->where('venues.status', 'active')
+            ->whereIn('venues.status', ['active', 'approved'])
             ->whereExists(function ($query) {
                 // Chỉ hiển thị các Cơ sở có ít nhất 1 Sân con đang hoạt động
                 $query->select(DB::raw(1))
@@ -206,7 +206,7 @@ class CourtController extends Controller
         // Đếm số lượng Cơ sở theo từng môn thể thao
         $rows = DB::table('venues')
             ->join('sports', 'sports.id', '=', 'venues.sport_id')
-            ->where('venues.status', 'active')
+            ->whereIn('venues.status', ['active', 'approved'])
             ->whereExists(function ($query) {
                 $query->select(DB::raw(1))
                       ->from('courts')
