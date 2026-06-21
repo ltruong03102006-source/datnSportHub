@@ -33,39 +33,7 @@
                 <h1 class="text-3xl font-extrabold tracking-tight text-zinc-900 sm:text-4xl">{{ $court->name }}</h1>
                 
                 <div class="flex items-center gap-2 mt-2 sm:mt-0 shrink-0">
-                    <div class="relative" id="headerActions">
-    <button onclick="toggleShareMenu()" class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-stone-200 bg-white px-4 text-sm font-bold text-zinc-700 transition hover:bg-stone-50 hover:text-emerald-700">
-        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z" /></svg>
-        CHIA SẺ
-    </button>
-    
-    <div id="shareMenu" class="absolute right-0 top-full mt-2 hidden w-56 rounded-xl border border-stone-100 bg-white p-1.5 shadow-lg ring-1 ring-black/5 z-50">
-        <button onclick="copyRichLink('{{ addslashes($court->name) }}')" class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-zinc-900 transition">
-            <svg class="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" /></svg>
-            Sao chép liên kết
-        </button>
-
-        <a href="https://www.facebook.com/sharer/sharer.php?u={{ urlencode(url()->current()) }}" target="_blank" class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-blue-700 transition">
-            <svg class="h-4 w-4 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-            Chia sẻ Facebook
-        </a>
-
-        <a href="fb-messenger://share/?link={{ urlencode(url()->current()) }}" class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-blue-500 transition">
-            <svg class="h-4 w-4 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.36 2 2 6.13 2 11.7c0 2.91 1.34 5.51 3.44 7.28v3.66l3.32-1.83c1.02.28 2.1.43 3.24.43 5.64 0 10-4.13 10-9.7S17.64 2 12 2zm1.2 12.82-2.55-2.73-4.96 2.73 5.43-5.75 2.55 2.73 4.96-2.73-5.43 5.75z"/></svg>
-            Gửi Messenger
-        </a>
-
-        <a href="https://zalo.me/share?url={{ urlencode(url()->current()) }}" target="_blank" class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-blue-500 transition">
-            <svg class="h-4 w-4 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M21.503 6.958c-1.353-2.812-4.464-4.707-8.118-4.707-4.996 0-9.047 3.327-9.047 7.427 0 2.217 1.157 4.208 2.998 5.568-.21.728-.622 2.164-.64 2.23-.042.158.008.328.134.428.127.102.308.114.446.032.18-.108 2.502-1.504 3.424-2.072 1.83.652 3.864.64 5.228.64 4.996 0 9.047-3.328 9.047-7.427 0-1.047-.266-2.046-.73-2.955l.258-8.164z"/></svg>
-            Chia sẻ Zalo
-        </a>
-
-        <button onclick="nativeShare('{{ addslashes($court->name) }}')" class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-emerald-600 transition border-t border-stone-100 mt-1 pt-2">
-            <svg class="h-4 w-4 text-stone-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z" /></svg>
-            Tùy chọn khác...
-        </button>
-    </div>
-</div>
+                    
 
                     <button onclick="document.getElementById('reportModal').classList.remove('hidden')" class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-rose-600 transition hover:bg-rose-100 shadow-sm">
                         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5" /></svg>
@@ -700,66 +668,7 @@
     function updateCharCount(obj) {
         document.getElementById('charCount').innerText = obj.value.length + '/1000';
     }
-    function toggleShareMenu() {
-        const menu = document.getElementById('shareMenu');
-        menu.classList.toggle('hidden');
-    }
-
-    async function copyCourtLink() {
-        try {
-            await navigator.clipboard.writeText(window.location.href);
-            toggleShareMenu(); // Ẩn menu đi
-            showToast('Đã sao chép liên kết thành công!'); // Gọi hàm Toast thông báo
-        } catch (err) {
-            showToast('Không thể sao chép. Vui lòng copy trên thanh địa chỉ.');
-        }
-    }
-
-    // Tự động đóng menu chia sẻ khi click chuột ra ngoài
-    document.addEventListener('click', function(event) {
-        const menu = document.getElementById('shareMenu');
-        const headerActions = document.getElementById('headerActions');
-        if (menu && !menu.classList.contains('hidden')) {
-            if (!headerActions.contains(event.target)) {
-                menu.classList.add('hidden');
-            }
-        }
-    });
-    async function copyRichLink(courtName) {
-        try {
-            const url = window.location.href;
-            const richText = `🔥 Đặt sân ${courtName} cực nhanh trên hệ thống SportHub!\n👉 Truy cập: ${url}`;
-            
-            await navigator.clipboard.writeText(richText);
-            toggleShareMenu(); 
-            showToast('Đã sao chép liên kết thành công!'); 
-        } catch (err) {
-            showToast('Không thể sao chép. Vui lòng copy trên thanh địa chỉ.');
-        }
-    }
-
-    // Hàm 2: Gọi API chia sẻ gốc của hệ điều hành (Giống hệt App xịn)
-    async function nativeShare(courtName) {
-        const url = window.location.href;
-        
-        // Kiểm tra xem trình duyệt (đặc biệt là Mobile) có hỗ trợ hàm share này không
-        if (navigator.share) {
-            try {
-                await navigator.share({
-                    title: `Đặt sân ${courtName} trên SportHub`,
-                    text: `🔥 Đặt sân ${courtName} cực nhanh và tiện lợi!`,
-                    url: url,
-                });
-                toggleShareMenu();
-            } catch (err) {
-                // Người dùng bấm Hủy chia sẻ, không cần báo lỗi
-                console.log('Đã đóng menu chia sẻ');
-            }
-        } else {
-            // Nếu trình duyệt (ví dụ Chrome trên máy tính cũ) không hỗ trợ thì fallback về việc Copy link
-            copyRichLink(courtName);
-        }
-    }
+    
 function showLockReason(encodedReason) {
         document.getElementById('lockReasonText').innerText = decodeURIComponent(encodedReason);
         document.getElementById('lockReasonModal').classList.remove('hidden');

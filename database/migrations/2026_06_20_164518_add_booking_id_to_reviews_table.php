@@ -11,10 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('reviews', function (Blueprint $table) {
-            // Thêm cột booking_id vào ngay sau cột id
-            $table->unsignedBigInteger('booking_id')->nullable()->after('id');
-        });
+        // Kiểm tra: Nếu bảng reviews CHƯA CÓ cột booking_id thì mới thêm vào
+        if (!Schema::hasColumn('reviews', 'booking_id')) {
+            Schema::table('reviews', function (Blueprint $table) {
+                $table->unsignedBigInteger('booking_id')->nullable()->after('id');
+            });
+        }
     }
 
     public function down(): void

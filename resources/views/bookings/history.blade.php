@@ -104,7 +104,7 @@
             @if(in_array($booking->id, $reviewedBookingIds))
                 <button disabled class="cursor-not-allowed rounded-lg border border-stone-200 bg-stone-100 px-3 py-2 text-xs font-bold text-stone-400">Đã đánh giá</button>
             @else
-                <button onclick="openReviewModal({{ $booking->id }}, {{ $booking->court_id }}, '{{ addslashes($booking->court?->name) }}')" class="rounded-lg bg-amber-400 px-3 py-2 text-xs font-bold text-zinc-900 transition hover:bg-amber-500 shadow-sm">Đánh giá</button>
+                <button onclick="openReviewModal({{ $booking->id }}, {{ $booking->court_id }}, '{{ addslashes($booking->court?->venue?->name ?? 'Cơ sở này') }}')" class="rounded-lg bg-amber-400 px-3 py-2 text-xs font-bold text-zinc-900 transition hover:bg-amber-500 shadow-sm">Đánh giá</button>
             @endif
         @endif
 
@@ -289,7 +289,7 @@
     <div class="w-full max-w-md rounded-3xl bg-white shadow-2xl overflow-hidden transform transition-all">
         <div class="border-b border-stone-100 bg-stone-50 p-5 flex items-center justify-between">
             <h3 class="text-lg font-bold text-zinc-900 flex items-center gap-2">
-                <span class="text-2xl">⭐</span> Đánh giá sân <span id="modalCourtName" class="text-emerald-600"></span>
+                <span class="text-2xl">⭐</span> Đánh giá cơ sở: <span id="modalCourtName" class="text-emerald-600"></span>
             </h3>
             <button onclick="closeReviewModal()" class="text-stone-400 hover:text-stone-600 transition bg-white rounded-full p-1.5 shadow-sm">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>

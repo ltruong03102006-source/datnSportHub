@@ -24,6 +24,7 @@ class Venue extends Model
         'lat', 
         'lng', 
         'description', 
+        'rules',
         'banner', 
         'status'
     ];
@@ -78,5 +79,10 @@ class Venue extends Model
     {
         if (!$user) return false;
         return $this->favoritedBy()->where('user_id', $user->id)->exists();
+    }
+    public function cancellationPolicies()
+    {
+        // Tự động sắp xếp tăng dần để thuật toán check từ mốc sát giờ nhất
+        return $this->hasMany(CancellationPolicy::class)->orderBy('hours_before', 'asc');
     }
 }

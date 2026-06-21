@@ -240,10 +240,13 @@ class UserBookingController extends Controller
 
                 $firstBooking = $groupBookings->sortBy('start_time')->first();
                 $this->ensureCanCancel($firstBooking);
-                $policy = $firstBooking->getCancellationPolicy();
+                
+                // --- SỬA TẠI ĐÂY: GỌI THUẬT TOÁN TÍNH PHẠT ĐỘNG ---
+                $feePercent = $this->determineCancellationFeePercent($firstBooking);
 
                 foreach ($groupBookings as $b) {
-                    $fee = ($b->total_price * $policy['fee_percent']) / 100;
+                    // --- SỬA TẠI ĐÂY: DÙNG BIẾN $feePercent ---
+                    $fee = ($b->total_price * $feePercent) / 100;
                     $refund = $b->total_price - $fee;
                     $refundStatus = $refund > 0 ? 'pending' : 'none';
 
@@ -261,7 +264,8 @@ class UserBookingController extends Controller
                         'changed_by' => Auth::id(),
                         'old_status' => $oldStatus,
                         'new_status' => 'cancelled',
-                        'note' => "Khách hủy. Phạt {$policy['fee_percent']}%. Lý do: {$reason}",
+                        // --- SỬA TẠI ĐÂY: DÙNG BIẾN $feePercent TRONG GHI CHÚ ---
+                        'note' => "Khách hủy. Phạt {$feePercent}%. Lý do: {$reason}",
                     ]);
                 }
             });
@@ -313,16 +317,17 @@ class UserBookingController extends Controller
             return response()->json(['message' => $e->getMessage()], $e->getStatusCode());
         }
 
-        $policy = $firstBooking->getCancellationPolicy();
+        // GỌI THUẬT TOÁN ĐỘNG
+        $feePercent = $this->determineCancellationFeePercent($firstBooking);
         
         $totalPrice = $groupBookings->sum('total_price');
-        $fee = ($totalPrice * $policy['fee_percent']) / 100;
+        $fee = ($totalPrice * $feePercent) / 100;
         $refund = $totalPrice - $fee;
 
         return response()->json([
             'success' => true,
             'total_price' => $totalPrice,
-            'fee_percent' => $policy['fee_percent'],
+            'fee_percent' => $feePercent,
             'cancellation_fee' => $fee,
             'refund_amount' => $refund,
         ]);
@@ -398,5 +403,38 @@ class UserBookingController extends Controller
                 'class' => 'bg-red-100 text-red-800 ring-red-600/20',
             ],
         ];
+    }
+    /**
+     * Thuật toán tìm % phí phạt thông minh
+     */
+    private function determineCancellationFeePercent(Booking $firstBooking): int
+    {
+        $startsAt = $this->slotStartsAt($firstBooking);
+        $now = Carbon::now('Asia/Ho_Chi_Minh');
+        
+        // Khoảng cách từ Bây giờ đến giờ bắt đầu (Tính bằng giờ)
+        $diffInHours = $now->diffInHours($startsAt, false); 
+
+        // Rủi ro lố giờ (Cố tình request API ảo) -> Phạt max 100%
+        if ($diffInHours < 0) return 100;
+
+        // Lấy danh sách cấu hình, SẮP XẾP TĂNG DẦN (Ví dụ: 6h, 12h, 24h)
+        $policies = \App\Models\CancellationPolicy::where('venue_id', $firstBooking->court->venue_id)
+            ->orderBy('hours_before', 'asc')
+            ->get();
+
+        // Fallback: Chủ sân chưa cấu hình gì -> Miễn phí hủy
+        if ($policies->isEmpty()) return 0;
+
+        // Quét tìm mốc vi phạm:
+        // Nếu hủy cách 14h: 14 < 6(False) -> 14 < 12(False) -> 14 < 24(True). Bị phạt mốc 24h!
+        foreach ($policies as $policy) {
+            if ($diffInHours < $policy->hours_before) {
+                return $policy->fee_percent;
+            }
+        }
+
+        // Hủy quá sớm (VD hủy trước 30 tiếng, không vi phạm mốc 24h lớn nhất) -> An toàn
+        return 0;
     }
 }

@@ -37,6 +37,9 @@
             <p class="text-muted mb-0">Thông tin chi tiết điểm sân và quản lý các sân con.</p>
         </div>
         <div>
+            <button onclick="toggleRulesCard()" class="btn btn-success btn-sm me-2 fw-bold text-white">
+                Nội quy sân
+            </button>
             <a href="{{ route('owner.web.reviews.index', ['venue_id' => $venue->id]) }}" class="btn btn-warning btn-sm me-2 fw-bold text-dark">
                 Xem đánh giá
             </a>
@@ -44,7 +47,18 @@
             <a href="{{ route('owner.web.venues.index') }}" class="btn btn-outline-secondary btn-sm">Quay lại</a>
         </div>
     </div>
-
+    <div id="rulesCard" class="card card-shell mb-4" style="display: none;">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3" style="border-top-left-radius: 18px; border-top-right-radius: 18px;">
+            <h5 class="mb-0 fw-bold">Nội quy cơ sở & Quy định sân</h5>
+        </div>
+        <div class="card-body p-4">  
+            <textarea id="venueRulesInput" rows="5" class="form-control mb-3" placeholder="Bạn có thể tự nhập thêm nội quy tại đây (Mỗi luật 1 dòng)...">{{ $venue->rules }}</textarea>
+            
+            <div class="text-end">
+                <button type="button" id="btnSaveRules" class="btn btn-primary fw-bold px-4">Lưu Nội quy</button>
+            </div>
+        </div>
+    </div>
     <div class="card card-shell mb-4">
         <div class="card-body p-4">
             <div class="row g-4">
@@ -82,7 +96,45 @@
             </div>
         </div>
     </div>
+    <div class="card card-shell mb-4">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3" style="border-top-left-radius: 18px; border-top-right-radius: 18px;">
+            <h5 class="mb-0 fw-bold">Chính sách hủy sân & Phí phạt</h5>
+        </div>
+        <div class="card-body p-4">
+            <div class="alert alert-info py-2 mb-4" style="font-size: 0.9rem;">
+                💡 <b>Mẹo:</b> Hệ thống quét từ mốc sát giờ nhất. Nếu khách hủy lọt vào khoảng thời gian nào, hệ thống thu phí tương ứng. Nếu hủy trước tất cả các mốc (hoặc bạn không cài đặt), khách được <b>hoàn 100% (Phạt 0%)</b>.
+            </div>
+            
+            <form id="formAddPolicy" class="row g-2 align-items-end mb-4">
+                <div class="col-12 col-md-5">
+                    <label class="form-label fw-semibold text-sm">Khách tự hủy trước (Số giờ) <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="pol_hours" required min="0" placeholder="VD: 24">
+                </div>
+                <div class="col-12 col-md-5">
+                    <label class="form-label fw-semibold text-sm">Chịu phí phạt (%) <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="pol_fee" required min="0" max="100" placeholder="VD: 30">
+                </div>
+                <div class="col-12 col-md-2">
+                    <button type="submit" id="btnAddPolicy" class="btn btn-primary w-100 fw-bold">Thêm mốc</button>
+                </div>
+            </form>
 
+            <div class="table-responsive border rounded-3">
+                <table class="table table-borderless table-striped align-middle mb-0">
+                    <thead class="table-light border-bottom">
+                        <tr>
+                            <th class="py-3 px-4">Điều kiện hủy</th>
+                            <th class="py-3 px-4 text-center">Phí phạt hệ thống thu</th>
+                            <th class="py-3 px-4 text-end">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="policyList">
+                        <tr><td colspan="3" class="text-center text-muted py-4">Đang tải cấu hình...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
     <div class="card card-shell mb-4">
         <div class="card-header bg-white d-flex justify-content-between align-items-center py-3" style="border-top-left-radius: 18px; border-top-right-radius: 18px;">
             <h5 class="mb-0 fw-bold">Danh sách Sân con</h5>
@@ -829,6 +881,170 @@
             }
         } catch (err) {
             alert('Lỗi kết nối đến máy chủ.');
+        }
+    }
+    // --- LOGIC CHÍNH SÁCH HỦY SÂN ---
+    const venueId = {{ $venue->id }};
+    
+    async function loadPolicies() {
+        try {
+            const res = await fetch(`/owner/venues/${venueId}/cancellation-policies`);
+            const policies = await res.json();
+            const tbody = document.getElementById('policyList');
+            
+            if (policies.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4">Chưa có cấu hình. Khách hủy sân sẽ được miễn phí 100%.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = policies.map(p => `
+                <tr>
+                    <td class="py-3 px-4 fw-medium text-danger">Hủy trong vòng ${p.hours_before} giờ trước ca</td>
+                    <td class="py-3 px-4 text-center"><span class="badge bg-warning text-dark fs-6">Phạt ${p.fee_percent}%</span></td>
+                    <td class="py-3 px-4 text-end">
+                        <button onclick="deletePolicy(${p.id})" class="btn btn-sm btn-outline-danger">Xóa</button>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (e) {
+            console.error('Lỗi tải chính sách');
+        }
+    }
+
+    document.getElementById('formAddPolicy').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btnAddPolicy');
+        btn.disabled = true; btn.innerHTML = 'Đang lưu...';
+
+        try {
+            const res = await fetch(`/owner/venues/${venueId}/cancellation-policies`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                body: JSON.stringify({
+                    hours_before: document.getElementById('pol_hours').value,
+                    fee_percent: document.getElementById('pol_fee').value
+                })
+            });
+            const data = await res.json();
+            
+            if (res.ok) {
+                document.getElementById('pol_hours').value = '';
+                document.getElementById('pol_fee').value = '';
+                
+                // MẸO UX: Chờ bảng tải xong rồi mới bật alert
+                await loadPolicies(); 
+                setTimeout(() => alert('Đã thêm chính sách thành công!'), 100);
+            } else {
+                alert(data.errors?.fee_percent?.[0] || data.errors?.hours_before?.[0] || data.message || 'Lỗi thêm chính sách');
+            }
+        } catch (err) { alert('Lỗi máy chủ'); } 
+        finally { btn.disabled = false; btn.innerHTML = 'Thêm mốc'; }
+    });
+
+    // HÀM XÓA CHÍNH SÁCH CÓ THÔNG BÁO VÀ KHÔNG BỊ TRỄ
+    async function deletePolicy(policyId) {
+        if (!confirm('Bạn có chắc chắn muốn xóa mốc phạt này không?')) return;
+        
+        try {
+            const res = await fetch(`/owner/venues/${venueId}/cancellation-policies/${policyId}`, {
+                method: 'POST', 
+                headers: { 
+                    'X-CSRF-TOKEN': csrfToken, 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json' 
+                },
+                body: JSON.stringify({ _method: 'DELETE' }) 
+            });
+            
+            const data = await res.json();
+            
+            if (res.ok) {
+                // MẸO UX: Cập nhật lại giao diện trước khi bật Alert
+                await loadPolicies();
+                setTimeout(() => alert('Đã xóa chính sách thành công!'), 100);
+            } else {
+                alert(data.message || 'Lỗi không thể xóa chính sách.');
+            }
+        } catch (e) { 
+            alert('Lỗi kết nối đến máy chủ.'); 
+        }
+    }
+
+    // Khởi chạy khi load trang
+    document.addEventListener('DOMContentLoaded', () => loadPolicies());
+    // --- LOGIC NỘI QUY CƠ SỞ ---
+
+    // 2. Hàm Lưu Nội quy bằng Fetch API
+    document.getElementById('btnSaveRules').addEventListener('click', async function() {
+        const btn = this;
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang lưu...';
+
+        try {
+            const res = await fetch(`/owner/venues/${venueId}/rules`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'Accept': 'application/json', 
+                    'X-CSRF-TOKEN': csrfToken 
+                },
+                body: JSON.stringify({
+                    _method: 'PATCH', // Giả lập method PATCH của Laravel
+                    rules: document.getElementById('venueRulesInput').value
+                })
+            });
+            
+            const data = await res.json();
+            
+            if (res.ok) {
+                alert(data.message);
+            } else {
+                alert('Có lỗi xảy ra khi lưu nội quy.');
+            }
+        } catch (error) {
+            alert('Lỗi kết nối máy chủ.');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    });
+    function toggleRulesCard() {
+        const card = document.getElementById('rulesCard');
+        if (card.style.display === 'none') {
+            card.style.display = 'block'; // Hiện form
+            card.scrollIntoView({behavior: 'smooth', block: 'center'}); // Cuộn xuống
+        } else {
+            card.style.display = 'none'; // Ẩn form
+        }
+    }
+
+    // HÀM XÓA CHÍNH SÁCH CÓ THÔNG BÁO VÀ KHÔNG BỊ TRỄ
+    async function deletePolicy(policyId) {
+        if (!confirm('Bạn có chắc chắn muốn xóa mốc phạt này không?')) return;
+        
+        try {
+            const res = await fetch(`/owner/venues/${venueId}/cancellation-policies/${policyId}`, {
+                method: 'POST', 
+                headers: { 
+                    'X-CSRF-TOKEN': csrfToken, 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json' 
+                },
+                body: JSON.stringify({ _method: 'DELETE' }) 
+            });
+            
+            const data = await res.json();
+            
+            if (res.ok) {
+                // MẸO UX: Cập nhật lại giao diện trước khi bật Alert
+                await loadPolicies();
+                setTimeout(() => alert('Đã xóa chính sách thành công!'), 100);
+            } else {
+                alert(data.message || 'Lỗi không thể xóa chính sách.');
+            }
+        } catch (e) { 
+            alert('Lỗi kết nối đến máy chủ.'); 
         }
     }
 </script>
