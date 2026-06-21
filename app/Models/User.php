@@ -38,4 +38,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Venue::class, 'owner_id');
     }
+    // Các sân mà người dùng này yêu thích
+    public function favoriteVenues()
+    {
+        return $this->belongsToMany(Venue::class, 'favorites', 'user_id', 'venue_id')->withTimestamps();
+    }
 }

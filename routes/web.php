@@ -15,6 +15,7 @@ use App\Http\Controllers\Web\AdminUserController;
 use App\Http\Controllers\Web\AdminVenueController;
 use App\Http\Controllers\Web\AdminBookingController;
 use App\Http\Controllers\Web\AdminCourtController;
+use App\Http\Controllers\Web\FavoriteController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Web\OwnerCourtController;
@@ -122,19 +123,37 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
 Route::put('/courts/{court}', [OwnerCourtController::class, 'update'])->name('courts.update');
 Route::delete('/courts/{court}', [OwnerCourtController::class, 'destroy'])->name('courts.destroy');
 Route::delete('/venues/images/{id}', [\App\Http\Controllers\Web\OwnerVenueController::class, 'destroyImage'])->name('owner.venues.images.destroy');
+    // Quản lý Đánh giá (Bên trong block của Owner)
+    Route::get('/reviews', [\App\Http\Controllers\Web\OwnerReviewController::class, 'index'])->name('reviews.index');
+    Route::post('/reviews/{review}/reply', [\App\Http\Controllers\Web\OwnerReviewController::class, 'reply'])->name('reviews.reply');
+    Route::post('/courts/{court}/lock', [\App\Http\Controllers\Web\OwnerCourtController::class, 'lockSlot']);
+    Route::delete('/courts/locks/{lock}', [\App\Http\Controllers\Web\OwnerCourtController::class, 'unlockSlot']);
 });
 
 Route::middleware('auth')->group(function () {
+    
     // Gửi báo cáo sân
     Route::post('/courts/{court}/report', [\App\Http\Controllers\Web\CourtReportController::class, 'store'])->name('web.courts.report');
+    
     Route::get('/bookings/{booking}/success', [UserBookingController::class, 'success'])
         ->name('web.bookings.success');
-
+    
+    // API thả tim (Đưa ra ngoài account)
+    Route::post('/venues/{venue}/favorite', [FavoriteController::class, 'toggle'])->name('web.venues.favorite');
+    
+    // GOM CHUNG TẤT CẢ CÁC ROUTE CỦA ACCOUNT VÀO MỘT GROUP DUY NHẤT
     Route::prefix('account')->name('account.')->group(function () {
-        Route::get('/bookings', [UserBookingController::class, 'history'])
-            ->name('bookings.index');
+        
+        // 1. Lịch sử đặt sân
+        Route::get('/bookings', [UserBookingController::class, 'history'])->name('bookings.index');
 
-        Route::post('/bookings/{booking}/cancel', [UserBookingController::class, 'cancel'])
-            ->name('bookings.cancel');
-    });
-});
+        // 2. Hủy đặt sân & tính phí
+        Route::get('/bookings/{booking}/cancel-fee', [UserBookingController::class, 'calculateCancelFee'])->name('bookings.cancel-fee');
+        Route::post('/bookings/{booking}/cancel', [UserBookingController::class, 'cancel'])->name('bookings.cancel');
+        
+        // 3. Danh sách sân yêu thích
+        Route::get('/favorites', [FavoriteController::class, 'index'])->name('favorites.index');
+        
+    }); // <-- Ngoặc đóng của group account
+
+}); // <-- NGOẶC ĐÓNG CỦA GROUP AUTH BỊ THIẾU CỦA BẠN CHÍNH LÀ ĐÂY!

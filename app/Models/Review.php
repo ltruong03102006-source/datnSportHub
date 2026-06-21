@@ -16,9 +16,11 @@ class Review extends Model
     protected $fillable = [
         'court_id',
         'user_id',
+        'booking_id', // Thêm dòng này
         'rating',
         'content',
         'is_hidden',
+        'owner_reply', // Thêm luôn dòng này cho Chủ sân
     ];
 
     protected $casts = [

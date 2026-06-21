@@ -178,7 +178,7 @@
                     <template x-for="court in items" :key="court.venue_id">
                         
                         <article class="group flex flex-col overflow-hidden rounded-2xl border border-stone-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-900/5">
-    <div class="relative h-44 overflow-hidden bg-stone-100">
+   <div class="relative h-44 overflow-hidden bg-stone-100">
         <a :href="'/venues/' + court.venue_id" class="block h-full w-full">
             <template x-if="court.thumbnail">
                 <img :src="court.thumbnail" :alt="court.name" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105">
@@ -193,6 +193,14 @@
         </a>
         
         <span class="absolute left-3 top-3 rounded-lg bg-white/95 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-emerald-800 shadow-sm backdrop-blur-md" x-text="court.sport_name"></span>
+
+        @auth
+        <button @click.prevent="toggleCardFavorite(court.venue_id)" class="absolute right-14 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 shadow-sm backdrop-blur-md transition-transform hover:scale-110">
+            <svg :id="'card-fav-icon-' + court.venue_id" class="h-4 w-4 text-zinc-400 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+        </button>
+        @endauth
 
         <template x-if="court.lat && court.lng">
             <a :href="'https://www.google.com/maps/search/?api=1&query=' + court.lat + ',' + court.lng" target="_blank" title="Xem trên Google Maps" class="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/95 text-red-500 shadow-sm backdrop-blur-md transition-transform hover:scale-110 hover:text-red-600">
@@ -287,4 +295,38 @@
             scrollbar-width: none;
         }
     </style>
+@endsection
+@section('scripts')
+<script>
+    async function toggleCardFavorite(venueId) {
+        try {
+            const response = await fetch(`/venues/${venueId}/favorite`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            });
+            const data = await response.json();
+            
+            if (response.ok) {
+                const icon = document.getElementById(`card-fav-icon-${venueId}`);
+                if (data.status === 'added') {
+                    icon.classList.remove('text-zinc-400');
+                    icon.classList.add('text-rose-500', 'fill-rose-500');
+                } else {
+                    icon.classList.remove('text-rose-500', 'fill-rose-500');
+                    icon.classList.add('text-zinc-400');
+                }
+                
+                // GỌI THÔNG BÁO XỊN XÒ TẠI ĐÂY
+                showToast(data.message, 'success');
+            } else {
+                showToast('Không thể thực hiện thao tác này.', 'error');
+            }
+        } catch (error) {
+            showToast('Lỗi kết nối máy chủ.', 'error');
+        }
+    }
+</script>
 @endsection

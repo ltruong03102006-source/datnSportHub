@@ -80,14 +80,48 @@
 
             <div class="space-y-3">
                 <div class="flex items-start gap-x-4">
-                    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Ngày đá:</p>
-                    <div class="flex-1">
-                        <p class="text-sm font-bold text-zinc-900 mb-1.5">{{ $slotDate }}</p>
-                        @foreach($bookingGroup as $b)
-                            <p class="text-sm font-semibold text-zinc-700">- Sân {{ $b->court->name }}: {{ substr((string) $b->start_time, 0, 5) }} - {{ substr((string) $b->end_time, 0, 5) }}</p>
-                        @endforeach
-                    </div>
-                </div>
+    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Ngày chơi:</p>
+    <div class="flex-1">
+        <p class="text-sm font-bold text-zinc-900 mb-1.5">{{ $slotDate }}</p>
+        @php
+            // 1. Sắp xếp mảng ca theo giờ bắt đầu
+            $sortedGroup = collect($bookingGroup)->sortBy('start_time')->values();
+            $mergedSlots = [];
+
+            if ($sortedGroup->count() > 0) {
+                // 2. Khởi tạo mốc thời gian của ca đầu tiên
+                $currentCourt = $sortedGroup[0]->court->name;
+                $currentStart = substr((string) $sortedGroup[0]->start_time, 0, 5);
+                $currentEnd = substr((string) $sortedGroup[0]->end_time, 0, 5);
+
+                // 3. Duyệt từ ca thứ 2 để gộp
+                for ($i = 1; $i < $sortedGroup->count(); $i++) {
+                    $nextCourt = $sortedGroup[$i]->court->name;
+                    $nextStart = substr((string) $sortedGroup[$i]->start_time, 0, 5);
+                    $nextEnd = substr((string) $sortedGroup[$i]->end_time, 0, 5);
+
+                    // ĐIỀU KIỆN GỘP: Cùng tên sân VÀ Giờ kết thúc ca trước == Giờ bắt đầu ca sau
+                    if ($currentCourt === $nextCourt && $currentEnd === $nextStart) {
+                        $currentEnd = $nextEnd; // Kéo dài thời gian kết thúc
+                    } else {
+                        // Nếu bị ngắt quãng, lưu lại dải thời gian vừa gộp và làm mới biến
+                        $mergedSlots[] = "- Sân $currentCourt: $currentStart - $currentEnd";
+                        $currentCourt = $nextCourt;
+                        $currentStart = $nextStart;
+                        $currentEnd = $nextEnd;
+                    }
+                }
+                // Nhớ lưu lại dải thời gian của ca cuối cùng
+                $mergedSlots[] = "- Sân $currentCourt: $currentStart - $currentEnd";
+            }
+        @endphp
+
+        {{-- 4. In danh sách ca đã được gộp đẹp mắt --}}
+        @foreach($mergedSlots as $slotInfo)
+            <p class="text-sm font-semibold text-zinc-700">{{ $slotInfo }}</p>
+        @endforeach
+    </div>
+</div>
                 <div class="flex items-start gap-x-4">
                     <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Tổng giờ:</p>
                     <p class="text-sm font-bold text-zinc-900">{{ $totalDurationStr }}</p>
@@ -110,7 +144,43 @@
                 </div>
             </div>
 
-        </div>
+            @if($booking->status === 'cancelled')
+                @php
+                    // FIX: Tính tổng phí phạt và hoàn lại của TẤT CẢ các ca trong đơn
+                    $totalCancelFee = $bookingGroup->sum('cancellation_fee');
+                    $totalRefund = $bookingGroup->sum('refund_amount');
+                @endphp
+                <div class="border-t border-stone-100 border-dashed"></div>
+                
+                <div class="rounded-xl border border-rose-200 bg-rose-50/50 p-4 sm:p-5">
+                    <h4 class="mb-4 text-sm font-extrabold uppercase tracking-wider text-rose-700">Thông tin Hủy & Hoàn tiền</h4>
+                    
+                    <div class="space-y-3">
+                        <div class="flex items-start justify-between gap-4">
+                            <span class="text-sm font-medium text-stone-500">Lý do hủy:</span>
+                            <span class="text-sm font-bold text-rose-600 text-right">{{ $booking->cancel_reason ?? 'Không có lý do' }}</span>
+                        </div>
+
+                        <div class="flex items-start justify-between gap-4">
+                            <span class="text-sm font-medium text-stone-500">Phí phạt hủy:</span>
+                            <span class="text-sm font-semibold text-zinc-700">{{ number_format($totalCancelFee, 0, ',', '.') }} ₫</span>
+                        </div>
+
+                        <div class="mt-3 flex items-start justify-between gap-4 border-t border-rose-100 pt-3">
+                            <span class="text-sm font-bold text-zinc-900">Số tiền hoàn lại:</span>
+                            <span class="text-lg font-black text-emerald-600">{{ number_format($totalRefund, 0, ',', '.') }} ₫</span>
+                        </div>
+                        
+                        {{-- <div class="mt-1 text-right">
+                            <span class="text-xs font-medium italic text-amber-600">
+                                * Trạng thái: {{ ($booking->refund_status ?? '') === 'completed' ? 'Đã hoàn tất' : 'Đang xử lý (1-3 ngày làm việc)' }}
+                            </span>
+                        </div> --}}
+                    </div>
+                </div>
+            @endif
+
+            </div>
     </div>
 
     <div class="mt-6 flex flex-col sm:flex-row gap-3">

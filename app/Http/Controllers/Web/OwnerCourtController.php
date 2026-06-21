@@ -8,12 +8,12 @@ use App\Models\Venue;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\Rule; // Thư viện quan trọng để check trùng lặp
+use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 
 class OwnerCourtController extends Controller
 {
+    // 1. TẠO SÂN CON MỚI
     public function store(Request $request, Venue $venue): JsonResponse
     {
         if ((int) $venue->owner_id !== (int) Auth::id()) {
@@ -36,7 +36,7 @@ class OwnerCourtController extends Controller
                     return $query->where('venue_id', $venue->id);
                 })
             ],
-            'status' => 'required|in:active,inactive', // Đã sửa thành inactive
+            'status' => 'required|in:active,inactive',
         ], [
             'name.required' => 'Vui lòng nhập tên sân.',
             'name.max' => 'Tên sân không được vượt quá 255 ký tự.',
@@ -49,7 +49,7 @@ class OwnerCourtController extends Controller
             $court = $venue->courts()->create([
                 'name' => $validated['name'],
                 'status' => $validated['status'],
-                'is_bookable_online' => true, // Mặc định luôn cho phép đặt online
+                'is_bookable_online' => true, 
             ]);
 
             return response()->json(['success' => true, 'message' => 'Đã thêm sân con thành công.', 'data' => $court], 201);
@@ -58,6 +58,7 @@ class OwnerCourtController extends Controller
         }
     }
 
+    // 2. CẬP NHẬT THÔNG TIN SÂN CON
     public function update(Request $request, Court $court): JsonResponse
     {
         $court->load('venue');
@@ -84,9 +85,8 @@ class OwnerCourtController extends Controller
             'status.in' => 'Trạng thái không hợp lệ.',
         ]);
 
-        // LOGIC BẢO VỆ CHẶT CHẼ: Chặn bảo trì nếu đang có khách đặt lịch trong tương lai
+        // LÁ CHẮN: Chặn bảo trì nếu đang có khách đặt lịch trong tương lai
         if ($validated['status'] === 'inactive' && $court->status === 'active') {
-            // Lưu ý: Cần import \App\Models\Booking ở đầu file nếu chưa có
             $hasUpcomingBookings = \App\Models\Booking::where('court_id', $court->id)
                 ->where('slot_date', '>=', now()->toDateString())
                 ->whereIn('status', ['pending', 'confirmed'])
@@ -104,7 +104,7 @@ class OwnerCourtController extends Controller
             $court->update([
                 'name' => $validated['name'],
                 'status' => $validated['status'],
-                'is_bookable_online' => true, // Luôn duy trì đặt online
+                'is_bookable_online' => true,
             ]);
 
             return response()->json(['success' => true, 'message' => 'Cập nhật thông tin sân con thành công.', 'data' => $court]);
@@ -113,6 +113,32 @@ class OwnerCourtController extends Controller
         }
     }
 
+    // 3. XÓA SÂN CON VĨNH VIỄN
+    public function destroy(Court $court): JsonResponse
+    {
+        $court->load('venue');
+
+        if ((int) $court->venue->owner_id !== (int) Auth::id()) {
+            return response()->json(['success' => false, 'message' => 'Bạn không có quyền thao tác trên sân này.'], 403);
+        }
+
+        if ($court->bookings()->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: Không thể xóa! Sân này đã có dữ liệu khách hàng đặt lịch. Bạn chỉ có thể xóa các sân chưa từng có giao dịch.'
+            ], 400); 
+        }
+
+        try {
+            $court->timeSlots()->delete();
+            $court->delete();
+            return response()->json(['success' => true, 'message' => 'Đã xóa sân con thành công.']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Không thể xóa sân lúc này.'], 500);
+        }
+    }
+
+    // 4. SINH CA TỰ ĐỘNG (GHI ĐÈ THÔNG MINH)
     public function generateSlots(Request $request, Court $court): JsonResponse
     {
         $court->load('venue');
@@ -124,7 +150,7 @@ class OwnerCourtController extends Controller
         $validated = $request->validate([
             'open_time' => 'required|date_format:H:i',
             'close_time' => 'required|date_format:H:i|after:open_time',
-            'duration' => 'required|integer|min:30|max:240', // Đã thêm Validate hợp lý (30 - 240 phút)
+            'duration' => 'required|integer|min:30|max:240', 
             'regular_price' => 'required|numeric|min:0',
             'peak_price' => 'required|numeric|min:0',
             'peak_start_time' => 'required|date_format:H:i',
@@ -160,14 +186,13 @@ class OwnerCourtController extends Controller
             $peakStart = Carbon::createFromFormat('H:i', $validated['peak_start_time']);
             $peakEnd = Carbon::createFromFormat('H:i', $validated['peak_end_time']);
 
+            // Closure sinh giá tiền tự động
             $createPricesForSlot = function($slot) use ($validated, $peakStart, $peakEnd) {
                 $slotStart = Carbon::createFromFormat('H:i:s', $slot->start_time);
-                
-                // Kiểm tra xem start_time của ca có nằm lọt vào khoảng cao điểm không
                 $isPeak = $slotStart->gte($peakStart) && $slotStart->lt($peakEnd);
                 
                 $price = $isPeak ? $validated['peak_price'] : $validated['regular_price'];
-$priceType = $isPeak ? 'peak' : 'normal'; // <--- Đổi thành 'normal'
+                $priceType = $isPeak ? 'peak' : 'normal'; 
                 
                 $pricesData = [];
                 for ($day = 0; $day <= 6; $day++) {
@@ -183,6 +208,7 @@ $priceType = $isPeak ? 'peak' : 'normal'; // <--- Đổi thành 'normal'
                 \App\Models\SlotPrice::insert($pricesData);
             };
 
+            // Vòng lặp chia ca
             while ($currentTime->copy()->addMinutes($duration)->lte($closeTime)) {
                 $startTimeStr = $currentTime->format('H:i:s');
                 $endTime = $currentTime->copy()->addMinutes($duration);
@@ -195,10 +221,10 @@ $priceType = $isPeak ? 'peak' : 'normal'; // <--- Đổi thành 'normal'
 
                 if ($overlappingSlots->isNotEmpty()) {
                     
-                    // --- CHỐT CHẶN MỚI DỰA TRÊN THỜI GIAN THỰC TẾ ---
+                    // LÁ CHẮN PHP BẤT KHẢ XÂM PHẠM: Check Khách đặt
                     $hasBookings = \App\Models\Booking::where('court_id', $court->id)
-                        ->where('slot_date', '>=', now()->toDateString()) // Chỉ tính đơn từ hôm nay trở đi
-                        ->whereIn('status', ['pending', 'confirmed']) // Chỉ tính đơn hợp lệ
+                        ->where('slot_date', '>=', now()->toDateString()) 
+                        ->whereIn('status', ['pending', 'confirmed']) 
                         ->where('start_time', '<', $endTimeStr)
                         ->where('end_time', '>', $startTimeStr)
                         ->exists();
@@ -208,7 +234,6 @@ $priceType = $isPeak ? 'peak' : 'normal'; // <--- Đổi thành 'normal'
                         $currentTime->addMinutes($duration);
                         continue; 
                     }
-                    // --- KẾT THÚC CHỐT CHẶN ---
 
                     $exactMatch = $overlappingSlots->first(function($slot) use ($startTimeStr, $endTimeStr) {
                         return $slot->start_time === $startTimeStr && $slot->end_time === $endTimeStr;
@@ -217,20 +242,17 @@ $priceType = $isPeak ? 'peak' : 'normal'; // <--- Đổi thành 'normal'
                     if ($exactMatch && $overlappingSlots->count() === 1) {
                         $skippedCount++;
                     } else {
-                        try {
-                            $court->timeSlots()->whereIn('id', $overlappingSlots->pluck('id'))->delete();
-                            
-                            $newSlot = $court->timeSlots()->create([
-                                'start_time' => $startTimeStr,
-                                'end_time' => $endTimeStr,
-                                'duration_minutes' => $duration
-                            ]);
-                            $createPricesForSlot($newSlot);
-                            $replacedCount++;
-                            $createdCount++;
-                        } catch (\Exception $e) {
-                            $skippedCount++;
-                        }
+                        // Vượt qua lá chắn -> Xóa đè
+                        $court->timeSlots()->whereIn('id', $overlappingSlots->pluck('id'))->delete();
+                        
+                        $newSlot = $court->timeSlots()->create([
+                            'start_time' => $startTimeStr,
+                            'end_time' => $endTimeStr,
+                            'duration_minutes' => $duration
+                        ]);
+                        $createPricesForSlot($newSlot);
+                        $replacedCount++;
+                        $createdCount++;
                     }
                 } else {
                     $newSlot = $court->timeSlots()->create([
@@ -245,43 +267,24 @@ $priceType = $isPeak ? 'peak' : 'normal'; // <--- Đổi thành 'normal'
                 $currentTime->addMinutes($duration);
             }
 
+            if ($createdCount === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Lỗi: Không thể sinh ca! Toàn bộ {$skippedCount} ca bạn muốn tạo đều bị vướng dữ liệu lịch đặt của khách hàng."
+                ], 400); 
+            }
+
             $msg = "Tạo thành công {$createdCount} ca.";
             if ($replacedCount > 0) $msg .= " (Đã gộp/ghi đè {$replacedCount} khung giờ cũ).";
-            if ($skippedCount > 0) $msg .= " (Bỏ qua {$skippedCount} ca do trùng lặp hoặc đang có khách đặt).";
+            if ($skippedCount > 0) $msg .= " (Bỏ qua {$skippedCount} ca do vướng đơn đặt sân).";
 
-            return response()->json([
-                'success' => true,
-                'message' => $msg
-            ]);
+            return response()->json(['success' => true, 'message' => $msg]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Đã xảy ra lỗi trong quá trình sinh ca. Vui lòng thử lại.'], 500);
         }
     }
-    public function destroy(Court $court): JsonResponse
-    {
-        $court->load('venue');
 
-        if ((int) $court->venue->owner_id !== (int) Auth::id()) {
-            return response()->json(['success' => false, 'message' => 'Bạn không có quyền thao tác trên sân này.'], 403);
-        }
-
-        if ($court->bookings()->exists()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Lỗi: Không thể xóa! Sân này đã có dữ liệu khách hàng đặt lịch. Bạn chỉ có thể xóa các sân chưa từng có giao dịch.'
-            ], 400); 
-        }
-
-        try {
-            $court->timeSlots()->delete();
-            $court->delete();
-            return response()->json(['success' => true, 'message' => 'Đã xóa sân con thành công.']);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Không thể xóa sân lúc này.'], 500);
-        }
-    }
-    // Hàm tạo ca thủ công (Tạo chay)
-   // Hàm tạo ca thủ công (Tạo chay) - Phiên bản Ghi đè (Overwrite)
+    // 5. THÊM CA LẺ THỦ CÔNG
     public function storeSlot(Request $request, Court $court): JsonResponse
     {
         $court->load('venue');
@@ -293,7 +296,6 @@ $priceType = $isPeak ? 'peak' : 'normal'; // <--- Đổi thành 'normal'
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'price' => 'required|numeric|min:0', 
-            // SỬA CHỮ 'regular' THÀNH 'normal' Ở DÒNG DƯỚI ĐÂY
             'price_type' => 'required|in:normal,peak' 
         ], [
             'end_time.after' => 'Giờ kết thúc phải lớn hơn giờ bắt đầu!',
@@ -311,6 +313,8 @@ $priceType = $isPeak ? 'peak' : 'normal'; // <--- Đổi thành 'normal'
         $message = 'Đã thêm ca mới thành công!';
 
         if ($overlappingSlots->isNotEmpty()) {
+            
+            // LÁ CHẮN PHP BẤT KHẢ XÂM PHẠM
             $hasBookings = \App\Models\Booking::where('court_id', $court->id)
                 ->where('slot_date', '>=', now()->toDateString())
                 ->whereIn('status', ['pending', 'confirmed'])
@@ -321,24 +325,23 @@ $priceType = $isPeak ? 'peak' : 'normal'; // <--- Đổi thành 'normal'
             if ($hasBookings) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Lỗi: Không thể ghi đè! Khung giờ này (hoặc một phần thời gian) đang có khách đặt.'
+                    'message' => 'Lỗi: Không thể ghi đè! Khung giờ này đang có khách đặt lịch trong tương lai. Bạn cần xử lý đơn của khách (Hủy/Chờ đá xong) trước khi thay đổi ca.'
                 ], 400);
             }
 
+            // An toàn 100%, thực hiện xóa đè
             $court->timeSlots()->whereIn('id', $overlappingSlots->pluck('id'))->delete();
             $message = 'Đã chèn ca mới và ghi đè (xóa) ' . $overlappingSlots->count() . ' ca cũ bị trùng giờ!';
         }
 
-        $duration = Carbon::parse($startTimeStr)->diffInMinutes(Carbon::parse($endTimeStr));
+        $duration = \Carbon\Carbon::parse($startTimeStr)->diffInMinutes(\Carbon\Carbon::parse($endTimeStr));
 
-        // 1. Tạo ca (TimeSlot)
         $newSlot = $court->timeSlots()->create([
             'start_time' => $startTimeStr,
             'end_time' => $endTimeStr,
             'duration_minutes' => $duration
         ]);
 
-        // 2. Tạo giá cho ca đó (SlotPrice - Lặp 7 ngày trong tuần)
         $pricesData = [];
         for ($day = 0; $day <= 6; $day++) {
             $pricesData[] = [
@@ -353,5 +356,108 @@ $priceType = $isPeak ? 'peak' : 'normal'; // <--- Đổi thành 'normal'
         \App\Models\SlotPrice::insert($pricesData);
 
         return response()->json(['success' => true, 'message' => $message]);
+    }
+
+    // 6. KHÓA CA SÂN (BẢO TRÌ) - GỘP CA JSON THÔNG MINH
+    public function lockSlot(Request $request, Court $court): JsonResponse
+    {
+        $court->load('venue');
+        if ((int) $court->venue->owner_id !== (int) Auth::id()) {
+            return response()->json(['success' => false, 'message' => 'Lỗi xác thực quyền.'], 403);
+        }
+
+        $validated = $request->validate([
+            'lock_date' => 'required|date|after_or_equal:today',
+            'reason' => 'required|string|max:255',
+            'selected_slots' => 'required|json', 
+        ], [
+            'lock_date.required' => 'Vui lòng chọn ngày khóa.',
+            'lock_date.after_or_equal' => 'Không thể khóa sân ở ngày trong quá khứ.',
+            'reason.required' => 'Vui lòng nhập lý do khóa sân.',
+            'reason.max' => 'Lý do khóa sân không được vượt quá 255 ký tự.',
+            'selected_slots.required' => 'Lỗi dữ liệu ca được chọn.'
+        ]);
+
+        $slots = json_decode($validated['selected_slots'], true);
+
+        if (empty($slots)) {
+            return response()->json([
+                'message' => 'Dữ liệu không hợp lệ.',
+                'errors' => ['selected_slots' => ['Vui lòng click chọn ít nhất 1 ca màu trắng trên sơ đồ để tiến hành khóa!']]
+            ], 422);
+        }
+
+        $lockDate = \Carbon\Carbon::parse($validated['lock_date']);
+        $isToday = $lockDate->isToday();
+        $nowTime = now()->format('H:i:s');
+
+        // BƯỚC 1: Validate tường tận từng ca được gửi lên
+        foreach ($slots as $slot) {
+            $start = $slot['start'];
+            $end = $slot['end'];
+
+            if ($isToday && $start < $nowTime) {
+                return response()->json(['success' => false, 'message' => "Lỗi: Ca {$start} - {$end} đã trôi qua, không thể khóa!"], 400);
+            }
+
+            $hasBookings = \App\Models\Booking::where('court_id', $court->id)
+                ->where('slot_date', $validated['lock_date'])
+                ->whereIn('status', ['pending', 'confirmed'])
+                ->where('start_time', '<', $end)
+                ->where('end_time', '>', $start)
+                ->exists();
+
+            if ($hasBookings) {
+                return response()->json(['success' => false, 'message' => "Lỗi: Ca {$start} - {$end} đang có khách đặt. Giao dịch bị từ chối."], 400);
+            }
+        }
+
+        // BƯỚC 2: THUẬT TOÁN GỘP CA THÔNG MINH
+        usort($slots, function($a, $b) {
+            return strcmp($a['start'], $b['start']);
+        });
+
+        $mergedLocks = [];
+        $currentLock = null;
+
+        foreach ($slots as $slot) {
+            if (!$currentLock) {
+                $currentLock = $slot;
+            } else {
+                if ($currentLock['end'] === $slot['start']) {
+                    $currentLock['end'] = $slot['end'];
+                } else {
+                    $mergedLocks[] = $currentLock;
+                    $currentLock = $slot;
+                }
+            }
+        }
+        if ($currentLock) {
+            $mergedLocks[] = $currentLock;
+        }
+
+        // BƯỚC 3: Insert các dải đã gộp vào Database
+        foreach ($mergedLocks as $mLock) {
+            \App\Models\CourtLock::create([
+                'court_id' => $court->id,
+                'lock_date' => $validated['lock_date'],
+                'start_time' => $mLock['start'],
+                'end_time' => $mLock['end'],
+                'reason' => $validated['reason']
+            ]);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Đã khóa ' . count($slots) . ' ca (Gộp thành '.count($mergedLocks).' dải bảo trì) thành công!']);
+    }
+
+    // 7. MỞ KHÓA SÂN BẢO TRÌ
+    public function unlockSlot(Request $request, \App\Models\CourtLock $lock): JsonResponse
+    {
+        if ((int) $lock->court->venue->owner_id !== (int) Auth::id()) {
+             return response()->json(['success' => false, 'message' => 'Bạn không có quyền thực hiện thao tác này.'], 403);
+        }
+        
+        $lock->delete();
+        return response()->json(['success' => true, 'message' => 'Đã mở khóa sân.']);
     }
 }
