@@ -85,20 +85,8 @@
     <div class="owner-register-heading">
         <p>Đối Tác SportHub</p>
         <h1>Đăng ký làm chủ sân</h1>
-        <span>Gửi thông tin liên hệ để SportHub xét duyệt tài khoản chủ sân. Đơn mới sẽ được lưu với trạng thái chờ duyệt.</span>
+        <span>Điền thông tin để tạo tài khoản chủ sân. Sau đó bạn sẽ tự thiết lập mật khẩu để bắt đầu sử dụng.</span>
     </div>
-
-    @if (session('owner_registration_message'))
-        <div class="auth-alert {{ session('owner_registration_status') === 'pending' ? 'is-success' : 'is-error' }}">
-            {{ session('owner_registration_message') }}
-        </div>
-    @endif
-
-    @if ($registration)
-        <div class="auth-alert {{ $registration->status === 'pending' ? 'is-success' : 'is-error' }}">
-            Trạng thái đơn gần nhất của bạn: <strong>{{ $registration->status }}</strong>.
-        </div>
-    @endif
 
     <form method="POST" action="{{ route('owner.register.store') }}" class="owner-register-form" novalidate>
         @csrf

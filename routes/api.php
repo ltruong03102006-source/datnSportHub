@@ -140,8 +140,6 @@ Route::middleware(['auth:sanctum', 'owner'])->prefix('owner')->group(function ()
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
     Route::get('/owner-registrations', [AdminOwnerRegistrationController::class, 'index']);
     Route::get('/owner-registrations/{id}', [AdminOwnerRegistrationController::class, 'show']);
-    Route::post('/owner-registrations/{id}/approve', [AdminOwnerRegistrationController::class, 'approve']);
-    Route::post('/owner-registrations/{id}/reject', [AdminOwnerRegistrationController::class, 'reject']);
 
     // // Admin Venues Management (kích hoạt / ẩn sân)
     // Route::get('/venues', [AdminVenueController::class, 'index'])->name('admin.venues.index');
