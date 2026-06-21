@@ -53,10 +53,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
     });
 
     // Đăng xuất
-    Route::post('/logout', [AdminLoginController::class, 'destroy'])->name('logout')->middleware('auth');
+    Route::post('/logout', [AdminLoginController::class, 'destroy'])->name('logout')->middleware('auth:web');
 
     // Các route yêu cầu quyền admin
-    Route::middleware(['auth', 'admin'])->group(function () {
+    Route::middleware(['admin'])->group(function () {
         Route::get('/', function () {
             return redirect()->route('admin.dashboard');
         });
@@ -70,6 +70,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/venues/{venue}', function() { return redirect()->route('admin.venues.index'); });
         Route::put('/venues/{venue}', [AdminVenueController::class, 'update'])->name('venues.update');
         Route::delete('/venues/{venue}', [AdminVenueController::class, 'destroy'])->name('venues.destroy');
+        Route::post('/venues/{venue}/approve', [AdminVenueController::class, 'approve'])->name('venues.approve');
+        Route::post('/venues/{venue}/reject', [AdminVenueController::class, 'reject'])->name('venues.reject');
+        Route::get('/venues/{venue}/documents', [AdminVenueController::class, 'documents'])->name('venues.documents');
         
         // Quản lý Lịch đặt
         Route::get('/bookings', [AdminBookingController::class, 'index'])->name('bookings.index');

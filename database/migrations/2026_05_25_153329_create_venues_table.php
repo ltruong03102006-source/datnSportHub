@@ -39,9 +39,11 @@ return new class extends Migration
                 ->nullable();
 
             $table->enum('status', [
-                'active',
+                'pending',
+                'approved',
+                'rejected',
                 'inactive',
-                'pending'
+                'suspended'
             ])->default('pending');
 
             $table->timestamps();

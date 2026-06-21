@@ -26,13 +26,21 @@
         <div>
             <h1 class="h3 mb-1">
                 {{ $venue->name }}
-                @if($venue->status === 'active')
-                    <span class="badge bg-success ms-2 fs-6 align-middle">Đang hoạt động</span>
-                @elseif($venue->status === 'inactive')
-                    <span class="badge bg-secondary ms-2 fs-6 align-middle">Tạm ngừng</span>
-                @else
-                    <span class="badge bg-warning text-dark ms-2 fs-6 align-middle">Chờ duyệt</span>
-                @endif
+                @if($venue->status === 'approved')
+    <span class="badge bg-success ms-2">
+        Hoạt động
+    </span>
+
+@elseif($venue->status === 'rejected')
+    <span class="badge bg-danger ms-2">
+        Bị từ chối
+    </span>
+
+@else
+    <span class="badge bg-warning text-dark ms-2">
+        Chờ duyệt
+    </span>
+@endif
             </h1>
             <p class="text-muted mb-0">Thông tin chi tiết điểm sân và quản lý các sân con.</p>
         </div>

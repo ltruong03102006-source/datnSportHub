@@ -25,7 +25,12 @@ class Venue extends Model
         'lng', 
         'description', 
         'banner', 
-        'status'
+        'status',
+        'phone',
+        'email',
+        'open_hours',
+        'close_hours',
+        'google_maps_address'
     ];
 
     // Ép kiểu (Casts) tọa độ sang số thực để tránh lỗi hiển thị bản đồ
@@ -64,7 +69,12 @@ class Venue extends Model
         return $this->ownerRegistration?->phone;
     }
     public function images()
-{
-    return $this->hasMany(VenueImage::class);
-}
+    {
+        return $this->hasMany(VenueImage::class);
+    }
+
+    public function legalDocument()
+    {
+        return $this->hasOne(VenueLegalDocument::class);
+    }
 }
