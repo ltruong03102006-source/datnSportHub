@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Booking extends Model
 {
@@ -15,6 +16,7 @@ class Booking extends Model
     // ĐÂY LÀ CHUẨN CỦA LARAVEL
     protected $fillable = [
         'court_id',
+        'time_slot_id',
         'user_id',
         'slot_date',
         'start_time',
@@ -43,6 +45,8 @@ class Booking extends Model
     {
         return $this->belongsTo(User::class);
     }
+    public function timeSlot(): BelongsTo { return $this->belongsTo(TimeSlot::class); }
+    public function rescheduleRequests(): HasMany { return $this->hasMany(BookingRescheduleRequest::class); }
 
     public function recordStatusChange(int $changedBy, string $oldStatus, string $newStatus, ?string $note = null, $createdAt = null): BookingLog
     {

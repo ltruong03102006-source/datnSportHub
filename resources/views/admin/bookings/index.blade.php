@@ -559,7 +559,7 @@
                 Hiển thị {{ $bookings->firstItem() ?? 0 }} - {{ $bookings->lastItem() ?? 0 }} trong {{ number_format($bookings->total()) }} booking
             </div>
             @if($bookings->hasPages())
-                {{ $bookings->links('pagination::bootstrap-5') }}
+            {{ $bookings->links('vendor.pagination.admin') }}
             @endif
         </div>
     </div>

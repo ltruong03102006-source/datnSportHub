@@ -619,7 +619,7 @@
             </table>
             @if($allBookings->hasPages())
                 <div class="pagination-wrapper">
-                    {{ $allBookings->links('pagination::bootstrap-5') }}
+                    {{ $allBookings->links('vendor.pagination.admin') }}
                 </div>
             @endif
         </div>

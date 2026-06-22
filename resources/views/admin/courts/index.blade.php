@@ -229,7 +229,7 @@
         </div>
 
         <div class="pagination-container">
-            {{ $courts->links() }}
+            {{ $courts->links('vendor.pagination.admin') }}
         </div>
     @else
         <div style="padding: 60px 20px; text-align: center;">

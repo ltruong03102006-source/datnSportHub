@@ -21,6 +21,8 @@ use App\Http\Controllers\Web\OwnerCancellationPolicyController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Web\OwnerCourtController;
+use App\Http\Controllers\Web\BookingRescheduleController;
+use App\Http\Controllers\Web\OwnerBookingRescheduleController;
 
 Route::get('/', [CourtPageController::class, 'index'])->name('home');
 
@@ -97,6 +99,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
 // --- KHU VỰC QUẢN LÝ CỦA CHỦ SÂN (OWNER) ---
 Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group(function () {
+    Route::get('/reschedule-requests', [OwnerBookingRescheduleController::class, 'index'])->name('reschedule.index');
+    Route::get('/reschedule-requests/{rescheduleRequest}', [OwnerBookingRescheduleController::class, 'show'])->name('reschedule.show');
+    Route::post('/reschedule-requests/{rescheduleRequest}/approve', [OwnerBookingRescheduleController::class, 'approve'])->name('reschedule.approve');
+    Route::post('/reschedule-requests/{rescheduleRequest}/reject', [OwnerBookingRescheduleController::class, 'reject'])->name('reschedule.reject');
     Route::get('/calendar', [OwnerBookingCalendarController::class, 'index'])->name('calendar.index');
     Route::get('/calendar/events', [OwnerBookingCalendarController::class, 'events'])->name('calendar.events');
     Route::patch('/calendar/bookings/{booking}/status', [OwnerBookingCalendarController::class, 'updateStatus'])
@@ -137,6 +143,8 @@ Route::delete('/venues/images/{id}', [\App\Http\Controllers\Web\OwnerVenueContro
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('/bookings/{booking}/reschedule', [BookingRescheduleController::class, 'create'])->name('customer.booking.reschedule.create');
+    Route::post('/bookings/{booking}/reschedule', [BookingRescheduleController::class, 'store'])->name('customer.booking.reschedule.store');
     
     // Gửi báo cáo sân
     Route::post('/courts/{court}/report', [\App\Http\Controllers\Web\CourtReportController::class, 'store'])->name('web.courts.report');

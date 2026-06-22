@@ -175,7 +175,7 @@
                             <!-- Actions -->
 <div class="grid grid-cols-2 gap-2 mt-auto">
     <a href="{{ route('owner.web.venues.show', $venue->id) }}"
-       class="col-span-2 inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+       class="col-span-2 inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
         Chi tiết & Quản lý sân con
     </a>
 

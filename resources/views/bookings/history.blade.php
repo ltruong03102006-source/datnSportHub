@@ -99,6 +99,9 @@
                             <td class="px-5 py-4 text-right">
     <div class="flex items-center justify-end gap-2">
         <a href="{{ route('web.bookings.success', $booking->id) }}" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-bold text-zinc-700 transition hover:bg-stone-50">Chi tiết</a>
+        @if($booking->status === 'confirmed' && !$isPastStartTime)
+            <a href="{{ route('customer.booking.reschedule.create', $booking->id) }}" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 transition hover:bg-amber-100">Đổi lịch</a>
+        @endif
         
         @if($booking->status === 'completed')
             @if(in_array($booking->id, $reviewedBookingIds))

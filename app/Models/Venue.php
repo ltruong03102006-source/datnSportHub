@@ -7,6 +7,7 @@ use App\Models\VenueImage;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Venue extends Model
@@ -78,6 +79,19 @@ class Venue extends Model
     {
         return $this->hasOne(VenueLegalDocument::class);
     }
+
+    /** Người dùng đã thêm cơ sở này vào danh sách yêu thích. */
+    public function favoritedBy(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'favorites', 'venue_id', 'user_id')
+            ->withTimestamps();
+    }
+
+    public function isFavoritedBy(User $user): bool
+    {
+        return $this->favoritedBy()->whereKey($user->getKey())->exists();
+    }
+
     public function cancellationPolicies()
     {
         // Tự động sắp xếp tăng dần để thuật toán check từ mốc sát giờ nhất
