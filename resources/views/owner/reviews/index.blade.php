@@ -27,23 +27,9 @@
 
     <div class="flex-1 p-6 lg:p-10 max-w-5xl mx-auto w-full">
         <!-- Đã bổ sung Dropdown bộ lọc -->
-        <div class="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-                <h2 class="text-3xl font-bold text-slate-800 mb-2">Đánh giá từ khách hàng</h2>
-                <p class="text-slate-500">Lắng nghe và phản hồi trải nghiệm của khách để nâng cao chất lượng dịch vụ.</p>
-            </div>
-            
-            <form action="{{ route('owner.web.reviews.index') }}" method="GET" class="flex items-center gap-2 bg-white p-2 rounded-xl shadow-sm border border-slate-200">
-                <label for="venue_id" class="text-sm font-medium text-slate-600 whitespace-nowrap pl-2">Lọc theo cơ sở:</label>
-                <select name="venue_id" id="venue_id" class="border-transparent bg-slate-50 rounded-lg text-sm py-2 px-3 outline-none focus:border-emerald-500 focus:ring-emerald-500 cursor-pointer" onchange="this.form.submit()">
-                    <option value="">-- Tất cả cơ sở --</option>
-                    @foreach($venues as $v)
-                        <option value="{{ $v->id }}" {{ request('venue_id') == $v->id ? 'selected' : '' }}>
-                            {{ $v->name }}
-                        </option>
-                    @endforeach
-                </select>
-            </form>
+        <div class="mb-8">
+            <h2 class="text-3xl font-bold text-slate-800 mb-2">Đánh giá từ khách hàng</h2>
+            <p class="text-slate-500">Lắng nghe và phản hồi trải nghiệm của khách để nâng cao chất lượng dịch vụ.</p>
         </div>
 
         @if(session('success'))
@@ -60,7 +46,7 @@
                             </div>
                             <div>
                                 <h4 class="font-bold text-slate-800">{{ $review->user->name }}</h4>
-                                <p class="text-xs text-slate-500">{{ $review->court->venue->name }} • {{ $review->court->name }} • {{ $review->created_at->format('d/m/Y') }}</p>
+                                <p class="text-xs text-slate-500">{{ $review->court->venue->name }} • {{ $review->created_at->format('d/m/Y') }}</p>
                             </div>
                         </div>
                         <div class="flex text-amber-400">

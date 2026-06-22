@@ -74,7 +74,6 @@
                             <div class="min-w-0 flex-1">
                                 <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                                     <p class="text-sm font-bold text-zinc-900" x-text="review.user_name"></p>
-                                    <span class="rounded bg-stone-100 px-1.5 py-0.5 text-[11px] font-semibold text-stone-500" x-text="review.court_name"></span>
                                     <span class="text-xs text-stone-400" x-text="review.created_at"></span>
                                 </div>
                                 <div class="mt-1 flex gap-0.5">

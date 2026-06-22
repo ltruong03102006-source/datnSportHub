@@ -17,6 +17,7 @@ use App\Http\Controllers\Web\AdminVenueController;
 use App\Http\Controllers\Web\AdminBookingController;
 use App\Http\Controllers\Web\AdminCourtController;
 use App\Http\Controllers\Web\FavoriteController;
+use App\Http\Controllers\Web\OwnerCancellationPolicyController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Web\OwnerCourtController;
@@ -127,6 +128,12 @@ Route::delete('/venues/images/{id}', [\App\Http\Controllers\Web\OwnerVenueContro
     Route::post('/reviews/{review}/reply', [\App\Http\Controllers\Web\OwnerReviewController::class, 'reply'])->name('reviews.reply');
     Route::post('/courts/{court}/lock', [\App\Http\Controllers\Web\OwnerCourtController::class, 'lockSlot']);
     Route::delete('/courts/locks/{lock}', [\App\Http\Controllers\Web\OwnerCourtController::class, 'unlockSlot']);
+    // API quản lý Chính sách hủy sân
+    Route::get('/venues/{venue}/cancellation-policies', [OwnerCancellationPolicyController::class, 'index']);
+    Route::post('/venues/{venue}/cancellation-policies', [OwnerCancellationPolicyController::class, 'store']);
+    Route::delete('/venues/{venue}/cancellation-policies/{policy}', [OwnerCancellationPolicyController::class, 'destroy']);
+    
+    Route::patch('/venues/{venue}/rules', [OwnerVenueController::class, 'updateRules'])->name('venues.update_rules');
 });
 
 Route::middleware('auth')->group(function () {

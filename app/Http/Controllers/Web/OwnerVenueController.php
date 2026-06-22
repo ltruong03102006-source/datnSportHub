@@ -298,4 +298,19 @@ class OwnerVenueController extends Controller
 
         return response()->json(['success' => true, 'message' => 'Đã xóa ảnh']);
     }
+    // Đã thêm \Illuminate\Http\ để sửa lỗi thiếu thư viện Import
+    public function updateRules(\Illuminate\Http\Request $request, \App\Models\Venue $venue)
+    {
+        // Dùng ['owner_id'] thay vì ->owner_id để VS Code hết báo đỏ
+        if ($venue['owner_id'] !== Auth::id()) abort(403);
+
+        $request->validate([
+            'rules' => 'nullable|string'
+        ]);
+
+        // Dùng hàm update() thay vì gán $venue->rules = ...
+        $venue->update(['rules' => $request->rules]);
+
+        return response()->json(['message' => 'Đã lưu Nội quy cơ sở thành công!']);
+    }
 }
