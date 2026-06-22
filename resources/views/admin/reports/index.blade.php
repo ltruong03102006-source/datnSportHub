@@ -129,7 +129,7 @@
         </div>
         @if($reports->hasPages())
             <div class="pagination-container">
-                {{ $reports->links() }}
+                {{ $reports->links('vendor.pagination.admin') }}
             </div>
         @endif
     @else

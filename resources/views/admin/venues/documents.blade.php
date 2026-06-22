@@ -133,16 +133,28 @@
 
     .btn-back{
         margin-bottom:20px;
+        display:inline-flex;
+        align-items:center;
+        gap:8px;
+        border:1px solid #cbd5e1;
+        border-radius:9px;
+        background:#fff;
+        color:#334155;
+        padding:9px 14px;
+        font-size:13px;
+        font-weight:700;
+        text-decoration:none;
+        transition:.2s;
     }
+    .btn-back:hover{background:#f8fafc;color:#047857;border-color:#86efac;transform:translateX(-2px);}
 
 </style>
 
 <div class="legal-container">
 
-```
 <a href="{{ route('admin.venues.index') }}"
-   class="btn btn-secondary btn-back">
-    ← Quay lại
+   class="btn-back">
+    <i class="fa-solid fa-arrow-left"></i> Quay lại
 </a>
 
 <h2 class="page-title">

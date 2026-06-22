@@ -545,6 +545,7 @@
                 <a href="{{ route('owner.dashboard') }}" class="nav-link-soft">Tổng quan</a>
                 <a href="{{ route('owner.web.venues.index') }}" class="nav-link-soft">Cơ sở sân</a>
                 <a href="{{ route('owner.web.calendar.index') }}" class="nav-link-soft active">Lịch đặt sân</a>
+                <a href="{{ route('owner.web.reschedule.index') }}" class="nav-link-soft">Yêu cầu đổi lịch</a>
             </nav>
         </div>
     </div>

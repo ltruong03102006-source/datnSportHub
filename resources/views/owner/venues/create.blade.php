@@ -7,16 +7,37 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <style>
-        body { background: #f5f7fb; }
-        .card-shell { border: 0; border-radius: 18px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08); }
-        .step-pill { width: 36px; height: 36px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; }
-        .step-pill.active { background: #0d6efd; color: #fff; }
-        .step-pill.done { background: #198754; color: #fff; }
+        :root { --brand: #059669; --brand-dark: #047857; --ink: #172033; --muted: #64748b; }
+        body { min-height: 100vh; background: radial-gradient(circle at top left, #d1fae5 0, transparent 32%), #f8fafc; color: var(--ink); font-family: Inter, system-ui, sans-serif; }
+        .container { max-width: 1180px; }
+        .breadcrumb { font-size: 13px; font-weight: 600; }
+        .breadcrumb a { color: var(--brand); text-decoration: none; }
+        .card-shell { overflow: hidden; border: 1px solid #e2e8f0; border-radius: 24px; box-shadow: 0 22px 60px rgba(15, 23, 42, 0.10); }
+        .card-shell .card-body { padding: 2.25rem !important; }
+        .card-shell h1 { color: var(--ink); font-size: 30px; font-weight: 800; letter-spacing: -.5px; }
+        .card-shell .text-muted { color: var(--muted) !important; }
+        .step-pill { width: 38px; height: 38px; border: 1px solid #dbe4ee; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #fff; color: #94a3b8; font-weight: 800; transition: .2s; }
+        .step-pill.active { border-color: var(--brand); background: var(--brand); color: #fff; box-shadow: 0 6px 14px rgba(5, 150, 105, .22); }
+        .step-pill.done { border-color: #a7f3d0; background: #ecfdf5; color: var(--brand); }
+        .step-pill + span { font-size: 13px; color: #64748b; }
         .step-panel { display: none; }
         .step-panel.active { display: block; }
-        .preview-box { min-height: 240px; border: 2px dashed #cbd5e1; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: #f8fafc; overflow: hidden; }
+        .step-panel.active { animation: reveal .28s ease both; }
+        @keyframes reveal { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+        .form-label { color: #334155; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+        .form-control, .form-select { min-height: 46px; border-color: #dbe4ee; border-radius: 10px; padding: 10px 13px; font-size: 14px; box-shadow: none; }
+        textarea.form-control { min-height: 110px; }
+        .form-control:focus, .form-select:focus { border-color: var(--brand); box-shadow: 0 0 0 4px rgba(5,150,105,.12); }
+        .preview-box { min-height: 240px; border: 2px dashed #a7f3d0; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: #f0fdf4; overflow: hidden; }
         .preview-box img { width: 100%; height: 100%; object-fit: cover; }
-        #map { height: 360px; border-radius: 12px; border: 1px solid #d0d7de; }
+        #map { height: 360px; border-radius: 16px; border: 1px solid #dbe4ee; }
+        .btn { min-height: 42px; border-radius: 10px; padding: 10px 16px; font-size: 13px; font-weight: 700; }
+        .btn-primary { border-color: var(--brand); background: var(--brand); }
+        .btn-primary:hover, .btn-success:hover { border-color: var(--brand-dark); background: var(--brand-dark); }
+        .btn-success { border-color: var(--brand); background: var(--brand); }
+        .btn-outline-secondary { color: #475569; border-color: #cbd5e1; }
+        .d-flex.justify-content-between.mt-4 { margin-top: 32px !important; padding-top: 22px; border-top: 1px solid #edf2f7; }
+        @media (max-width: 767px) { .card-shell .card-body { padding: 1.4rem !important; } .d-flex.flex-wrap.gap-2.mb-4 { gap: 10px !important; } .d-flex.flex-wrap.gap-2.mb-4 > .text-muted { display: none; } }
     </style>
 </head>
 <body>

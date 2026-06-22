@@ -196,7 +196,7 @@
     </table>
 
     <div style="margin-top: 20px;">
-        {{ $registrations->links('pagination::bootstrap-5') }}
+        {{ $registrations->links('vendor.pagination.admin') }}
     </div>
 </div>
 

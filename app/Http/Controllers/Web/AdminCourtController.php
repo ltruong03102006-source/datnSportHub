@@ -54,7 +54,7 @@ class AdminCourtController extends Controller
 
         // Phân trang
         $per_page = $request->input('per_page', 15);
-        $courts = $query->paginate($per_page);
+        $courts = $query->paginate($per_page)->withQueryString();
 
         // Lấy danh sách cơ sở sân cho dropdown filter
         $venues = Venue::select('id', 'name')->orderBy('name')->get();

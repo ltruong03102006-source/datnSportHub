@@ -310,6 +310,35 @@
         color: #e74c3c;
     }
 
+    .venue-actions {
+        display: inline-flex;
+        justify-content: flex-end;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .venue-actions form { margin: 0; }
+    .venue-action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 32px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        padding: 7px 10px;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1;
+        cursor: pointer;
+        text-decoration: none;
+        transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+    .venue-action-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(15, 23, 42, .12); }
+    .venue-action-docs { color: #0369a1; background: #f0f9ff; border-color: #bae6fd; }
+    .venue-action-approve { color: #fff; background: #16a34a; }
+    .venue-action-reject { color: #dc2626; background: #fef2f2; border-color: #fecaca; }
+
     .pagination-wrapper {
         padding: 20px;
         display: flex;
@@ -431,29 +460,30 @@
                     <div class="text-muted">{{ $venue->created_at ? $venue->created_at->format('d/m/Y') : '-' }}</div>
                 </td>
                 <td style="text-align: right; white-space: nowrap;">
+                    <div class="venue-actions">
                     <a href="{{ route('admin.venues.documents', $venue->id) }}"
-                    class="btn btn-sm btn-outline-info">
-                        Xem hồ sơ
+                    class="venue-action-btn venue-action-docs">
+                        <i class="fa-regular fa-folder-open"></i> Hồ sơ
                     </a>
                     @if($venue->status === 'pending')
-    <form action="{{ route('admin.venues.approve', $venue->id) }}" method="POST" style="display: inline;">
+    <form action="{{ route('admin.venues.approve', $venue->id) }}" method="POST">
         @csrf
-        <button type="submit" class="btn btn-sm btn-success me-1">Duyệt</button>
+        <button type="submit" class="venue-action-btn venue-action-approve"><i class="fa-solid fa-check"></i> Duyệt</button>
     </form>
 
-    <form action="{{ route('admin.venues.reject', $venue->id) }}" 
-      method="POST" 
-      style="display: inline;" 
+    <form action="{{ route('admin.venues.reject', $venue->id) }}"
+      method="POST"
       onsubmit="return rejectVenueConfirm(this);">
     @csrf
 
     <input type="hidden" name="reject_reason" class="reject-reason-input">
 
-    <button type="submit" class="btn btn-sm btn-outline-danger">
-        Từ chối
+    <button type="submit" class="venue-action-btn venue-action-reject">
+        <i class="fa-solid fa-xmark"></i> Từ chối
     </button>
 </form>
 @endif
+                    </div>
                 </td>
             </tr>
             @empty
@@ -469,7 +499,7 @@
             Hiển thị {{ $venues->firstItem() ?? 0 }}-{{ $venues->lastItem() ?? 0 }} trên tổng số {{ $totalVenues }} sân
         </div>
         <div class="pagination-links">
-            {{ $venues->links('pagination::bootstrap-5') }}
+            {{ $venues->links('vendor.pagination.admin') }}
         </div>
     </div>
 </div>
