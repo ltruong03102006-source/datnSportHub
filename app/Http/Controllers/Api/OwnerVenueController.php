@@ -8,6 +8,7 @@ use App\Models\Venue;
 use App\Models\Sport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Exception;
 
 class OwnerVenueController extends Controller
@@ -45,29 +46,81 @@ class OwnerVenueController extends Controller
     public function store(StoreVenueRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        $bannerPath = null;
 
-        if ($request->hasFile('banner')) {
-            $bannerPath = $request->file('banner')->store('venues', 'public');
-        }
+        $bannerPath = $request->file('banner')->store('venues', 'public');
 
-        $venue = Venue::create([
+        $venueData = [
             'owner_id' => $request->user()->id,
             'sport_id' => $validated['sport_id'],
             'name' => $validated['name'],
             'address' => $validated['address'],
             'description' => $validated['description'] ?? null,
             'banner' => $bannerPath,
-            'lat' => $validated['lat'] ?? null,
-            'lng' => $validated['lng'] ?? null,
+            'lat' => $validated['lat'],
+            'lng' => $validated['lng'],
             'status' => 'pending',
-        ]);
+        ];
+
+        if (Schema::hasColumn('venues', 'phone') && isset($validated['phone'])) {
+            $venueData['phone'] = $validated['phone'];
+        }
+        if (Schema::hasColumn('venues', 'email') && isset($validated['email'])) {
+            $venueData['email'] = $validated['email'];
+        }
+        if (Schema::hasColumn('venues', 'open_hours') && isset($validated['open_hours'])) {
+            $venueData['open_hours'] = $validated['open_hours'];
+        }
+        if (Schema::hasColumn('venues', 'close_hours') && isset($validated['close_hours'])) {
+            $venueData['close_hours'] = $validated['close_hours'];
+        }
+        if (Schema::hasColumn('venues', 'google_maps_address') && isset($validated['google_maps_address'])) {
+            $venueData['google_maps_address'] = $validated['google_maps_address'];
+        }
+
+        $venue = Venue::create($venueData);
+
+        if ($request->hasFile('gallery_images')) {
+            foreach ($request->file('gallery_images') as $file) {
+                $path = $file->store('venues/gallery', 'public');
+                $venue->images()->create([
+                    'image_path' => $path,
+                ]);
+            }
+        }
+
+        if (
+            Schema::hasTable('venue_legal_documents')
+            && $request->hasFile('citizen_front_image')
+            && $request->hasFile('citizen_back_image')
+            && $request->hasFile('business_license_file')
+        ) {
+            $venue->legalDocument()->create([
+                'owner_name' => $validated['owner_name'] ?? null,
+                'citizen_id' => $validated['citizen_id'] ?? null,
+                'business_license_number' => $validated['business_license_number'] ?? null,
+                'address' => $validated['address'],
+                'bank_name' => $validated['bank_name'] ?? null,
+                'bank_account_number' => $validated['bank_account_number'] ?? null,
+                'bank_account_holder' => $validated['bank_account_holder'] ?? null,
+                'citizen_front_image' => $request->file('citizen_front_image')->store('venue-documents', 'public'),
+                'citizen_back_image' => $request->file('citizen_back_image')->store('venue-documents', 'public'),
+                'business_license_file' => $request->file('business_license_file')->store('venue-documents', 'public'),
+                'rental_contract_file' => $request->hasFile('rental_contract_file')
+                    ? $request->file('rental_contract_file')->store('venue-documents', 'public')
+                    : null,
+                'land_certificate_file' => $request->hasFile('land_certificate_file')
+                    ? $request->file('land_certificate_file')->store('venue-documents', 'public')
+                    : null,
+                'status' => 'pending',
+            ]);
+        }
 
         return response()->json([
             'message' => 'Venue created successfully',
             'data' => [
                 'id' => $venue->id,
                 'name' => $venue->name,
+                'status' => $venue->status,
                 'banner_url' => $bannerPath ? asset('storage/' . $bannerPath) : null,
             ],
         ], 201);

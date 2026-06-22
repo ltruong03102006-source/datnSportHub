@@ -140,13 +140,11 @@ Route::middleware(['auth:sanctum', 'owner'])->prefix('owner')->group(function ()
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
     Route::get('/owner-registrations', [AdminOwnerRegistrationController::class, 'index']);
     Route::get('/owner-registrations/{id}', [AdminOwnerRegistrationController::class, 'show']);
-    Route::post('/owner-registrations/{id}/approve', [AdminOwnerRegistrationController::class, 'approve']);
-    Route::post('/owner-registrations/{id}/reject', [AdminOwnerRegistrationController::class, 'reject']);
 
-    // Admin Venues Management (kích hoạt / ẩn sân)
-    Route::get('/venues', [AdminVenueController::class, 'index'])->name('admin.venues.index');
-    Route::get('/venues/{venue}', [AdminVenueController::class, 'show'])->name('admin.venues.show');
-    Route::post('/venues/{venue}/activate', [AdminVenueController::class, 'activate'])->name('admin.venues.activate');
-    Route::post('/venues/{venue}/deactivate', [AdminVenueController::class, 'deactivate'])->name('admin.venues.deactivate');
-    Route::get('/venues/{venue}/logs', [AdminVenueController::class, 'logs'])->name('admin.venues.logs');
+    // // Admin Venues Management (kích hoạt / ẩn sân)
+    // Route::get('/venues', [AdminVenueController::class, 'index'])->name('admin.venues.index');
+    // Route::get('/venues/{venue}', [AdminVenueController::class, 'show'])->name('admin.venues.show');
+    // Route::post('/venues/{venue}/activate', [AdminVenueController::class, 'activate'])->name('admin.venues.activate');
+    // Route::post('/venues/{venue}/deactivate', [AdminVenueController::class, 'deactivate'])->name('admin.venues.deactivate');
+    // Route::get('/venues/{venue}/logs', [AdminVenueController::class, 'logs'])->name('admin.venues.logs');
 });

@@ -6,7 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Venue;
 use App\Models\Sport;
 use App\Models\Booking;
+use App\Models\VenueLegalDocument;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class AdminVenueController extends Controller
@@ -18,7 +22,7 @@ class AdminVenueController extends Controller
     {
         // 1. Thống kê số liệu (Stat Cards)
         $totalVenues = Venue::count();
-        $activeVenues = Venue::where('status', 'active')->count();
+        $activeVenues = Venue::where('status', 'approved')->count();
         $maintenanceVenues = Venue::where('status', 'pending')->count(); // Dùng pending tạm cho 'Đang sửa chữa'
         $lockedVenues = Venue::where('status', 'inactive')->count();
 
@@ -85,7 +89,7 @@ class AdminVenueController extends Controller
             'name' => 'required|string|max:255',
             'sport_id' => 'required|exists:sports,id',
             'address' => 'required|string|max:255',
-            'status' => 'required|in:active,pending,inactive',
+            'status' => 'required|in:pending,approved,rejected,inactive',
         ], [
             'name.required' => 'Vui lòng nhập tên sân.',
             'sport_id.required' => 'Vui lòng chọn môn thể thao.',
@@ -97,6 +101,57 @@ class AdminVenueController extends Controller
 
         return redirect()->route('admin.venues.index')->with('success', 'Cập nhật cơ sở sân thành công!');
     }
+
+    public function approve(Venue $venue)
+{
+    if ($venue->status !== 'pending') {
+        return back()->with('error', 'Chỉ có thể duyệt cơ sở đang chờ duyệt.');
+    }
+
+    DB::transaction(function () use ($venue) {
+        $venue->update(['status' => 'approved']);
+
+        if (Schema::hasTable('venue_legal_documents')) {
+            $venue->legalDocument()->update([
+                'status' => 'approved',
+                'reviewed_by' => Auth::id(),
+                'reviewed_at' => now(),
+                'reject_reason' => null,
+            ]);
+        }
+    });
+
+    return redirect()->route('admin.venues.index')->with('success', 'Đã duyệt cơ sở thành công.');
+}
+
+    public function reject(Request $request, Venue $venue)
+{
+    if ($venue->status !== 'pending') {
+        return back()->with('error', 'Chỉ có thể từ chối cơ sở đang chờ duyệt.');
+    }
+
+    $validated = $request->validate([
+        'reject_reason' => 'required|string|min:5'
+    ], [
+        'reject_reason.required' => 'Vui lòng nhập lý do từ chối.',
+        'reject_reason.min' => 'Lý do từ chối phải có ít nhất 5 ký tự.'
+    ]);
+
+    $venue->update([
+        'status' => 'rejected'
+    ]);
+
+    if (Schema::hasTable('venue_legal_documents')) {
+        $venue->legalDocument()->update([
+            'status' => 'rejected',
+            'reviewed_by' => Auth::id(),
+            'reviewed_at' => now(),
+            'reject_reason' => $validated['reject_reason'],
+        ]);
+    }
+
+    return redirect()->route('admin.venues.index')->with('success', 'Đã từ chối cơ sở thành công.');
+}
 
     /**
      * Xóa cơ sở sân
@@ -118,5 +173,20 @@ class AdminVenueController extends Controller
         $venue->delete();
 
         return redirect()->route('admin.venues.index')->with('success', 'Đã xóa cơ sở sân thành công!');
+    }
+    public function documents(Venue $venue)
+    {
+        $hasLegalDocumentsTable = Schema::hasTable('venue_legal_documents');
+
+        $venue->load(['owner']);
+
+        if ($hasLegalDocumentsTable) {
+            $venue->load('legalDocument');
+        }
+
+        return view(
+            'admin.venues.documents',
+            compact('venue', 'hasLegalDocumentsTable')
+        );
     }
 }

@@ -134,6 +134,12 @@
             {{ session('error') }}
         </div>
     @endif
+    @if(session('owner_password_setup_url'))
+        <div style="margin-bottom: 20px; padding: 16px; border-radius: 12px; background: #e8f1ff; color: #1e40af;">
+            <strong>Liên kết đặt mật khẩu (có hiệu lực 24 giờ):</strong><br>
+            <a href="{{ session('owner_password_setup_url') }}" target="_blank">{{ session('owner_password_setup_url') }}</a>
+        </div>
+    @endif
 
     <table class="table-custom">
         <thead>

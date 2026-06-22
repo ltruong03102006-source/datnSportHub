@@ -4,6 +4,7 @@ use App\Http\Controllers\Web\CourtPageController;
 use App\Http\Controllers\Web\CourtBookingController;
 use App\Http\Controllers\Web\OwnerLoginController;
 use App\Http\Controllers\Web\OwnerRegistrationController;
+use App\Http\Controllers\Web\OwnerPasswordSetupController;
 use App\Http\Controllers\Web\OwnerBookingCalendarController;
 use App\Http\Controllers\Web\OwnerVenueController;
 use App\Http\Controllers\Web\UserBookingController;
@@ -36,6 +37,8 @@ Route::get('/owner/login', [OwnerLoginController::class, 'create'])->name('owner
 Route::post('/owner/login', [OwnerLoginController::class, 'store'])->name('owner.login.store');
 Route::get('/owner/register', [OwnerRegistrationController::class, 'create'])->name('owner.register.page');
 Route::post('/owner/register', [OwnerRegistrationController::class, 'store'])->name('owner.register.store');
+Route::get('/owner/password-setup/{token}', [OwnerPasswordSetupController::class, 'create'])->name('owner.password.setup.create');
+Route::post('/owner/password-setup', [OwnerPasswordSetupController::class, 'store'])->name('owner.password.setup.store');
 Route::post('/login', [ApiAuthController::class, 'login'])->name('web.login');
 Route::post('/register', [ApiAuthController::class, 'register'])->name('web.register');
 Route::post('/logout', [ApiAuthController::class, 'logout'])
@@ -55,10 +58,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
     });
 
     // Đăng xuất
-    Route::post('/logout', [AdminLoginController::class, 'destroy'])->name('logout')->middleware('auth');
+    Route::post('/logout', [AdminLoginController::class, 'destroy'])->name('logout')->middleware('auth:web');
 
     // Các route yêu cầu quyền admin
-    Route::middleware(['auth', 'admin'])->group(function () {
+    Route::middleware(['admin'])->group(function () {
         Route::get('/', function () {
             return redirect()->route('admin.dashboard');
         });
@@ -72,6 +75,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/venues/{venue}', function() { return redirect()->route('admin.venues.index'); });
         Route::put('/venues/{venue}', [AdminVenueController::class, 'update'])->name('venues.update');
         Route::delete('/venues/{venue}', [AdminVenueController::class, 'destroy'])->name('venues.destroy');
+        Route::post('/venues/{venue}/approve', [AdminVenueController::class, 'approve'])->name('venues.approve');
+        Route::post('/venues/{venue}/reject', [AdminVenueController::class, 'reject'])->name('venues.reject');
+        Route::get('/venues/{venue}/documents', [AdminVenueController::class, 'documents'])->name('venues.documents');
         
         // Quản lý Lịch đặt
         Route::get('/bookings', [AdminBookingController::class, 'index'])->name('bookings.index');
@@ -84,10 +90,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('/courts/{court}', [AdminCourtController::class, 'destroy'])->name('courts.destroy');
         Route::post('/courts/batch-update-status', [AdminCourtController::class, 'batchUpdateStatus'])->name('courts.batch-update-status');
         
-        // Quản lý đăng ký chủ sân
-        Route::get('/owner-registrations', [\App\Http\Controllers\Web\AdminOwnerRegistrationController::class, 'index'])->name('owner-registrations.index');
-        Route::post('/owner-registrations/{id}/approve', [\App\Http\Controllers\Web\AdminOwnerRegistrationController::class, 'approve'])->name('owner-registrations.approve');
-        Route::post('/owner-registrations/{id}/reject', [\App\Http\Controllers\Web\AdminOwnerRegistrationController::class, 'reject'])->name('owner-registrations.reject');
         Route::get('/reports', [\App\Http\Controllers\Web\AdminReportController::class, 'index'])->name('reports.index');
         Route::patch('/reports/{report}/status', [\App\Http\Controllers\Web\AdminReportController::class, 'updateStatus'])->name('reports.update-status');
     });

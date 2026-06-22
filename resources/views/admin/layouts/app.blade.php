@@ -282,10 +282,9 @@
             <a href="{{ route('admin.users.index') }}" class="nav-item {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-user-group"></i> Quản lý người dùng
             </a>
-            <a href="{{ route('admin.owner-registrations.index') }}" class="nav-item {{ request()->routeIs('admin.owner-registrations.*') ? 'active' : '' }}">
-                <i class="fa-solid fa-user-check"></i> Đăng ký chủ sân
-            </a>
-            <a href="{{ route('admin.venues.index') }}" class="nav-item {{ request()->routeIs('admin.venues.*') ? 'active' : '' }}">
+            <a href="{{ route('admin.venues.index') }}"
+               class="nav-item {{ request()->routeIs('admin.venues.*') ? 'active' : '' }}"
+               style="display:flex; align-items:center; width:100%; text-decoration:none;">
                 <i class="fa-solid fa-building"></i> Quản lý cơ sở
             </a>
             <a href="{{ route('admin.courts.index') }}" class="nav-item {{ request()->routeIs('admin.courts.*') ? 'active' : '' }}">

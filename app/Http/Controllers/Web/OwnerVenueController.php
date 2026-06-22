@@ -9,6 +9,8 @@ use App\Models\Venue;
 use Illuminate\Http\JsonResponse; // Dòng khai báo cực kỳ quan trọng vừa được thêm
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 use App\Models\Booking;
 
@@ -35,37 +37,56 @@ class OwnerVenueController extends Controller
     public function store(StoreVenueRequest $request): JsonResponse|RedirectResponse
     {
         $validated = $request->validated();
-        $bannerPath = null;
+        $bannerPath = $request->file('banner')->store('venues', 'public');
 
-        if ($request->hasFile('banner')) {
-            $bannerPath = $request->file('banner')->store('venues', 'public');
-        }
+        DB::transaction(function () use ($request, $validated, $bannerPath) {
+            $venue = Venue::create([
+                'owner_id' => Auth::id(),
+                'sport_id' => $validated['sport_id'],
+                'name' => $validated['name'],
+                'address' => $validated['address'],
+                'phone' => $validated['phone'],
+                'email' => $validated['email'],
+                'open_hours' => $validated['open_hours'] ?? null,
+                'close_hours' => $validated['close_hours'] ?? null,
+                'google_maps_address' => $validated['google_maps_address'],
+                'description' => $validated['description'] ?? null,
+                'banner' => $bannerPath,
+                'lat' => $validated['lat'],
+                'lng' => $validated['lng'],
+                'status' => 'pending',
+            ]);
 
-        // ĐIỀU CHỈNH 1: Gán kết quả trả về vào biến $venue
-        $venue = Venue::create([
-            'owner_id' => Auth::id(),
-            'sport_id' => $validated['sport_id'],
-            'name' => $validated['name'],
-            'address' => $validated['address'],
-            'description' => $validated['description'] ?? null,
-            'banner' => $bannerPath,
-            'lat' => $validated['lat'] ?? null,
-            'lng' => $validated['lng'] ?? null,
-            'status' => 'active', 
-        ]);
+            if ($request->hasFile('gallery_images')) {
+                foreach ($request->file('gallery_images') as $file) {
+                    $venue->images()->create([
+                        'image_path' => $file->store('venues/gallery', 'public'),
+                    ]);
+                }
+            }
 
-        // ĐIỀU CHỈNH 2: Xử lý lưu Thư viện nhiều ảnh (Gallery)
-        if ($request->hasFile('gallery_images')) {
-            foreach ($request->file('gallery_images') as $file) {
-                // Lưu từng ảnh vào thư mục storage/app/public/venues/gallery
-                $path = $file->store('venues/gallery', 'public');
-                
-                // Lưu đường dẫn vào bảng venue_images
-                $venue->images()->create([
-                    'image_path' => $path
+            if (Schema::hasTable('venue_legal_documents')) {
+                $venue->legalDocument()->create([
+                    'owner_name' => $validated['owner_name'],
+                    'citizen_id' => $validated['citizen_id'],
+                    'business_license_number' => $validated['business_license_number'],
+                    'address' => $validated['address'],
+                    'bank_name' => $validated['bank_name'],
+                    'bank_account_number' => $validated['bank_account_number'],
+                    'bank_account_holder' => $validated['bank_account_holder'],
+                    'citizen_front_image' => $request->file('citizen_front_image')->store('venue-documents', 'public'),
+                    'citizen_back_image' => $request->file('citizen_back_image')->store('venue-documents', 'public'),
+                    'business_license_file' => $request->file('business_license_file')->store('venue-documents', 'public'),
+                    'rental_contract_file' => $request->hasFile('rental_contract_file')
+                        ? $request->file('rental_contract_file')->store('venue-documents', 'public')
+                        : null,
+                    'land_certificate_file' => $request->hasFile('land_certificate_file')
+                        ? $request->file('land_certificate_file')->store('venue-documents', 'public')
+                        : null,
+                    'status' => 'pending',
                 ]);
             }
-        }
+        });
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -75,8 +96,8 @@ class OwnerVenueController extends Controller
         }
 
         return redirect()
-            ->route('owner.web.venues.create')
-            ->with('success', 'Venue created successfully');
+            ->route('owner.web.venues.index')
+            ->with('success', 'Đã gửi yêu cầu tạo cơ sở, vui lòng chờ Admin duyệt.');
     }
 
     // Xử lý lưu cập nhật
@@ -139,29 +160,92 @@ class OwnerVenueController extends Controller
     }
 
     // Xóa mềm (Tạm ẩn điểm sân)
-    public function destroy(Venue $venue)
-    {
-        $this->authorizeOwner($venue);
+   public function destroy(Venue $venue)
+{
+    $this->authorizeOwner($venue);
 
-        // Lấy danh sách ID của tất cả các sân con thuộc điểm sân này
-        $courtIds = $venue->courts()->select('id')->pluck('id');
+    // ==========================
+    // PENDING / REJECTED => XÓA
+    // ==========================
+    if (in_array($venue->status, ['pending', 'rejected'])) {
 
-        // LOGIC MỚI: Kiểm tra xem có lịch đặt nào TRONG TƯƠNG LAI (>= hôm nay) đang chờ duyệt hoặc đã xác nhận không
+        $courtIds = $venue->courts()->pluck('id');
+
+        // Đã từng phát sinh booking thì không cho xóa
+        $hasBookings = Booking::whereIn('court_id', $courtIds)->exists();
+
+        if ($hasBookings) {
+            return back()->with(
+                'error',
+                'Không thể xóa cơ sở đã phát sinh lịch đặt.'
+            );
+        }
+
+        // Xóa sân con
+        $venue->courts()->delete();
+
+        // Nếu có quan hệ ảnh
+        if (method_exists($venue, 'images')) {
+            $venue->images()->delete();
+        }
+
+        // Nếu có quan hệ hồ sơ pháp lý
+        if (method_exists($venue, 'legalDocument')) {
+            optional($venue->legalDocument)->delete();
+        }
+
+        $venue->delete();
+
+        return back()->with(
+            'success',
+            'Đã xóa cơ sở thành công.'
+        );
+    }
+
+    // ==========================
+    // SUSPENDED => KHÔNG CHO THAO TÁC
+    // ==========================
+    if ($venue->status === 'suspended') {
+        return back()->with(
+            'error',
+            'Cơ sở đang bị khóa bởi quản trị viên.'
+        );
+    }
+
+    // ==========================
+    // APPROVED => TẠM NGỪNG
+    // ==========================
+    if ($venue->status === 'approved') {
+
+        $courtIds = $venue->courts()->pluck('id');
+
         $hasUpcomingBookings = Booking::whereIn('court_id', $courtIds)
             ->where('slot_date', '>=', now()->toDateString())
             ->whereIn('status', ['pending', 'confirmed'])
             ->exists();
 
-        // Nếu có lịch đặt tương lai, chặn không cho Tạm ngừng và báo lỗi
         if ($hasUpcomingBookings) {
-            return back()->with('error', 'Không thể tạm ngừng! Cơ sở này đang có lịch đặt của khách trong tương lai. Vui lòng từ chối đơn hoặc chờ khách đá xong.');
+            return back()->with(
+                'error',
+                'Không thể tạm ngừng vì đang có lịch đặt trong tương lai.'
+            );
         }
 
-        // Nếu an toàn (không có lịch tương lai), tiến hành đổi trạng thái sang inactive
-        $venue->update(['status' => 'inactive']); 
-        
-        return back()->with('success', 'Đã tạm dừng hoạt động điểm sân này.');
+        $venue->update([
+            'status' => 'inactive'
+        ]);
+
+        return back()->with(
+            'success',
+            'Đã tạm ngừng hoạt động cơ sở.'
+        );
     }
+
+    return back()->with(
+        'error',
+        'Không thể thực hiện thao tác này.'
+    );
+}
 
     // Hàm bảo mật: Kiểm tra xem user hiện tại có phải chủ của sân này không
     private function authorizeOwner(Venue $venue): void
@@ -181,13 +265,18 @@ class OwnerVenueController extends Controller
         return view('owner.venues.show', compact('venue'));
     }// Hàm khôi phục (Mở lại sân sau khi đã tạm ngừng)
     public function restore(Venue $venue)
-    {
-        $this->authorizeOwner($venue);
+{
+    $this->authorizeOwner($venue);
 
-        $venue->update(['status' => 'active']); 
+    $venue->update([
+        'status' => 'approved'
+    ]);
 
-        return back()->with('success', 'Sân đã được mở lại và hoạt động bình thường!');
-    }
+    return back()->with(
+        'success',
+        'Đã mở lại cơ sở thành công.'
+    );
+}
     public function edit(Venue $venue): View
     {
         $this->authorizeOwner($venue);
