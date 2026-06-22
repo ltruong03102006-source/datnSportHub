@@ -8,6 +8,7 @@ use App\Models\Court;
 use App\Models\Sport;
 use App\Models\User;
 use App\Models\Venue;
+use App\Services\BookingCompletionService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -165,5 +166,49 @@ class BookingFlowTest extends TestCase
             'message' => 'This time slot has already been booked',
         ]);
         $this->assertSame(1, Booking::where('court_id', $court->id)->count());
+    }
+
+    public function test_expired_booking_is_marked_for_review_once(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 6, 22, 12, 0, 0, 'Asia/Ho_Chi_Minh'));
+
+        $owner = User::factory()->create(['role' => 'owner', 'status' => 'active']);
+        $user = User::factory()->create();
+        $sport = Sport::create(['name' => 'Pickleball', 'slug' => 'pickleball']);
+        $venue = Venue::create([
+            'owner_id' => $owner->id,
+            'sport_id' => $sport->id,
+            'name' => 'Venue Reminder',
+            'address' => 'Address 3',
+            'status' => 'active',
+        ]);
+        $court = Court::create([
+            'venue_id' => $venue->id,
+            'name' => 'Court Reminder',
+            'status' => 'active',
+            'is_bookable_online' => true,
+        ]);
+        $booking = Booking::create([
+            'court_id' => $court->id,
+            'user_id' => $user->id,
+            'slot_date' => '2026-06-22',
+            'start_time' => '09:00:00',
+            'end_time' => '10:00:00',
+            'total_price' => 100000,
+            'status' => 'confirmed',
+            'payment_status' => 'unpaid',
+        ]);
+
+        $service = app(BookingCompletionService::class);
+        $service->completeExpiredBookings();
+        $reminderAvailableAt = $booking->fresh()->review_reminder_sent_at;
+        $service->completeExpiredBookings();
+
+        $booking->refresh();
+        $this->assertSame('completed', $booking->status);
+        $this->assertNotNull($booking->review_reminder_sent_at);
+        $this->assertTrue($booking->review_reminder_sent_at->equalTo($reminderAvailableAt));
+
+        Carbon::setTestNow();
     }
 }

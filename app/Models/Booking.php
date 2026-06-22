@@ -24,6 +24,7 @@ class Booking extends Model
         'total_price',
         'status',
         'payment_status',
+        'review_reminder_sent_at',
         'note',
         'cancel_reason',
         'cancellation_fee',
@@ -34,6 +35,7 @@ class Booking extends Model
     protected $casts = [
         'total_price' => 'decimal:2',
         'slot_date' => 'date',
+        'review_reminder_sent_at' => 'datetime',
     ];
 
     public function court(): BelongsTo

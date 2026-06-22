@@ -63,6 +63,7 @@
                     </div>
                     
                     <a href="{{ route('account.bookings.index') }}" class="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-stone-50 hover:text-emerald-700 transition">Lịch sử đặt sân</a>
+                    <a href="{{ route('account.reviews.index') }}" class="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-stone-50 hover:text-emerald-700 transition">Đánh giá của tôi</a>
                     
                     <a href="#" class="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-stone-50 hover:text-emerald-700 transition">Thông tin cá nhân</a>
                     <div class="my-1 border-t border-stone-100"></div>
@@ -115,6 +116,7 @@
                         </div>
                     </div>
                     <a href="{{ route('account.bookings.index') }}" class="rounded-lg px-3 py-2.5 text-zinc-700 hover:bg-stone-100">Lịch sử đặt sân</a>
+                    <a href="{{ route('account.reviews.index') }}" class="rounded-lg px-3 py-2.5 text-zinc-700 hover:bg-stone-100">Đánh giá của tôi</a>
                     <button onclick="handleLogout()" class="rounded-lg px-3 py-2.5 text-left font-semibold text-red-600 hover:bg-red-50">Đăng xuất</button>
                 </div>
                 @endauth

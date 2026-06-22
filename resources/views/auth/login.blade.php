@@ -73,6 +73,22 @@
         const form = document.querySelector('#login-form');
         const button = document.querySelector('#submit-button');
         const alertBox = document.querySelector('#auth-alert');
+        const bookingContinuationKey = 'sporthub_pending_booking';
+
+        function postAuthDestination() {
+            try {
+                const continuation = JSON.parse(sessionStorage.getItem(bookingContinuationKey) || 'null');
+                const destination = new URL(continuation?.returnUrl || window.location.origin, window.location.origin);
+
+                if (destination.origin === window.location.origin && destination.pathname.startsWith('/courts/')) {
+                    return destination.toString();
+                }
+            } catch (error) {
+                sessionStorage.removeItem(bookingContinuationKey);
+            }
+
+            return '{{ route('home') }}';
+        }
 
         function setAlert(message, type = 'error') {
             alertBox.textContent = message;
@@ -145,9 +161,9 @@
 
                 localStorage.setItem('sporthub_token', data.token);
                 localStorage.setItem('sporthub_user', JSON.stringify(data.user));
-                setAlert('Đăng nhập thành công. Đang chuyển đến trang tìm sân…', 'success');
+                setAlert('Đăng nhập thành công. Đang quay lại trang đặt sân…', 'success');
                 form.reset();
-                window.location.href = '{{ route('home') }}';
+                window.location.href = postAuthDestination();
             } catch (error) {
                 setAlert('Không thể kết nối máy chủ. Vui lòng thử lại sau.');
             } finally {
