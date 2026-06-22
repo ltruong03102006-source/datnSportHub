@@ -273,6 +273,23 @@ class UserBookingController extends Controller
             return $this->cancelErrorResponse($request, $exception->getMessage(), $exception->getStatusCode());
         }
 
+        // Notify owner about customer cancellation (best-effort)
+        try {
+            $refreshed = Booking::with('court.venue.owner')->find($booking->id);
+            $ownerId = $refreshed->court->venue->owner?->id ?? null;
+            if ($ownerId) {
+                app(\App\Services\NotificationService::class)->create(
+                    $ownerId,
+                    'Booking đã bị hủy',
+                    "Khách đã hủy Booking #{$booking->id}.",
+                    route('owner.web.calendar.index'),
+                    'owner_booking_cancelled'
+                );
+            }
+        } catch (\Throwable $e) {
+            // ignore
+        }
+
         if ($this->expectsJson($request)) return response()->json(['message' => 'Hủy yêu cầu đặt sân thành công.']);
         return back()->with('success', 'Hủy yêu cầu đặt sân thành công.');
     }

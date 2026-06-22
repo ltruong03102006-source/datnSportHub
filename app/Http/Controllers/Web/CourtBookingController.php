@@ -181,6 +181,23 @@ class CourtBookingController extends Controller
                 return $newBooking;
             });
 
+            // Notify customer and owner about new booking (best-effort)
+            try {
+                app(\App\Services\NotificationService::class)->notifyBookingPlaced($booking);
+            } catch (\Throwable $e) {
+                // ignore notification errors for customer booking created
+            }
+
+            try {
+                $booking->loadMissing(['court.venue.owner']);
+                $ownerId = $booking->court->venue->owner?->id;
+                if ($ownerId) {
+                    app(\App\Services\NotificationService::class)->notifyOwnerNewBooking($ownerId, $booking);
+                }
+            } catch (\Throwable $e) {
+                // ignore notification errors for owner notification
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Gửi yêu cầu đặt sân thành công! Vui lòng chờ chủ sân phê duyệt.',

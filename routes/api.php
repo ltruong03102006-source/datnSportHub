@@ -42,6 +42,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/bookings/{booking}/cancel', [UserBookingController::class, 'cancel'])->name('bookings.cancel');
     Route::post('/courts/{courtId}/booking', [BookingController::class, 'store'])->name('courts.booking');
 
+    // Notifications API
+    Route::get('/notifications/unread-count', [\App\Http\Controllers\Api\NotificationController::class, 'unreadCount'])->name('api.notifications.unread_count');
+    Route::get('/notifications/latest', [\App\Http\Controllers\Api\NotificationController::class, 'latest'])->name('api.notifications.latest');
+
     // Submit a court review (only after the user has booked it)
     Route::post('/courts/{courtId}/reviews', [ReviewController::class, 'store'])
         ->whereNumber('courtId')

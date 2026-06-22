@@ -110,6 +110,19 @@ class BookingController extends Controller
             return $booking->load('court.venue');
         });
 
+        // Notify customer and owner(s) about new booking(s) (best-effort)
+        try {
+            foreach ($bookings as $booking) {
+                app(\App\Services\NotificationService::class)->notifyBookingPlaced($booking);
+                $ownerId = $booking->court->venue->owner_id ?? null;
+                if ($ownerId) {
+                    app(\App\Services\NotificationService::class)->notifyOwnerNewBooking($ownerId, $booking);
+                }
+            }
+        } catch (\Throwable $e) {
+            // ignore notification errors
+        }
+
         $data = $bookings->map(function ($booking) {
             return [
                 'id' => $booking->id,
