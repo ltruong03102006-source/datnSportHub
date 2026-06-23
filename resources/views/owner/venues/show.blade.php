@@ -4,57 +4,292 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chi tiết điểm sân: {{ $venue->name }}</title>
+
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+
     <style>
-        body { background: #f4f7fb; }
-        .card-shell { border: 0; border-radius: 18px; box-shadow: 0 12px 35px rgba(15, 23, 42, 0.08); }
-        #map-view { border-radius: 12px; border: 1px solid #cbd5e1; z-index: 1; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .card-shell {
+            border: 0;
+            border-radius: 18px;
+            box-shadow: 0 12px 35px rgba(15, 23, 42, 0.08);
+        }
+
+        #map-view {
+            border-radius: 12px;
+            border: 1px solid #cbd5e1;
+            z-index: 1;
+        }
+
+        .sporthub-btn-primary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 18px;
+            font-size: 14px;
+            font-weight: 700;
+            color: white;
+            background: #059669;
+            border-radius: 10px;
+            text-decoration: none;
+            border: 0;
+            transition: all .2s ease;
+        }
+
+        .sporthub-btn-primary:hover {
+            background: #047857;
+            color: white;
+        }
+
+        .sporthub-btn-outline {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #475569;
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            text-decoration: none;
+            transition: all .2s ease;
+        }
+
+        .sporthub-btn-outline:hover {
+            color: #047857;
+            border-color: #10b981;
+            background: #ecfdf5;
+        }
+
+        .sporthub-btn-warning {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #713f12;
+            background: #fef3c7;
+            border: 1px solid #fde68a;
+            border-radius: 10px;
+            text-decoration: none;
+            transition: all .2s ease;
+        }
+
+        .sporthub-btn-warning:hover {
+            background: #fde68a;
+            color: #713f12;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 800;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .status-approved {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-rejected {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .sporthub-nav {
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+.sporthub-nav-left {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.sporthub-logo {
+    font-size: 28px;
+    line-height: 1;
+    font-weight: 800;
+    background: linear-gradient(to right, #059669, #14b8a6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    white-space: nowrap;
+}
+
+.sporthub-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-left: 20px;
+    border-left: 1px solid #e2e8f0;
+    font-size: 14px;
+    color: #64748b;
+}
+
+.sporthub-breadcrumb a,
+.sporthub-nav-right a {
+    color: #475569;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color .2s ease;
+}
+
+.sporthub-breadcrumb a:hover,
+.sporthub-nav-right a:hover {
+    color: #059669;
+    text-decoration: none;
+}
+
+.sporthub-breadcrumb span:last-child {
+    color: #1e293b;
+    font-weight: 700;
+}
+
+.sporthub-nav-right {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    font-size: 14px;
+}
+
+@media (max-width: 768px) {
+    .sporthub-nav {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+    }
+
+    .sporthub-nav-left {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .sporthub-breadcrumb {
+        border-left: 0;
+        padding-left: 0;
+        flex-wrap: wrap;
+    }
+
+    .sporthub-nav-right {
+        gap: 18px;
+    }
+}
     </style>
 </head>
-<body>
-<div class="container py-4 py-lg-5">
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ route('home') }}">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{{ route('owner.web.venues.index') }}">Quản lý sân</a></li>
-            <li class="breadcrumb-item active" aria-current="page">{{ $venue->name }}</li>
-        </ol>
-    </nav>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h1 class="h3 mb-1">
-                {{ $venue->name }}
-                @if($venue->status === 'approved')
-    <span class="badge bg-success ms-2">
-        Hoạt động
-    </span>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
 
-@elseif($venue->status === 'rejected')
-    <span class="badge bg-danger ms-2">
-        Bị từ chối
-    </span>
-
-@else
-    <span class="badge bg-warning text-dark ms-2">
-        Chờ duyệt
-    </span>
-@endif
-            </h1>
-            <p class="text-muted mb-0">Thông tin chi tiết điểm sân và quản lý các sân con.</p>
+    <!-- Top Navigation -->
+<nav class="sporthub-nav">
+    <div class="sporthub-nav-left">
+        <div class="sporthub-logo">
+            SportHub
         </div>
-        <div>
-            <button onclick="toggleRulesCard()" class="btn btn-success btn-sm me-2 fw-bold text-white">
-                Nội quy sân
-            </button>
-            <a href="{{ route('owner.web.reviews.index', ['venue_id' => $venue->id]) }}" class="btn btn-warning btn-sm me-2 fw-bold text-dark">
-                Xem đánh giá
+
+        <div class="sporthub-breadcrumb">
+            <a href="{{ route('owner.dashboard') }}">
+                Dashboard
             </a>
-            <a href="{{ route('owner.web.venues.edit', $venue->id) }}" class="btn btn-outline-primary btn-sm me-2">Sửa thông tin</a>
-            <a href="{{ route('owner.web.venues.index') }}" class="btn btn-outline-secondary btn-sm">Quay lại</a>
+            <span>/</span>
+            <a href="{{ route('owner.web.venues.index') }}">
+                Quản lý cơ sở
+            </a>
+            <span>/</span>
+            <span>{{ $venue->name }}</span>
         </div>
     </div>
+
+    <div class="sporthub-nav-right">
+        <a href="{{ route('owner.dashboard') }}">
+            Tổng quan
+        </a>
+
+        <a href="{{ route('owner.web.calendar.index') }}">
+            Lịch đặt sân
+        </a>
+    </div>
+</nav>
+
+    <div class="flex-1 p-6 lg:p-10 max-w-7xl mx-auto w-full">
+
+        <!-- Header -->
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
+            <div>
+                <h2 class="text-3xl font-bold text-slate-800 mb-2">
+                    {{ $venue->name }}
+
+                    @if($venue->status === 'approved')
+                        <span class="status-badge status-approved">
+                            Hoạt động
+                        </span>
+                    @elseif($venue->status === 'rejected')
+                        <span class="status-badge status-rejected">
+                            Bị từ chối
+                        </span>
+                    @else
+                        <span class="status-badge status-pending">
+                            Chờ duyệt
+                        </span>
+                    @endif
+                </h2>
+
+                <p class="text-slate-500">
+                    Thông tin chi tiết điểm sân và quản lý các sân con.
+                </p>
+            </div>
+
+            <div class="flex flex-wrap gap-3">
+                <button onclick="toggleRulesCard()" class="sporthub-btn-primary">
+                    Nội quy sân
+                </button>
+
+                <a href="{{ route('owner.web.reviews.index', ['venue_id' => $venue->id]) }}"
+                   class="sporthub-btn-warning">
+                    Xem đánh giá
+                </a>
+
+                <a href="{{ route('owner.web.venues.edit', $venue->id) }}"
+                   class="sporthub-btn-outline">
+                    Sửa thông tin
+                </a>
+
+                <a href="{{ route('owner.web.venues.index') }}"
+                   class="sporthub-btn-outline">
+                    Quay lại
+                </a>
+            </div>
+        </div>
     <div id="rulesCard" class="card card-shell mb-4" style="display: none;">
         <div class="card-header bg-white d-flex justify-content-between align-items-center py-3" style="border-top-left-radius: 18px; border-top-right-radius: 18px;">
             <h5 class="mb-0 fw-bold">Nội quy cơ sở & Quy định sân</h5>
