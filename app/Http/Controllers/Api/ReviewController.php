@@ -41,6 +41,17 @@ class ReviewController extends Controller
             'content' => $request->input('content')
         ]);
 
+        // Notify owner about new review (best-effort)
+        try {
+            $review->load('court.venue.owner');
+            $ownerId = $review->court->venue->owner?->id ?? null;
+            if ($ownerId) {
+                app(\App\Services\NotificationService::class)->notifyOwnerNewReview($ownerId, $review);
+            }
+        } catch (\Throwable $e) {
+            // ignore
+        }
+
         return response()->json([
             'message' => 'Cảm ơn bạn đã chia sẻ trải nghiệm!',
             'data' => $this->formatReview($review->load('user:id,name', 'court:id,name')),

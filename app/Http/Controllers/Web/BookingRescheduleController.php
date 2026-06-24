@@ -11,6 +11,8 @@ use App\Notifications\BookingRescheduleNotification;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class BookingRescheduleController extends Controller
 {
@@ -39,15 +41,23 @@ class BookingRescheduleController extends Controller
         $slots=TimeSlot::whereIn('id',$data['new_time_slot_ids'])->where('court_id',$booking->court_id)->orderBy('start_time')->get();
         if($slots->count()!==$sourceBookings->count()) return back()->withInput()->with('error','Khung giờ mới không hợp lệ.');
         foreach($slots as $slot){ if(Carbon::parse($data['new_slot_date'].' '.$slot->start_time,'Asia/Ho_Chi_Minh')->lte(now('Asia/Ho_Chi_Minh')) || $this->slotTaken($booking,$data['new_slot_date'],$slot)) return back()->withInput()->with('error','Có khung giờ mới không còn trống hoặc đã qua giờ.'); }
-        $reschedule = \DB::transaction(function() use($booking,$request,$data,$slots,$sourceBookings){ $item=BookingRescheduleRequest::create(['booking_id'=>$booking->id,'user_id'=>$request->user()->id,'old_slot_date'=>$booking->slot_date,'old_start_time'=>$booking->start_time,'old_end_time'=>$booking->end_time,'old_time_slot_id'=>$booking->time_slot_id,'new_slot_date'=>$data['new_slot_date'],'new_time_slot_id'=>$slots->first()->id,'reason'=>$data['reason']]); foreach($sourceBookings->sortBy('start_time')->values() as $i=>$old) BookingRescheduleRequestSlot::create(['booking_reschedule_request_id'=>$item->id,'booking_id'=>$old->id,'old_slot_date'=>$old->slot_date,'old_start_time'=>$old->start_time,'old_end_time'=>$old->end_time,'new_slot_date'=>$data['new_slot_date'],'new_time_slot_id'=>$slots[$i]->id]); return $item; });
-        $booking->load('court.venue.owner');
-        $booking->court->venue->owner?->notify(new BookingRescheduleNotification($reschedule, 'Có yêu cầu đổi lịch booking mới.'));
+        $reschedule = DB::transaction(function() use($booking,$request,$data,$slots,$sourceBookings){ $item=BookingRescheduleRequest::create(['booking_id'=>$booking->id,'user_id'=>$request->user()->id,'old_slot_date'=>$booking->slot_date,'old_start_time'=>$booking->start_time,'old_end_time'=>$booking->end_time,'old_time_slot_id'=>$booking->time_slot_id,'new_slot_date'=>$data['new_slot_date'],'new_time_slot_id'=>$slots->first()->id,'reason'=>$data['reason']]); foreach($sourceBookings->sortBy('start_time')->values() as $i=>$old) BookingRescheduleRequestSlot::create(['booking_reschedule_request_id'=>$item->id,'booking_id'=>$old->id,'old_slot_date'=>$old->slot_date,'old_start_time'=>$old->start_time,'old_end_time'=>$old->end_time,'new_slot_date'=>$data['new_slot_date'],'new_time_slot_id'=>$slots[$i]->id]); return $item; });
+        // Notify owner about reschedule request (best-effort)
+        try {
+            $booking->load('court.venue.owner');
+            $ownerId = $booking->court->venue->owner?->id ?? null;
+            if ($ownerId) {
+                app(\App\Services\NotificationService::class)->notifyOwnerRescheduleRequest($ownerId, $reschedule);
+            }
+        } catch (\Throwable $e) {
+            // ignore
+        }
         return redirect()->route('account.bookings.index')->with('success', 'Yêu cầu đổi lịch đã được gửi tới chủ sân.');
     }
 
     private function eligibilityError(Booking $booking): ?string
     {
-        if ($booking->user_id !== auth()->id()) {
+        if ($booking->user_id !== Auth::id()) {
             abort(403);
         }
 

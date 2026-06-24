@@ -177,6 +177,17 @@ class OwnerBookingCalendarController extends Controller
                 ->where('status', 'pending')
                 ->count(),
         ]);
+
+        // Notify customer
+        try {
+            if ($validated['status'] === 'confirmed') {
+                app(\App\Services\NotificationService::class)->notifyBookingConfirmed($booking);
+            } else {
+                app(\App\Services\NotificationService::class)->notifyBookingRejected($booking);
+            }
+        } catch (\Throwable $e) {
+            // ignore
+        }
     }
 
     public function cancel(Request $request, Booking $booking): JsonResponse
@@ -225,6 +236,13 @@ class OwnerBookingCalendarController extends Controller
             'message' => 'Đã hủy ca sân và ghi nhận hoàn tiền 100% cho khách!',
             'event' => $this->formatEvent($booking),
         ]);
+
+        // Notify customer about cancellation
+        try {
+            app(\App\Services\NotificationService::class)->notifyBookingCancelled($booking);
+        } catch (\Throwable $e) {
+            // ignore
+        }
     }
     private function formatEvent(Booking $booking): array
     {

@@ -78,7 +78,25 @@
             @endguest
 
             @auth
-            <div class="relative hidden items-center md:flex" x-data="{ profileOpen: false }">
+            <div class="relative hidden items-center md:flex items-center gap-4">
+                <div x-data="{ open: false }" class="relative">
+                    <button @click="open = !open" @click.away="open = false" id="notification-button" class="relative grid h-10 w-10 place-items-center rounded-lg text-zinc-700 transition hover:bg-stone-100">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                        <span id="notification-badge" class="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-white rounded-full bg-rose-600" style="display:none">0</span>
+                    </button>
+
+                    <div x-show="open" x-cloak class="absolute right-0 mt-2 w-96 origin-top-right rounded-xl border border-stone-100 bg-white py-2 shadow-lg ring-1 ring-black/5 focus:outline-none">
+                        <div id="notification-list" class="max-h-96 overflow-auto">
+                            <div class="p-4 text-sm text-zinc-500">Đang tải...</div>
+                        </div>
+                        <div class="border-t border-stone-100 px-3 py-2 flex items-center justify-between">
+                            <a href="{{ route('notifications.index') }}" class="text-sm font-semibold text-emerald-700">Xem tất cả</a>
+                            <button id="mark-all-read" class="text-sm text-zinc-500">Đánh dấu đã đọc</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative" x-data="{ profileOpen: false }">
                 <button @click="profileOpen = !profileOpen" @click.away="profileOpen = false" class="flex items-center gap-2.5 rounded-full border border-stone-200 bg-white py-1.5 pl-1.5 pr-3 shadow-sm transition hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-emerald-600/20">
                     @if (Auth::user()->avatar)
                         <img src="{{ asset('storage/' . Auth::user()->avatar) }}" alt="Avatar" class="h-8 w-8 rounded-full object-cover">
