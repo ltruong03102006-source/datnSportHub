@@ -49,9 +49,11 @@
             @auth
             <div class="relative hidden items-center md:flex" x-data="{ profileOpen: false }">
                 <button @click="profileOpen = !profileOpen" @click.away="profileOpen = false" class="flex items-center gap-2.5 rounded-full border border-stone-200 bg-white py-1.5 pl-1.5 pr-3 shadow-sm transition hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-emerald-600/20">
-                    <span class="grid h-8 w-8 place-items-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700">
-                        {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
-                    </span>
+                    @if (Auth::user()->avatar)
+                        <img src="{{ asset('storage/' . Auth::user()->avatar) }}" alt="Avatar" class="h-8 w-8 rounded-full object-cover">
+                    @else
+                        <span class="grid h-8 w-8 place-items-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</span>
+                    @endif
                     <span class="text-sm font-semibold text-zinc-700">{{ Auth::user()->name }}</span>
                     <svg class="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
                 </button>
@@ -65,7 +67,7 @@
                     <a href="{{ route('account.bookings.index') }}" class="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-stone-50 hover:text-emerald-700 transition">Lịch sử đặt sân</a>
                     <a href="{{ route('account.reviews.index') }}" class="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-stone-50 hover:text-emerald-700 transition">Đánh giá của tôi</a>
                     
-                    <a href="#" class="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-stone-50 hover:text-emerald-700 transition">Thông tin cá nhân</a>
+                    <a href="{{ route('account.profile.show') }}" class="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-stone-50 hover:text-emerald-700 transition">Trang cá nhân</a>
                     <div class="my-1 border-t border-stone-100"></div>
                     <button onclick="handleLogout()" class="block w-full px-4 py-2.5 text-left text-sm font-semibold text-red-600 hover:bg-red-50 transition">Đăng xuất</button>
                 </div>
@@ -109,12 +111,17 @@
                 @auth
                 <div class="mt-2 border-t border-stone-100 pt-2 flex flex-col gap-1">
                     <div class="flex items-center gap-3 px-3 py-3">
-                        <span class="grid h-10 w-10 place-items-center rounded-full bg-emerald-100 text-base font-bold text-emerald-700">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</span>
+                        @if (Auth::user()->avatar)
+                            <img src="{{ asset('storage/' . Auth::user()->avatar) }}" alt="Avatar" class="h-10 w-10 rounded-full object-cover">
+                        @else
+                            <span class="grid h-10 w-10 place-items-center rounded-full bg-emerald-100 text-base font-bold text-emerald-700">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</span>
+                        @endif
                         <div>
                             <p class="text-xs text-zinc-500">Xin chào</p>
                             <p class="text-sm font-bold text-zinc-900">{{ Auth::user()->name }}</p>
                         </div>
                     </div>
+                    <a href="{{ route('account.profile.show') }}" class="rounded-lg px-3 py-2.5 text-zinc-700 hover:bg-stone-100">Trang cá nhân</a>
                     <a href="{{ route('account.bookings.index') }}" class="rounded-lg px-3 py-2.5 text-zinc-700 hover:bg-stone-100">Lịch sử đặt sân</a>
                     <a href="{{ route('account.reviews.index') }}" class="rounded-lg px-3 py-2.5 text-zinc-700 hover:bg-stone-100">Đánh giá của tôi</a>
                     <button onclick="handleLogout()" class="rounded-lg px-3 py-2.5 text-left font-semibold text-red-600 hover:bg-red-50">Đăng xuất</button>
