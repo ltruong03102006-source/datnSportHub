@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\BookingLog;
 use App\Models\Venue;
+use App\Services\BookingCompletionService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,8 +16,10 @@ use Illuminate\View\View;
 
 class OwnerBookingCalendarController extends Controller
 {
-    public function index(): View
+    public function index(BookingCompletionService $completionService): View
     {
+        $completionService->completeExpiredBookings(ownerId: Auth::id());
+
         // TỰ ĐỘNG CHUYỂN TRẠNG THÁI "ĐÃ HOÀN THÀNH" CHO CÁC CA ĐÃ QUA
         $now = now('Asia/Ho_Chi_Minh');
         

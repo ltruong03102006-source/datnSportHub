@@ -8,6 +8,7 @@ use App\Http\Controllers\Web\OwnerPasswordSetupController;
 use App\Http\Controllers\Web\OwnerBookingCalendarController;
 use App\Http\Controllers\Web\OwnerVenueController;
 use App\Http\Controllers\Web\UserBookingController;
+use App\Http\Controllers\Web\UserReviewController;
 use App\Http\Controllers\Web\VenueController;
 use App\Http\Controllers\Api\AuthController as ApiAuthController;
 use App\Http\Controllers\Web\AdminLoginController;
@@ -160,6 +161,7 @@ Route::middleware('auth')->group(function () {
         
         // 1. Lịch sử đặt sân
         Route::get('/bookings', [UserBookingController::class, 'history'])->name('bookings.index');
+        Route::get('/reviews', [UserReviewController::class, 'index'])->name('reviews.index');
 
         // 2. Hủy đặt sân & tính phí
         Route::get('/bookings/{booking}/cancel-fee', [UserBookingController::class, 'calculateCancelFee'])->name('bookings.cancel-fee');

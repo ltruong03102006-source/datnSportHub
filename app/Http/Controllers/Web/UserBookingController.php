@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\BookingLog;
+use App\Services\BookingCompletionService;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -60,8 +61,10 @@ class UserBookingController extends Controller
         ]);
     }
 
-    public function history(): View
+    public function history(BookingCompletionService $completionService): View
     {
+        $completionService->completeExpiredBookings(userId: Auth::id());
+
         $now = now('Asia/Ho_Chi_Minh');
         $userConfirmedBookings = Booking::where('user_id', Auth::id())
             ->where('status', 'confirmed')

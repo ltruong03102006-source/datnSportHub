@@ -256,8 +256,48 @@
     const errorState = document.getElementById('errorState');
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toastMessage');
+    const bookingContinuationKey = 'sporthub_pending_booking';
 
     let selectedSlots = [];
+
+    function readBookingContinuation() {
+        try {
+            return JSON.parse(sessionStorage.getItem(bookingContinuationKey) || 'null');
+        } catch (error) {
+            sessionStorage.removeItem(bookingContinuationKey);
+            return null;
+        }
+    }
+
+    function saveBookingContinuation() {
+        const returnUrl = new URL(window.location.href);
+        returnUrl.searchParams.set('date', datePicker.value);
+
+        sessionStorage.setItem(bookingContinuationKey, JSON.stringify({
+            courtId,
+            date: datePicker.value,
+            slotIds: selectedSlots.map((slot) => slot.slot_id),
+            returnUrl: returnUrl.toString(),
+        }));
+    }
+
+    function restoreBookingContinuation(slots, dateString) {
+        const continuation = readBookingContinuation();
+
+        if (! continuation || Number(continuation.courtId) !== courtId || continuation.date !== dateString) {
+            return;
+        }
+
+        selectedSlots = slots.filter((slot) => (
+            slot.is_available && continuation.slotIds.includes(slot.slot_id)
+        ));
+        sessionStorage.removeItem(bookingContinuationKey);
+        updateSummaryUI();
+
+        if (selectedSlots.length > 0) {
+            showToast('Đã khôi phục các khung giờ bạn đã chọn.');
+        }
+    }
 
     datePicker.addEventListener('change', (e) => {
         selectedSlots = []; 
@@ -299,7 +339,9 @@
                 return response.json();
             })
             .then(data => {
-                renderSlots(data.data || []);
+                const slots = data.data || [];
+                renderSlots(slots);
+                restoreBookingContinuation(slots, dateString);
                 showLoading(false);
             })
             .catch(error => {
@@ -521,6 +563,7 @@
                         localStorage.removeItem('sporthub_token');
                         localStorage.removeItem('sporthub_user');
                     }
+                    saveBookingContinuation();
                     showToast('Vui lòng đăng nhập để đặt sân.');
                     setTimeout(() => {
                         window.location.href = '{{ route('login') }}';
@@ -575,8 +618,14 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        updateDateDisplay(datePicker.value);
-        fetchAvailability(datePicker.value);
+        const continuation = readBookingContinuation();
+        const restoreDate = continuation && Number(continuation.courtId) === courtId
+            ? continuation.date
+            : datePicker.value;
+
+        datePicker.value = restoreDate;
+        updateDateDisplay(restoreDate);
+        fetchAvailability(restoreDate);
     });
 
     // LOGIC MỚI: Bắt sự kiện khi người dùng ấn nút "Quay lại" trên trình duyệt
