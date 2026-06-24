@@ -34,6 +34,96 @@
         a {
             text-decoration: none;
         }
+        .sporthub-nav {
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+.sporthub-nav-left {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.sporthub-logo {
+    font-size: 28px;
+    line-height: 1;
+    font-weight: 800;
+    background: linear-gradient(to right, #059669, #14b8a6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    white-space: nowrap;
+}
+
+.sporthub-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-left: 20px;
+    border-left: 1px solid #e2e8f0;
+    font-size: 14px;
+    color: #64748b;
+}
+
+.sporthub-breadcrumb a,
+.sporthub-nav-right a {
+    color: #475569;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color .2s ease;
+}
+
+.sporthub-breadcrumb a:hover,
+.sporthub-nav-right a:hover {
+    color: #059669;
+    text-decoration: none;
+}
+
+.sporthub-breadcrumb span:last-child {
+    color: #1e293b;
+    font-weight: 700;
+}
+
+.sporthub-nav-right {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    font-size: 14px;
+}
+
+@media (max-width: 768px) {
+    .sporthub-nav {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+    }
+
+    .sporthub-nav-left {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .sporthub-breadcrumb {
+        border-left: 0;
+        padding-left: 0;
+        flex-wrap: wrap;
+    }
+
+    .sporthub-nav-right {
+        gap: 18px;
+        flex-wrap: wrap;
+    }
+}
 
         .page-shell {
             max-width: 1560px;
@@ -531,25 +621,40 @@
     </style>
 </head>
 <body>
-<header class="topbar">
-    <div class="container-fluid page-shell py-3">
-        <div class="d-flex align-items-center justify-content-between gap-3">
-            <div class="d-flex align-items-center gap-3">
-                <div class="brand-mark">SH</div>
-                <div>
-                    <div class="fw-bold">SportHub Owner</div>
-                    <div class="small text-secondary">Quản lý lịch đặt sân</div>
-                </div>
-            </div>
-            <nav class="d-flex align-items-center gap-2">
-                <a href="{{ route('owner.dashboard') }}" class="nav-link-soft">Tổng quan</a>
-                <a href="{{ route('owner.web.venues.index') }}" class="nav-link-soft">Cơ sở sân</a>
-                <a href="{{ route('owner.web.calendar.index') }}" class="nav-link-soft active">Lịch đặt sân</a>
-                <a href="{{ route('owner.web.reschedule.index') }}" class="nav-link-soft">Yêu cầu đổi lịch</a>
-            </nav>
+<!-- Top Navigation -->
+<nav class="sporthub-nav">
+    <div class="sporthub-nav-left">
+        <div class="sporthub-logo">
+            SportHub
+        </div>
+
+        <div class="sporthub-breadcrumb">
+            <a href="{{ route('owner.dashboard') }}">
+                Dashboard
+            </a>
+            <span>/</span>
+            <span>Lịch đặt sân</span>
         </div>
     </div>
-</header>
+
+    <div class="sporthub-nav-right">
+        <a href="{{ route('owner.dashboard') }}">
+            Tổng quan
+        </a>
+
+        <a href="{{ route('owner.web.venues.index') }}">
+            Cơ sở sân
+        </a>
+
+        <a href="{{ route('owner.web.calendar.index') }}">
+            Lịch đặt sân
+        </a>
+
+        <a href="{{ route('owner.web.reschedule.index') }}">
+            Yêu cầu đổi lịch
+        </a>
+    </div>
+</nav>
 
 <main class="container-fluid page-shell py-4">
     <section class="page-hero">
