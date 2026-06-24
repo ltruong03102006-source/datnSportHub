@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreVenueRequest;
+use App\Http\Requests\UpdateVenueRequest;
 use App\Models\Sport;
 use App\Models\Venue;
 use Illuminate\Http\JsonResponse; // Dòng khai báo cực kỳ quan trọng vừa được thêm
@@ -101,7 +102,7 @@ class OwnerVenueController extends Controller
     }
 
     // Xử lý lưu cập nhật
-    public function update(StoreVenueRequest $request, Venue $venue)
+    public function update(UpdateVenueRequest $request, Venue $venue)
     {
         $this->authorizeOwner($venue);
         $validated = $request->validated();
