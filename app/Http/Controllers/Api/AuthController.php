@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Models\LoginHistory;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -70,6 +71,14 @@ class AuthController extends Controller
                     'message' => 'Tài khoản của bạn đã bị khóa hoặc chưa kích hoạt.'
                 ], 403);
             }
+
+            // Record login history for the user's security page
+            LoginHistory::create([
+                'user_id' => $user->id,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'logged_in_at' => now(),
+            ]);
 
             // 4. Tạo token mới
             $token = $user->createToken('auth_token')->plainTextToken;

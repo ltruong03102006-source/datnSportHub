@@ -169,7 +169,13 @@ Route::middleware('auth')->group(function () {
         
         // 3. Danh sách sân yêu thích
         Route::get('/favorites', [FavoriteController::class, 'index'])->name('favorites.index');
-        
+
+        // 4. Trang cá nhân
+        Route::get('/profile', [\App\Http\Controllers\Web\ProfileController::class, 'show'])->name('profile.show');
+        Route::patch('/profile', [\App\Http\Controllers\Web\ProfileController::class, 'updateInfo'])->name('profile.update');
+        Route::put('/profile/password', [\App\Http\Controllers\Web\ProfileController::class, 'updatePassword'])->name('profile.password');
+        Route::post('/profile/avatar', [\App\Http\Controllers\Web\ProfileController::class, 'updateAvatar'])->name('profile.avatar');
+
     }); // <-- Ngoặc đóng của group account
 
 }); // <-- NGOẶC ĐÓNG CỦA GROUP AUTH BỊ THIẾU CỦA BẠN CHÍNH LÀ ĐÂY!
