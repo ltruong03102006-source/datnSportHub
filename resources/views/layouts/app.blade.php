@@ -15,6 +15,36 @@
 
     <style>
         [x-cloak] { display: none !important; }
+
+        /* Navigation active underline styling */
+        nav a.nav-link {
+            position: relative;
+            padding: 6px 0;
+            font-weight: 600;
+            color: #4b5563; /* text-zinc-600 */
+            transition: color 0.25s ease;
+        }
+        nav a.nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 0;
+            width: 0;
+            height: 2.5px;
+            background-color: #10B981; /* bg-emerald-500 */
+            border-radius: 99px;
+            transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        nav a.nav-link.active::after,
+        nav a.nav-link:hover::after {
+            width: 100%;
+        }
+        nav a.nav-link.active {
+            color: #10B981 !important; /* text-emerald-500 */
+        }
+        nav a.nav-link:hover {
+            color: #059669 !important; /* hover:text-emerald-600 */
+        }
     </style>
 </head>
 <body class="flex min-h-screen flex-col bg-stone-50 font-sans text-zinc-900 antialiased">
@@ -27,12 +57,13 @@
                 <span class="text-lg font-bold tracking-tight text-zinc-900">SportHub</span>
             </a>
 
-            <nav class="hidden items-center gap-8 text-sm font-medium text-zinc-600 md:flex">
-                <a href="{{ route('home') }}" class="text-emerald-700 transition hover:text-emerald-800">Tìm sân</a>
+            <nav class="hidden items-center gap-8 text-sm font-medium md:flex">
+                <a href="{{ route('home') }}" class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}">Tìm sân</a>
+                <a href="{{ route('venues.nearby') }}" class="nav-link {{ request()->routeIs('venues.nearby') ? 'active' : '' }}">Tìm sân gần đây</a>
                 @auth
-                <a href="{{ route('account.favorites.index') }}" class="flex items-center gap-1.5 transition hover:text-rose-600">
+                <a href="{{ route('account.favorites.index') }}" class="nav-link flex items-center gap-1.5 {{ request()->routeIs('account.favorites.index') ? 'active' : '' }}">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                     </svg>
                     Yêu thích
                 </a>
@@ -80,9 +111,10 @@
 
         <div x-show="open" x-cloak x-transition class="border-t border-stone-200 bg-white md:hidden">
             <nav class="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3 text-sm font-medium sm:px-6">
-                <a href="{{ route('home') }}" class="rounded-lg px-3 py-2.5 text-emerald-700 bg-emerald-50">Tìm sân</a>
+                <a href="{{ route('home') }}" class="rounded-lg px-3 py-2.5 transition {{ request()->routeIs('home') ? 'text-emerald-700 bg-emerald-50 font-bold' : 'text-zinc-700 hover:bg-stone-100' }}">Tìm sân</a>
+                <a href="{{ route('venues.nearby') }}" class="rounded-lg px-3 py-2.5 transition {{ request()->routeIs('venues.nearby') ? 'text-emerald-700 bg-emerald-50 font-bold' : 'text-zinc-700 hover:bg-stone-100' }}">Tìm sân gần đây</a>
                 @auth
-                <a href="{{ route('account.favorites.index') }}" class="flex items-center gap-2 rounded-lg px-3 py-2.5 text-zinc-700 hover:bg-rose-50 hover:text-rose-600 transition">
+                <a href="{{ route('account.favorites.index') }}" class="flex items-center gap-2 rounded-lg px-3 py-2.5 transition {{ request()->routeIs('account.favorites.index') ? 'text-rose-600 bg-rose-50 font-bold' : 'text-zinc-700 hover:bg-stone-100' }}">
                     <svg class="h-4 w-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                     </svg>
@@ -145,7 +177,7 @@
                 <div>
                     <h3 class="text-sm font-bold text-zinc-900 uppercase tracking-wider mb-4">Khám phá</h3>
                     <ul class="space-y-3 text-sm text-zinc-500">
-                        <li><a href="#" class="hover:text-emerald-600 transition">Tìm sân gần đây</a></li>
+                        <li><a href="{{ route('venues.nearby') }}" class="hover:text-emerald-600 transition">Tìm sân gần đây</a></li>
                         <li><a href="#" class="hover:text-emerald-600 transition">Sân bóng đá</a></li>
                         <li><a href="#" class="hover:text-emerald-600 transition">Sân cầu lông</a></li>
                         <li><a href="#" class="hover:text-emerald-600 transition">Sân tennis</a></li>

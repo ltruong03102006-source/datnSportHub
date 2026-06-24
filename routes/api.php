@@ -67,6 +67,8 @@ Route::get('/courts/{courtId}', [CourtController::class, 'show'])
 Route::get('/courts/{courtId}/availability', [CourtAvailabilityController::class, 'show'])
     ->name('courts.availability');
 // Venues API
+Route::get('/venues/nearby', [VenueController::class, 'nearby'])->name('venues.nearby_api');
+
 Route::get('/venues/{id}', [VenueController::class, 'show'])
     ->whereNumber('id')
     ->name('venues.show');

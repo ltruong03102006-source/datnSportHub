@@ -30,6 +30,8 @@ Route::get('/', [CourtPageController::class, 'index'])->name('home');
 Route::get('/courts/{court}/booking', [CourtBookingController::class, 'show'])->name('web.courts.booking');
 Route::post('/courts/booking', [CourtBookingController::class, 'store'])->name('web.courts.booking.store');
 
+Route::get('/venues/nearby', [VenueController::class, 'nearbyPage'])->name('venues.nearby');
+
 Route::get('/venues/{id}', [VenueController::class, 'show'])
     ->whereNumber('id')
     ->name('venues.show');
