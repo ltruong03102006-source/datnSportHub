@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Venue extends Model
 {
@@ -96,5 +97,10 @@ class Venue extends Model
     {
         // Tự động sắp xếp tăng dần để thuật toán check từ mốc sát giờ nhất
         return $this->hasMany(CancellationPolicy::class)->orderBy('hours_before', 'asc');
+    }
+
+    public function reviews(): HasManyThrough
+    {
+        return $this->hasManyThrough(Review::class, Court::class);
     }
 }
