@@ -295,6 +295,28 @@
     .status-paid { background: #eafaf1; color: #2ecc71; }
     .status-pending { background: #ebf5fb; color: #3498db; }
     .status-cancelled { background: #fdedec; color: #e74c3c; }
+    .table-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .btn-primary-custom {
+        background: #27ae60;
+        color: #fff;
+        padding: 7px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .pagination-wrapper {
+        padding-top: 18px;
+        border-top: 1px solid var(--border-color);
+        margin-top: 4px;
+    }
+    .pagination-wrapper nav {
+        display: flex;
+        justify-content: flex-end;
+    }
 
 </style>
 @endpush
@@ -524,12 +546,19 @@
         </div>
     </div>
 
-    <!-- Row 6: Recent Bookings -->
+    <!-- Row 6: All Bookings -->
     <div class="grid-1">
         <div class="card-custom data-card">
             <div class="chart-header">
-                <div class="chart-title"><h3>Booking gần đây</h3></div>
-                <button style="border:1px solid #ecf0f1; background:transparent; padding:6px 12px; border-radius:6px; font-size:12px;"><i class="fa-solid fa-filter"></i> Lọc</button>
+                <div class="chart-title">
+                    <h3>Tất cả booking</h3>
+                    <p>Admin có thể xem toàn bộ lịch đặt trong hệ thống.</p>
+                </div>
+                <div class="table-actions">
+                    <a href="{{ route('admin.bookings.index') }}" class="btn-primary-custom">
+                        <i class="fa-regular fa-calendar-check"></i> Quản lý booking
+                    </a>
+                </div>
             </div>
             <table class="table-custom">
                 <thead>
@@ -544,7 +573,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($recentBookings as $booking)
+                    @forelse($allBookings as $booking)
                         @php
                             $statusClass = 'status-pending';
                             $statusText = 'Chờ duyệt';
@@ -588,6 +617,11 @@
                     @endforelse
                 </tbody>
             </table>
+            @if($allBookings->hasPages())
+                <div class="pagination-wrapper">
+                    {{ $allBookings->links('vendor.pagination.admin') }}
+                </div>
+            @endif
         </div>
     </div>
 

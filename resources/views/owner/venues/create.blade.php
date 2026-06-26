@@ -3,18 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thêm điểm sân</title>
+    <title>Tạo cơ sở mới</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <style>
-        body { background: #f4f7fb; }
-        .card-shell { border: 0; border-radius: 18px; box-shadow: 0 12px 35px rgba(15, 23, 42, 0.08); }
-        .preview-box { min-height: 220px; border: 2px dashed #cbd5e1; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: #f8fafc; overflow: hidden; }
+        :root { --brand: #059669; --brand-dark: #047857; --ink: #172033; --muted: #64748b; }
+        body { min-height: 100vh; background: radial-gradient(circle at top left, #d1fae5 0, transparent 32%), #f8fafc; color: var(--ink); font-family: Inter, system-ui, sans-serif; }
+        .container { max-width: 1180px; }
+        .breadcrumb { font-size: 13px; font-weight: 600; }
+        .breadcrumb a { color: var(--brand); text-decoration: none; }
+        .card-shell { overflow: hidden; border: 1px solid #e2e8f0; border-radius: 24px; box-shadow: 0 22px 60px rgba(15, 23, 42, 0.10); }
+        .card-shell .card-body { padding: 2.25rem !important; }
+        .card-shell h1 { color: var(--ink); font-size: 30px; font-weight: 800; letter-spacing: -.5px; }
+        .card-shell .text-muted { color: var(--muted) !important; }
+        .step-pill { width: 38px; height: 38px; border: 1px solid #dbe4ee; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #fff; color: #94a3b8; font-weight: 800; transition: .2s; }
+        .step-pill.active { border-color: var(--brand); background: var(--brand); color: #fff; box-shadow: 0 6px 14px rgba(5, 150, 105, .22); }
+        .step-pill.done { border-color: #a7f3d0; background: #ecfdf5; color: var(--brand); }
+        .step-pill + span { font-size: 13px; color: #64748b; }
+        .step-panel { display: none; }
+        .step-panel.active { display: block; }
+        .step-panel.active { animation: reveal .28s ease both; }
+        @keyframes reveal { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+        .form-label { color: #334155; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+        .form-control, .form-select { min-height: 46px; border-color: #dbe4ee; border-radius: 10px; padding: 10px 13px; font-size: 14px; box-shadow: none; }
+        textarea.form-control { min-height: 110px; }
+        .form-control:focus, .form-select:focus { border-color: var(--brand); box-shadow: 0 0 0 4px rgba(5,150,105,.12); }
+        .preview-box { min-height: 240px; border: 2px dashed #a7f3d0; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: #f0fdf4; overflow: hidden; }
         .preview-box img { width: 100%; height: 100%; object-fit: cover; }
-        .is-invalid { border-color: #dc3545; }
-        .invalid-feedback { display: block; }
-        .spinner-border-sm { width: 1rem; height: 1rem; border-width: 0.15em; }
-        #map { border-radius: 12px; border: 1px solid #cbd5e1; z-index: 1; }
+        #map { height: 360px; border-radius: 16px; border: 1px solid #dbe4ee; }
+        .btn { min-height: 42px; border-radius: 10px; padding: 10px 16px; font-size: 13px; font-weight: 700; }
+        .btn-primary { border-color: var(--brand); background: var(--brand); }
+        .btn-primary:hover, .btn-success:hover { border-color: var(--brand-dark); background: var(--brand-dark); }
+        .btn-success { border-color: var(--brand); background: var(--brand); }
+        .btn-outline-secondary { color: #475569; border-color: #cbd5e1; }
+        .d-flex.justify-content-between.mt-4 { margin-top: 32px !important; padding-top: 22px; border-top: 1px solid #edf2f7; }
+        @media (max-width: 767px) { .card-shell .card-body { padding: 1.4rem !important; } .d-flex.flex-wrap.gap-2.mb-4 { gap: 10px !important; } .d-flex.flex-wrap.gap-2.mb-4 > .text-muted { display: none; } }
     </style>
 </head>
 <body>
@@ -23,103 +46,172 @@
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{{ route('home') }}">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="{{ route('owner.web.venues.index') }}">Quản lý sân</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Thêm điểm sân</li>
+            <li class="breadcrumb-item active">Tạo cơ sở mới</li>
         </ol>
     </nav>
 
     <div class="row justify-content-center">
-        <div class="col-12 col-lg-8">
+        <div class="col-12 col-lg-9">
             <div class="card card-shell">
                 <div class="card-body p-4 p-lg-5">
                     <div class="d-flex justify-content-between align-items-start mb-4">
                         <div>
-                            <h1 class="h3 mb-1">Tạo venue mới</h1>
-                            <p class="text-muted mb-0">Tạo một điểm sân mới trước khi khai báo các sân nhỏ.</p>
+                            <h1 class="h3 mb-1">Tạo cơ sở mới</h1>
+                            <p class="text-muted mb-0">Hoàn tất 4 bước để gửi yêu cầu duyệt cơ sở.</p>
                         </div>
                         <a href="{{ route('owner.web.venues.index') }}" class="btn btn-outline-secondary btn-sm">Quay lại</a>
                     </div>
 
                     <div id="formAlert" class="alert d-none" role="alert"></div>
 
-                    <form id="venueForm" enctype="multipart/form-data" novalidate>
+                    <div class="d-flex flex-wrap gap-2 mb-4">
+                        <div class="d-flex align-items-center gap-2"><span class="step-pill active" data-step="1">1</span><span class="fw-semibold">Thông tin</span></div>
+                        <div class="text-muted">›</div>
+                        <div class="d-flex align-items-center gap-2"><span class="step-pill" data-step="2">2</span><span>Liên hệ & bản đồ</span></div>
+                        <div class="text-muted">›</div>
+                        <div class="d-flex align-items-center gap-2"><span class="step-pill" data-step="3">3</span><span>Ảnh</span></div>
+                        <div class="text-muted">›</div>
+                        <div class="d-flex align-items-center gap-2"><span class="step-pill" data-step="4">4</span><span>Hồ sơ pháp lý</span></div>
+                    </div>
+
+                    <form action="{{ route('owner.web.venues.store') }}" method="POST" enctype="multipart/form-data">
                         @csrf
-                        <div class="row g-3">
-                            <div class="col-12 col-md-6">
-                                <label for="sport_id" class="form-label">Loại môn thể thao <span class="text-danger">*</span></label>
-                                <select id="sport_id" name="sport_id" class="form-select" required>
-                                    <option value="">-- Chọn môn thể thao --</option>
-                                    @foreach($sports as $sport)
-                                        <option value="{{ $sport->id }}" {{ old('sport_id') == $sport->id ? 'selected' : '' }}>{{ $sport->name }}</option>
-                                    @endforeach
-                                </select>
-                                <div class="invalid-feedback" id="error-sport_id"></div>
-                            </div>
 
-                            <div class="col-12 col-md-6">
-                                <label for="name" class="form-label">Tên điểm sân <span class="text-danger">*</span></label>
-                                <input id="name" name="name" type="text" class="form-control" maxlength="255" required value="{{ old('name') }}">
-                                <div class="invalid-feedback" id="error-name"></div>
-                            </div>
-
-                            <div class="col-12">
-                                <label for="address" class="form-label">Địa chỉ <span class="text-danger">*</span></label>
-                                <input id="address" name="address" type="text" class="form-control" maxlength="500" required value="{{ old('address') }}">
-                                <div class="invalid-feedback" id="error-address"></div>
-                            </div>
-
-                            <div class="col-12">
-                                <label for="description" class="form-label">Mô tả</label>
-                                <textarea id="description" name="description" class="form-control" rows="4">{{ old('description') }}</textarea>
-                                <div class="invalid-feedback" id="error-description"></div>
-                            </div>
-
-                            <div class="col-12 col-md-6">
-                                <label for="banner" class="form-label">Banner</label>
-                                <input id="banner" name="banner" type="file" class="form-control" accept="image/jpg,image/jpeg,image/png">
-                                <div class="form-text">Định dạng cho phép: jpg, jpeg, png. Tối đa 2MB.</div>
-                                <div class="invalid-feedback" id="error-banner"></div>
-                            </div>
-
-                            <div class="col-12 col-md-6">
-                                <div class="preview-box" id="previewBox">
-                                    <span class="text-muted">Xem trước banner</span>
+                        <div class="step-panel active" data-panel="1">
+                            <div class="row g-3">
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Loại môn thể thao <span class="text-danger">*</span></label>
+                                    <select name="sport_id" class="form-select" required>
+                                        <option value="">-- Chọn môn thể thao --</option>
+                                        @foreach($sports as $sport)
+                                            <option value="{{ $sport->id }}" {{ old('sport_id') == $sport->id ? 'selected' : '' }}>{{ $sport->name }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
-                            </div>
-
-                            <div class="col-12 mt-4">
-                                <div class="p-4 rounded-3 border border-stone-200 bg-white shadow-sm">
-                                    <label for="gallery_images" class="form-label fw-bold text-emerald-700">Thư viện hình ảnh (Gallery)</label>
-                                    <p class="form-text text-muted mb-3">Bạn có thể ấn giữ phím Ctrl (hoặc Cmd) để chọn nhiều ảnh cùng lúc. Giúp khách hàng có cái nhìn thực tế nhất về sân của bạn.</p>
-                                    
-                                    <input id="gallery_images" name="gallery_images[]" type="file" class="form-control form-control-lg" accept="image/jpg,image/jpeg,image/png" multiple>
-                                    <div class="invalid-feedback" id="error-gallery_images"></div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Tên cơ sở <span class="text-danger">*</span></label>
+                                    <input type="text" name="name" class="form-control" maxlength="255" value="{{ old('name') }}" required>
                                 </div>
-                            </div>
-                            <div class="col-12 mt-3">
-                                <label class="form-label fw-bold">Chọn vị trí trên bản đồ <span class="text-danger">*</span></label>
-                                <div id="map" style="height: 350px;"></div>
-                                <div class="form-text text-primary">💡 Kéo thả ghim hoặc dán tọa độ trực tiếp vào ô bên dưới, bản đồ sẽ tự động nhảy theo!</div>
-                            </div>
-
-                            <div class="col-12 col-md-6">
-                                <label for="lat" class="form-label">Vĩ độ (Latitude)</label>
-                                <input id="lat" name="lat" type="number" step="any" class="form-control" value="{{ old('lat') }}" placeholder="Ví dụ: 21.028511">
-                                <div class="invalid-feedback" id="error-lat"></div>
-                            </div>
-
-                            <div class="col-12 col-md-6">
-                                <label for="lng" class="form-label">Kinh độ (Longitude)</label>
-                                <input id="lng" name="lng" type="number" step="any" class="form-control" value="{{ old('lng') }}" placeholder="Ví dụ: 105.804817">
-                                <div class="invalid-feedback" id="error-lng"></div>
+                                <div class="col-12">
+                                    <label class="form-label">Địa chỉ <span class="text-danger">*</span></label>
+                                    <input type="text" name="address" class="form-control" maxlength="500" value="{{ old('address') }}" required>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Mô tả</label>
+                                    <textarea name="description" class="form-control" rows="4">{{ old('description') }}</textarea>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="d-flex flex-column flex-md-row gap-2 mt-4">
-                            <button id="submitBtn" type="submit" class="btn btn-primary px-4">
-                                <span id="submitSpinner" class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
-                                <span id="submitText">Lưu điểm sân</span>
-                            </button>
-                            <button type="reset" class="btn btn-outline-secondary">Làm mới</button>
+                        <div class="step-panel" data-panel="2">
+                            <div class="row g-3">
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
+                                    <input type="text" name="phone" class="form-control" value="{{ old('phone') }}" required>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Email <span class="text-danger">*</span></label>
+                                    <input type="email" name="email" class="form-control" value="{{ old('email') }}" required>
+                                </div>
+                                {{-- <div class="col-12 col-md-6">
+                                    <label class="form-label">Giờ mở cửa <span class="text-danger">*</span></label>
+                                    <input type="time" name="open_hours" class="form-control" value="{{ old('open_hours') }}" required>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Giờ đóng cửa <span class="text-danger">*</span></label>
+                                    <input type="time" name="close_hours" class="form-control" value="{{ old('close_hours') }}" required>
+                                </div> --}}
+                                <div class="col-12">
+                                    <label class="form-label">Địa chỉ Google Maps <span class="text-danger">*</span></label>
+                                    <input type="text" name="google_maps_address" class="form-control" value="{{ old('google_maps_address') }}" required>
+                                </div>
+                                <div class="col-12 mt-2">
+                                    <label class="form-label fw-semibold">Chọn vị trí trên bản đồ</label>
+                                    <div id="map"></div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Vĩ độ</label>
+                                    <input type="number" step="any" name="lat" id="lat" class="form-control" value="{{ old('lat') }}" required>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Kinh độ</label>
+                                    <input type="number" step="any" name="lng" id="lng" class="form-control" value="{{ old('lng') }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="step-panel" data-panel="3">
+                            <div class="row g-3">
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Banner chính <span class="text-danger">*</span></label>
+                                    <input type="file" name="banner" id="banner" class="form-control" accept="image/*" required>
+                                    <div class="form-text">jpg, jpeg, png, tối đa 2MB</div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <div class="preview-box" id="previewBox">
+                                        <span class="text-muted">Xem trước banner</span>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Thư viện ảnh</label>
+                                    <input type="file" name="gallery_images[]" class="form-control" multiple accept="image/*">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="step-panel" data-panel="4">
+                            <div class="row g-3">
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Tên chủ sở hữu <span class="text-danger">*</span></label>
+                                    <input type="text" name="owner_name" class="form-control" value="{{ old('owner_name') }}" required>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Số CCCD <span class="text-danger">*</span></label>
+                                    <input type="text" name="citizen_id" class="form-control" value="{{ old('citizen_id') }}" required>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Số giấy phép kinh doanh <span class="text-danger">*</span></label>
+                                    <input type="text" name="business_license_number" class="form-control" value="{{ old('business_license_number') }}" required>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Tên ngân hàng <span class="text-danger">*</span></label>
+                                    <input type="text" name="bank_name" class="form-control" value="{{ old('bank_name') }}" required>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Số tài khoản ngân hàng <span class="text-danger">*</span></label>
+                                    <input type="text" name="bank_account_number" class="form-control" value="{{ old('bank_account_number') }}" required>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Chủ tài khoản <span class="text-danger">*</span></label>
+                                    <input type="text" name="bank_account_holder" class="form-control" value="{{ old('bank_account_holder') }}" required>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">CCCD mặt trước <span class="text-danger">*</span></label>
+                                    <input type="file" name="citizen_front_image" class="form-control" accept="image/*" required>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">CCCD mặt sau <span class="text-danger">*</span></label>
+                                    <input type="file" name="citizen_back_image" class="form-control" accept="image/*" required>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Giấy phép kinh doanh <span class="text-danger">*</span></label>
+                                    <input type="file" name="business_license_file" class="form-control" accept=".pdf,image/*" required>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Hợp đồng thuê mặt bằng</label>
+                                    <input type="file" name="rental_contract_file" class="form-control" accept=".pdf,image/*">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">Giấy chứng nhận quyền sử dụng đất</label>
+                                    <input type="file" name="land_certificate_file" class="form-control" accept=".pdf,image/*">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <button type="button" class="btn btn-outline-secondary" id="prevBtn" disabled>Quay lại</button>
+                            <button type="button" class="btn btn-primary" id="nextBtn">Tiếp theo</button>
+                            <button type="submit" class="btn btn-success d-none" id="submitBtn">Gửi yêu cầu duyệt</button>
                         </div>
                     </form>
                 </div>
@@ -130,120 +222,135 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script>
-    // --- 1. XỬ LÝ BẢN ĐỒ THÔNG MINH ---
+    const steps = document.querySelectorAll('.step-panel');
+    const stepPills = document.querySelectorAll('.step-pill');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const form = document.querySelector('form');
+    const formAlert = document.getElementById('formAlert');
+    let currentStep = 1;
+
+    function updateStep() {
+        steps.forEach(panel => {
+            panel.classList.toggle('active', Number(panel.dataset.panel) === currentStep);
+        });
+        stepPills.forEach(pill => {
+            const step = Number(pill.dataset.step);
+            pill.classList.toggle('active', step === currentStep);
+            pill.classList.toggle('done', step < currentStep);
+        });
+        prevBtn.disabled = currentStep === 1;
+        nextBtn.classList.toggle('d-none', currentStep === 4);
+        submitBtn.classList.toggle('d-none', currentStep !== 4);
+    }
+
+    function showAlert(message, type = 'danger') {
+        formAlert.className = `alert alert-${type}`;
+        formAlert.textContent = message;
+        formAlert.classList.remove('d-none');
+    }
+
+    form.addEventListener('submit', function (e) {
+        if (!form.checkValidity()) {
+            e.preventDefault();
+            form.reportValidity();
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Đang gửi...';
+    });
+
+    prevBtn.addEventListener('click', () => {
+        if (currentStep > 1) {
+            currentStep--;
+            updateStep();
+        }
+    });
+
+    nextBtn.addEventListener('click', () => {
+    if (currentStep < 4) {
+        currentStep++;
+        updateStep();
+
+        if (currentStep === 2) {
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 300);
+        }
+    }
+});
+
+    updateStep();
+
+    const bannerInput = document.getElementById('banner');
+    const previewBox = document.getElementById('previewBox');
+    bannerInput.addEventListener('change', function () {
+        const file = this.files && this.files[0];
+        if (!file) {
+            previewBox.innerHTML = '<span class="text-muted">Xem trước banner</span>';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            previewBox.innerHTML = `<img src="${e.target.result}" alt="Preview banner">`;
+        };
+        reader.readAsDataURL(file);
+    });
+
     const latInput = document.getElementById('lat');
     const lngInput = document.getElementById('lng');
-
-    const defaultLat = 21.028511; 
+    const defaultLat = 21.028511;
     const defaultLng = 105.804817;
 
-    const map = L.map('map').setView([defaultLat, defaultLng], 14);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+const map = L.map('map').setView([defaultLat, defaultLng], 14);
 
+L.tileLayer(
+    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap'
+    }
+).addTo(map);
     let marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
 
-    // Cập nhật input khi thao tác trên bản đồ
     function updateInputs(lat, lng) {
         latInput.value = lat.toFixed(6);
         lngInput.value = lng.toFixed(6);
     }
 
-    marker.on('dragend', function(e) {
-        const position = marker.getLatLng();
-        updateInputs(position.lat, position.lng);
+    marker.on('dragend', function () {
+        const pos = marker.getLatLng();
+        updateInputs(pos.lat, pos.lng);
     });
-
-    map.on('click', function(e) {
+    map.on('click', function (e) {
         marker.setLatLng(e.latlng);
         updateInputs(e.latlng.lat, e.latlng.lng);
     });
 
-    // Bản đồ nhảy tự động khi nhập tay vào Input
-    function syncMapWithInputs() {
-        let lat = parseFloat(latInput.value);
-        let lng = parseFloat(lngInput.value);
-
+    function syncMap() {
+        const lat = parseFloat(latInput.value);
+        const lng = parseFloat(lngInput.value);
         if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
             marker.setLatLng([lat, lng]);
             map.flyTo([lat, lng], 15);
         }
     }
 
-    latInput.addEventListener('input', syncMapWithInputs);
-    lngInput.addEventListener('input', syncMapWithInputs);
+    latInput.addEventListener('input', syncMap);
+    lngInput.addEventListener('input', syncMap);
 
-    // Khởi tạo tọa độ lần đầu
-    if(!latInput.value) updateInputs(defaultLat, defaultLng);
-    else syncMapWithInputs();
-
-    // --- 2. XỬ LÝ FORM & SUBMIT ---
-    const form = document.getElementById('venueForm');
-    const alertBox = document.getElementById('formAlert');
-    const submitBtn = document.getElementById('submitBtn');
-    const submitSpinner = document.getElementById('submitSpinner');
-    const submitText = document.getElementById('submitText');
-    const previewBox = document.getElementById('previewBox');
-    const bannerInput = document.getElementById('banner');
-
-    const clearErrors = () => {
-        document.querySelectorAll('.is-invalid').forEach((el) => el.classList.remove('is-invalid'));
-        document.querySelectorAll('.invalid-feedback').forEach((el) => { el.textContent = ''; });
-    };
-
-    const showAlert = (message, type = 'danger') => {
-        alertBox.className = `alert alert-${type}`;
-        alertBox.textContent = message;
-        alertBox.classList.remove('d-none');
-    };
-
-    bannerInput.addEventListener('change', (e) => {
-        const file = e.target.files && e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => { previewBox.innerHTML = `<img src="${e.target.result}" alt="Preview banner">`; };
-        reader.readAsDataURL(file);
-    });
-
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        clearErrors();
-        submitBtn.disabled = true;
-        submitSpinner.classList.remove('d-none');
-        submitText.textContent = 'Đang lưu...';
-        alertBox.classList.add('d-none');
-
-        try {
-            const response = await fetch('{{ route('owner.web.venues.store') }}', {
-                method: 'POST',
-                headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                body: new FormData(form)
-            });
-
-            const data = await response.json().catch(() => ({}));
-
-            if (!response.ok) {
-                if (response.status === 422 && data.errors) {
-                    Object.entries(data.errors).forEach(([field, messages]) => {
-                        const fieldEl = document.getElementById(field);
-                        const errorEl = document.getElementById(`error-${field}`);
-                        if (fieldEl) fieldEl.classList.add('is-invalid');
-                        if (errorEl) errorEl.textContent = messages[0];
-                    });
-                    showAlert('Vui lòng kiểm tra lại thông tin.', 'warning');
-                    return;
-                }
-                showAlert(data.message || 'Lỗi hệ thống.', 'danger');
-                return;
-            }
-            window.location.href = '{{ route('owner.web.venues.index') }}?created=1';
-        } catch (error) {
-            showAlert('Đã xảy ra lỗi khi kết nối máy chủ.', 'danger');
-        } finally {
-            submitBtn.disabled = false;
-            submitSpinner.classList.add('d-none');
-            submitText.textContent = 'Lưu điểm sân';
-        }
-    });
+    if (!latInput.value || !lngInput.value) {
+        updateInputs(defaultLat, defaultLng);
+    } else {
+        syncMap();
+    }
+    window.addEventListener('load', () => {
+    setTimeout(() => {
+        map.invalidateSize();
+    }, 500);
+});
 </script>
 </body>
 </html>

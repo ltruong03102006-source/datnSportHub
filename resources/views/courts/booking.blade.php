@@ -3,6 +3,13 @@
 @section('title', $court->name . ' - Đặt sân | SportHub')
 
 @section('content')
+@push('meta')
+    <meta property="og:url" content="{{ url()->current() }}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="{{ $court->name }} - {{ $court->venue->name ?? 'SportHub' }}" />
+    <meta property="og:description" content="{{ $court->venue->address ?? 'Đặt sân thể thao nhanh chóng và tiện lợi trên SportHub.' }}" />
+    <meta property="og:image" content="https://ui-avatars.com/api/?name={{ urlencode($court->name) }}&background=10b981&color=fff&size=512&font-size=0.2" />
+@endpush
 <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
     
     <!-- Hero Section: Clean Profile Card Style -->
@@ -22,7 +29,18 @@
                 @endif
             </div>
 
-            <h1 class="mb-3 text-3xl font-extrabold tracking-tight text-zinc-900 sm:text-4xl">{{ $court->name }}</h1>
+            <div class="mb-3 flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative" id="headerActions">
+                <h1 class="text-3xl font-extrabold tracking-tight text-zinc-900 sm:text-4xl">{{ $court->name }}</h1>
+                
+                <div class="flex items-center gap-2 mt-2 sm:mt-0 shrink-0">
+                    
+
+                    <button onclick="document.getElementById('reportModal').classList.remove('hidden')" class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-rose-600 transition hover:bg-rose-100 shadow-sm">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5" /></svg>
+                        Báo cáo
+                    </button>
+                </div>
+            </div>
             
             <p class="mb-6 flex items-start gap-2 text-sm text-zinc-500">
                 <svg class="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -48,7 +66,7 @@
                         <label for="datePicker" class="mb-2.5 block text-sm font-bold text-zinc-900">Chọn ngày đá</label>
                         <div class="relative">
                             <input type="date" id="datePicker" class="w-full cursor-pointer rounded-xl border border-stone-300 bg-stone-50 px-4 py-3 text-sm font-medium text-zinc-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10"
-                                   value="{{ now()->toDateString() }}"
+                                   value="{{ request('date', now()->toDateString()) }}"
                                    min="{{ now()->toDateString() }}">
                         </div>
                     </div>
@@ -114,7 +132,7 @@
 
                     <!-- Slots Grid -->
                     <div id="slotsList" style="display: none;">
-                        <div class="grid gap-3.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" id="slotsContainer">
+                        <div class="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4" id="slotsContainer">
                             <!-- JS Will Render Cards Here -->
                         </div>
                     </div>
@@ -177,6 +195,53 @@
         <span id="toastMessage">Thành công</span>
     </div>
 </div>
+<div id="reportModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div class="w-full max-w-md rounded-2xl bg-white shadow-2xl">
+        <div class="border-b border-stone-100 p-5 flex items-center justify-between">
+            <h3 class="text-lg font-bold text-zinc-900 flex items-center gap-2">
+                <svg class="h-5 w-5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                Báo cáo vi phạm
+            </h3>
+            <button onclick="document.getElementById('reportModal').classList.add('hidden')" class="text-stone-400 hover:text-stone-600">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <div class="p-5">
+            <p class="mb-4 text-sm text-stone-600">Nếu bạn phát hiện thông tin sân không chính xác, hình ảnh giả mạo hoặc có dấu hiệu lừa đảo, vui lòng báo cáo cho chúng tôi.</p>
+            
+            <div class="mb-3">
+                <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-stone-500">Chọn nhanh vấn đề:</label>
+                <div class="flex flex-wrap gap-2" id="quickReasons">
+                    <button type="button" onclick="setReason('Sân đã ngừng hoạt động/đóng cửa.')" class="rounded-lg border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition">Sân đã đóng cửa</button>
+                    <button type="button" onclick="setReason('Hình ảnh và thông tin không đúng thực tế.')" class="rounded-lg border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition">Thông tin sai lệch</button>
+                    <button type="button" onclick="setReason('Chủ sân thu phụ phí không có trên hệ thống.')" class="rounded-lg border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition">Giá sai lệch</button>
+                    <button type="button" onclick="setReason('Thái độ phục vụ của nhân viên/chủ sân rất kém.')" class="rounded-lg border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-medium text-stone-600 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition">Thái độ kém</button>
+                </div>
+            </div>
+
+            <div class="relative">
+                <textarea id="reportReason" rows="4" maxlength="1000" onkeyup="updateCharCount(this)" class="w-full rounded-xl border border-stone-300 bg-stone-50 p-3 text-sm outline-none transition focus:border-rose-500 focus:bg-white focus:ring-4 focus:ring-rose-500/10" placeholder="Hoặc nhập chi tiết lý do của bạn (ít nhất 10 ký tự)..."></textarea>
+                <div class="absolute bottom-3 right-3 text-[10px] font-medium text-stone-400" id="charCount">0/1000</div>
+            </div>
+            <div id="reportError" class="mt-2 hidden text-xs font-medium text-rose-600"></div>
+        </div>
+        <div class="border-t border-stone-100 bg-stone-50 p-4 flex justify-end gap-3 rounded-b-2xl">
+            <button onclick="document.getElementById('reportModal').classList.add('hidden')" class="rounded-xl px-4 py-2.5 text-sm font-bold text-stone-600 hover:bg-stone-200 transition">Hủy</button>
+            <button id="btnSubmitReport" onclick="submitReport()" class="rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-rose-600/20 transition hover:bg-rose-700 active:scale-95">Gửi báo cáo</button>
+        </div>
+    </div>
+</div>
+<div id="lockReasonModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div class="w-full max-w-sm rounded-2xl bg-white shadow-2xl overflow-hidden">
+        <div class="border-b border-stone-100 bg-stone-50/50 p-4 flex items-center justify-between">
+            <h3 class="text-base font-bold text-zinc-900">Thông báo từ Chủ sân</h3>
+            <button onclick="document.getElementById('lockReasonModal').classList.add('hidden')" class="text-stone-400 hover:text-stone-600"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+        </div>
+        <div class="p-6 text-center">
+            <p id="lockReasonText" class="text-sm text-rose-600 bg-rose-50 p-3 rounded-lg border border-rose-100"></p>
+        </div>
+    </div>
+</div>
 @endsection
 
 @section('scripts')
@@ -191,14 +256,59 @@
     const errorState = document.getElementById('errorState');
     const toast = document.getElementById('toast');
     const toastMessage = document.getElementById('toastMessage');
+    const bookingContinuationKey = 'sporthub_pending_booking';
 
     let selectedSlots = [];
+
+    function readBookingContinuation() {
+        try {
+            return JSON.parse(sessionStorage.getItem(bookingContinuationKey) || 'null');
+        } catch (error) {
+            sessionStorage.removeItem(bookingContinuationKey);
+            return null;
+        }
+    }
+
+    function saveBookingContinuation() {
+        const returnUrl = new URL(window.location.href);
+        returnUrl.searchParams.set('date', datePicker.value);
+
+        sessionStorage.setItem(bookingContinuationKey, JSON.stringify({
+            courtId,
+            date: datePicker.value,
+            slotIds: selectedSlots.map((slot) => slot.slot_id),
+            returnUrl: returnUrl.toString(),
+        }));
+    }
+
+    function restoreBookingContinuation(slots, dateString) {
+        const continuation = readBookingContinuation();
+
+        if (! continuation || Number(continuation.courtId) !== courtId || continuation.date !== dateString) {
+            return;
+        }
+
+        selectedSlots = slots.filter((slot) => (
+            slot.is_available && continuation.slotIds.includes(slot.slot_id)
+        ));
+        sessionStorage.removeItem(bookingContinuationKey);
+        updateSummaryUI();
+
+        if (selectedSlots.length > 0) {
+            showToast('Đã khôi phục các khung giờ bạn đã chọn.');
+        }
+    }
 
     datePicker.addEventListener('change', (e) => {
         selectedSlots = []; 
         updateSummaryUI(); 
         updateDateDisplay(e.target.value);
         fetchAvailability(e.target.value);
+
+        // LOGIC MỚI: Cập nhật thanh địa chỉ URL mà không cần tải lại trang
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set('date', e.target.value);
+        window.history.replaceState({}, '', newUrl);
     });
 
     function updateDateDisplay(dateString) {
@@ -213,13 +323,25 @@
         showLoading(true);
         errorState.style.display = 'none';
 
-        fetch(`/api/courts/${courtId}/availability?date=${dateString}`)
+        // THÊM CACHE BUSTER: Chống trình duyệt lưu dữ liệu cũ
+        const timestamp = new Date().getTime();
+        const url = `/api/courts/${courtId}/availability?date=${dateString}&_t=${timestamp}`;
+
+        fetch(url, {
+            headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            }
+        })
             .then(response => {
                 if (!response.ok) throw new Error('Network error');
                 return response.json();
             })
             .then(data => {
-                renderSlots(data.data || []);
+                const slots = data.data || [];
+                renderSlots(slots);
+                restoreBookingContinuation(slots, dateString);
                 showLoading(false);
             })
             .catch(error => {
@@ -245,83 +367,84 @@
 
     function createSlotCard(slot) {
         const div = document.createElement('div');
-        const slotDataStr = encodeURIComponent(JSON.stringify(slot));
+        // VÁ LỖI BẢO MẬT: Bổ sung replace(/'/g, "%27") để tránh lỗi khi chữ có dấu nháy đơn
+        const slotDataStr = encodeURIComponent(JSON.stringify(slot)).replace(/'/g, "%27"); 
+        const startTime = slot.start_time.substring(0, 5);
+        const endTime = slot.end_time.substring(0, 5);
+        const priceFmt = parseInt(slot.price).toLocaleString('vi-VN') + '₫';
 
-        // Base class cho toàn bộ thẻ
-        div.className = `slot-card relative flex flex-col justify-between overflow-hidden rounded-2xl border p-4 transition-all duration-200 ease-out outline-none select-none`;
+        div.className = `slot-card relative flex flex-col justify-center overflow-hidden rounded-xl border p-2.5 transition-all duration-200 ease-out outline-none select-none gap-1`;
         div.dataset.id = slot.slot_id;
 
         if (!slot.is_available) {
-            if (slot.is_booked) {
-                // TRẠNG THÁI 1: ĐÃ ĐẶT (Màu Đỏ Hồng - Rose)
-                div.classList.add('border-rose-200', 'bg-rose-50/60', 'pointer-events-none');
+            if (slot.is_past) {
+                div.classList.add('border-slate-200', 'bg-slate-100/50', 'pointer-events-none');
                 div.innerHTML = `
-                    <div class="mb-3 flex items-start justify-between opacity-70">
-                        <div>
-                            <h4 class="text-sm font-bold text-rose-900 line-through decoration-rose-400">${slot.start_time} - ${slot.end_time}</h4>
-                        </div>
-                        <div class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-rose-100 border border-rose-200">
-                            <span class="h-2 w-2 rounded-full bg-rose-500"></span>
-                        </div>
+                    <div class="flex items-center justify-between opacity-40">
+                        <h4 class="text-xs font-medium text-slate-500 line-through decoration-slate-300">${startTime} - ${endTime}</h4>
+                        <svg class="h-3 w-3 text-slate-500" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
                     </div>
-                    <div class="flex items-end justify-between opacity-70">
-                        <p class="text-base font-bold text-rose-900">${parseInt(slot.price).toLocaleString('vi-VN')}₫</p>
-                        <span class="rounded-md bg-rose-100 border border-rose-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-rose-600">Đã đặt</span>
+                    <div class="flex items-center justify-between opacity-40 mt-0.5">
+                        <p class="text-sm font-medium text-slate-500">${priceFmt}</p>
+                        <span class="text-[9px] font-bold uppercase text-slate-500">Quá giờ</span>
+                    </div>
+                `;
+            } else if (slot.is_locked_by_owner) {
+                div.classList.add('border-slate-300', 'bg-slate-100/80', 'cursor-pointer', 'hover:border-slate-400', 'hover:shadow-sm', 'transition');
+                let reason = slot.lock_reason ? slot.lock_reason : 'Sân tạm nghỉ bảo trì.';
+                // VÁ LỖI: Encode lý do khóa
+                let encodedReason = encodeURIComponent(reason).replace(/'/g, "%27");
+                div.setAttribute('onclick', `showLockReason('${encodedReason}')`);
+                
+                div.innerHTML = `
+                    <div class="flex items-center justify-between opacity-90">
+                        <h4 class="text-xs font-medium text-slate-700 line-through decoration-slate-400">${startTime} - ${endTime}</h4>
+                        <svg class="h-3 w-3 text-slate-600" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
+                    </div>
+                    <div class="flex items-center justify-between opacity-90 mt-0.5">
+                        <p class="text-sm font-medium text-slate-600">${priceFmt}</p>
+                        <span class="text-[9px] font-bold uppercase text-slate-700 bg-white border border-slate-300 px-1 rounded">Bị khóa</span>
                     </div>
                 `;
             } else {
-                // TRẠNG THÁI 2: KHÓA / QUÁ GIỜ (Màu Xám - Slate)
-                div.classList.add('border-slate-200', 'bg-slate-100/50', 'pointer-events-none');
+                div.classList.add('border-rose-200', 'bg-rose-50/60', 'pointer-events-none');
                 div.innerHTML = `
-                    <div class="mb-3 flex items-start justify-between opacity-60">
-                        <div>
-                            <h4 class="text-sm font-medium text-slate-500 line-through decoration-slate-300">${slot.start_time} - ${slot.end_time}</h4>
-                        </div>
-                        <div class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-200 border border-slate-300">
-                            <svg class="h-3 w-3 text-slate-500" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
-                        </div>
+                    <div class="flex items-center justify-between opacity-90">
+                        <h4 class="text-xs font-bold text-rose-700 line-through decoration-rose-300">${startTime} - ${endTime}</h4>
+                        <svg class="h-3 w-3 text-rose-500" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
                     </div>
-                    <div class="flex items-end justify-between opacity-60">
-                        <p class="text-base font-medium text-slate-500">${parseInt(slot.price).toLocaleString('vi-VN')}₫</p>
-                        <span class="rounded-md bg-slate-200 border border-slate-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-600">Khóa</span>
+                    <div class="flex items-center justify-between opacity-90 mt-0.5">
+                        <p class="text-sm font-medium text-rose-600">${priceFmt}</p>
+                        <span class="text-[9px] font-bold uppercase text-rose-700 bg-white border border-rose-200 px-1 rounded shadow-sm">Đã đặt</span>
                     </div>
                 `;
             }
         } else {
-            // CÁC TRẠNG THÁI CÓ THỂ ĐẶT (Cho phép click chọn)
             div.classList.add('cursor-pointer');
             div.setAttribute('onclick', `toggleSlot('${slotDataStr}')`);
 
             if (slot.price_type === 'peak') {
-                // TRẠNG THÁI 3: CAO ĐIỂM (Màu Cam - Orange)
-                div.classList.add('border-orange-200', 'bg-orange-50/50', 'hover:border-orange-400', 'hover:-translate-y-0.5', 'hover:shadow-md');
+                div.classList.add('border-orange-200', 'bg-orange-50/50', 'hover:border-orange-400', 'hover:-translate-y-0.5', 'hover:shadow-sm');
                 div.innerHTML = `
-                    <div class="mb-2 flex items-start justify-between">
-                        <div>
-                            <h4 class="slot-time text-sm font-bold text-orange-900 transition-colors">${slot.start_time} - ${slot.end_time}</h4>
-                            <span class="mt-1 inline-block text-[10px] font-bold text-orange-700 bg-orange-100 px-1.5 py-0.5 rounded uppercase tracking-wider">Cao điểm</span>
-                        </div>
-                        <div class="slot-checkbox flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-orange-300 bg-white transition-all duration-200"></div>
+                    <div class="flex items-center justify-between">
+                        <h4 class="slot-time text-xs font-bold text-orange-900">${startTime} - ${endTime}</h4>
+                        <div class="slot-checkbox flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border border-orange-300 bg-white transition-all duration-200"></div>
                     </div>
-                    <div class="flex items-end justify-between">
-                        <p class="slot-price text-base font-black text-orange-600 transition-colors">${parseInt(slot.price).toLocaleString('vi-VN')}₫</p>
-                        <span class="rounded-md bg-white border border-orange-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-orange-600 shadow-sm">Trống</span>
+                    <div class="flex items-center justify-between mt-0.5">
+                        <p class="slot-price text-sm font-black text-orange-600">${priceFmt}</p>
+                        <span class="text-[9px] font-bold uppercase text-orange-600 bg-orange-100 px-1 rounded">Cao điểm</span>
                     </div>
                 `;
             } else {
-                // TRẠNG THÁI 4: GIỜ THƯỜNG (Màu Xanh Lá - Emerald, thêm nhãn "Thường")
-                div.classList.add('border-emerald-200', 'bg-white', 'hover:border-emerald-400', 'hover:-translate-y-0.5', 'hover:shadow-md');
+                div.classList.add('border-emerald-200', 'bg-white', 'hover:border-emerald-400', 'hover:-translate-y-0.5', 'hover:shadow-sm');
                 div.innerHTML = `
-                    <div class="mb-2 flex items-start justify-between">
-                        <div>
-                            <h4 class="slot-time text-sm font-semibold text-zinc-800 transition-colors">${slot.start_time} - ${slot.end_time}</h4>
-                            <span class="mt-1 inline-block text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded uppercase tracking-wider">Thường</span>
-                        </div>
-                        <div class="slot-checkbox flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-stone-300 bg-white transition-all duration-200"></div>
+                    <div class="flex items-center justify-between">
+                        <h4 class="slot-time text-xs font-semibold text-zinc-800">${startTime} - ${endTime}</h4>
+                        <div class="slot-checkbox flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded border border-stone-300 bg-white transition-all duration-200"></div>
                     </div>
-                    <div class="flex items-end justify-between">
-                        <p class="slot-price text-base font-bold text-emerald-600 transition-colors">${parseInt(slot.price).toLocaleString('vi-VN')}₫</p>
-                        <span class="rounded-md bg-emerald-50 border border-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600">Trống</span>
+                    <div class="flex items-center justify-between mt-0.5">
+                        <p class="slot-price text-sm font-bold text-emerald-600">${priceFmt}</p>
+                        <span class="text-[9px] font-bold uppercase text-emerald-600 bg-emerald-50 px-1 rounded">Trống</span>
                     </div>
                 `;
             }
@@ -350,24 +473,23 @@
         const summaryPrice = document.getElementById('summaryPrice');
 
         document.querySelectorAll('.slot-card').forEach(card => {
-            if (card.classList.contains('pointer-events-none')) return;
+            // VÁ LỖI CRASH: Nếu thẻ này là thẻ bị khóa/đã qua (không có checkbox) thì bỏ qua ngay!
+            const checkbox = card.querySelector('.slot-checkbox');
+            if (!checkbox) return; 
 
             const id = parseInt(card.dataset.id);
             const isSelected = selectedSlots.some(s => s.slot_id === id);
-            const checkbox = card.querySelector('.slot-checkbox');
 
             if (isSelected) {
-                // Ép thẻ thành viền và nền xanh ngọc đậm khi được chọn
-                card.style.borderColor = '#10b981'; // Emerald 500
-                card.style.backgroundColor = '#ecfdf5'; // Emerald 50
+                card.style.borderColor = '#10b981';
+                card.style.backgroundColor = '#ecfdf5';
                 card.style.transform = 'translateY(-2px)';
                 card.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
                 
                 checkbox.style.borderColor = '#10b981';
                 checkbox.style.backgroundColor = '#10b981';
-                checkbox.innerHTML = `<svg class="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>`;
+                checkbox.innerHTML = `<svg class="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>`;
             } else {
-                // Bỏ chọn: Xóa style nội tuyến để thẻ tự trả về màu CSS mặc định (Cam hoặc Trắng)
                 card.style.borderColor = '';
                 card.style.backgroundColor = '';
                 card.style.transform = '';
@@ -379,16 +501,13 @@
             }
         });
 
-        // Xử lý Thanh Bottom Summary Bar
         if (selectedSlots.length > 0) {
             summaryDiv.style.display = 'block';
-            
             const totalMins = selectedSlots.reduce((sum, s) => sum + parseInt(s.duration_minutes), 0);
             const totalPrice = selectedSlots.reduce((sum, s) => sum + parseInt(s.price), 0);
 
             summaryText.innerHTML = `<span class="text-emerald-600">${totalMins} phút</span> <span class="text-stone-400 font-medium ml-1">(${selectedSlots.length} ca)</span>`;
             summaryPrice.textContent = totalPrice.toLocaleString('vi-VN') + '₫';
-
             submitBtn.disabled = false;
         } else {
             summaryDiv.style.display = 'none';
@@ -444,6 +563,7 @@
                         localStorage.removeItem('sporthub_token');
                         localStorage.removeItem('sporthub_user');
                     }
+                    saveBookingContinuation();
                     showToast('Vui lòng đăng nhập để đặt sân.');
                     setTimeout(() => {
                         window.location.href = '{{ route('login') }}';
@@ -498,8 +618,109 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        updateDateDisplay(datePicker.value);
-        fetchAvailability(datePicker.value);
+        const continuation = readBookingContinuation();
+        const restoreDate = continuation && Number(continuation.courtId) === courtId
+            ? continuation.date
+            : datePicker.value;
+
+        datePicker.value = restoreDate;
+        updateDateDisplay(restoreDate);
+        fetchAvailability(restoreDate);
     });
+
+    // LOGIC MỚI: Bắt sự kiện khi người dùng ấn nút "Quay lại" trên trình duyệt
+    window.addEventListener('pageshow', function(event) {
+        // event.persisted = true nghĩa là trang đang được lấy từ bộ nhớ đệm lịch sử
+        if (event.persisted) {
+            // Xóa rác: Bỏ các ca đã chọn trong nháp
+            selectedSlots = [];
+            updateSummaryUI();
+
+            // Đọc lại URL để chắc chắn lịch đang hiển thị đúng ngày
+            const urlParams = new URLSearchParams(window.location.search);
+            const dateFromUrl = urlParams.get('date');
+            
+            if (dateFromUrl) {
+                datePicker.value = dateFromUrl;
+                updateDateDisplay(dateFromUrl);
+            }
+
+            // ÉP tải lại danh sách ca từ Server
+            fetchAvailability(datePicker.value);
+        }
+    });
+    async function submitReport() {
+        const btn = document.getElementById('btnSubmitReport');
+        const reason = document.getElementById('reportReason').value.trim();
+        const errorDiv = document.getElementById('reportError');
+        const token = localStorage.getItem('sporthub_token');
+
+        errorDiv.classList.add('hidden');
+
+        if (reason.length < 10) {
+            errorDiv.textContent = 'Vui lòng nhập lý do ít nhất 10 ký tự.';
+            errorDiv.classList.remove('hidden');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Đang gửi...';
+
+        try {
+            const headers = {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            };
+            if (token) headers.Authorization = `Bearer ${token}`;
+
+            const response = await fetch(`/courts/${courtId}/report`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ reason })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    alert('Bạn cần đăng nhập để gửi báo cáo.');
+                    window.location.href = '{{ route('login') }}';
+                    return;
+                }
+                errorDiv.textContent = data.message || data.errors?.reason?.[0] || 'Có lỗi xảy ra.';
+                errorDiv.classList.remove('hidden');
+            } else {
+                document.getElementById('reportModal').classList.add('hidden');
+                document.getElementById('reportReason').value = '';
+                showToast(data.message);
+            }
+        } catch (error) {
+            errorDiv.textContent = 'Lỗi kết nối. Vui lòng thử lại sau.';
+            errorDiv.classList.remove('hidden');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Gửi báo cáo';
+        }
+    }
+    function setReason(text) {
+        const textarea = document.getElementById('reportReason');
+        if(textarea.value.trim() !== '') {
+            textarea.value += '\n' + text;
+        } else {
+            textarea.value = text;
+        }
+        updateCharCount(textarea);
+        textarea.focus();
+    }
+
+    function updateCharCount(obj) {
+        document.getElementById('charCount').innerText = obj.value.length + '/1000';
+    }
+    
+function showLockReason(encodedReason) {
+        document.getElementById('lockReasonText').innerText = decodeURIComponent(encodedReason);
+        document.getElementById('lockReasonModal').classList.remove('hidden');
+    }
 </script>
 @endsection

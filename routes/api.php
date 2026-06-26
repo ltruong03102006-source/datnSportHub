@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\SportController;
 use App\Http\Controllers\Api\VenueController;
 use App\Http\Controllers\Api\CourtAvailabilityController;
 use App\Http\Controllers\Api\AdminOwnerRegistrationController;
+use App\Http\Controllers\Api\AdminVenueController;
 use App\Http\Controllers\CourtController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\ReviewController;
@@ -41,6 +42,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/bookings/{booking}/cancel', [UserBookingController::class, 'cancel'])->name('bookings.cancel');
     Route::post('/courts/{courtId}/booking', [BookingController::class, 'store'])->name('courts.booking');
 
+    // Notifications API
+    Route::get('/notifications/unread-count', [\App\Http\Controllers\Api\NotificationController::class, 'unreadCount'])->name('api.notifications.unread_count');
+    Route::get('/notifications/latest', [\App\Http\Controllers\Api\NotificationController::class, 'latest'])->name('api.notifications.latest');
+
     // Submit a court review (only after the user has booked it)
     Route::post('/courts/{courtId}/reviews', [ReviewController::class, 'store'])
         ->whereNumber('courtId')
@@ -66,6 +71,8 @@ Route::get('/courts/{courtId}', [CourtController::class, 'show'])
 Route::get('/courts/{courtId}/availability', [CourtAvailabilityController::class, 'show'])
     ->name('courts.availability');
 // Venues API
+Route::get('/venues/nearby', [VenueController::class, 'nearby'])->name('venues.nearby_api');
+
 Route::get('/venues/{id}', [VenueController::class, 'show'])
     ->whereNumber('id')
     ->name('venues.show');
@@ -139,6 +146,11 @@ Route::middleware(['auth:sanctum', 'owner'])->prefix('owner')->group(function ()
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
     Route::get('/owner-registrations', [AdminOwnerRegistrationController::class, 'index']);
     Route::get('/owner-registrations/{id}', [AdminOwnerRegistrationController::class, 'show']);
-    Route::post('/owner-registrations/{id}/approve', [AdminOwnerRegistrationController::class, 'approve']);
-    Route::post('/owner-registrations/{id}/reject', [AdminOwnerRegistrationController::class, 'reject']);
+
+    // // Admin Venues Management (kích hoạt / ẩn sân)
+    // Route::get('/venues', [AdminVenueController::class, 'index'])->name('admin.venues.index');
+    // Route::get('/venues/{venue}', [AdminVenueController::class, 'show'])->name('admin.venues.show');
+    // Route::post('/venues/{venue}/activate', [AdminVenueController::class, 'activate'])->name('admin.venues.activate');
+    // Route::post('/venues/{venue}/deactivate', [AdminVenueController::class, 'deactivate'])->name('admin.venues.deactivate');
+    // Route::get('/venues/{venue}/logs', [AdminVenueController::class, 'logs'])->name('admin.venues.logs');
 });

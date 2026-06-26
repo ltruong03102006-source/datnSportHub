@@ -147,11 +147,11 @@ class AdminDashboardController extends Controller
             ];
         }
 
-        // 4. Danh sách Booking gần đây
-        $recentBookings = Booking::with(['user', 'court.venue'])
+        // 4. Danh sách tất cả booking cho admin xem ngay trên dashboard
+        $allBookings = Booking::with(['user', 'court.venue'])
             ->orderBy('created_at', 'desc')
-            ->take(5)
-            ->get();
+            ->paginate(10, ['*'], 'bookings_page')
+            ->withQueryString();
 
         // 5. Mật độ sân khu vực
         $hanoi = Venue::where('address', 'like', '%Hà Nội%')->count();
@@ -175,7 +175,7 @@ class AdminDashboardController extends Controller
             'totalUsers', 'totalVenues', 'totalBookings', 'totalRevenue',
             'bookingsToday', 'usersToday', 'venuesToday', 'avgRating',
             'chartBookingsMonthly', 'chartSports', 'chartRevenueTrend',
-            'topVenues', 'topOwners', 'recentBookings', 'regionDensity'
+            'topVenues', 'topOwners', 'allBookings', 'regionDensity'
         ));
     }
 }

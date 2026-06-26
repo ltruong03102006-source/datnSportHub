@@ -30,7 +30,7 @@ class Sport extends Model
     {
         return $query->withCount(['courts as courts_count' => function (Builder $query) {
             $query->where('courts.status', 'active')
-                ->where('venues.status', 'active');
+                ->whereIn('venues.status', ['active', 'approved']);
         }]);
     }
 }

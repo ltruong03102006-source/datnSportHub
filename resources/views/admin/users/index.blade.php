@@ -235,7 +235,7 @@
     
     @if($users->hasPages())
     <div style="padding: 24px; border-top: 1px solid var(--border-color);">
-        {{ $users->links('pagination::bootstrap-5') }}
+        {{ $users->links('vendor.pagination.admin') }}
     </div>
     @endif
 </div>

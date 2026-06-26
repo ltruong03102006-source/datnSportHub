@@ -1,4 +1,4 @@
-@extends('admin.layouts.app')
+﻿@extends('admin.layouts.app')
 
 @push('styles')
 <style>
@@ -310,6 +310,35 @@
         color: #e74c3c;
     }
 
+    .venue-actions {
+        display: inline-flex;
+        justify-content: flex-end;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .venue-actions form { margin: 0; }
+    .venue-action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 32px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        padding: 7px 10px;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1;
+        cursor: pointer;
+        text-decoration: none;
+        transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+    .venue-action-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(15, 23, 42, .12); }
+    .venue-action-docs { color: #0369a1; background: #f0f9ff; border-color: #bae6fd; }
+    .venue-action-approve { color: #fff; background: #16a34a; }
+    .venue-action-reject { color: #dc2626; background: #fef2f2; border-color: #fecaca; }
+
     .pagination-wrapper {
         padding: 20px;
         display: flex;
@@ -357,56 +386,6 @@
         <h2>Quản lý sân thể thao</h2>
         <p>Theo dõi, điều chỉnh và cập nhật trạng thái các sân thể thao trong hệ thống.</p>
     </div>
-    <button class="btn-add">
-        <i class="fa-solid fa-circle-plus"></i> Thêm sân mới
-    </button>
-</div>
-
-<!-- Stat Cards -->
-<div class="grid-4">
-    <div class="stat-card c-total">
-        <div class="stat-card-top">
-            <div class="stat-icon"><i class="fa-regular fa-building"></i></div>
-            <div class="badge-custom">+12%</div>
-        </div>
-        <div>
-            <div class="stat-label">TỔNG SỐ SÂN</div>
-            <div class="stat-number">{{ $totalVenues }}</div>
-        </div>
-    </div>
-
-    <div class="stat-card c-active">
-        <div class="stat-card-top">
-            <div class="stat-icon"><i class="fa-regular fa-circle-check"></i></div>
-            <div class="badge-custom">Hoạt động</div>
-        </div>
-        <div>
-            <div class="stat-label">SÂN SẴN SÀNG</div>
-            <div class="stat-number">{{ $activeVenues }}</div>
-        </div>
-    </div>
-
-    <div class="stat-card c-maintenance">
-        <div class="stat-card-top">
-            <div class="stat-icon"><i class="fa-solid fa-wrench"></i></div>
-            <div class="badge-custom">Bảo trì</div>
-        </div>
-        <div>
-            <div class="stat-label">ĐANG SỬA CHỮA</div>
-            <div class="stat-number">{{ $maintenanceVenues }}</div>
-        </div>
-    </div>
-
-    <div class="stat-card c-locked">
-        <div class="stat-card-top">
-            <div class="stat-icon"><i class="fa-solid fa-ban"></i></div>
-            <div class="badge-custom">Vô hiệu</div>
-        </div>
-        <div>
-            <div class="stat-label">ĐÃ KHÓA</div>
-            <div class="stat-number">{{ $lockedVenues }}</div>
-        </div>
-    </div>
 </div>
 
 <!-- Filter Bar -->
@@ -417,27 +396,6 @@
             <input type="text" name="search" placeholder="Tìm kiếm theo tên sân hoặc chủ sân..." value="{{ request('search') }}">
         </div>
         
-        <div class="filter-group">
-            <span class="filter-label">LOẠI MÔN:</span>
-            <select class="filter-select" name="sport_id" onchange="this.form.submit()">
-                <option value="">Tất cả môn thể thao</option>
-                @foreach($sports as $sport)
-                    <option value="{{ $sport->id }}" {{ request('sport_id') == $sport->id ? 'selected' : '' }}>
-                        {{ $sport->name }}
-                    </option>
-                @endforeach
-            </select>
-        </div>
-
-        <div class="filter-group">
-            <span class="filter-label">TRẠNG THÁI:</span>
-            <select class="filter-select" name="status" onchange="this.form.submit()">
-                <option value="">Tất cả trạng thái</option>
-                <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Sẵn sàng</option>
-                <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Đang sửa chữa</option>
-                <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Đã khóa</option>
-            </select>
-        </div>
 
         <button type="submit" class="btn-filter-icon">
             <i class="fa-solid fa-filter"></i>
@@ -450,12 +408,11 @@
     <table class="table-custom">
         <thead>
             <tr>
-                <th>TÊN SÂN</th>
-                <th>LOẠI SÂN</th>
-                <th>CHỦ SÂN</th>
+                <th>TÊN CƠ SỞ</th>
+                <th>CHỦ SỞ HỮU</th>
                 <th>ĐỊA CHỈ</th>
-                <th>GIÁ THUÊ</th>
                 <th>TRẠNG THÁI</th>
+                <th>NGÀY TẠO</th>
                 <th style="text-align: right;">HÀNH ĐỘNG</th>
             </tr>
         </thead>
@@ -464,41 +421,23 @@
             <tr>
                 <td>
                     <div class="venue-info">
-                        <!-- Xử lý ảnh sân an toàn hơn -->
                         @php
                             $imgSrc = asset('images/default-venue.jpg');
-                            
-                            // Danh sách ảnh phụ trợ nếu lỗi
-                            $mockImages = [
-                                'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=100&h=100&fit=crop',
-                                'https://images.unsplash.com/photo-1628260412297-a3377e45006f?w=100&h=100&fit=crop',
-                                'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=100&h=100&fit=crop'
-                            ];
-                            $fallbackImg = $mockImages[array_rand($mockImages)];
+                            $fallbackImg = 'https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=100&h=100&fit=crop';
 
                             if($venue->images && $venue->images->count() > 0) {
                                 $path = $venue->images->first()->image_path;
                                 $imgSrc = str_starts_with($path, 'http') ? $path : asset('storage/' . $path);
                             } elseif ($venue->banner) {
                                 $imgSrc = str_starts_with($venue->banner, 'http') ? $venue->banner : asset('storage/' . $venue->banner);
-                            } else {
-                                $imgSrc = $fallbackImg;
                             }
                         @endphp
                         <img src="{{ $imgSrc }}" class="venue-img" alt="Sân" onerror="this.onerror=null;this.src='{{ $fallbackImg }}';">
-                        <div class="venue-name" style="width: 120px; white-space: normal;">{{ $venue->name }}</div>
+                        <div>
+                            <div class="venue-name">{{ $venue->name }}</div>
+                            <div class="text-muted small">{{ $venue->sport?->name ?? 'Chưa có môn' }}</div>
+                        </div>
                     </div>
-                </td>
-                <td>
-                    @php
-                        $sportName = $venue->sport ? $venue->sport->name : 'N/A';
-                        $sportClass = 'sport-default';
-                        if (stripos($sportName, 'bóng đá') !== false || stripos($sportName, 'football') !== false) $sportClass = 'sport-football';
-                        if (stripos($sportName, 'cầu lông') !== false || stripos($sportName, 'badminton') !== false) $sportClass = 'sport-badminton';
-                        if (stripos($sportName, 'tennis') !== false) $sportClass = 'sport-tennis';
-                        if (stripos($sportName, 'bóng rổ') !== false || stripos($sportName, 'basketball') !== false) $sportClass = 'sport-basketball';
-                    @endphp
-                    <span class="badge-sport {{ $sportClass }}">{{ ucfirst($sportName) }}</span>
                 </td>
                 <td>
                     <div class="owner-name">{{ $venue->owner ? $venue->owner->name : 'Không có' }}</div>
@@ -507,50 +446,49 @@
                     <div class="address-text">{{ $venue->address }}</div>
                 </td>
                 <td>
-                    <div class="price-text">
-                        @if($venue->min_price && $venue->max_price)
-                            @if($venue->min_price == $venue->max_price)
-                                {{ number_format($venue->min_price, 0, ',', '.') }}đ/h
-                            @else
-                                {{ number_format($venue->min_price, 0, ',', '.') }}đ - {{ number_format($venue->max_price, 0, ',', '.') }}đ
-                            @endif
-                        @else
-                            N/A
-                        @endif
-                    </div>
-                </td>
-                <td>
-                    @if($venue->status === 'active')
-                        <div class="status-badge status-active"><span class="status-dot"></span> Sẵn sàng</div>
+                    @if($venue->status === 'approved')
+                        <span class="badge bg-success-subtle text-success">Đã duyệt</span>
                     @elseif($venue->status === 'pending')
-                        <div class="status-badge status-maintenance"><span class="status-dot"></span> Đang sửa chữa</div>
+                        <span class="badge bg-warning-subtle text-warning">Chờ duyệt</span>
+                    @elseif($venue->status === 'rejected')
+                        <span class="badge bg-danger-subtle text-danger">Từ chối</span>
                     @else
-                        <div class="status-badge status-locked"><span class="status-dot"></span> Đã khóa</div>
+                        <span class="badge bg-secondary-subtle text-secondary">{{ ucfirst($venue->status) }}</span>
                     @endif
                 </td>
+                <td>
+                    <div class="text-muted">{{ $venue->created_at ? $venue->created_at->format('d/m/Y') : '-' }}</div>
+                </td>
                 <td style="text-align: right; white-space: nowrap;">
-                    <button type="button" class="btn-action-icon" title="Sửa thông tin" 
-                            onclick="openEditModal({
-                                id: {{ $venue->id }},
-                                name: '{{ addslashes($venue->name) }}',
-                                sport_id: {{ $venue->sport_id }},
-                                address: '{{ addslashes($venue->address) }}',
-                                status: '{{ $venue->status }}'
-                            })">
-                        <i class="fa-solid fa-pen"></i>
-                    </button>
-                    <form action="{{ route('admin.venues.destroy', $venue->id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa cơ sở sân này? Tất cả các sân con và lịch đặt liên quan sẽ bị xóa vĩnh viễn!')">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn-action-icon btn-delete-icon" title="Xóa sân">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
-                    </form>
+                    <div class="venue-actions">
+                    <a href="{{ route('admin.venues.documents', $venue->id) }}"
+                    class="venue-action-btn venue-action-docs">
+                        <i class="fa-regular fa-folder-open"></i> Hồ sơ
+                    </a>
+                    @if($venue->status === 'pending')
+    <form action="{{ route('admin.venues.approve', $venue->id) }}" method="POST">
+        @csrf
+        <button type="submit" class="venue-action-btn venue-action-approve"><i class="fa-solid fa-check"></i> Duyệt</button>
+    </form>
+
+    <form action="{{ route('admin.venues.reject', $venue->id) }}"
+      method="POST"
+      onsubmit="return rejectVenueConfirm(this);">
+    @csrf
+
+    <input type="hidden" name="reject_reason" class="reject-reason-input">
+
+    <button type="submit" class="venue-action-btn venue-action-reject">
+        <i class="fa-solid fa-xmark"></i> Từ chối
+    </button>
+</form>
+@endif
+                    </div>
                 </td>
             </tr>
             @empty
             <tr>
-                <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">Không tìm thấy cơ sở sân nào.</td>
+                <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">Không tìm thấy cơ sở sân nào.</td>
             </tr>
             @endforelse
         </tbody>
@@ -561,84 +499,93 @@
             Hiển thị {{ $venues->firstItem() ?? 0 }}-{{ $venues->lastItem() ?? 0 }} trên tổng số {{ $totalVenues }} sân
         </div>
         <div class="pagination-links">
-            {{ $venues->links('pagination::bootstrap-5') }}
+            {{ $venues->links('vendor.pagination.admin') }}
         </div>
     </div>
 </div>
 
-<!-- Edit Venue Modal -->
-<div id="editVenueModal" class="custom-modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
-    <div class="modal-content" style="background-color: #fff; padding: 30px; border-radius: 16px; width: 100%; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); position: relative; animation: slideDown 0.3s ease-out;">
-        <span class="close-modal" onclick="closeEditModal()" style="position: absolute; right: 20px; top: 20px; font-size: 20px; color: var(--text-muted); cursor: pointer; font-weight: bold;">&times;</span>
-        <h3 style="margin-bottom: 20px; font-size: 18px; font-weight: 700; color: var(--text-dark);">Chỉnh sửa Cơ sở sân</h3>
-        
-        <form id="editVenueForm" method="POST" action="">
+{{-- <!-- Reject venue modal -->
+<div class="modal fade" id="rejectVenueModal" tabindex="-1" aria-labelledby="rejectVenueModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form id="rejectVenueForm" method="POST" class="modal-content">
             @csrf
-            @method('PUT')
-            
-            <div style="margin-bottom: 16px;">
-                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text-dark);">Tên sân</label>
-                <input type="text" id="modalVenueName" name="name" required style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; outline: none; color: var(--text-dark);">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rejectVenueModalLabel">Từ chối cơ sở sân</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
-            
-            <div style="margin-bottom: 16px;">
-                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text-dark);">Loại môn thể thao</label>
-                <select id="modalVenueSport" name="sport_id" required style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; outline: none; appearance: none; background: #fff url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%237f8c8d%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E') no-repeat right 12px top 50%; background-size: 10px auto; color: var(--text-dark);">
-                    @foreach($sports as $sport)
-                        <option value="{{ $sport->id }}">{{ $sport->name }}</option>
-                    @endforeach
-                </select>
+            <div class="modal-body">
+                <label for="reject_reason" class="form-label">Lý do từ chối</label>
+                <textarea id="reject_reason" name="reject_reason" class="form-control" rows="4" minlength="5" required placeholder="Nhập lý do từ chối (ít nhất 5 ký tự)..."></textarea>
+                <div class="form-text">Lý do này sẽ được lưu cùng hồ sơ của chủ sân.</div>
             </div>
-            
-            <div style="margin-bottom: 16px;">
-                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text-dark);">Địa chỉ</label>
-                <input type="text" id="modalVenueAddress" name="address" required style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; outline: none; color: var(--text-dark);">
-            </div>
-            
-            <div style="margin-bottom: 24px;">
-                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text-dark);">Trạng thái</label>
-                <select id="modalVenueStatus" name="status" required style="width: 100%; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; outline: none; appearance: none; background: #fff url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%237f8c8d%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E') no-repeat right 12px top 50%; background-size: 10px auto; color: var(--text-dark);">
-                    <option value="active">Sẵn sàng (Active)</option>
-                    <option value="pending">Đang sửa chữa (Pending)</option>
-                    <option value="inactive">Đã khóa (Inactive)</option>
-                </select>
-            </div>
-            
-            <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                <button type="button" onclick="closeEditModal()" style="padding: 10px 18px; border: 1px solid var(--border-color); background-color: #fff; color: var(--text-dark); border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">Hủy</button>
-                <button type="submit" style="padding: 10px 18px; border: none; background-color: var(--primary); color: white; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">Lưu thay đổi</button>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="submit" class="btn btn-danger">Xác nhận từ chối</button>
             </div>
         </form>
     </div>
-</div>
+</div> --}}
+
 
 @endsection
 
 @push('scripts')
 <script>
-    function openEditModal(venue) {
-        document.getElementById('modalVenueName').value = venue.name;
-        document.getElementById('modalVenueSport').value = venue.sport_id;
-        document.getElementById('modalVenueAddress').value = venue.address;
-        document.getElementById('modalVenueStatus').value = venue.status;
-        
-        const form = document.getElementById('editVenueForm');
-        form.action = `/admin/venues/${venue.id}`;
-        
-        const modal = document.getElementById('editVenueModal');
-        modal.style.display = 'flex';
-    }
-
-    function closeEditModal() {
-        document.getElementById('editVenueModal').style.display = 'none';
-    }
-
-    // Close when clicking outside modal
-    window.onclick = function(event) {
-        const modal = document.getElementById('editVenueModal');
-        if (event.target == modal) {
-            modal.style.display = 'none';
+    function loadVenueDocs(id, docs) {
+        const content = document.getElementById('venueDocsContent');
+        if (!docs || !docs.owner_name) {
+            content.innerHTML = '<p class="text-muted mb-0">Không có hồ sơ pháp lý.</p>';
+            return;
         }
+
+        const files = [
+            ['CCCD mặt trước', docs.citizen_front_image],
+            ['CCCD mặt sau', docs.citizen_back_image],
+            ['Giấy phép kinh doanh', docs.business_license_file],
+            ['Hợp đồng thuê mặt bằng', docs.rental_contract_file],
+            ['Giấy chứng nhận quyền sử dụng đất', docs.land_certificate_file],
+        ];
+
+        const fileHtml = files.map(([label, path]) => {
+            if (!path) return '';
+            const isImage = /\.(png|jpe?g|webp|gif)$/i.test(path);
+            const url = path.startsWith('http') ? path : `{{ asset('storage') }}/${path}`;
+            return `
+                <div class="mb-3">
+                    <h6 class="fw-semibold">${label}</h6>
+                    ${isImage ? `<img src="${url}" class="img-fluid rounded border" alt="${label}">` : `<a href="${url}" target="_blank" class="btn btn-outline-primary btn-sm">Xem tài liệu</a>`}
+                </div>
+            `;
+        }).join('');
+
+        content.innerHTML = `
+            <div class="row g-3">
+                <div class="col-12 col-md-6"><strong>Chủ sở hữu:</strong> ${docs.owner_name || '-'}</div>
+                <div class="col-12 col-md-6"><strong>CCCD:</strong> ${docs.citizen_id || '-'}</div>
+                <div class="col-12 col-md-6"><strong>Số giấy phép:</strong> ${docs.business_license_number || '-'}</div>
+                <div class="col-12 col-md-6"><strong>Ngân hàng:</strong> ${docs.bank_name || '-'}</div>
+                <div class="col-12 col-md-6"><strong>Số tài khoản:</strong> ${docs.bank_account_number || '-'}</div>
+                <div class="col-12 col-md-6"><strong>Chủ tài khoản:</strong> ${docs.bank_account_holder || '-'}</div>
+                ${docs.reject_reason ? `<div class="col-12"><div class="alert alert-danger mb-0">Lý do từ chối: ${docs.reject_reason}</div></div>` : ''}
+            </div>
+            <div class="mt-3">${fileHtml}</div>
+        `;
     }
+    function rejectVenueConfirm(form) {
+    const reason = prompt('Nhập lý do từ chối cơ sở sân:');
+
+    if (reason === null) {
+        return false;
+    }
+
+    if (reason.trim().length < 5) {
+        alert('Lý do từ chối phải có ít nhất 5 ký tự.');
+        return false;
+    }
+
+    form.querySelector('.reject-reason-input').value = reason.trim();
+
+    return confirm('Bạn có chắc chắn muốn từ chối cơ sở sân này không?');
+}
 </script>
 @endpush

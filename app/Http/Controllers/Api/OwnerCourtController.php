@@ -58,6 +58,12 @@ class OwnerCourtController extends Controller
                 ], 404);
             }
 
+            if ($venue->status !== 'approved') {
+                return response()->json([
+                    'message' => 'Bạn phải được Admin duyệt cơ sở trước khi tạo sân.'
+                ], 403);
+            }
+
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'type' => 'required|string|max:100',

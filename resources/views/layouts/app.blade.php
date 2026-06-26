@@ -7,12 +7,44 @@
 
     <title>@yield('title', 'SportHub')</title>
 
+    @stack('meta')
+    
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     @yield('styles')
 
     <style>
         [x-cloak] { display: none !important; }
+
+        /* Navigation active underline styling */
+        nav a.nav-link {
+            position: relative;
+            padding: 6px 0;
+            font-weight: 600;
+            color: #4b5563; /* text-zinc-600 */
+            transition: color 0.25s ease;
+        }
+        nav a.nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 0;
+            width: 0;
+            height: 2.5px;
+            background-color: #10B981; /* bg-emerald-500 */
+            border-radius: 99px;
+            transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        nav a.nav-link.active::after,
+        nav a.nav-link:hover::after {
+            width: 100%;
+        }
+        nav a.nav-link.active {
+            color: #10B981 !important; /* text-emerald-500 */
+        }
+        nav a.nav-link:hover {
+            color: #059669 !important; /* hover:text-emerald-600 */
+        }
     </style>
 </head>
 <body class="flex min-h-screen flex-col bg-stone-50 font-sans text-zinc-900 antialiased">
@@ -25,16 +57,16 @@
                 <span class="text-lg font-bold tracking-tight text-zinc-900">SportHub</span>
             </a>
 
-            <nav class="hidden items-center gap-8 text-sm font-medium text-zinc-600 md:flex">
-                <a href="{{ route('home') }}" class="text-emerald-700 transition hover:text-emerald-800">Tìm sân</a>
+            <nav class="hidden items-center gap-8 text-sm font-medium md:flex">
+                <a href="{{ route('home') }}" class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}">Tìm sân</a>
+                <a href="{{ route('venues.nearby') }}" class="nav-link {{ request()->routeIs('venues.nearby') ? 'active' : '' }}">Tìm sân gần đây</a>
                 @auth
-                    @if (Auth::user()->role === 'owner')
-                        <a href="{{ route('owner.dashboard') }}" class="font-semibold text-zinc-600 transition hover:text-emerald-700">Quản lý sân</a>
-                    @else
-                        <a href="{{ route('owner.register.page') }}" class="text-zinc-600 transition hover:text-blue-700 font-semibold">Chủ sân</a>
-                    @endif
-                @else
-                    <a href="{{ route('owner.register.page') }}" class="text-zinc-600 transition hover:text-blue-700 font-semibold">Chủ sân</a>
+                <a href="{{ route('account.favorites.index') }}" class="nav-link flex items-center gap-1.5 {{ request()->routeIs('account.favorites.index') ? 'active' : '' }}">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                    Yêu thích
+                </a>
                 @endauth
             </nav>
 
@@ -46,11 +78,31 @@
             @endguest
 
             @auth
-            <div class="relative hidden items-center md:flex" x-data="{ profileOpen: false }">
+            <div class="relative hidden items-center md:flex items-center gap-4">
+                <div x-data="{ open: false }" class="relative">
+                    <button @click="open = !open" @click.away="open = false" id="notification-button" class="relative grid h-10 w-10 place-items-center rounded-lg text-zinc-700 transition hover:bg-stone-100">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                        <span id="notification-badge" class="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-white rounded-full bg-rose-600" style="display:none">0</span>
+                    </button>
+
+                    <div x-show="open" x-cloak class="absolute right-0 mt-2 w-96 origin-top-right rounded-xl border border-stone-100 bg-white py-2 shadow-lg ring-1 ring-black/5 focus:outline-none">
+                        <div id="notification-list" class="max-h-96 overflow-auto">
+                            <div class="p-4 text-sm text-zinc-500">Đang tải...</div>
+                        </div>
+                        <div class="border-t border-stone-100 px-3 py-2 flex items-center justify-between">
+                            <a href="{{ route('notifications.index') }}" class="text-sm font-semibold text-emerald-700">Xem tất cả</a>
+                            <button id="mark-all-read" class="text-sm text-zinc-500">Đánh dấu đã đọc</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative" x-data="{ profileOpen: false }">
                 <button @click="profileOpen = !profileOpen" @click.away="profileOpen = false" class="flex items-center gap-2.5 rounded-full border border-stone-200 bg-white py-1.5 pl-1.5 pr-3 shadow-sm transition hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-emerald-600/20">
-                    <span class="grid h-8 w-8 place-items-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700">
-                        {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
-                    </span>
+                    @if (Auth::user()->avatar)
+                        <img src="{{ asset('storage/' . Auth::user()->avatar) }}" alt="Avatar" class="h-8 w-8 rounded-full object-cover">
+                    @else
+                        <span class="grid h-8 w-8 place-items-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</span>
+                    @endif
                     <span class="text-sm font-semibold text-zinc-700">{{ Auth::user()->name }}</span>
                     <svg class="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
                 </button>
@@ -62,8 +114,9 @@
                     </div>
                     
                     <a href="{{ route('account.bookings.index') }}" class="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-stone-50 hover:text-emerald-700 transition">Lịch sử đặt sân</a>
+                    <a href="{{ route('account.reviews.index') }}" class="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-stone-50 hover:text-emerald-700 transition">Đánh giá của tôi</a>
                     
-                    <a href="#" class="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-stone-50 hover:text-emerald-700 transition">Thông tin cá nhân</a>
+                    <a href="{{ route('account.profile.show') }}" class="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-stone-50 hover:text-emerald-700 transition">Trang cá nhân</a>
                     <div class="my-1 border-t border-stone-100"></div>
                     <button onclick="handleLogout()" class="block w-full px-4 py-2.5 text-left text-sm font-semibold text-red-600 hover:bg-red-50 transition">Đăng xuất</button>
                 </div>
@@ -78,7 +131,16 @@
 
         <div x-show="open" x-cloak x-transition class="border-t border-stone-200 bg-white md:hidden">
             <nav class="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3 text-sm font-medium sm:px-6">
-                <a href="{{ route('home') }}" class="rounded-lg px-3 py-2.5 text-emerald-700 bg-emerald-50">Tìm sân</a>
+                <a href="{{ route('home') }}" class="rounded-lg px-3 py-2.5 transition {{ request()->routeIs('home') ? 'text-emerald-700 bg-emerald-50 font-bold' : 'text-zinc-700 hover:bg-stone-100' }}">Tìm sân</a>
+                <a href="{{ route('venues.nearby') }}" class="rounded-lg px-3 py-2.5 transition {{ request()->routeIs('venues.nearby') ? 'text-emerald-700 bg-emerald-50 font-bold' : 'text-zinc-700 hover:bg-stone-100' }}">Tìm sân gần đây</a>
+                @auth
+                <a href="{{ route('account.favorites.index') }}" class="flex items-center gap-2 rounded-lg px-3 py-2.5 transition {{ request()->routeIs('account.favorites.index') ? 'text-rose-600 bg-rose-50 font-bold' : 'text-zinc-700 hover:bg-stone-100' }}">
+                    <svg class="h-4 w-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                    Sân yêu thích
+                </a>
+                @endauth
                 @auth
                     @if (Auth::user()->role === 'owner')
                         <a href="{{ route('owner.dashboard') }}" class="rounded-lg px-3 py-2.5 font-semibold text-emerald-700 hover:bg-emerald-50">Quản lý sân</a>
@@ -99,13 +161,19 @@
                 @auth
                 <div class="mt-2 border-t border-stone-100 pt-2 flex flex-col gap-1">
                     <div class="flex items-center gap-3 px-3 py-3">
-                        <span class="grid h-10 w-10 place-items-center rounded-full bg-emerald-100 text-base font-bold text-emerald-700">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</span>
+                        @if (Auth::user()->avatar)
+                            <img src="{{ asset('storage/' . Auth::user()->avatar) }}" alt="Avatar" class="h-10 w-10 rounded-full object-cover">
+                        @else
+                            <span class="grid h-10 w-10 place-items-center rounded-full bg-emerald-100 text-base font-bold text-emerald-700">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</span>
+                        @endif
                         <div>
                             <p class="text-xs text-zinc-500">Xin chào</p>
                             <p class="text-sm font-bold text-zinc-900">{{ Auth::user()->name }}</p>
                         </div>
                     </div>
+                    <a href="{{ route('account.profile.show') }}" class="rounded-lg px-3 py-2.5 text-zinc-700 hover:bg-stone-100">Trang cá nhân</a>
                     <a href="{{ route('account.bookings.index') }}" class="rounded-lg px-3 py-2.5 text-zinc-700 hover:bg-stone-100">Lịch sử đặt sân</a>
+                    <a href="{{ route('account.reviews.index') }}" class="rounded-lg px-3 py-2.5 text-zinc-700 hover:bg-stone-100">Đánh giá của tôi</a>
                     <button onclick="handleLogout()" class="rounded-lg px-3 py-2.5 text-left font-semibold text-red-600 hover:bg-red-50">Đăng xuất</button>
                 </div>
                 @endauth
@@ -134,7 +202,7 @@
                 <div>
                     <h3 class="text-sm font-bold text-zinc-900 uppercase tracking-wider mb-4">Khám phá</h3>
                     <ul class="space-y-3 text-sm text-zinc-500">
-                        <li><a href="#" class="hover:text-emerald-600 transition">Tìm sân gần đây</a></li>
+                        <li><a href="{{ route('venues.nearby') }}" class="hover:text-emerald-600 transition">Tìm sân gần đây</a></li>
                         <li><a href="#" class="hover:text-emerald-600 transition">Sân bóng đá</a></li>
                         <li><a href="#" class="hover:text-emerald-600 transition">Sân cầu lông</a></li>
                         <li><a href="#" class="hover:text-emerald-600 transition">Sân tennis</a></li>
@@ -183,9 +251,39 @@
             </div>
         </div>
     </footer>
-
+    <div id="toast-container" class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-3 pointer-events-none"></div>
     @yield('scripts')
     <script>
+        // HÀM TẠO THÔNG BÁO TOAST TOÀN CỤC
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            // Chọn màu và icon dựa theo trạng thái (thành công hay lỗi)
+            const isSuccess = type === 'success';
+            const bgColor = isSuccess ? 'bg-emerald-600' : 'bg-rose-500';
+            const icon = isSuccess 
+                ? `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`
+                : `<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`;
+
+            toast.className = `flex items-center gap-2 px-4 py-3 text-sm font-bold text-white shadow-xl rounded-xl transition-all duration-300 transform translate-y-12 opacity-0 ${bgColor}`;
+            toast.innerHTML = `${icon} <span>${message}</span>`;
+            
+            container.appendChild(toast);
+            
+            // Hiệu ứng trượt lên (Slide up)
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-12', 'opacity-0');
+                toast.classList.add('translate-y-0', 'opacity-100');
+            });
+
+            // Tự động mờ dần và biến mất sau 3 giây
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-12', 'opacity-0');
+                setTimeout(() => toast.remove(), 300); // Xóa thẻ div sau khi animation chạy xong
+            }, 3000);
+        }
         async function handleLogout() {
             try {
                 await fetch('{{ route('web.logout') }}', {

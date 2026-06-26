@@ -5,8 +5,12 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\OwnerRegistrationRequest;
 use App\Models\OwnerRegistration;
+use App\Models\OwnerPasswordSetupToken;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class OwnerRegistrationController extends Controller
@@ -25,38 +29,45 @@ class OwnerRegistrationController extends Controller
     public function store(OwnerRegistrationRequest $request): RedirectResponse
     {
         $user = $request->user();
+        $plainToken = Str::random(64);
 
-        $existing = OwnerRegistration::query()
-            ->whereIn('status', ['pending', 'active'])
-            ->where(function ($query) use ($request, $user) {
-                $query->where('email', $request->email);
+        DB::transaction(function () use ($request, $user, $plainToken) {
+            $owner = $user ?: User::where('email', $request->email)->first();
 
-                if ($user) {
-                    $query->orWhere('user_id', $user->id);
-                }
-            })
-            ->first();
+            if (! $owner) {
+                $owner = User::create([
+                    'name' => $request->name,
+                    'email' => $request->email,
+                    'password' => Str::random(40),
+                    'role' => 'owner',
+                    'status' => 'inactive',
+                ]);
+            } else {
+                $owner->update([
+                    'name' => $request->name,
+                    'role' => 'owner',
+                    'status' => 'inactive',
+                ]);
+            }
 
-        if ($existing) {
-            return back()
-                ->withInput()
-                ->with('owner_registration_status', $existing->status)
-                ->with('owner_registration_message', $existing->status === 'pending'
-                    ? 'Đơn đăng ký chủ sân của bạn đang chờ duyệt.'
-                    : 'Thông tin này đã được kích hoạt chủ sân.');
-        }
+            OwnerRegistration::updateOrCreate(
+                ['email' => $request->email],
+                [
+                    'user_id' => $owner->id,
+                    'name' => $request->name,
+                    'phone' => $request->phone,
+                    'status' => 'active',
+                    'rejection_reason' => null,
+                ]
+            );
 
-        OwnerRegistration::create([
-            'user_id' => $user?->id,
-            'name' => $request->name,
-            'phone' => $request->phone,
-            'email' => $request->email,
-            'status' => 'pending',
-        ]);
+            OwnerPasswordSetupToken::updateOrCreate(
+                ['user_id' => $owner->id],
+                ['token' => hash('sha256', $plainToken), 'expires_at' => now()->addDay()]
+            );
+        });
 
-        return redirect()
-            ->route('owner.register.page')
-            ->with('owner_registration_status', 'pending')
-            ->with('owner_registration_message', 'Đã gửi đơn đăng ký chủ sân. Trạng thái hiện tại: pending.');
+        return redirect()->route('owner.password.setup.create', ['token' => $plainToken])
+            ->with('success', 'Đăng ký thành công. Hãy tạo mật khẩu để kích hoạt tài khoản chủ sân.');
     }
 }

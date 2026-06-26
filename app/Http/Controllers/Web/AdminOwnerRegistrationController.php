@@ -4,8 +4,14 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RejectOwnerRegistrationRequest;
+use App\Mail\OwnerPasswordSetupMail;
 use App\Models\OwnerRegistration;
+use App\Models\OwnerPasswordSetupToken;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class AdminOwnerRegistrationController extends Controller
@@ -35,18 +41,48 @@ class AdminOwnerRegistrationController extends Controller
             return redirect()->back()->with('error', 'Chỉ có yêu cầu đang chờ mới có thể duyệt.');
         }
 
-        $registration->status = 'active';
-        $registration->rejection_reason = null;
-        $registration->save();
+        $plainToken = Str::random(64);
 
-        if ($registration->user) {
-            $registration->user->update([
-                'role' => 'owner',
-                'status' => 'active',
-            ]);
+        $user = DB::transaction(function () use ($registration, $plainToken) {
+            $registration->status = 'active';
+            $registration->rejection_reason = null;
+
+            $user = $registration->user ?: User::where('email', $registration->email)->first();
+
+            if (! $user) {
+                $user = User::create([
+                    'name' => $registration->name,
+                    'email' => $registration->email,
+                    'password' => Str::random(40),
+                    'role' => 'owner',
+                    'status' => 'inactive',
+                ]);
+            } else {
+                $user->update(['role' => 'owner', 'status' => 'inactive']);
+            }
+
+            $registration->user_id = $user->id;
+            $registration->save();
+
+            OwnerPasswordSetupToken::updateOrCreate(
+                ['user_id' => $user->id],
+                ['token' => hash('sha256', $plainToken), 'expires_at' => now()->addDay()]
+            );
+
+            return $user;
+        });
+
+        $setupUrl = route('owner.password.setup.create', ['token' => $plainToken]);
+
+        try {
+            Mail::to($registration->email)->send(new OwnerPasswordSetupMail($registration, $setupUrl));
+        } catch (\Throwable $exception) {
+            report($exception);
         }
 
-        return redirect()->back()->with('success', 'Duyệt tài khoản chủ sân thành công.');
+        return redirect()->back()
+            ->with('success', 'Duyệt tài khoản chủ sân thành công. Liên kết thiết lập mật khẩu đã được tạo.')
+            ->with('owner_password_setup_url', $setupUrl);
     }
 
     public function reject(RejectOwnerRegistrationRequest $request, int $id)

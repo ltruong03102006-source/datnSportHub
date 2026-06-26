@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Booking extends Model
 {
@@ -15,6 +16,7 @@ class Booking extends Model
     // ĐÂY LÀ CHUẨN CỦA LARAVEL
     protected $fillable = [
         'court_id',
+        'time_slot_id',
         'user_id',
         'slot_date',
         'start_time',
@@ -22,13 +24,18 @@ class Booking extends Model
         'total_price',
         'status',
         'payment_status',
+        'review_reminder_sent_at',
         'note',
-        'cancel_reason'
+        'cancel_reason',
+        'cancellation_fee',
+         'refund_amount', 
+         'refund_status',
     ];
 
     protected $casts = [
         'total_price' => 'decimal:2',
         'slot_date' => 'date',
+        'review_reminder_sent_at' => 'datetime',
     ];
 
     public function court(): BelongsTo
@@ -40,6 +47,8 @@ class Booking extends Model
     {
         return $this->belongsTo(User::class);
     }
+    public function timeSlot(): BelongsTo { return $this->belongsTo(TimeSlot::class); }
+    public function rescheduleRequests(): HasMany { return $this->hasMany(BookingRescheduleRequest::class); }
 
     public function recordStatusChange(int $changedBy, string $oldStatus, string $newStatus, ?string $note = null, $createdAt = null): BookingLog
     {
@@ -58,5 +67,25 @@ class Booking extends Model
         $log->save();
 
         return $log;
+    }
+    public function getCancellationPolicy(): array
+    {
+        $slotDate = $this->slot_date instanceof \Carbon\Carbon 
+            ? $this->slot_date->format('Y-m-d') 
+            : \Carbon\Carbon::parse($this->slot_date)->format('Y-m-d');
+            
+        $startsAt = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $slotDate . ' ' . $this->start_time, 'Asia/Ho_Chi_Minh');
+        $now = \Carbon\Carbon::now('Asia/Ho_Chi_Minh');
+        
+        // Tính số giờ còn lại trước khi đá (false để giữ số âm nếu đã quá giờ)
+        $hoursDiff = $now->diffInHours($startsAt, false);
+
+        if ($hoursDiff >= 24) {
+            return ['fee_percent' => 0, 'refund_percent' => 100, 'hours' => $hoursDiff];
+        } elseif ($hoursDiff >= 12) {
+            return ['fee_percent' => 50, 'refund_percent' => 50, 'hours' => $hoursDiff];
+        } else {
+            return ['fee_percent' => 100, 'refund_percent' => 0, 'hours' => $hoursDiff];
+        }
     }
 }

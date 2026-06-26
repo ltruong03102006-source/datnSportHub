@@ -4,10 +4,19 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Venue;
+use App\Models\Sport;
 use Illuminate\View\View;
 
 class VenueController extends Controller
 {
+    public function nearbyPage(): View
+    {
+        $sports = Sport::all();
+        return view('venues.nearby', [
+            'sports' => $sports
+        ]);
+    }
+
     public function show(int $id): View
     {
         $venue = Venue::with([

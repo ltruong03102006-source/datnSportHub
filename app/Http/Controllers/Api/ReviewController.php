@@ -15,31 +15,45 @@ class ReviewController extends Controller
 {
     public function store(StoreReviewRequest $request, int $courtId): JsonResponse
     {
-        $court = Court::find($courtId);
+        $bookingId = $request->input('booking_id');
 
-        if (! $court) {
-            return response()->json(['message' => 'Không tìm thấy sân.'], 404);
-        }
-
-        $hasBooked = Booking::query()
-            ->where('court_id', $courtId)
+        // 1. Kiểm tra đơn đặt sân có tồn tại, thuộc về user này và đã Hoàn thành chưa
+        $booking = Booking::where('id', $bookingId)
             ->where('user_id', Auth::id())
-            ->whereNotIn('status', ['cancelled', 'rejected'])
-            ->exists();
+            ->where('status', 'completed')
+            ->first();
 
-        if (! $hasBooked) {
-            return response()->json([
-                'message' => 'Bạn cần đặt sân này trước khi đánh giá.',
-            ], 403);
+        if (! $booking) {
+            return response()->json(['message' => 'Đơn đặt sân không hợp lệ hoặc chưa hoàn thành.'], 403);
         }
 
-        $review = Review::updateOrCreate(
-            ['court_id' => $courtId, 'user_id' => Auth::id()],
-            ['rating' => $request->integer('rating'), 'content' => $request->input('content')],
-        );
+        // 2. Kiểm tra xem Đơn này đã đánh giá chưa (Khóa chức năng spam)
+        if (Review::where('booking_id', $bookingId)->exists()) {
+            return response()->json(['message' => 'Bạn đã đánh giá đơn đặt sân này rồi.'], 422);
+        }
+
+        // 3. Tạo đánh giá mới (Bỏ updateOrCreate, dùng create vì đã gắn vào booking_id)
+        $review = Review::create([
+            'court_id' => $courtId,
+            'user_id' => Auth::id(),
+            'booking_id' => $bookingId, // Thêm dữ liệu này
+            'rating' => $request->integer('rating'),
+            'content' => $request->input('content')
+        ]);
+
+        // Notify owner about new review (best-effort)
+        try {
+            $review->load('court.venue.owner');
+            $ownerId = $review->court->venue->owner?->id ?? null;
+            if ($ownerId) {
+                app(\App\Services\NotificationService::class)->notifyOwnerNewReview($ownerId, $review);
+            }
+        } catch (\Throwable $e) {
+            // ignore
+        }
 
         return response()->json([
-            'message' => 'Cảm ơn bạn đã đánh giá!',
+            'message' => 'Cảm ơn bạn đã chia sẻ trải nghiệm!',
             'data' => $this->formatReview($review->load('user:id,name', 'court:id,name')),
         ], 201);
     }
@@ -82,6 +96,7 @@ class ReviewController extends Controller
             'rating' => $review->rating,
             'content' => $review->content,
             'created_at' => $review->created_at?->format('d/m/Y'),
+            'owner_reply' => $review->owner_reply, // THÊM DÒNG NÀY ĐỂ API TRẢ VỀ DỮ LIỆU
         ];
     }
 }

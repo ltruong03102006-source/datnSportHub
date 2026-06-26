@@ -13,7 +13,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens; // 1. Import class HasApiTokens
 
 // 2. Thêm 'role' và 'status' vào danh sách cho phép fill
-#[Fillable(['name', 'email', 'password', 'role', 'status'])] 
+#[Fillable(['name', 'email', 'phone', 'avatar', 'password', 'role', 'status'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -37,5 +37,15 @@ class User extends Authenticatable
     public function venues(): HasMany
     {
         return $this->hasMany(Venue::class, 'owner_id');
+    }
+
+    public function loginHistories(): HasMany
+    {
+        return $this->hasMany(LoginHistory::class);
+    }
+    // Các sân mà người dùng này yêu thích
+    public function favoriteVenues()
+    {
+        return $this->belongsToMany(Venue::class, 'favorites', 'user_id', 'venue_id')->withTimestamps();
     }
 }
