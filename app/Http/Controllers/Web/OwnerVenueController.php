@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreVenueRequest;
 use App\Http\Requests\UpdateVenueRequest;
+use App\Models\Province;
 use App\Models\Sport;
 use App\Models\Venue;
 use Illuminate\Http\JsonResponse; // Dòng khai báo cực kỳ quan trọng vừa được thêm
@@ -31,8 +32,9 @@ class OwnerVenueController extends Controller
     public function create(): View
     {
         $sports = Sport::query()->orderBy('name')->get();
+        $provinces = Province::orderedByName()->get(['code', 'name']);
 
-        return view('owner.venues.create', compact('sports'));
+        return view('owner.venues.create', compact('sports', 'provinces'));
     }
 
     public function store(StoreVenueRequest $request): JsonResponse|RedirectResponse
@@ -46,6 +48,8 @@ class OwnerVenueController extends Controller
                 'sport_id' => $validated['sport_id'],
                 'name' => $validated['name'],
                 'address' => $validated['address'],
+                'province_code' => $validated['province_code'],
+                'ward_code' => $validated['ward_code'],
                 'phone' => $validated['phone'],
                 'email' => $validated['email'],
                 'open_hours' => $validated['open_hours'] ?? null,
@@ -113,9 +117,11 @@ class OwnerVenueController extends Controller
             ->exists();
 
         if ($hasUpcomingBookings) {
-            if ($validated['address'] !== $venue->address || 
-                (float)$validated['lat'] !== (float)$venue->lat || 
-                (float)$validated['lng'] !== (float)$venue->lng || 
+            if ($validated['address'] !== $venue->address ||
+                $validated['province_code'] !== $venue->province_code ||
+                $validated['ward_code'] !== $venue->ward_code ||
+                (float)$validated['lat'] !== (float)$venue->lat ||
+                (float)$validated['lng'] !== (float)$venue->lng ||
                 $validated['sport_id'] != $venue->sport_id) {
                 
                 return response()->json([
@@ -152,6 +158,8 @@ class OwnerVenueController extends Controller
             'sport_id' => $validated['sport_id'],
             'name' => $validated['name'],
             'address' => $validated['address'],
+            'province_code' => $validated['province_code'],
+            'ward_code' => $validated['ward_code'],
             'description' => $validated['description'] ?? null,
             'lat' => $validated['lat'] ?? null,
             'lng' => $validated['lng'] ?? null,
@@ -283,7 +291,8 @@ class OwnerVenueController extends Controller
         $this->authorizeOwner($venue);
         $venue->load('images'); // Tải kèm thư viện ảnh
         $sports = Sport::query()->orderBy('name')->get();
-        return view('owner.venues.edit', compact('venue', 'sports'));
+        $provinces = Province::orderedByName()->get(['code', 'name']);
+        return view('owner.venues.edit', compact('venue', 'sports', 'provinces'));
     }
     // API Xóa 1 ảnh trong thư viện
     public function destroyImage($imageId)

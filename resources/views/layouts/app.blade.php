@@ -60,6 +60,7 @@
             <nav class="hidden items-center gap-8 text-sm font-medium md:flex">
                 <a href="{{ route('home') }}" class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}">Tìm sân</a>
                 <a href="{{ route('venues.nearby') }}" class="nav-link {{ request()->routeIs('venues.nearby') ? 'active' : '' }}">Tìm sân gần đây</a>
+                <a href="{{ route('rankings') }}" class="nav-link {{ request()->routeIs('rankings') ? 'active' : '' }}">Nổi bật</a>
                 @auth
                 <a href="{{ route('account.favorites.index') }}" class="nav-link flex items-center gap-1.5 {{ request()->routeIs('account.favorites.index') ? 'active' : '' }}">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -133,6 +134,7 @@
             <nav class="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3 text-sm font-medium sm:px-6">
                 <a href="{{ route('home') }}" class="rounded-lg px-3 py-2.5 transition {{ request()->routeIs('home') ? 'text-emerald-700 bg-emerald-50 font-bold' : 'text-zinc-700 hover:bg-stone-100' }}">Tìm sân</a>
                 <a href="{{ route('venues.nearby') }}" class="rounded-lg px-3 py-2.5 transition {{ request()->routeIs('venues.nearby') ? 'text-emerald-700 bg-emerald-50 font-bold' : 'text-zinc-700 hover:bg-stone-100' }}">Tìm sân gần đây</a>
+                <a href="{{ route('rankings') }}" class="rounded-lg px-3 py-2.5 transition {{ request()->routeIs('rankings') ? 'text-emerald-700 bg-emerald-50 font-bold' : 'text-zinc-700 hover:bg-stone-100' }}">Nổi bật</a>
                 @auth
                 <a href="{{ route('account.favorites.index') }}" class="flex items-center gap-2 rounded-lg px-3 py-2.5 transition {{ request()->routeIs('account.favorites.index') ? 'text-rose-600 bg-rose-50 font-bold' : 'text-zinc-700 hover:bg-stone-100' }}">
                     <svg class="h-4 w-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
