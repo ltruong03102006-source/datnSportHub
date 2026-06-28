@@ -76,7 +76,7 @@ class NotificationService
     {
         $title = 'Có yêu cầu đổi lịch';
         $content = 'Khách hàng muốn đổi lịch booking.';
-        $link = route('owner.web.reschedule.index');
+        $link = route('owner.web.reschedule.show', $rescheduleRequest);
         return $this->create($ownerUserId, $title, $content, $link, 'owner_reschedule_request');
     }
 

@@ -185,7 +185,11 @@ class CourtBookingController extends Controller
             try {
                 app(\App\Services\NotificationService::class)->notifyBookingPlaced($booking);
             } catch (\Throwable $e) {
-                // ignore notification errors for customer booking created
+                Log::warning('Không thể tạo thông báo đặt sân cho khách.', [
+                    'booking_id' => $booking->id,
+                    'user_id' => $booking->user_id,
+                    'error' => $e->getMessage(),
+                ]);
             }
 
             try {
@@ -195,7 +199,10 @@ class CourtBookingController extends Controller
                     app(\App\Services\NotificationService::class)->notifyOwnerNewBooking($ownerId, $booking);
                 }
             } catch (\Throwable $e) {
-                // ignore notification errors for owner notification
+                Log::warning('Không thể tạo thông báo booking mới cho chủ sân.', [
+                    'booking_id' => $booking->id,
+                    'error' => $e->getMessage(),
+                ]);
             }
 
             return response()->json([
