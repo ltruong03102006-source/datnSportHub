@@ -303,5 +303,125 @@
             window.location.href = '{{ route('home') }}';
         }
     </script>
+
+    @auth
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const notificationButton = document.getElementById('notification-button');
+            const notificationList = document.getElementById('notification-list');
+            const notificationBadge = document.getElementById('notification-badge');
+            const markAllReadButton = document.getElementById('mark-all-read');
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+            const latestUrl = @json(route('notifications.latest', ['context' => 'customer']));
+            const unreadCountUrl = @json(route('notifications.unread-count', ['context' => 'customer']));
+            const markAllReadUrl = @json(route('notifications.read-all', ['context' => 'customer']));
+            const readUrlPrefix = @json(url('/notifications'));
+
+            const requestHeaders = {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+            };
+
+            function formatTime(value) {
+                if (!value) return '';
+
+                return new Intl.DateTimeFormat('vi-VN', {
+                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+                }).format(new Date(value));
+            }
+
+            function renderEmpty(message) {
+                notificationList.replaceChildren();
+                const item = document.createElement('div');
+                item.className = 'p-4 text-sm text-zinc-500';
+                item.textContent = message;
+                notificationList.appendChild(item);
+            }
+
+            function renderNotifications(items) {
+                if (!items.length) {
+                    renderEmpty('Bạn chưa có thông báo nào.');
+                    return;
+                }
+
+                notificationList.replaceChildren();
+                items.forEach((notification) => {
+                    const item = document.createElement('a');
+                    item.href = notification.link || '#';
+                    item.className = `block border-b border-stone-100 px-4 py-3 transition hover:bg-stone-50 ${notification.is_read ? '' : 'bg-emerald-50/60'}`;
+
+                    const title = document.createElement('p');
+                    title.className = 'text-sm font-semibold text-zinc-800';
+                    title.textContent = notification.title;
+
+                    const content = document.createElement('p');
+                    content.className = 'mt-1 text-xs leading-5 text-zinc-500';
+                    content.textContent = notification.content;
+
+                    const time = document.createElement('p');
+                    time.className = 'mt-1 text-[11px] text-zinc-400';
+                    time.textContent = formatTime(notification.created_at);
+
+                    item.append(title, content, time);
+                    item.addEventListener('click', async (event) => {
+                        if (!notification.is_read) {
+                            try {
+                                await fetch(`${readUrlPrefix}/${notification.id}/read`, {
+                                    method: 'POST', headers: requestHeaders,
+                                });
+                            } catch (error) {
+                                // Vẫn cho phép người dùng mở liên kết thông báo khi request gặp sự cố.
+                            }
+                        }
+
+                        if (!notification.link) event.preventDefault();
+                    });
+                    notificationList.appendChild(item);
+                });
+            }
+
+            async function loadUnreadCount() {
+                try {
+                    const response = await fetch(unreadCountUrl, { headers: { 'Accept': 'application/json' } });
+                    if (!response.ok) throw new Error('Không thể tải số lượng thông báo.');
+                    const { count } = await response.json();
+                    notificationBadge.textContent = count > 99 ? '99+' : count;
+                    notificationBadge.style.display = count > 0 ? 'inline-flex' : 'none';
+                } catch (error) {
+                    notificationBadge.style.display = 'none';
+                }
+            }
+
+            async function loadNotifications() {
+                try {
+                    const response = await fetch(latestUrl, { headers: { 'Accept': 'application/json' } });
+                    if (!response.ok) throw new Error('Không thể tải thông báo.');
+                    renderNotifications(await response.json());
+                } catch (error) {
+                    renderEmpty('Không thể tải thông báo. Vui lòng thử lại.');
+                }
+            }
+
+            notificationButton?.addEventListener('click', () => {
+                loadNotifications();
+                loadUnreadCount();
+            });
+
+            markAllReadButton?.addEventListener('click', async () => {
+                try {
+                    const response = await fetch(markAllReadUrl, {
+                        method: 'POST', headers: requestHeaders,
+                    });
+                    if (!response.ok) throw new Error('Không thể cập nhật thông báo.');
+                    await Promise.all([loadNotifications(), loadUnreadCount()]);
+                } catch (error) {
+                    showToast('Không thể đánh dấu thông báo đã đọc.', 'error');
+                }
+            });
+
+            loadUnreadCount();
+        });
+    </script>
+    @endauth
 </body>
 </html>

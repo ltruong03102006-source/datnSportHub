@@ -638,6 +638,8 @@
     </div>
 
     <div class="sporthub-nav-right">
+        @include('owner.partials.notification-bell')
+
         <a href="{{ route('owner.dashboard') }}">
             Tổng quan
         </a>
@@ -1155,5 +1157,6 @@
         calendar.render();
     });
 </script>
+@include('owner.partials.notification-script')
 </body>
 </html>

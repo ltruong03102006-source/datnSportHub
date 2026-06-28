@@ -66,7 +66,9 @@ class AdminLoginController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('admin.dashboard'));
+        // Admin luôn về dashboard sau khi đăng nhập.
+        // Không dùng intended() để tránh bị quay lại các URL API như /notifications/unread-count.
+        return redirect()->route('admin.dashboard');
     }
 
     /**

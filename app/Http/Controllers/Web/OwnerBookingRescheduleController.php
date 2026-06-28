@@ -9,7 +9,6 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Notifications\BookingRescheduleNotification;
 
 class OwnerBookingRescheduleController extends Controller
 {
