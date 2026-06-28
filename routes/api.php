@@ -55,6 +55,13 @@ Route::middleware('auth:sanctum')->group(function () {
 // Public sports & court listing & detail (API)
 Route::get('/sports', [SportController::class, 'index'])->name('sports.index');
 
+// Administrative areas for location filter & cascading selects
+Route::get('/provinces', [\App\Http\Controllers\Api\LocationController::class, 'provinces'])->name('provinces.index');
+Route::get('/provinces/{provinceCode}/wards', [\App\Http\Controllers\Api\LocationController::class, 'wards'])->name('provinces.wards');
+
+// Venue ranking (by rating & bookings)
+Route::get('/rankings', [\App\Http\Controllers\Api\RankingController::class, 'index'])->name('rankings.index');
+
 Route::get('/courts', [CourtController::class, 'index'])->name('courts.index');
 
 Route::get('/courts/search', [CourtController::class, 'search'])->name('courts.search');

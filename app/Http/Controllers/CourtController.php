@@ -47,7 +47,7 @@ class CourtController extends Controller
         // Chuyển từ query Court sang query Venue
         $query = Venue::query()
             ->select('venues.*')
-            ->with(['sport'])
+            ->with(['sport', 'province', 'ward'])
             ->withCount(['courts' => function ($q) {
                 $q->where('status', 'active');
             }])
@@ -61,6 +61,28 @@ class CourtController extends Controller
                       ->where('courts.status', 'active');
             })
             ->when($sportId !== null, fn (Builder $query) => $query->where('venues.sport_id', $sportId));
+
+        $query->withListingStats();
+
+        $query->filterByLocation(
+            $request->query('province_code'),
+            $request->query('ward_code')
+        );
+
+        $query->filterByPrice(
+            $request->filled('price_min') ? (int) $request->query('price_min') : null,
+            $request->filled('price_max') ? (int) $request->query('price_max') : null,
+        );
+
+        $query->filterByRating(
+            $request->filled('min_rating') ? (float) $request->query('min_rating') : null
+        );
+
+        $query->filterByDistance(
+            $request->filled('lat') ? (float) $request->query('lat') : null,
+            $request->filled('lng') ? (float) $request->query('lng') : null,
+            $request->filled('radius') ? (float) $request->query('radius') : null,
+        );
 
         $this->applySearch($query, $search);
         $this->applySorting($query, $search);
@@ -194,6 +216,13 @@ class CourtController extends Controller
             'sport_id' => $venue->sport_id,
             'sport_name' => $venue->sport?->name,
             'address' => $venue->address,
+            'province_code' => $venue->province_code,
+            'province_name' => $venue->province?->name,
+            'ward_code' => $venue->ward_code,
+            'ward_name' => $venue->ward?->name,
+            'avg_rating' => $venue->avg_rating !== null ? round((float) $venue->avg_rating, 1) : null,
+            'min_price' => $venue->min_price !== null ? (int) $venue->min_price : null,
+            'distance_km' => isset($venue->distance_km) ? round((float) $venue->distance_km, 1) : null,
             'lat' => $venue->lat,
             'lng' => $venue->lng,
             'phone' => $phone, // Đã đổi thành phone và trả về SĐT thật

@@ -91,8 +91,39 @@
             </div>
         </section>
 
+        {{-- Cơ sở nổi bật — tự ẩn khi đang tìm kiếm hoặc lọc theo môn --}}
+        @if (!empty($featured) && count($featured))
+            <section x-show="sport === 'all' && query.trim() === '' && !hasActiveFilters" x-cloak class="mb-10">
+                <div class="mb-4 flex items-end justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-extrabold text-zinc-900">🏆 Cơ sở nổi bật</h2>
+                        <p class="text-sm text-stone-500">Đánh giá cao &amp; được đặt nhiều nhất.</p>
+                    </div>
+                    <a href="{{ route('rankings') }}" class="shrink-0 text-sm font-semibold text-emerald-700 hover:text-emerald-800">Xem tất cả →</a>
+                </div>
+                <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                    @foreach ($featured as $venue)
+                        <a href="{{ url('/venues/' . $venue['venue_id']) }}"
+                            class="group overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md">
+                            <div class="relative h-28 bg-gradient-to-br from-emerald-600 to-emerald-800">
+                                @if ($venue['thumbnail'])
+                                    <img src="{{ $venue['thumbnail'] }}" alt="" class="h-full w-full object-cover">
+                                @endif
+                                <span class="absolute left-2 top-2 rounded-full bg-amber-500 px-2 py-0.5 text-xs font-bold text-white shadow">★ {{ number_format($venue['avg_rating'], 1) }}</span>
+                            </div>
+                            <div class="p-3">
+                                <h3 class="truncate text-sm font-bold text-zinc-900 group-hover:text-emerald-700">{{ $venue['name'] }}</h3>
+                                <p class="truncate text-xs text-stone-500">{{ $venue['sport_name'] }}</p>
+                                <p class="mt-1 text-xs text-stone-400">{{ $venue['bookings_count'] }} lượt đặt</p>
+                            </div>
+                        </a>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
         <div class="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
-            
+
             <aside class="min-w-0 lg:sticky lg:top-24 lg:self-start">
                 <h2 class="mb-4 px-2 text-xs font-bold uppercase tracking-wider text-stone-400">Danh mục bộ môn</h2>
                 <div class="-mx-2 flex gap-1 overflow-x-auto px-2 pb-2 lg:mx-0 lg:flex-col lg:gap-1.5 lg:overflow-visible lg:px-0 lg:pb-0 hide-scrollbar">
@@ -142,11 +173,143 @@
                         </button>
                     @endforeach
                 </div>
+
+                <div class="mt-6 space-y-6 border-t border-stone-200/60 pt-5">
+                    <div class="flex items-center justify-between px-2">
+                        <h2 class="text-xs font-bold uppercase tracking-wider text-stone-400">Bộ lọc</h2>
+                        <button
+                            type="button"
+                            x-show="hasActiveFilters"
+                            x-cloak
+                            @click="clearFilters()"
+                            class="text-[11px] font-semibold text-emerald-600 transition hover:text-emerald-700"
+                        >Xoá tất cả</button>
+                    </div>
+
+                    {{-- Khu vực (dropdown có tìm kiếm) --}}
+                    <div class="space-y-2.5">
+                        <p class="px-2 text-[11px] font-semibold uppercase tracking-wide text-stone-400">Khu vực</p>
+
+                        {{-- Tỉnh/Thành --}}
+                        <div x-data="{ open: false, q: '' }" @click.outside="open = false" class="relative">
+                            <button
+                                type="button"
+                                @click="open = !open; q = ''"
+                                class="flex w-full items-center justify-between gap-2 rounded-xl border border-stone-200 bg-white py-2.5 pl-3 pr-3 text-left text-sm font-medium outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                            >
+                                <span class="truncate" :class="province ? 'text-zinc-700' : 'text-stone-400'" x-text="provinceName || 'Tất cả tỉnh/thành'"></span>
+                                <svg class="h-4 w-4 shrink-0 text-stone-400" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                            </button>
+                            <div x-show="open" x-cloak x-transition.opacity class="absolute z-30 mt-1 w-full overflow-hidden rounded-xl border border-stone-200 bg-white shadow-lg">
+                                <div class="p-2">
+                                    <input x-model="q" type="text" placeholder="Tìm tỉnh/thành…" class="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-sm outline-none focus:border-emerald-500" @click.stop>
+                                </div>
+                                <ul class="max-h-60 overflow-auto pb-1 text-sm">
+                                    <li>
+                                        <button type="button" @click="selectProvince(''); open = false" class="block w-full px-3 py-1.5 text-left text-stone-500 hover:bg-stone-50">Tất cả tỉnh/thành</button>
+                                    </li>
+                                    <template x-for="p in provinces.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()))" :key="p.code">
+                                        <li>
+                                            <button type="button" @click="selectProvince(p.code); open = false" x-text="p.name" :class="p.code === province ? 'bg-emerald-50 font-semibold text-emerald-700' : 'text-zinc-700 hover:bg-stone-50'" class="block w-full px-3 py-1.5 text-left"></button>
+                                        </li>
+                                    </template>
+                                    <li x-show="provinces.filter((p) => p.name.toLowerCase().includes(q.toLowerCase())).length === 0" class="px-3 py-2 text-stone-400">Không tìm thấy</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        {{-- Phường/Xã --}}
+                        <div x-data="{ open: false, q: '' }" @click.outside="open = false" class="relative">
+                            <button
+                                type="button"
+                                @click="if (province && wards.length) { open = !open; q = '' }"
+                                :disabled="!province || wards.length === 0"
+                                class="flex w-full items-center justify-between gap-2 rounded-xl border border-stone-200 bg-white py-2.5 pl-3 pr-3 text-left text-sm font-medium outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:bg-stone-100"
+                            >
+                                <span class="truncate" :class="ward ? 'text-zinc-700' : 'text-stone-400'" x-text="ward ? wardName : (province ? 'Tất cả phường/xã' : 'Phường/Xã')"></span>
+                                <svg class="h-4 w-4 shrink-0 text-stone-400" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                            </button>
+                            <div x-show="open" x-cloak x-transition.opacity class="absolute z-30 mt-1 w-full overflow-hidden rounded-xl border border-stone-200 bg-white shadow-lg">
+                                <div class="p-2">
+                                    <input x-model="q" type="text" placeholder="Tìm phường/xã…" class="w-full rounded-lg border border-stone-200 px-2.5 py-1.5 text-sm outline-none focus:border-emerald-500" @click.stop>
+                                </div>
+                                <ul class="max-h-60 overflow-auto pb-1 text-sm">
+                                    <li>
+                                        <button type="button" @click="selectWard(''); open = false" class="block w-full px-3 py-1.5 text-left text-stone-500 hover:bg-stone-50">Tất cả phường/xã</button>
+                                    </li>
+                                    <template x-for="w in wards.filter((w) => w.name.toLowerCase().includes(q.toLowerCase()))" :key="w.code">
+                                        <li>
+                                            <button type="button" @click="selectWard(w.code); open = false" x-text="w.name" :class="w.code === ward ? 'bg-emerald-50 font-semibold text-emerald-700' : 'text-zinc-700 hover:bg-stone-50'" class="block w-full px-3 py-1.5 text-left"></button>
+                                        </li>
+                                    </template>
+                                    <li x-show="wards.filter((w) => w.name.toLowerCase().includes(q.toLowerCase())).length === 0" class="px-3 py-2 text-stone-400">Không tìm thấy</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Khoảng giá --}}
+                    <div class="space-y-2.5">
+                        <p class="px-2 text-[11px] font-semibold uppercase tracking-wide text-stone-400">Khoảng giá</p>
+                        <div class="flex flex-wrap gap-2 px-0.5">
+                            <template x-for="b in priceBuckets" :key="b.key">
+                                <button
+                                    type="button"
+                                    @click="selectPrice(b.key)"
+                                    x-text="b.label"
+                                    :class="price === b.key
+                                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                                        : 'border-stone-200 bg-white text-zinc-600 hover:border-stone-300'"
+                                    class="rounded-lg border px-3 py-1.5 text-xs font-semibold transition"
+                                ></button>
+                            </template>
+                        </div>
+                    </div>
+
+                    {{-- Đánh giá --}}
+                    <div class="space-y-2.5">
+                        <p class="px-2 text-[11px] font-semibold uppercase tracking-wide text-stone-400">Đánh giá</p>
+                        <div class="flex flex-wrap gap-2 px-0.5">
+                            <template x-for="r in ratingOptions" :key="r.value">
+                                <button
+                                    type="button"
+                                    @click="selectRating(r.value)"
+                                    x-text="r.label"
+                                    :class="minRating === r.value
+                                        ? 'border-amber-400 bg-amber-50 text-amber-700'
+                                        : 'border-stone-200 bg-white text-zinc-600 hover:border-stone-300'"
+                                    class="rounded-lg border px-3 py-1.5 text-xs font-semibold transition"
+                                ></button>
+                            </template>
+                        </div>
+                    </div>
+
+                    {{-- Khoảng cách --}}
+                    <div class="space-y-2.5">
+                        <p class="px-2 text-[11px] font-semibold uppercase tracking-wide text-stone-400">Khoảng cách</p>
+                        <div class="flex flex-wrap gap-2 px-0.5">
+                            <template x-for="d in distanceOptions" :key="d.value">
+                                <button
+                                    type="button"
+                                    @click="selectDistance(d.value)"
+                                    :disabled="geoLoading"
+                                    x-text="d.label"
+                                    :class="radius === d.value
+                                        ? 'border-sky-400 bg-sky-50 text-sky-700'
+                                        : 'border-stone-200 bg-white text-zinc-600 hover:border-stone-300'"
+                                    class="rounded-lg border px-3 py-1.5 text-xs font-semibold transition disabled:opacity-60"
+                                ></button>
+                            </template>
+                        </div>
+                        <p x-show="geoLoading" x-cloak class="px-2 text-[11px] text-stone-400">Đang lấy vị trí…</p>
+                        <p x-show="geoError" x-cloak x-text="geoError" class="px-2 text-[11px] text-rose-500"></p>
+                    </div>
+                </div>
             </aside>
 
             <section class="min-w-0">
                 
-                <div class="mb-5 flex items-end justify-between gap-4 border-b border-stone-200/60 pb-3">
+                <div class="mb-5 border-b border-stone-200/60 pb-3">
                     <p class="text-sm font-medium text-stone-500">
                         <template x-if="!loading && meta.total > 0">
                             <span>Đang hiển thị <span class="font-bold text-zinc-900" x-text="rangeLabel"></span>
@@ -156,6 +319,58 @@
                         </template>
                         <span x-show="loading" class="animate-pulse">Đang đồng bộ dữ liệu…</span>
                     </p>
+
+                    {{-- Bộ lọc đang áp dụng --}}
+                    <div x-show="query.trim() !== '' || hasActiveFilters" x-cloak class="mt-3 flex flex-wrap items-center gap-2">
+                        <span class="text-xs font-medium text-stone-400">Đang lọc:</span>
+
+                        <template x-if="query.trim() !== ''">
+                            <span class="inline-flex items-center gap-1.5 rounded-full bg-stone-100 py-1 pl-3 pr-1.5 text-xs font-semibold text-zinc-700">
+                                <span x-text="'“' + query.trim() + '”'"></span>
+                                <button type="button" @click="clearSearch()" class="grid h-4 w-4 place-items-center rounded-full text-stone-400 transition hover:bg-stone-200 hover:text-zinc-700" aria-label="Bỏ từ khoá">
+                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                                </button>
+                            </span>
+                        </template>
+
+                        <template x-if="province">
+                            <span class="inline-flex items-center gap-1.5 rounded-full bg-stone-100 py-1 pl-3 pr-1.5 text-xs font-semibold text-zinc-700">
+                                <span x-text="provinceName + (ward ? ' / ' + wardName : '')"></span>
+                                <button type="button" @click="clearLocation()" class="grid h-4 w-4 place-items-center rounded-full text-stone-400 transition hover:bg-stone-200 hover:text-zinc-700" aria-label="Bỏ khu vực">
+                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                                </button>
+                            </span>
+                        </template>
+
+                        <template x-if="price">
+                            <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 py-1 pl-3 pr-1.5 text-xs font-semibold text-emerald-700">
+                                <span x-text="priceLabel"></span>
+                                <button type="button" @click="selectPrice(price)" class="grid h-4 w-4 place-items-center rounded-full text-emerald-400 transition hover:bg-emerald-100 hover:text-emerald-700" aria-label="Bỏ khoảng giá">
+                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                                </button>
+                            </span>
+                        </template>
+
+                        <template x-if="minRating">
+                            <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-50 py-1 pl-3 pr-1.5 text-xs font-semibold text-amber-700">
+                                <span x-text="ratingLabel"></span>
+                                <button type="button" @click="selectRating(minRating)" class="grid h-4 w-4 place-items-center rounded-full text-amber-400 transition hover:bg-amber-100 hover:text-amber-700" aria-label="Bỏ đánh giá">
+                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                                </button>
+                            </span>
+                        </template>
+
+                        <template x-if="radius">
+                            <span class="inline-flex items-center gap-1.5 rounded-full bg-sky-50 py-1 pl-3 pr-1.5 text-xs font-semibold text-sky-700">
+                                <span x-text="distanceLabel"></span>
+                                <button type="button" @click="selectDistance(radius)" class="grid h-4 w-4 place-items-center rounded-full text-sky-400 transition hover:bg-sky-100 hover:text-sky-700" aria-label="Bỏ khoảng cách">
+                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                                </button>
+                            </span>
+                        </template>
+
+                        <button type="button" @click="clearAll()" class="ml-1 text-xs font-semibold text-rose-500 transition hover:text-rose-600">Xoá hết</button>
+                    </div>
                 </div>
 
                 <div x-show="loading" class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
@@ -213,6 +428,20 @@
         <h3 class="text-lg font-bold leading-snug text-zinc-900 transition-colors group-hover:text-emerald-700 line-clamp-1" x-text="court.name"></h3>
         
         <p class="mt-1 text-xs font-semibold text-emerald-600" x-text="court.courts_count ? court.courts_count + ' sân con' : 'Đang cập nhật'"></p>
+
+        <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
+            <span x-show="court.avg_rating" x-cloak class="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700">
+                <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M11.48 3.5a.56.56 0 0 1 1.04 0l2.13 5.11 5.52.44c.5.04.7.66.32.99l-4.2 3.6 1.28 5.39c.12.49-.42.88-.85.62L12 17.34l-4.74 2.91c-.43.26-.97-.13-.85-.62l1.28-5.39-4.2-3.6c-.38-.33-.18-.95.32-.99l5.52-.44 2.13-5.11Z" /></svg>
+                <span x-text="court.avg_rating"></span>
+            </span>
+            <span x-show="court.min_price" x-cloak class="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700">
+                <span x-text="'từ ' + formatPrice(court.min_price) + 'đ'"></span>
+            </span>
+            <span x-show="court.distance_km !== null && court.distance_km !== undefined" x-cloak class="inline-flex items-center gap-1 rounded-md bg-sky-50 px-2 py-0.5 text-xs font-bold text-sky-700">
+                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg>
+                <span x-text="court.distance_km + ' km'"></span>
+            </span>
+        </div>
 
         <div class="mt-3 mb-5 space-y-2 text-sm text-stone-500">
             <p class="flex items-start gap-2">

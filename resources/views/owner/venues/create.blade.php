@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tạo cơ sở mới</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <style>
         :root { --brand: #059669; --brand-dark: #047857; --ink: #172033; --muted: #64748b; }
@@ -91,6 +92,24 @@
                                 <div class="col-12 col-md-6">
                                     <label class="form-label">Tên cơ sở <span class="text-danger">*</span></label>
                                     <input type="text" name="name" class="form-control" maxlength="255" value="{{ old('name') }}" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Tỉnh/Thành phố <span class="text-danger">*</span></label>
+                                    <select name="province_code" id="province_code" class="form-select"
+                                            data-old-ward="{{ old('ward_code') }}">
+                                        <option value="">-- Chọn tỉnh/thành --</option>
+                                        @foreach ($provinces as $province)
+                                            <option value="{{ $province->code }}" @selected(old('province_code') == $province->code)>{{ $province->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('province_code')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Phường/Xã <span class="text-danger">*</span></label>
+                                    <select name="ward_code" id="ward_code" class="form-select" disabled>
+                                        <option value="">-- Phường/Xã --</option>
+                                    </select>
+                                    @error('ward_code')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label">Địa chỉ <span class="text-danger">*</span></label>
@@ -221,6 +240,7 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script>
     const steps = document.querySelectorAll('.step-panel');
     const stepPills = document.querySelectorAll('.step-pill');
@@ -351,6 +371,50 @@ L.tileLayer(
         map.invalidateSize();
     }, 500);
 });
+
+    // Cascading Tỉnh -> Phường/Xã (Tom Select: có ô tìm kiếm)
+    const provinceEl = document.getElementById('province_code');
+    const wardEl = document.getElementById('ward_code');
+
+    const provinceTS = new TomSelect(provinceEl, {
+        searchField: 'text',
+        placeholder: 'Tìm tỉnh/thành…',
+        maxOptions: null,
+    });
+    const wardTS = new TomSelect(wardEl, {
+        searchField: 'text',
+        placeholder: 'Tìm phường/xã…',
+        maxOptions: null,
+    });
+
+    async function loadWards(provinceCode, selectedWard = '') {
+        wardTS.clear(true);
+        wardTS.clearOptions();
+        wardTS.disable();
+
+        if (!provinceCode) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/provinces/${provinceCode}/wards`);
+            const json = await res.json();
+            wardTS.addOptions(json.data.map((w) => ({ value: w.code, text: w.name })));
+            wardTS.enable();
+            if (selectedWard) {
+                wardTS.setValue(selectedWard, true);
+            }
+        } catch (err) {
+            wardTS.disable();
+        }
+    }
+
+    provinceTS.on('change', (value) => loadWards(value));
+
+    // Repopulate wards after a validation error (old input)
+    if (provinceEl.value) {
+        loadWards(provinceEl.value, provinceEl.dataset.oldWard || '');
+    }
 </script>
 </body>
 </html>
