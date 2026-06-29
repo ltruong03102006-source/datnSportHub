@@ -94,4 +94,32 @@ class ProfileController extends Controller
 
         return back()->with('success', 'Đã cập nhật ảnh đại diện.');
     }
+
+    public function updateBankInfo(Request $request): RedirectResponse
+    {
+        $user = Auth::user();
+
+        // Chỉ chủ sân mới được cập nhật
+        if ($user->role !== 'owner') {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'bank_name' => ['nullable', 'string', 'max:50'],
+            'bank_account_no' => ['nullable', 'string', 'max:50'],
+            'bank_account_name' => ['nullable', 'string', 'max:255'],
+        ], [
+            'bank_name.max' => 'Tên/Mã ngân hàng quá dài.',
+            'bank_account_no.max' => 'Số tài khoản quá dài.',
+            'bank_account_name.max' => 'Tên chủ tài khoản quá dài.',
+        ]);
+
+        $user->update([
+            'bank_name' => $validated['bank_name'],
+            'bank_account_no' => $validated['bank_account_no'],
+            'bank_account_name' => mb_strtoupper($validated['bank_account_name'], 'UTF-8'),
+        ]);
+
+        return back()->with('success', 'Đã cập nhật thông tin ngân hàng thành công. Các sân của bạn sẽ tự động sử dụng tài khoản này để nhận thanh toán QR.');
+    }
 }

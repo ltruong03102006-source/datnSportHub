@@ -13,7 +13,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens; // 1. Import class HasApiTokens
 
 // 2. Thêm 'role' và 'status' vào danh sách cho phép fill
-#[Fillable(['name', 'email', 'phone', 'avatar', 'password', 'role', 'status'])]
+#[Fillable(['name', 'email', 'phone', 'avatar', 'password', 'role', 'status', 'bank_name', 'bank_account_no', 'bank_account_name'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
