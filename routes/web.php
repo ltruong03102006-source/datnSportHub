@@ -24,6 +24,28 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Web\OwnerCourtController;
 use App\Http\Controllers\Web\BookingRescheduleController;
 use App\Http\Controllers\Web\OwnerBookingRescheduleController;
+use App\Http\Controllers\Web\VnPayController;
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "web" middleware group. Make something great!
+|
+*/
+
+// Authentication Routes
+Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
+Route::post('/register', [AuthController::class, 'register'])->name('register.post');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// VNPay Callback Route
+Route::get('/vnpay/callback', [VnPayController::class, 'vnpayReturn'])->name('vnpay.callback');
 
 Route::get('/', [CourtPageController::class, 'index'])->name('home');
 
@@ -104,6 +126,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
 // --- KHU VỰC QUẢN LÝ CỦA CHỦ SÂN (OWNER) ---
 Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group(function () {
+    // Cài đặt ngân hàng trong Owner Portal
+    Route::get('/settings/bank', [\App\Http\Controllers\Web\OwnerDashboardController::class, 'bankSettings'])->name('settings.bank');
+
     Route::get('/reschedule-requests', [OwnerBookingRescheduleController::class, 'index'])->name('reschedule.index');
     Route::get('/reschedule-requests/{rescheduleRequest}', [OwnerBookingRescheduleController::class, 'show'])->name('reschedule.show');
     Route::post('/reschedule-requests/{rescheduleRequest}/approve', [OwnerBookingRescheduleController::class, 'approve'])->name('reschedule.approve');
@@ -157,6 +182,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/bookings/{booking}/success', [UserBookingController::class, 'success'])
         ->name('web.bookings.success');
     
+    // Thanh toán VNPay
+    Route::get('/vnpay/payment/{booking}', [\App\Http\Controllers\Web\VnPayController::class, 'createPayment'])
+        ->name('vnpay.payment');
+    
     // API thả tim (Đưa ra ngoài account)
     Route::post('/venues/{venue}/favorite', [FavoriteController::class, 'toggle'])->name('web.venues.favorite');
     
@@ -179,6 +208,7 @@ Route::middleware('auth')->group(function () {
         Route::patch('/profile', [\App\Http\Controllers\Web\ProfileController::class, 'updateInfo'])->name('profile.update');
         Route::put('/profile/password', [\App\Http\Controllers\Web\ProfileController::class, 'updatePassword'])->name('profile.password');
         Route::post('/profile/avatar', [\App\Http\Controllers\Web\ProfileController::class, 'updateAvatar'])->name('profile.avatar');
+        Route::put('/profile/bank', [\App\Http\Controllers\Web\ProfileController::class, 'updateBankInfo'])->name('profile.bank');
 
     }); // <-- Ngoặc đóng của group account
 

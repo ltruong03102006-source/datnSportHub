@@ -200,4 +200,9 @@ class OwnerDashboardController extends Controller
             'peakHours'
         ));
     }
+
+    public function bankSettings(): View
+    {
+        return view('owner.bank');
+    }
 }
