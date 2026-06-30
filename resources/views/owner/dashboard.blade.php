@@ -40,7 +40,7 @@
                 Tổng Quan Kinh Doanh
             </h1>
         </div>
-        <div class="flex gap-4">
+        <div class="flex items-center gap-4">
             <a href="{{ route('owner.web.venues.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Quản lý cơ sở</a>
             <a href="{{ route('owner.web.calendar.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Lịch đặt sân</a>
             <a href="{{ route('owner.web.settings.bank') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Thanh toán (Bank)</a>
@@ -404,5 +404,6 @@
             });
         });
     </script>
+    @include('owner.partials.notification-script')
 </body>
 </html>

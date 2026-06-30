@@ -49,6 +49,8 @@ Route::get('/vnpay/callback', [VnPayController::class, 'vnpayReturn'])->name('vn
 
 Route::get('/', [CourtPageController::class, 'index'])->name('home');
 
+Route::get('/rankings', [\App\Http\Controllers\Web\RankingController::class, 'index'])->name('rankings');
+
 Route::get('/courts/{court}/booking', [CourtBookingController::class, 'show'])->name('web.courts.booking');
 Route::post('/courts/booking', [CourtBookingController::class, 'store'])->name('web.courts.booking.store');
 

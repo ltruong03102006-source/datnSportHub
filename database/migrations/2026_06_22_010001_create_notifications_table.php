@@ -1,24 +1,15 @@
 <?php
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
 	public function up(): void
 	{
-		if (! Schema::hasTable('notifications')) {
-			Schema::create('notifications', function (Blueprint $table) {
-				$table->uuid('id')->primary();
-				$table->string('type');
-				$table->morphs('notifiable');
-				$table->text('data');
-				$table->timestamp('read_at')->nullable();
-				$table->timestamps();
-			});
-		}
+		// Dự án dùng bảng notifications riêng (user_id, title, content, ...)
+		// do migration 2026_06_22_000000_create_notifications_table quản lý.
+		// Migration này được giữ lại để không làm sai lịch sử migration đã có.
 	}
 
 	public function down(): void
 	{
-		Schema::dropIfExists('notifications');
+		// Không xóa bảng notifications vì nó thuộc migration 000000 ở trên.
 	}
 };

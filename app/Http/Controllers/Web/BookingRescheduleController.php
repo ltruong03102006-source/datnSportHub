@@ -7,7 +7,6 @@ use App\Models\Booking;
 use App\Models\BookingRescheduleRequest;
 use App\Models\TimeSlot;
 use App\Models\BookingRescheduleRequestSlot;
-use App\Notifications\BookingRescheduleNotification;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

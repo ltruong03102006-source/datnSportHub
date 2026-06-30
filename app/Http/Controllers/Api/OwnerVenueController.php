@@ -54,6 +54,8 @@ class OwnerVenueController extends Controller
             'sport_id' => $validated['sport_id'],
             'name' => $validated['name'],
             'address' => $validated['address'],
+            'province_code' => $validated['province_code'],
+            'ward_code' => $validated['ward_code'],
             'description' => $validated['description'] ?? null,
             'banner' => $bannerPath,
             'lat' => $validated['lat'],
