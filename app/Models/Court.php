@@ -36,6 +36,11 @@ class Court extends Model
         return $this->hasMany(Booking::class);
     }
 
+    public function bookingPackages(): HasMany
+    {
+        return $this->hasMany(BookingPackage::class);
+    }
+
     /**
      * Scope: Lấy chỉ các sân đang hoạt động
      */

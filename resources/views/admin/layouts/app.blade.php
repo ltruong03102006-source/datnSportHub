@@ -293,6 +293,9 @@
             <a href="{{ route('admin.bookings.index') }}" class="nav-item {{ request()->routeIs('admin.bookings.*') ? 'active' : '' }}">
                 <i class="fa-regular fa-calendar-check"></i> Quản lý đặt sân
             </a>
+            <a href="{{ route('admin.packages.index') }}" class="nav-item {{ request()->routeIs('admin.packages.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-layer-group"></i> Quản lý gói
+            </a>
             <a href="{{ route('admin.transactions.index') }}" class="nav-item {{ request()->routeIs('admin.transactions.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-wallet"></i> Lịch sử giao dịch
             </a>

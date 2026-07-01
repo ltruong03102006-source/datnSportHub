@@ -6,16 +6,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
 
 class Notification extends Model
 {
     use HasFactory;
 
     /** Bảng notifications dùng UUID làm khóa chính. */
-    public $incrementing = false;
+    public $incrementing = true;
 
-    protected $keyType = 'string';
+    protected $keyType = 'int';
 
     protected $fillable = [
         'user_id',
@@ -35,8 +34,6 @@ class Notification extends Model
     protected static function booted(): void
     {
         static::creating(function (self $notification) {
-            $notification->id ??= (string) Str::uuid();
-
             // Bảng notifications cũ được tạo theo chuẩn Laravel nên hai cột
             // notifiable_* là bắt buộc. Đồng bộ chúng với người nhận của
             // notification nội bộ để cả hai cấu trúc cùng hoạt động.

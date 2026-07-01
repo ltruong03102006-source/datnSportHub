@@ -36,13 +36,15 @@ class Venue extends Model
         'email',
         'open_hours',
         'close_hours',
-        'google_maps_address'
+        'google_maps_address',
+        'allow_package_booking',
     ];
 
     // Ép kiểu (Casts) tọa độ sang số thực để tránh lỗi hiển thị bản đồ
     protected $casts = [
         'lat' => 'float',
         'lng' => 'float',
+        'allow_package_booking' => 'boolean',
     ];
 
     public function owner(): BelongsTo
@@ -120,6 +122,16 @@ class Venue extends Model
     public function bookings(): HasManyThrough
     {
         return $this->hasManyThrough(Booking::class, Court::class);
+    }
+
+    public function packages(): HasMany
+    {
+        return $this->hasMany(VenuePackage::class);
+    }
+
+    public function bookingPackages(): HasMany
+    {
+        return $this->hasMany(BookingPackage::class);
     }
 
     // Active venues carrying their rating average and booking count for ranking

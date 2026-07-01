@@ -39,6 +39,7 @@
         <div class="flex items-center gap-4">
             <a href="{{ route('owner.dashboard') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Tổng quan</a>
             <a href="{{ route('owner.web.calendar.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Lịch đặt sân</a>
+            <a href="{{ route('owner.web.packages.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Quản lý gói</a>
             @include('owner.partials.notification-bell')
         </div>
     </nav>

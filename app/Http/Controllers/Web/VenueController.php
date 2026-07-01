@@ -40,7 +40,8 @@ class VenueController extends Controller
             'courts' => function ($query) {
                 $query->where('status', 'active')
                       ->where('is_bookable_online', true);
-            }
+            },
+            'packages' => fn ($query) => $query->where('status', 'active')->orderBy('type')->orderBy('duration'),
         ])->findOrFail($id);
 
         return view('venues.show', [

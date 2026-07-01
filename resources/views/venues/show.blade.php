@@ -79,6 +79,27 @@
 
             <!-- Tab: Danh sách sân -->
             <div x-show="activeTab === 'courts'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-4">
+                @if($venue->allow_package_booking && $venue->packages->isNotEmpty())
+                    <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+                        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-xs font-extrabold uppercase tracking-wide text-emerald-700">Tiết kiệm hơn với gói cố định</p>
+                                <h3 class="mt-1 text-lg font-extrabold text-zinc-900">Đặt sân theo gói tuần/tháng</h3>
+                                <p class="mt-1 text-sm text-emerald-800">Chọn một khung giờ cố định, lặp lại nhiều tuần hoặc nhiều tháng với giá ưu đãi.</p>
+                            </div>
+                            @auth
+                                <a href="{{ route('package-bookings.create', $venue->id) }}" class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-3 text-sm font-extrabold text-white hover:bg-emerald-700">
+                                    Đặt theo gói
+                                </a>
+                            @else
+                                <a href="{{ route('login') }}" class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-3 text-sm font-extrabold text-white hover:bg-emerald-700">
+                                    Đăng nhập để đặt gói
+                                </a>
+                            @endauth
+                        </div>
+                    </div>
+                @endif
+
                 @forelse ($venue->courts as $court)
                     <div class="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-md">
                         <div>
@@ -93,7 +114,7 @@
                         
                         <a href="{{ route('web.courts.booking', $court->id) }}"
                            class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-600 focus:ring-4 focus:ring-emerald-500/20 active:scale-95 shadow-sm">
-                            Chọn giờ
+                            Đặt lẻ
                         </a>
                     </div>
                 @empty

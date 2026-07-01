@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\BookingPackage;
 use App\Models\BookingLog;
 use App\Services\BookingCompletionService;
 use Carbon\Carbon;
@@ -98,10 +99,26 @@ class UserBookingController extends Controller
                 DB::raw('COUNT(id) as slot_count')
             )
             ->where('user_id', Auth::id())
+            // Booking sinh từ gói sẽ được gom ở danh sách gói bên dưới,
+            // không hiển thị lẻ từng ca trong lịch sử đặt sân.
+            ->whereNull('booking_package_id')
             ->groupBy('court_id', 'slot_date', 'created_at', 'status', 'cancel_reason') 
             ->orderByDesc('created_at')
             ->paginate(10)
             ->withQueryString();
+
+        $bookingPackages = BookingPackage::query()
+            ->with([
+                'venue.owner',
+                'package',
+                'sessions.court',
+                'sessions.timeSlot',
+                'transactions' => fn ($query) => $query->latest(),
+                'bookings' => fn ($query) => $query->orderBy('slot_date')->orderBy('start_time'),
+            ])
+            ->where('user_id', Auth::id())
+            ->orderByDesc('created_at')
+            ->get();
 
         // Nạp dữ liệu Chủ sân để hiện SĐT ở Form Hủy
         $bookings->load(['court.venue.owner', 'court.venue.ownerRegistration']);
@@ -112,6 +129,7 @@ class UserBookingController extends Controller
 
         return view('bookings.history', [
             'bookings' => $bookings,
+            'bookingPackages' => $bookingPackages,
             'statusMap' => $this->statusMap(),
             'reviewedBookingIds' => $reviewedBookingIds,
         ]);
