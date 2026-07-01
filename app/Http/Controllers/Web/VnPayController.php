@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class VnPayController extends Controller
@@ -12,7 +15,7 @@ class VnPayController extends Controller
     public function createPayment(Request $request, Booking $booking)
     {
         // Get all bookings in the same group (same court, date, created_at)
-        $bookingGroup = Booking::where('user_id', auth()->id())
+        $bookingGroup = Booking::where('user_id', Auth::id())
             ->where('court_id', $booking->court_id)
             ->where('slot_date', $booking->slot_date)
             ->where('created_at', $booking->created_at)
@@ -25,6 +28,20 @@ class VnPayController extends Controller
         }
 
         $totalPrice = $bookingGroup->sum('total_price');
+
+        Transaction::updateOrCreate(
+            ['booking_id' => $booking->id],
+            [
+                'user_id' => $booking->user_id,
+                'transaction_code' => 'TXN-' . $booking->id . '-' . time(),
+                'amount' => $totalPrice,
+                'payment_method' => 'VNPay',
+                'payment_gateway' => 'VNPay',
+                'payment_status' => 'pending',
+                'transaction_time' => now(),
+                'note' => 'Khách hàng đang chuyển sang cổng thanh toán VNPay.',
+            ]
+        );
 
         $vnp_TmnCode = config('vnpay.vnp_TmnCode');
         $vnp_HashSecret = config('vnpay.vnp_HashSecret');
@@ -130,8 +147,22 @@ class VnPayController extends Controller
                             'payment_method' => 'vnpay',
                             'vnpay_tran_id' => $request->vnp_TransactionNo
                         ]);
+
+                        Transaction::updateOrCreate(
+                            ['booking_id' => $b->id],
+                            [
+                                'user_id' => $b->user_id,
+                                'transaction_code' => 'TXN-' . $b->id . '-' . time(),
+                                'amount' => $b->total_price,
+                                'payment_method' => 'VNPay',
+                                'payment_gateway' => 'VNPay',
+                                'payment_status' => 'success',
+                                'transaction_time' => now(),
+                                'note' => 'Thanh toán VNPay thành công.',
+                            ]
+                        );
                         
-                        \DB::table('booking_logs')->insert([
+                        DB::table('booking_logs')->insert([
                             'booking_id' => $b->id,
                             'changed_by' => $b->user_id,
                             'old_status' => $oldStatus,
@@ -149,7 +180,23 @@ class VnPayController extends Controller
                                    ->with('error', 'Thanh toán thành công nhưng có lỗi cập nhật. Vui lòng liên hệ hỗ trợ.');
                 }
             } else {
-                // Payment Failed
+                $booking = Booking::find($bookingId);
+                if ($booking) {
+                    Transaction::updateOrCreate(
+                        ['booking_id' => $booking->id],
+                        [
+                            'user_id' => $booking->user_id,
+                            'transaction_code' => 'TXN-' . $booking->id . '-' . time(),
+                            'amount' => $booking->total_price,
+                            'payment_method' => 'VNPay',
+                            'payment_gateway' => 'VNPay',
+                            'payment_status' => 'failed',
+                            'transaction_time' => now(),
+                            'note' => 'Thanh toán VNPay bị hủy hoặc thất bại.',
+                        ]
+                    );
+                }
+
                 return redirect()->route('web.bookings.success', ['booking' => $bookingId])
                                ->with('error', 'Giao dịch không thành công hoặc bị hủy.');
             }

@@ -48,4 +48,9 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Venue::class, 'favorites', 'user_id', 'venue_id')->withTimestamps();
     }
+
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class);
+    }
 }
