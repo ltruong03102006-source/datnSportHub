@@ -47,6 +47,12 @@ class Booking extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
     public function timeSlot(): BelongsTo { return $this->belongsTo(TimeSlot::class); }
     public function rescheduleRequests(): HasMany { return $this->hasMany(BookingRescheduleRequest::class); }
 
