@@ -18,33 +18,80 @@
                 </p>
             </div>
 
-            <div class="relative mt-8 max-w-2xl group">
+            <!-- KHỐI TÌM KIẾM MỚI (CÓ DROPDOWN) -->
+            <div class="relative mt-8 max-w-2xl group" x-data="{ showRecent: false, localRecentSearches: @js($recentSearches ?? []) }">
                 <div class="absolute inset-y-0 left-0 flex items-center pl-5 pointer-events-none">
                     <svg class="h-5 w-5 text-zinc-400 group-focus-within:text-emerald-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                     </svg>
                 </div>
+                
                 <input
                     type="search"
                     x-model="query"
                     @input="onSearch"
+                    @focus="showRecent = true"
+                    @blur="setTimeout(() => showRecent = false, 250)"
+                    @keydown.enter="
+                        saveSearchTermToSession(query);
+                        let q = query.trim();
+                        if (q !== '') {
+                            localRecentSearches = localRecentSearches.filter(item => item !== q);
+                            localRecentSearches.unshift(q);
+                            if (localRecentSearches.length > 5) localRecentSearches.pop();
+                        }
+                        showRecent = false;
+                    "
                     placeholder="Tìm theo tên sân, địa chỉ hoặc loại môn…"
-                    class="w-full rounded-2xl border-0 bg-white py-4 pl-14 pr-12 text-base text-zinc-900 shadow-sm ring-1 ring-stone-200 transition-all focus:ring-2 focus:ring-emerald-500 focus:shadow-md outline-none"
+                    class="w-full rounded-2xl border-0 bg-white py-4 pl-14 pr-12 text-base text-zinc-900 shadow-sm ring-1 ring-stone-200 transition-all focus:ring-2 focus:ring-emerald-500 focus:shadow-md outline-none relative z-20"
                 >
+                
                 <button
                     type="button"
                     x-show="query"
                     x-cloak
                     @click="clearSearch"
-                    class="absolute right-3 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-zinc-400 transition hover:bg-stone-100 hover:text-zinc-700 focus:outline-none"
+                    class="absolute right-3 top-1/2 z-20 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-zinc-400 transition hover:bg-stone-100 hover:text-zinc-700 focus:outline-none"
                     aria-label="Xóa từ khóa"
                 >
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
                     </svg>
                 </button>
+
+                <!-- PANEL DROPDOWN TỪ KHÓA TÌM KIẾM GẦN ĐÂY -->
+                <div x-show="showRecent && localRecentSearches.length > 0 && query.trim() === ''"
+                     x-cloak
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-150"
+                     x-transition:leave-start="opacity-100 translate-y-0"
+                     x-transition:leave-end="opacity-0 translate-y-1"
+                     class="absolute left-0 top-[calc(100%+8px)] z-50 w-full rounded-2xl border border-stone-100 bg-white p-4 shadow-xl ring-1 ring-black/5">
+                    
+                    <p class="mb-3 text-xs font-bold tracking-wider text-stone-400 uppercase">Lịch sử tìm kiếm</p>
+                    
+                    <div class="flex flex-wrap gap-2">
+                        <template x-for="term in localRecentSearches" :key="term">
+                            <button type="button"
+                                @click="
+                                    query = term;
+                                    onSearch();
+                                    saveSearchTermToSession(term);
+                                    localRecentSearches = localRecentSearches.filter(item => item !== term);
+                                    localRecentSearches.unshift(term);
+                                "
+                                class="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 shadow-sm transition hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700">
+                                <svg class="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                                <span x-text="term"></span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
             </div>
-            
+
+            <!-- Dấu Ping đang tìm kiếm Realtime -->
             <p x-show="query.trim() !== ''" x-cloak class="mt-3 flex items-center gap-2 text-sm text-zinc-500">
                 <span class="relative flex h-2.5 w-2.5">
                   <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -52,6 +99,7 @@
                 </span>
                 Đang tìm kiếm realtime cho: <span class="font-bold text-zinc-800" x-text="query"></span>
             </p>
+            <!-- KẾT THÚC KHỐI MỚI -->
         </section>
 
         <!-- Owner Registration Section -->
@@ -90,7 +138,33 @@
                 </div>
             </div>
         </section>
+        {{-- SÂN BẠN VỪA XEM --}}
+        @if(isset($recentlyViewed) && $recentlyViewed->isNotEmpty())
+            <section x-show="sport === 'all' && query.trim() === '' && !hasActiveFilters" x-cloak class="mb-10">
+                <div class="mb-4 flex items-end justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-extrabold text-zinc-900">🕒 Sân bạn vừa xem</h2>
+                        <p class="text-sm text-stone-500">Tiếp tục đặt lịch tại các cơ sở bạn đã ghé thăm.</p>
+                    </div>
+                </div>
+                <!-- Dạng thanh trượt ngang -->
+                <div class="flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x">
+                    @foreach($recentlyViewed as $rVenue)
+                        <a href="{{ url('/venues/' . $rVenue->id) }}" class="group relative flex w-64 shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm transition hover:-translate-y-1 hover:border-emerald-300 hover:shadow-md">
+                            <div class="relative h-32 bg-stone-100">
+                                <img src="{{ $rVenue->banner ? asset('storage/'.$rVenue->banner) : 'https://placehold.co/600x400?text=SportHub' }}" alt="{{ $rVenue->name }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
+                            </div>
+                            <div class="p-4">
+                                <h3 class="truncate text-sm font-bold text-zinc-900 group-hover:text-emerald-700">{{ $rVenue->name }}</h3>
+                                <p class="truncate text-xs text-stone-500 mt-1">{{ $rVenue->address }}</p>
+                            </div>
+                        </a>
+                    @endforeach
+                </div>
+            </section>
+        @endif
 
+        {{-- Cơ sở nổi bật... (GIỮ NGUYÊN) --}}
         {{-- Cơ sở nổi bật — tự ẩn khi đang tìm kiếm hoặc lọc theo môn --}}
         @if (!empty($featured) && count($featured))
             <section x-show="sport === 'all' && query.trim() === '' && !hasActiveFilters" x-cloak class="mb-10">
@@ -523,6 +597,12 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+        
+        /* Ẩn dấu X mặc định của trình duyệt ở ô tìm kiếm */
+        input[type="search"]::-webkit-search-cancel-button {
+            -webkit-appearance: none;
+            appearance: none;
+        }
     </style>
 @endsection
 @section('scripts')
@@ -556,6 +636,20 @@
         } catch (error) {
             showToast('Lỗi kết nối máy chủ.', 'error');
         }
+    }
+    async function saveSearchTermToSession(term) {
+        if(!term || !term.trim()) return;
+        try {
+            await fetch('{{ route('search.save') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ query: term })
+            });
+        } catch (e) { console.error('Error saving search'); }
     }
 </script>
 @endsection

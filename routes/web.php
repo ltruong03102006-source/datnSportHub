@@ -17,10 +17,8 @@ use App\Http\Controllers\Web\AdminUserController;
 use App\Http\Controllers\Web\AdminVenueController;
 use App\Http\Controllers\Web\AdminBookingController;
 use App\Http\Controllers\Web\AdminCourtController;
-use App\Http\Controllers\Web\AdminTransactionController;
 use App\Http\Controllers\Web\FavoriteController;
 use App\Http\Controllers\Web\OwnerCancellationPolicyController;
-use App\Http\Controllers\Web\TransactionController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Web\OwnerCourtController;
@@ -53,7 +51,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/vnpay/callback', [VnPayController::class, 'vnpayReturn'])->name('vnpay.callback');
 
 Route::get('/', [CourtPageController::class, 'index'])->name('home');
-
+// API lưu lịch sử tìm kiếm Session
+Route::post('/save-recent-search', [\App\Http\Controllers\Web\CourtPageController::class, 'saveSearch'])->name('search.save');
 Route::get('/rankings', [\App\Http\Controllers\Web\RankingController::class, 'index'])->name('rankings');
 
 Route::get('/courts/{court}/booking', [CourtBookingController::class, 'show'])->name('web.courts.booking');
@@ -261,4 +260,24 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
     Route::get('/transactions/{transaction}', [TransactionController::class, 'show'])->name('transactions.show');
+    // --- CỘNG ĐỒNG: TÌM ĐỐI / BẮT CẶP ---
+    // --- CỘNG ĐỒNG: TÌM ĐỐI / BẮT CẶP ---
+    Route::prefix('community')->name('community.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Web\MatchPostController::class, 'index'])->name('index');
+        Route::post('/store', [\App\Http\Controllers\Web\MatchPostController::class, 'store'])->name('store');
+        
+        Route::get('/my-posts', [\App\Http\Controllers\Web\MatchPostController::class, 'myPosts'])->name('my_posts');
+        Route::patch('/{matchPost}/close', [\App\Http\Controllers\Web\MatchPostController::class, 'closePost'])->name('close');
+        Route::delete('/{matchPost}', [\App\Http\Controllers\Web\MatchPostController::class, 'destroy'])->name('destroy');
+
+        // CHỨC NĂNG TÌM ĐỐI 2.0 (XIN JOIN, DUYỆT & TỪ CHỐI)
+        Route::post('/{matchPost}/join', [\App\Http\Controllers\Web\MatchPostController::class, 'join'])->name('join');
+        Route::patch('/participant/{participant}/approve', [\App\Http\Controllers\Web\MatchPostController::class, 'approveParticipant'])->name('approve');
+        
+        // THÊM ĐÚNG DÒNG NÀY VÀO LÀ HẾT LỖI 500 NAY:
+        Route::patch('/participant/{participant}/reject', [\App\Http\Controllers\Web\MatchPostController::class, 'rejectParticipant'])->name('reject');
+        // Rút lui khỏi kèo (Người xin tham gia tự hủy)
+        Route::delete('/{matchPost}/cancel-join', [\App\Http\Controllers\Web\MatchPostController::class, 'cancelJoin'])->name('cancel_join');
+    });
+
 }); // <-- NGOẶC ĐÓNG CỦA GROUP AUTH BỊ THIẾU CỦA BẠN CHÍNH LÀ ĐÂY!
