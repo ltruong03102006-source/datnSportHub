@@ -60,6 +60,7 @@
             <nav class="hidden items-center gap-8 text-sm font-medium md:flex">
                 <a href="{{ route('home') }}" class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}">Tìm sân</a>
                 <a href="{{ route('venues.nearby') }}" class="nav-link {{ request()->routeIs('venues.nearby') ? 'active' : '' }}">Tìm sân gần đây</a>
+                <a href="{{ route('rankings') }}" class="nav-link {{ request()->routeIs('rankings') ? 'active' : '' }}">Nổi bật</a>
                 @auth
                 <a href="{{ route('account.favorites.index') }}" class="nav-link flex items-center gap-1.5 {{ request()->routeIs('account.favorites.index') ? 'active' : '' }}">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,6 +115,7 @@
                     </div>
                     
                     <a href="{{ route('account.bookings.index') }}" class="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-stone-50 hover:text-emerald-700 transition">Lịch sử đặt sân</a>
+                    <a href="{{ route('transactions.index') }}" class="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-stone-50 hover:text-emerald-700 transition">Lịch sử giao dịch</a>
                     <a href="{{ route('account.reviews.index') }}" class="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-stone-50 hover:text-emerald-700 transition">Đánh giá của tôi</a>
                     
                     <a href="{{ route('account.profile.show') }}" class="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-stone-50 hover:text-emerald-700 transition">Trang cá nhân</a>
@@ -133,6 +135,7 @@
             <nav class="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3 text-sm font-medium sm:px-6">
                 <a href="{{ route('home') }}" class="rounded-lg px-3 py-2.5 transition {{ request()->routeIs('home') ? 'text-emerald-700 bg-emerald-50 font-bold' : 'text-zinc-700 hover:bg-stone-100' }}">Tìm sân</a>
                 <a href="{{ route('venues.nearby') }}" class="rounded-lg px-3 py-2.5 transition {{ request()->routeIs('venues.nearby') ? 'text-emerald-700 bg-emerald-50 font-bold' : 'text-zinc-700 hover:bg-stone-100' }}">Tìm sân gần đây</a>
+                <a href="{{ route('rankings') }}" class="rounded-lg px-3 py-2.5 transition {{ request()->routeIs('rankings') ? 'text-emerald-700 bg-emerald-50 font-bold' : 'text-zinc-700 hover:bg-stone-100' }}">Nổi bật</a>
                 @auth
                 <a href="{{ route('account.favorites.index') }}" class="flex items-center gap-2 rounded-lg px-3 py-2.5 transition {{ request()->routeIs('account.favorites.index') ? 'text-rose-600 bg-rose-50 font-bold' : 'text-zinc-700 hover:bg-stone-100' }}">
                     <svg class="h-4 w-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -173,6 +176,7 @@
                     </div>
                     <a href="{{ route('account.profile.show') }}" class="rounded-lg px-3 py-2.5 text-zinc-700 hover:bg-stone-100">Trang cá nhân</a>
                     <a href="{{ route('account.bookings.index') }}" class="rounded-lg px-3 py-2.5 text-zinc-700 hover:bg-stone-100">Lịch sử đặt sân</a>
+                    <a href="{{ route('transactions.index') }}" class="rounded-lg px-3 py-2.5 text-zinc-700 hover:bg-stone-100">Lịch sử giao dịch</a>
                     <a href="{{ route('account.reviews.index') }}" class="rounded-lg px-3 py-2.5 text-zinc-700 hover:bg-stone-100">Đánh giá của tôi</a>
                     <button onclick="handleLogout()" class="rounded-lg px-3 py-2.5 text-left font-semibold text-red-600 hover:bg-red-50">Đăng xuất</button>
                 </div>
@@ -303,5 +307,125 @@
             window.location.href = '{{ route('home') }}';
         }
     </script>
+
+    @auth
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const notificationButton = document.getElementById('notification-button');
+            const notificationList = document.getElementById('notification-list');
+            const notificationBadge = document.getElementById('notification-badge');
+            const markAllReadButton = document.getElementById('mark-all-read');
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+            const latestUrl = @json(route('notifications.latest', ['context' => 'customer']));
+            const unreadCountUrl = @json(route('notifications.unread-count', ['context' => 'customer']));
+            const markAllReadUrl = @json(route('notifications.read-all', ['context' => 'customer']));
+            const readUrlPrefix = @json(url('/notifications'));
+
+            const requestHeaders = {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+            };
+
+            function formatTime(value) {
+                if (!value) return '';
+
+                return new Intl.DateTimeFormat('vi-VN', {
+                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+                }).format(new Date(value));
+            }
+
+            function renderEmpty(message) {
+                notificationList.replaceChildren();
+                const item = document.createElement('div');
+                item.className = 'p-4 text-sm text-zinc-500';
+                item.textContent = message;
+                notificationList.appendChild(item);
+            }
+
+            function renderNotifications(items) {
+                if (!items.length) {
+                    renderEmpty('Bạn chưa có thông báo nào.');
+                    return;
+                }
+
+                notificationList.replaceChildren();
+                items.forEach((notification) => {
+                    const item = document.createElement('a');
+                    item.href = notification.link || '#';
+                    item.className = `block border-b border-stone-100 px-4 py-3 transition hover:bg-stone-50 ${notification.is_read ? '' : 'bg-emerald-50/60'}`;
+
+                    const title = document.createElement('p');
+                    title.className = 'text-sm font-semibold text-zinc-800';
+                    title.textContent = notification.title;
+
+                    const content = document.createElement('p');
+                    content.className = 'mt-1 text-xs leading-5 text-zinc-500';
+                    content.textContent = notification.content;
+
+                    const time = document.createElement('p');
+                    time.className = 'mt-1 text-[11px] text-zinc-400';
+                    time.textContent = formatTime(notification.created_at);
+
+                    item.append(title, content, time);
+                    item.addEventListener('click', async (event) => {
+                        if (!notification.is_read) {
+                            try {
+                                await fetch(`${readUrlPrefix}/${notification.id}/read`, {
+                                    method: 'POST', headers: requestHeaders,
+                                });
+                            } catch (error) {
+                                // Vẫn cho phép người dùng mở liên kết thông báo khi request gặp sự cố.
+                            }
+                        }
+
+                        if (!notification.link) event.preventDefault();
+                    });
+                    notificationList.appendChild(item);
+                });
+            }
+
+            async function loadUnreadCount() {
+                try {
+                    const response = await fetch(unreadCountUrl, { headers: { 'Accept': 'application/json' } });
+                    if (!response.ok) throw new Error('Không thể tải số lượng thông báo.');
+                    const { count } = await response.json();
+                    notificationBadge.textContent = count > 99 ? '99+' : count;
+                    notificationBadge.style.display = count > 0 ? 'inline-flex' : 'none';
+                } catch (error) {
+                    notificationBadge.style.display = 'none';
+                }
+            }
+
+            async function loadNotifications() {
+                try {
+                    const response = await fetch(latestUrl, { headers: { 'Accept': 'application/json' } });
+                    if (!response.ok) throw new Error('Không thể tải thông báo.');
+                    renderNotifications(await response.json());
+                } catch (error) {
+                    renderEmpty('Không thể tải thông báo. Vui lòng thử lại.');
+                }
+            }
+
+            notificationButton?.addEventListener('click', () => {
+                loadNotifications();
+                loadUnreadCount();
+            });
+
+            markAllReadButton?.addEventListener('click', async () => {
+                try {
+                    const response = await fetch(markAllReadUrl, {
+                        method: 'POST', headers: requestHeaders,
+                    });
+                    if (!response.ok) throw new Error('Không thể cập nhật thông báo.');
+                    await Promise.all([loadNotifications(), loadUnreadCount()]);
+                } catch (error) {
+                    showToast('Không thể đánh dấu thông báo đã đọc.', 'error');
+                }
+            });
+
+            loadUnreadCount();
+        });
+    </script>
+    @endauth
 </body>
 </html>

@@ -13,7 +13,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens; // 1. Import class HasApiTokens
 
 // 2. Thêm 'role' và 'status' vào danh sách cho phép fill
-#[Fillable(['name', 'email', 'phone', 'avatar', 'password', 'role', 'status'])]
+#[Fillable(['name', 'email', 'phone', 'avatar', 'password', 'role', 'status', 'bank_name', 'bank_account_no', 'bank_account_name'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -47,5 +47,15 @@ class User extends Authenticatable
     public function favoriteVenues()
     {
         return $this->belongsToMany(Venue::class, 'favorites', 'user_id', 'venue_id')->withTimestamps();
+    }
+
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
+    public function bookingPackages(): HasMany
+    {
+        return $this->hasMany(BookingPackage::class);
     }
 }

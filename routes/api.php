@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\AdminOwnerRegistrationController;
 use App\Http\Controllers\Api\AdminVenueController;
 use App\Http\Controllers\CourtController;
 use App\Http\Controllers\Api\BookingController;
+use App\Http\Controllers\Api\PackageBookingController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Web\UserBookingController;
 
@@ -22,6 +23,7 @@ use App\Http\Controllers\Web\UserBookingController;
 | Public Routes
 |--------------------------------------------------------------------------
 */
+
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -41,6 +43,23 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
     Route::post('/bookings/{booking}/cancel', [UserBookingController::class, 'cancel'])->name('bookings.cancel');
     Route::post('/courts/{courtId}/booking', [BookingController::class, 'store'])->name('courts.booking');
+    Route::post('/package-bookings/preview', [PackageBookingController::class, 'preview'])
+        ->name('api.package-bookings.preview');
+
+    Route::post('/package-bookings', [PackageBookingController::class, 'store'])
+        ->name('api.package-bookings.store');
+
+    Route::post('/package-bookings/{bookingPackage}/payment-success', [PackageBookingController::class, 'paymentSuccess'])
+        ->name('api.package-bookings.payment-success');
+
+    Route::patch('/package-bookings/{bookingPackage}/pause', [PackageBookingController::class, 'pause'])
+        ->name('api.package-bookings.pause');
+
+    Route::patch('/package-bookings/{bookingPackage}/resume', [PackageBookingController::class, 'resume'])
+        ->name('api.package-bookings.resume');
+
+    Route::match(['POST', 'DELETE'], '/package-bookings/{bookingPackage}/cancel', [PackageBookingController::class, 'cancel'])
+        ->name('api.package-bookings.cancel');
 
     // Notifications API
     Route::get('/notifications/unread-count', [\App\Http\Controllers\Api\NotificationController::class, 'unreadCount'])->name('api.notifications.unread_count');
@@ -54,6 +73,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Public sports & court listing & detail (API)
 Route::get('/sports', [SportController::class, 'index'])->name('sports.index');
+
+// Administrative areas for location filter & cascading selects
+Route::get('/provinces', [\App\Http\Controllers\Api\LocationController::class, 'provinces'])->name('provinces.index');
+Route::get('/provinces/{provinceCode}/wards', [\App\Http\Controllers\Api\LocationController::class, 'wards'])->name('provinces.wards');
+
+// Venue ranking (by rating & bookings)
+Route::get('/rankings', [\App\Http\Controllers\Api\RankingController::class, 'index'])->name('rankings.index');
 
 Route::get('/courts', [CourtController::class, 'index'])->name('courts.index');
 
@@ -118,7 +144,7 @@ Route::middleware(['auth:sanctum', 'owner'])->prefix('owner')->group(function ()
     Route::post('/logout', [OwnerAuthController::class, 'logout'])->name('owner.logout');
     Route::get('/me', [OwnerAuthController::class, 'me'])->name('owner.me');
     Route::post('/change-password', [OwnerAuthController::class, 'changePassword'])->name('owner.changePassword');
-    
+
     // Owner Venues Management
     Route::get('/sports', [OwnerVenueController::class, 'getSports'])->name('owner.sports');
     Route::get('/venues', [OwnerVenueController::class, 'index'])->name('owner.venues.index');
@@ -126,14 +152,14 @@ Route::middleware(['auth:sanctum', 'owner'])->prefix('owner')->group(function ()
     Route::get('/venues/{id}', [OwnerVenueController::class, 'show'])->name('owner.venues.show');
     Route::put('/venues/{id}', [OwnerVenueController::class, 'update'])->name('owner.venues.update');
     Route::delete('/venues/{id}', [OwnerVenueController::class, 'destroy'])->name('owner.venues.destroy');
-    
+
     // Owner Courts Management
     Route::get('/courts', [OwnerCourtController::class, 'index'])->name('owner.courts.index');
     Route::post('/venues/{venueId}/courts', [OwnerCourtController::class, 'store'])->name('owner.courts.store');
     Route::put('/courts/{courtId}', [OwnerCourtController::class, 'update'])->name('owner.courts.update');
     Route::delete('/courts/{courtId}', [OwnerCourtController::class, 'destroy'])->name('owner.courts.destroy');
     Route::get('/courts/{courtId}/time-slots', [OwnerCourtController::class, 'getTimeSlots'])->name('owner.courts.timeSlots');
-    
+
     // Owner Bookings Management
     Route::get('/bookings', [OwnerBookingController::class, 'index'])->name('owner.bookings.index');
     Route::get('/bookings/stats', [OwnerBookingController::class, 'stats'])->name('owner.bookings.stats');

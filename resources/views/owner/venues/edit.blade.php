@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sửa điểm sân: {{ $venue->name }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
     <style>
         body { background: #f4f7fb; }
@@ -61,6 +62,26 @@
                                 <label for="name" class="form-label">Tên điểm sân <span class="text-danger">*</span></label>
                                 <input id="name" name="name" type="text" class="form-control" maxlength="255" required value="{{ old('name', $venue->name) }}">
                                 <div class="invalid-feedback" id="error-name"></div>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label for="province_code" class="form-label">Tỉnh/Thành phố <span class="text-danger">*</span></label>
+                                <select id="province_code" name="province_code" class="form-select"
+                                        data-current-ward="{{ old('ward_code', $venue->ward_code) }}">
+                                    <option value="">-- Chọn tỉnh/thành --</option>
+                                    @foreach ($provinces as $province)
+                                        <option value="{{ $province->code }}" @selected(old('province_code', $venue->province_code) == $province->code)>{{ $province->name }}</option>
+                                    @endforeach
+                                </select>
+                                <div class="invalid-feedback" id="error-province_code"></div>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label for="ward_code" class="form-label">Phường/Xã <span class="text-danger">*</span></label>
+                                <select id="ward_code" name="ward_code" class="form-select" disabled>
+                                    <option value="">-- Phường/Xã --</option>
+                                </select>
+                                <div class="invalid-feedback" id="error-ward_code"></div>
                             </div>
 
                             <div class="col-12">
@@ -146,6 +167,7 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script>
     const latInput = document.getElementById('lat');
     const lngInput = document.getElementById('lng');
@@ -272,6 +294,50 @@
             submitText.textContent = 'Lưu thay đổi';
         }
     });
+
+    // Cascading Tỉnh -> Phường/Xã (Tom Select: có ô tìm kiếm)
+    const provinceEl = document.getElementById('province_code');
+    const wardEl = document.getElementById('ward_code');
+
+    const provinceTS = new TomSelect(provinceEl, {
+        searchField: 'text',
+        placeholder: 'Tìm tỉnh/thành…',
+        maxOptions: null,
+    });
+    const wardTS = new TomSelect(wardEl, {
+        searchField: 'text',
+        placeholder: 'Tìm phường/xã…',
+        maxOptions: null,
+    });
+
+    async function loadWards(provinceCode, selectedWard = '') {
+        wardTS.clear(true);
+        wardTS.clearOptions();
+        wardTS.disable();
+
+        if (!provinceCode) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/provinces/${provinceCode}/wards`);
+            const json = await res.json();
+            wardTS.addOptions(json.data.map((w) => ({ value: w.code, text: w.name })));
+            wardTS.enable();
+            if (selectedWard) {
+                wardTS.setValue(selectedWard, true);
+            }
+        } catch (err) {
+            wardTS.disable();
+        }
+    }
+
+    provinceTS.on('change', (value) => loadWards(value));
+
+    // Preselect the venue's current ward on load
+    if (provinceEl.value) {
+        loadWards(provinceEl.value, provinceEl.dataset.currentWard || '');
+    }
 </script>
 </body>
 </html>

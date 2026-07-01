@@ -40,14 +40,33 @@
                 Tổng Quan Kinh Doanh
             </h1>
         </div>
-        <div class="flex gap-4">
+        <div class="flex items-center gap-4">
             <a href="{{ route('owner.web.venues.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Quản lý cơ sở</a>
             <a href="{{ route('owner.web.calendar.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Lịch đặt sân</a>
+            <a href="{{ route('owner.web.packages.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Quản lý gói</a>
+            <a href="{{ route('owner.web.settings.bank') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Thanh toán (Bank)</a>
         </div>
     </nav>
 
     <div class="flex-1 p-6 lg:p-10 max-w-7xl mx-auto w-full" x-data="{ filterType: '{{ $period == "custom" ? "custom" : "quick" }}' }">
         
+        @if(!Auth::user()->bank_name || !Auth::user()->bank_account_no)
+        <div class="mb-6 flex items-center justify-between rounded-lg border-l-4 border-amber-500 bg-amber-50 p-4 shadow-sm">
+            <div class="flex items-center gap-3">
+                <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div>
+                    <h3 class="font-bold text-amber-800">Bạn chưa cấu hình tài khoản nhận tiền!</h3>
+                    <p class="text-sm text-amber-700">Khách hàng sẽ không thể thanh toán tự động qua mã VietQR khi đặt sân. Vui lòng cấu hình ngay.</p>
+                </div>
+            </div>
+            <a href="{{ route('owner.web.settings.bank') }}" class="shrink-0 rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 transition">
+                Cấu hình ngay
+            </a>
+        </div>
+        @endif
+
         <!-- Header & Filters Form -->
         <form method="GET" action="{{ route('owner.dashboard') }}" class="mb-8">
             <div class="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
@@ -386,5 +405,6 @@
             });
         });
     </script>
+    @include('owner.partials.notification-script')
 </body>
 </html>

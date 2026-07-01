@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Notification;
 use App\Models\Booking;
+use App\Models\BookingPackage;
 use App\Models\Review;
 use Illuminate\Support\Carbon;
 
@@ -64,6 +65,42 @@ class NotificationService
         return $this->create($ownerUserId, $title, $content, $link, 'owner_new_booking');
     }
 
+    public function notifyPackageBookingConfirmed(BookingPackage $bookingPackage)
+    {
+        $title = 'Gói đặt sân đã được xác nhận';
+        $content = "Gói đặt sân #{$bookingPackage->id} đã thanh toán và được xác nhận tự động.";
+        $link = route('package-bookings.show', $bookingPackage);
+
+        return $this->create($bookingPackage->user_id, $title, $content, $link, 'package_booking_confirmed');
+    }
+
+    public function notifyOwnerNewPackageBooking($ownerUserId, BookingPackage $bookingPackage)
+    {
+        $title = 'Có gói đặt sân mới';
+        $content = "Khách hàng vừa thanh toán gói đặt sân #{$bookingPackage->id}.";
+        $link = route('owner.web.calendar.index');
+
+        return $this->create($ownerUserId, $title, $content, $link, 'owner_new_package_booking');
+    }
+
+    public function notifyPackageBookingPending(BookingPackage $bookingPackage)
+    {
+        $title = 'Yeu cau dat goi da duoc tao';
+        $content = "Goi dat san #{$bookingPackage->id} dang cho thanh toan.";
+        $link = route('package-bookings.show', $bookingPackage);
+
+        return $this->create($bookingPackage->user_id, $title, $content, $link, 'package_booking_pending');
+    }
+
+    public function notifyOwnerPackageBookingPending($ownerUserId, BookingPackage $bookingPackage)
+    {
+        $title = 'Co yeu cau dang ky goi';
+        $content = "Khach hang vua tao yeu cau dang ky goi #{$bookingPackage->id}, dang cho thanh toan.";
+        $link = route('owner.web.calendar.index');
+
+        return $this->create($ownerUserId, $title, $content, $link, 'owner_package_booking_pending');
+    }
+
     public function notifyOwnerNewReview($ownerUserId, Review $review)
     {
         $title = 'Có đánh giá mới';
@@ -76,7 +113,7 @@ class NotificationService
     {
         $title = 'Có yêu cầu đổi lịch';
         $content = 'Khách hàng muốn đổi lịch booking.';
-        $link = route('owner.web.reschedule.index');
+        $link = route('owner.web.reschedule.show', $rescheduleRequest);
         return $this->create($ownerUserId, $title, $content, $link, 'owner_reschedule_request');
     }
 

@@ -8,17 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('notifications', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->string('type')->nullable();
-            $table->string('title');
-            $table->text('content');
-            $table->string('link')->nullable();
-            $table->boolean('is_read')->default(false);
-            $table->timestamp('read_at')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('notifications')) {
+            Schema::create('notifications', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+                $table->string('type')->nullable();
+                $table->string('title');
+                $table->text('content');
+                $table->string('link')->nullable();
+                $table->boolean('is_read')->default(false);
+                $table->timestamp('read_at')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     public function down(): void

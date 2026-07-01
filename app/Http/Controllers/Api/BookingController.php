@@ -83,7 +83,7 @@ class BookingController extends Controller
                     $booking->start_time = $slot['start_time'];
                     $booking->end_time = $slot['end_time'];
                     $booking->total_price = $price;
-                    $booking->status = 'confirmed';
+                    $booking->status = 'pending';
                     $booking->payment_status = 'unpaid';
                     $booking->note = $request->note;
 
@@ -92,7 +92,7 @@ class BookingController extends Controller
                     $booking->updated_at = $now;
                     $booking->save();
 
-                    $booking->recordStatusChange(Auth::id(), '', 'confirmed', 'Người dùng tạo booking', $now);
+                    $booking->recordStatusChange(Auth::id(), '', 'pending', 'Người dùng tạo booking', $now);
 
                     $created->push($booking);
                 }

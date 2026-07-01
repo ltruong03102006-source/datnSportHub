@@ -4,11 +4,12 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Sport;
+use App\Services\VenueRankingService;
 use Illuminate\Contracts\View\View;
 
 class CourtPageController extends Controller
 {
-    public function index(): View
+    public function index(VenueRankingService $rankingService): View
     {
         $sports = Sport::withActiveCourtsCount()
             ->orderBy('name')
@@ -26,6 +27,7 @@ class CourtPageController extends Controller
             'sports' => $sports,
             'defaultSport' => 'all',
             'totalCourts' => $sports->sum('courts_count'),
+            'featured' => $rankingService->getRankings(4)['featured'],
         ]);
     }
 }

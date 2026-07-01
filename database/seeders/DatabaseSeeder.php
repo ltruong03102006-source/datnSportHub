@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use Database\Seeders\VietnamUnitsSeeder;
 use Database\Seeders\UsersTableSeeder;
 use Database\Seeders\SportsTableSeeder;
 use Database\Seeders\OwnerRegistrationsTableSeeder;
@@ -22,6 +23,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            VietnamUnitsSeeder::class,
             UsersTableSeeder::class,
             SportsTableSeeder::class,
             OwnerRegistrationsTableSeeder::class,

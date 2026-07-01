@@ -16,6 +16,7 @@ class Booking extends Model
     // ĐÂY LÀ CHUẨN CỦA LARAVEL
     protected $fillable = [
         'court_id',
+        'booking_package_id',
         'time_slot_id',
         'user_id',
         'slot_date',
@@ -23,6 +24,7 @@ class Booking extends Model
         'end_time',
         'total_price',
         'status',
+        'payment_method',
         'payment_status',
         'review_reminder_sent_at',
         'note',
@@ -47,7 +49,14 @@ class Booking extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
     public function timeSlot(): BelongsTo { return $this->belongsTo(TimeSlot::class); }
+    public function bookingPackage(): BelongsTo { return $this->belongsTo(BookingPackage::class); }
     public function rescheduleRequests(): HasMany { return $this->hasMany(BookingRescheduleRequest::class); }
 
     public function recordStatusChange(int $changedBy, string $oldStatus, string $newStatus, ?string $note = null, $createdAt = null): BookingLog

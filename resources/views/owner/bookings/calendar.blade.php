@@ -638,6 +638,8 @@
     </div>
 
     <div class="sporthub-nav-right">
+        @include('owner.partials.notification-bell')
+
         <a href="{{ route('owner.dashboard') }}">
             Tổng quan
         </a>
@@ -652,6 +654,9 @@
 
         <a href="{{ route('owner.web.reschedule.index') }}">
             Yêu cầu đổi lịch
+        </a>
+        <a href="{{ route('owner.web.packages.index') }}">
+            Quản lý gói
         </a>
     </div>
 </nav>
@@ -1058,7 +1063,10 @@
                     throw new Error(data.message || 'Không thể cập nhật booking.');
                 }
 
-                document.getElementById('pending-booking-count').textContent = data.pending_count;
+                const pendingBookingCount = document.getElementById('pending-booking-count');
+                if (pendingBookingCount) {
+                    pendingBookingCount.textContent = data.pending_count;
+                }
                 detailModal.hide();
                 calendar.refetchEvents();
             } catch (error) {
@@ -1155,5 +1163,6 @@
         calendar.render();
     });
 </script>
+@include('owner.partials.notification-script')
 </body>
 </html>

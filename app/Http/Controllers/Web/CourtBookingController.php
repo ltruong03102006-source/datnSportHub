@@ -7,6 +7,7 @@ use App\Models\Court;
 use App\Models\Booking;
 use App\Models\TimeSlot;
 use App\Models\SlotPrice;
+use App\Models\Transaction;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -168,7 +169,22 @@ class CourtBookingController extends Controller
                     'note'        => $note
                 ]);
 
-                // 6. Ghi log thay đổi trạng thái booking vào bảng booking_logs (Audit Trail)
+                // 6. Tạo bản ghi giao dịch ban đầu cho booking mới để lịch sử thanh toán có dữ liệu.
+                Transaction::updateOrCreate(
+                    ['booking_id' => $newBooking->id],
+                    [
+                        'user_id' => $newBooking->user_id,
+                        'transaction_code' => 'TXN-' . $newBooking->id . '-' . now()->format('YmdHis'),
+                        'amount' => $newBooking->total_price,
+                        'payment_method' => 'COD',
+                        'payment_gateway' => null,
+                        'payment_status' => 'pending',
+                        'transaction_time' => now(),
+                        'note' => 'Giao dịch được tạo khi khách hàng đặt sân.',
+                    ]
+                );
+
+                // 7. Ghi log thay đổi trạng thái booking vào bảng booking_logs (Audit Trail)
                 DB::table('booking_logs')->insert([
                     'booking_id'  => $newBooking->id,
                     'changed_by'  => $userId,
@@ -185,7 +201,11 @@ class CourtBookingController extends Controller
             try {
                 app(\App\Services\NotificationService::class)->notifyBookingPlaced($booking);
             } catch (\Throwable $e) {
-                // ignore notification errors for customer booking created
+                Log::warning('Không thể tạo thông báo đặt sân cho khách.', [
+                    'booking_id' => $booking->id,
+                    'user_id' => $booking->user_id,
+                    'error' => $e->getMessage(),
+                ]);
             }
 
             try {
@@ -195,7 +215,10 @@ class CourtBookingController extends Controller
                     app(\App\Services\NotificationService::class)->notifyOwnerNewBooking($ownerId, $booking);
                 }
             } catch (\Throwable $e) {
-                // ignore notification errors for owner notification
+                Log::warning('Không thể tạo thông báo booking mới cho chủ sân.', [
+                    'booking_id' => $booking->id,
+                    'error' => $e->getMessage(),
+                ]);
             }
 
             return response()->json([
