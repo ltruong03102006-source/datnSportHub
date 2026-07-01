@@ -27,7 +27,103 @@
         </div>
     @endif
 
-    @if($bookings->isEmpty())
+    @if(($bookingPackages ?? collect())->isNotEmpty())
+        <div class="mb-8">
+            <div class="mb-4 flex items-center justify-between gap-3">
+                <div>
+                    <p class="text-sm font-bold uppercase tracking-wider text-emerald-700">Đặt sân theo gói</p>
+                    <h2 class="mt-1 text-xl font-extrabold text-zinc-900">Gói tuần / gói tháng</h2>
+                </div>
+            </div>
+
+            <div class="hidden overflow-hidden rounded-lg border border-emerald-100 bg-white shadow-sm md:block">
+                <table class="min-w-full divide-y divide-stone-200">
+                    <thead class="bg-emerald-50/70">
+                        <tr>
+                            <th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wider text-emerald-800">Mã gói</th>
+                            <th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wider text-emerald-800">Gói</th>
+                            <th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wider text-emerald-800">Thời gian</th>
+                            <th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wider text-emerald-800">Số ca</th>
+                            <th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wider text-emerald-800">Thanh toán</th>
+                            <th class="px-5 py-3 text-right text-xs font-bold uppercase tracking-wider text-emerald-800">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-stone-100 bg-white">
+                        @foreach($bookingPackages as $bookingPackage)
+                            @php
+                                $transaction = $bookingPackage->transactions->first();
+                                $isPaidPackage = $transaction?->payment_status === 'success';
+                                $packageTypeLabel = $bookingPackage->package?->type === 'month' ? 'Gói tháng' : 'Gói tuần';
+                                $statusLabel = $isPaidPackage ? 'Đã xác nhận' : 'Chưa thanh toán';
+                                $statusClass = $isPaidPackage
+                                    ? 'bg-emerald-100 text-emerald-700 ring-emerald-600/20'
+                                    : 'bg-amber-100 text-amber-700 ring-amber-600/20';
+                            @endphp
+                            <tr>
+                                <td class="whitespace-nowrap px-5 py-4 text-sm font-black text-zinc-900">#PKG{{ $bookingPackage->id }}</td>
+                                <td class="px-5 py-4">
+                                    <p class="text-sm font-bold text-zinc-900">{{ $bookingPackage->package?->name ?? 'Gói đặt sân' }}</p>
+                                    <p class="mt-1 text-xs text-zinc-500">{{ $packageTypeLabel }} · {{ $bookingPackage->venue?->name ?? 'Chưa cập nhật cơ sở' }}</p>
+                                </td>
+                                <td class="px-5 py-4 text-sm font-semibold text-zinc-700">
+                                    {{ $bookingPackage->start_date?->format('d/m/Y') }} - {{ $bookingPackage->end_date?->format('d/m/Y') }}
+                                </td>
+                                <td class="px-5 py-4 text-sm font-bold text-zinc-800">{{ $bookingPackage->bookings->count() }} ca</td>
+                                <td class="px-5 py-4">
+                                    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset {{ $statusClass }}">
+                                        {{ $statusLabel }}
+                                    </span>
+                                    <p class="mt-1 text-xs font-bold text-emerald-700">{{ number_format((float) $bookingPackage->total_price, 0, ',', '.') }}đ</p>
+                                </td>
+                                <td class="px-5 py-4 text-right">
+                                    <a href="{{ route('package-bookings.show', $bookingPackage) }}" class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100">
+                                        Chi tiết
+                                    </a>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="grid gap-4 md:hidden">
+                @foreach($bookingPackages as $bookingPackage)
+                    @php
+                        $transaction = $bookingPackage->transactions->first();
+                        $isPaidPackage = $transaction?->payment_status === 'success';
+                        $packageTypeLabel = $bookingPackage->package?->type === 'month' ? 'Gói tháng' : 'Gói tuần';
+                    @endphp
+                    <div class="rounded-lg border border-emerald-100 bg-white p-4 shadow-sm">
+                        <div class="flex items-start justify-between gap-3">
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-wider text-emerald-700">#PKG{{ $bookingPackage->id }} · {{ $packageTypeLabel }}</p>
+                                <h2 class="mt-1 text-base font-extrabold text-zinc-900">{{ $bookingPackage->package?->name ?? 'Gói đặt sân' }}</h2>
+                                <p class="mt-1 text-sm text-zinc-500">{{ $bookingPackage->venue?->name ?? 'Chưa cập nhật cơ sở' }}</p>
+                            </div>
+                            <span class="inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-bold {{ $isPaidPackage ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' }}">
+                                {{ $isPaidPackage ? 'Đã xác nhận' : 'Chưa thanh toán' }}
+                            </span>
+                        </div>
+                        <div class="mt-4 grid grid-cols-2 gap-3 border-t border-stone-100 pt-3 text-sm">
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-wider text-stone-400">Thời gian</p>
+                                <p class="mt-1 font-bold text-zinc-800">{{ $bookingPackage->start_date?->format('d/m/Y') }} - {{ $bookingPackage->end_date?->format('d/m/Y') }}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs font-semibold uppercase tracking-wider text-stone-400">Tổng tiền</p>
+                                <p class="mt-1 font-black text-emerald-700">{{ number_format((float) $bookingPackage->total_price, 0, ',', '.') }}đ</p>
+                            </div>
+                        </div>
+                        <a href="{{ route('package-bookings.show', $bookingPackage) }}" class="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-emerald-600 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700">
+                            Xem chi tiết {{ $bookingPackage->bookings->count() }} ca
+                        </a>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
+    @if($bookings->isEmpty() && ($bookingPackages ?? collect())->isEmpty())
         <div class="rounded-lg border border-stone-200 bg-white px-6 py-16 text-center shadow-sm">
             <div class="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-stone-100 text-stone-400">
                 <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
@@ -38,6 +134,7 @@
             <p class="mt-2 text-sm text-zinc-500">Khi đặt sân thành công, các đơn sẽ xuất hiện tại đây.</p>
         </div>
     @else
+        @if($bookings->isNotEmpty())
         <div class="hidden overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm md:block">
             <table class="min-w-full divide-y divide-stone-200">
                 <thead class="bg-stone-50">
@@ -210,6 +307,7 @@
         <div class="mt-6">
             {{ $bookings->links() }}
         </div>
+        @endif
     @endif
 </div>
 <!-- MODAL HỦY SÂN -->
