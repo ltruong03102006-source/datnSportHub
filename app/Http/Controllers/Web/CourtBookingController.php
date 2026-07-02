@@ -113,11 +113,12 @@ class CourtBookingController extends Controller
                     throw new Exception("Sân thể thao này hiện tại đã tắt tính năng nhận lịch đặt trực tuyến.", 403);
                 }
 
-                // 3. Kiểm tra xem khung giờ yêu cầu có trùng lặp với booking hiện tại không
-                // Một slot bị coi là trùng khi: start_time < $endTime && end_time > $startTime
+                // 3. Kiểm tra khung giờ có bị giữ bởi booking đã xác nhận không.
+                // Theo luồng mới: booking đang chờ (pending) chưa giữ slot,
+                // người khác vẫn được gửi yêu cầu đặt cùng ca cho tới khi có đơn được xác nhận.
                 $isOverlapped = Booking::where('court_id', $courtId)
                     ->where('slot_date', $slotDate)
-                    ->whereIn('status', ['pending', 'confirmed', 'completed']) // Chỉ tính lịch hoạt động
+                    ->where('status', 'confirmed')
                     ->where(function ($query) use ($startTime, $endTime) {
                         $query->where('start_time', '<', $endTime)
                               ->where('end_time', '>', $startTime);

@@ -18,16 +18,16 @@ class AvailabilityService
 
         $bookedSlots = $court->bookings()
             ->whereDate('slot_date', $date->format('Y-m-d'))
-            ->whereNotIn('status', ['cancelled', 'rejected'])
+            // Chỉ booking đã xác nhận mới khóa ca.
+            // Booking pending chỉ là yêu cầu, khách khác vẫn được gửi yêu cầu cùng ca.
+            ->where('status', 'confirmed')
             ->get();
 
-        $bookedKeys = $bookedSlots->map(function($booking) {
-            return substr($booking->start_time, 0, 5) . '-' . substr($booking->end_time, 0, 5);
-        })->toArray();
-
-        return $slots->map(function($slot) use ($bookedKeys, $date) {
-            $slotTimeKey = substr($slot->start_time, 0, 5) . '-' . substr($slot->end_time, 0, 5);
-            $isBooked = in_array($slotTimeKey, $bookedKeys);
+        return $slots->map(function($slot) use ($bookedSlots, $date) {
+            $isBooked = $bookedSlots->contains(function ($booking) use ($slot) {
+                return $booking->start_time < $slot->end_time
+                    && $booking->end_time > $slot->start_time;
+            });
             $isPast = Carbon::parse($date->format('Y-m-d') . ' ' . $slot->start_time)->isPast();
 
             return [

@@ -19,15 +19,21 @@ class TransactionController extends Controller
     {
         $query = Transaction::query()
             ->where('user_id', Auth::id())
-            ->with(['booking.court.venue', 'user']);
+            ->with(['booking.court.venue', 'bookingPackage.venue', 'bookingPackage.package', 'user']);
 
         if ($searchCode = $request->input('search_code')) {
             $query->where('transaction_code', 'like', "%{$searchCode}%");
         }
 
         if ($searchBooking = $request->input('search_booking')) {
-            $query->whereHas('booking', function ($bookingQuery) use ($searchBooking) {
-                $bookingQuery->where('id', 'like', "%{$searchBooking}%");
+            $query->where(function ($searchQuery) use ($searchBooking) {
+                $searchQuery
+                    ->whereHas('booking', function ($bookingQuery) use ($searchBooking) {
+                        $bookingQuery->where('id', 'like', "%{$searchBooking}%");
+                    })
+                    ->orWhereHas('bookingPackage', function ($packageQuery) use ($searchBooking) {
+                        $packageQuery->where('id', 'like', "%{$searchBooking}%");
+                    });
             });
         }
 
@@ -56,7 +62,7 @@ class TransactionController extends Controller
     {
         Gate::authorize('view', $transaction);
 
-        $transaction->load(['booking.court.venue', 'user']);
+        $transaction->load(['booking.court.venue', 'bookingPackage.venue', 'bookingPackage.package', 'user']);
 
         return view('transactions.show', compact('transaction'));
     }

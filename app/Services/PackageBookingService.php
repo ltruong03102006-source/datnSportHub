@@ -106,7 +106,7 @@ class PackageBookingService
         return Booking::query()
             ->where('court_id', $court->id)
             ->whereIn('slot_date', $dates->map(fn (Carbon $date) => $date->toDateString())->all())
-            ->whereIn('status', ['pending', 'confirmed'])
+            ->where('status', 'confirmed')
             ->where(function ($query) use ($startTime, $endTime) {
                 $query->where('start_time', '<', $endTime)
                     ->where('end_time', '>', $startTime);

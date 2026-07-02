@@ -150,6 +150,24 @@ class OwnerBookingCalendarController extends Controller
                 abort(409, 'Chỉ có thể xử lý booking đang chờ xác nhận.');
             }
 
+            if ($validated['status'] === 'confirmed') {
+                $hasConfirmedConflict = Booking::query()
+                    ->where('court_id', $lockedBooking->court_id)
+                    ->whereDate('slot_date', $lockedBooking->slot_date)
+                    ->where('status', 'confirmed')
+                    ->whereKeyNot($lockedBooking->id)
+                    ->where(function ($query) use ($lockedBooking) {
+                        $query->where('start_time', '<', $lockedBooking->end_time)
+                            ->where('end_time', '>', $lockedBooking->start_time);
+                    })
+                    ->lockForUpdate()
+                    ->exists();
+
+                if ($hasConfirmedConflict) {
+                    abort(409, 'Ca này đã có booking được xác nhận trước đó. Vui lòng từ chối yêu cầu này hoặc chọn ca khác.');
+                }
+            }
+
             $oldStatus = $lockedBooking->status;
             $lockedBooking->update(['status' => $validated['status']]);
 

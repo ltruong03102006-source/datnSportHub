@@ -15,7 +15,7 @@ class AdminTransactionController extends Controller
      */
     public function index(Request $request): View
     {
-        $query = Transaction::query()->with(['booking.court.venue', 'user']);
+        $query = Transaction::query()->with(['booking.court.venue', 'bookingPackage.venue', 'bookingPackage.package', 'user']);
 
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
@@ -26,6 +26,9 @@ class AdminTransactionController extends Controller
                     })
                     ->orWhereHas('booking', function ($bookingQuery) use ($search) {
                         $bookingQuery->where('id', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('bookingPackage', function ($packageQuery) use ($search) {
+                        $packageQuery->where('id', 'like', "%{$search}%");
                     });
             });
         }
@@ -70,7 +73,7 @@ class AdminTransactionController extends Controller
      */
     public function show(Transaction $transaction): View
     {
-        $transaction->load(['booking.court.venue', 'user']);
+        $transaction->load(['booking.court.venue', 'bookingPackage.venue', 'bookingPackage.package', 'user']);
 
         return view('admin.transactions.show', compact('transaction'));
     }
