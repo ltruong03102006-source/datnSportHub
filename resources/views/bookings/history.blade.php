@@ -3,313 +3,820 @@
 @section('title', 'Lịch sử đặt sân | SportHub')
 
 @section('content')
-<div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-    <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-            <p class="text-sm font-bold uppercase tracking-wider text-emerald-700">Tài khoản</p>
-            <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-zinc-900">Lịch sử đặt sân</h1>
-            <p class="mt-2 text-sm text-zinc-500">Theo dõi toàn bộ lịch đặt, trạng thái xác nhận và thao tác hủy khi còn đủ điều kiện.</p>
-        </div>
-        <a href="{{ route('home') }}" class="inline-flex items-center justify-center rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-sm font-bold text-zinc-700 transition hover:bg-stone-50">
-            Đặt sân mới
-        </a>
-    </div>
+@php
+    $bookingPackages = $bookingPackages ?? collect();
 
-    @if(session('success'))
-        <div class="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
-            {{ session('success') }}
-        </div>
-    @endif
+    $bookingCount = method_exists($bookings, 'total')
+        ? $bookings->total()
+        : $bookings->count();
 
-    @if(session('error'))
-        <div class="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-            {{ session('error') }}
-        </div>
-    @endif
+    $packageCount = $bookingPackages->count();
 
-    @if(($bookingPackages ?? collect())->isNotEmpty())
-        <div class="mb-8">
-            <div class="mb-4 flex items-center justify-between gap-3">
-                <div>
-                    <p class="text-sm font-bold uppercase tracking-wider text-emerald-700">Đặt sân theo gói</p>
-                    <h2 class="mt-1 text-xl font-extrabold text-zinc-900">Gói tuần / gói tháng</h2>
+    $activeTab = request('tab');
+
+    if (! in_array($activeTab, ['single', 'package'], true)) {
+        $activeTab = $bookings->isNotEmpty()
+            ? 'single'
+            : ($bookingPackages->isNotEmpty() ? 'package' : 'single');
+    }
+
+    $totalHistoryCount = $bookingCount + $packageCount;
+
+    $packageStatusLabels = [
+        'pending_payment' => 'Chờ thanh toán',
+        'active' => 'Đang hoạt động',
+        'paused' => 'Tạm dừng',
+        'completed' => 'Hoàn thành',
+        'cancelled' => 'Đã hủy',
+        'expired' => 'Hết hạn',
+    ];
+
+    $packageStatusClasses = [
+        'pending_payment' => 'bg-amber-50 text-amber-700 ring-amber-200',
+        'active' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+        'paused' => 'bg-sky-50 text-sky-700 ring-sky-200',
+        'completed' => 'bg-indigo-50 text-indigo-700 ring-indigo-200',
+        'cancelled' => 'bg-rose-50 text-rose-700 ring-rose-200',
+        'expired' => 'bg-slate-100 text-slate-600 ring-slate-200',
+    ];
+@endphp
+
+<div class="min-h-[calc(100vh-80px)] bg-slate-50">
+    <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+
+        {{-- HEADER --}}
+        <div class="mb-6 overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
+            <div class="relative p-6 sm:p-7">
+                <div class="absolute right-0 top-0 h-40 w-40 rounded-full bg-emerald-100/60 blur-3xl"></div>
+
+                <div class="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                        <p class="text-xs font-black uppercase tracking-[0.18em] text-emerald-600">
+                            Tài khoản SportHub
+                        </p>
+
+                        <h1 class="mt-2 text-3xl font-black tracking-tight text-zinc-900 sm:text-4xl">
+                            Lịch sử đặt sân
+                        </h1>
+
+                        <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+                            Quản lý toàn bộ đơn đặt sân lẻ và gói đặt sân của bạn. Bạn có thể xem chi tiết,
+                            đổi lịch, hủy sân hoặc đánh giá sau khi hoàn thành.
+                        </p>
+                    </div>
+
+                    <div class="flex flex-col gap-2 sm:flex-row lg:items-center">
+                        <a href="{{ route('transactions.index') }}"
+                           class="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50">
+                            Lịch sử giao dịch
+                        </a>
+
+                        <a href="{{ route('home') }}"
+                           class="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-emerald-700">
+                            Đặt sân mới
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- ALERT --}}
+        @if(session('success'))
+            <div class="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                {{ session('error') }}
+            </div>
+        @endif
+
+        {{-- STATS --}}
+        <div class="mb-6 grid gap-4 md:grid-cols-3">
+            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <p class="text-xs font-black uppercase tracking-wider text-slate-400">
+                            Đặt sân lẻ
+                        </p>
+                        <p class="mt-2 text-3xl font-black text-zinc-900">
+                            {{ number_format($bookingCount) }}
+                        </p>
+                    </div>
+
+                    <div class="grid h-12 w-12 place-items-center rounded-2xl bg-sky-50 text-sky-600">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.9" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25m10.5-2.25v2.25M3.75 8.25h16.5M4.5 6.75h15A1.5 1.5 0 0 1 21 8.25v10.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.75V8.25a1.5 1.5 0 0 1 1.5-1.5Z" />
+                        </svg>
+                    </div>
                 </div>
             </div>
 
-            <div class="hidden overflow-hidden rounded-lg border border-emerald-100 bg-white shadow-sm md:block">
-                <table class="min-w-full divide-y divide-stone-200">
-                    <thead class="bg-emerald-50/70">
-                        <tr>
-                            <th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wider text-emerald-800">Mã gói</th>
-                            <th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wider text-emerald-800">Gói</th>
-                            <th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wider text-emerald-800">Thời gian</th>
-                            <th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wider text-emerald-800">Số ca</th>
-                            <th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wider text-emerald-800">Thanh toán</th>
-                            <th class="px-5 py-3 text-right text-xs font-bold uppercase tracking-wider text-emerald-800">Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-stone-100 bg-white">
+            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <p class="text-xs font-black uppercase tracking-wider text-slate-400">
+                            Đặt theo gói
+                        </p>
+                        <p class="mt-2 text-3xl font-black text-emerald-700">
+                            {{ number_format($packageCount) }}
+                        </p>
+                    </div>
+
+                    <div class="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-600">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.9" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <p class="text-xs font-black uppercase tracking-wider text-slate-400">
+                            Tổng lịch sử
+                        </p>
+                        <p class="mt-2 text-3xl font-black text-zinc-900">
+                            {{ number_format($totalHistoryCount) }}
+                        </p>
+                    </div>
+
+                    <div class="grid h-12 w-12 place-items-center rounded-2xl bg-slate-100 text-slate-600">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.9" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- MAIN PANEL --}}
+        <div class="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
+
+            {{-- TAB HEADER --}}
+            <div class="border-b border-slate-100 bg-white p-3">
+                <div class="grid gap-2 md:grid-cols-2">
+                    <button type="button"
+                            data-history-tab-button="single"
+                            onclick="switchHistoryTab('single')"
+                            class="history-tab-button rounded-2xl px-4 py-4 text-left transition">
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="flex items-center gap-3">
+                                <div class="tab-icon grid h-11 w-11 place-items-center rounded-2xl bg-slate-100 text-slate-500">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.9" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25m10.5-2.25v2.25M3.75 8.25h16.5M4.5 6.75h15A1.5 1.5 0 0 1 21 8.25v10.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.75V8.25a1.5 1.5 0 0 1 1.5-1.5Z" />
+                                    </svg>
+                                </div>
+
+                                <div>
+                                    <p class="text-sm font-black">Đặt sân lẻ</p>
+                                    <p class="mt-1 text-xs font-semibold opacity-80">
+                                        Đơn đặt theo ngày, theo ca
+                                    </p>
+                                </div>
+                            </div>
+
+                            <span class="tab-count rounded-full px-3 py-1 text-xs font-black">
+                                {{ number_format($bookingCount) }}
+                            </span>
+                        </div>
+                    </button>
+
+                    <button type="button"
+                            data-history-tab-button="package"
+                            onclick="switchHistoryTab('package')"
+                            class="history-tab-button rounded-2xl px-4 py-4 text-left transition">
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="flex items-center gap-3">
+                                <div class="tab-icon grid h-11 w-11 place-items-center rounded-2xl bg-slate-100 text-slate-500">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.9" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z" />
+                                    </svg>
+                                </div>
+
+                                <div>
+                                    <p class="text-sm font-black">Đặt theo gói</p>
+                                    <p class="mt-1 text-xs font-semibold opacity-80">
+                                        Gói tuần, gói tháng, lịch cố định
+                                    </p>
+                                </div>
+                            </div>
+
+                            <span class="tab-count rounded-full px-3 py-1 text-xs font-black">
+                                {{ number_format($packageCount) }}
+                            </span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            {{-- TAB ĐẶT SÂN LẺ --}}
+            <div id="history-tab-single" data-history-tab-panel="single" class="history-tab-panel">
+                <div class="border-b border-slate-100 px-5 py-4">
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h2 class="text-base font-black text-zinc-900">
+                                Danh sách đặt sân lẻ
+                            </h2>
+                            <p class="mt-1 text-sm text-slate-500">
+                                Quản lý các đơn đặt sân theo từng ngày và từng khung giờ.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                @if($bookings->isEmpty())
+                    <div class="px-6 py-16 text-center">
+                        <div class="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-slate-100 text-slate-400">
+                            <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25m10.5-2.25v2.25M3.75 8.25h16.5M4.5 6.75h15A1.5 1.5 0 0 1 21 8.25v10.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.75V8.25a1.5 1.5 0 0 1 1.5-1.5Z" />
+                            </svg>
+                        </div>
+
+                        <h2 class="text-lg font-black text-zinc-900">
+                            Bạn chưa có đơn đặt sân lẻ
+                        </h2>
+
+                        <p class="mt-2 text-sm text-slate-500">
+                            Khi bạn đặt sân theo từng ca, các đơn sẽ xuất hiện ở đây.
+                        </p>
+
+                        <a href="{{ route('home') }}"
+                           class="mt-5 inline-flex rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-700">
+                            Đặt sân ngay
+                        </a>
+                    </div>
+                @else
+                    {{-- DESKTOP TABLE --}}
+                    <div class="hidden overflow-x-auto xl:block">
+                        <table class="min-w-full divide-y divide-slate-100">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-500">Đơn đặt</th>
+                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-500">Sân</th>
+                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-500">Thời gian</th>
+                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-500">Tổng tiền</th>
+                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-500">Trạng thái</th>
+                                    <th class="px-5 py-4 text-right text-xs font-black uppercase tracking-wider text-slate-500">Thao tác</th>
+                                </tr>
+                            </thead>
+
+                            <tbody class="divide-y divide-slate-100 bg-white">
+                                @foreach($bookings as $booking)
+                                    @php
+                                        $statusMeta = $statusMap[$booking->status] ?? [
+                                            'label' => ucfirst($booking->status),
+                                            'class' => 'bg-zinc-100 text-zinc-700 ring-zinc-600/20',
+                                        ];
+
+                                        $slotDate = $booking->slot_date_label;
+                                        $mergedTimeStrings = $booking->merged_time_strings ?? [];
+                                        $ownerPhone = $booking->owner_phone;
+                                        $isEligibleStatus = (bool) $booking->is_eligible_status;
+                                        $isPastStartTime = (bool) $booking->is_past_start_time;
+                                    @endphp
+
+                                    <tr class="align-top transition hover:bg-slate-50/80">
+                                        <td class="whitespace-nowrap px-5 py-4">
+                                            <p class="text-sm font-black text-zinc-900">#{{ $booking->id }}</p>
+                                            <p class="mt-1 text-xs font-semibold text-slate-400">Đặt sân lẻ</p>
+                                        </td>
+
+                                        <td class="px-5 py-4">
+                                            <p class="text-sm font-black text-zinc-900">
+                                                {{ $booking->court?->name ?? 'Chưa cập nhật' }}
+                                            </p>
+
+                                            <p class="mt-1 max-w-[250px] text-xs font-semibold text-slate-500">
+                                                {{ $booking->court?->venue?->name ?? 'Chưa cập nhật cơ sở' }}
+                                            </p>
+
+                                            @if($ownerPhone)
+                                                <a href="tel:{{ $ownerPhone }}"
+                                                   class="mt-2 inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700 transition hover:bg-emerald-100">
+                                                    {{ $ownerPhone }}
+                                                </a>
+                                            @endif
+                                        </td>
+
+                                        <td class="whitespace-nowrap px-5 py-4">
+                                            <p class="text-sm font-black text-zinc-900">
+                                                {{ $slotDate }}
+                                            </p>
+
+                                            <div class="mt-1 space-y-1 text-sm font-semibold text-slate-600">
+                                                @forelse($mergedTimeStrings as $timeStr)
+                                                    <p>{{ $timeStr }}</p>
+                                                @empty
+                                                    <p>—</p>
+                                                @endforelse
+                                            </div>
+                                        </td>
+
+                                        <td class="whitespace-nowrap px-5 py-4">
+                                            <p class="text-sm font-black text-emerald-700">
+                                                {{ number_format((float) $booking->total_price, 0, ',', '.') }}đ
+                                            </p>
+                                        </td>
+
+                                        <td class="px-5 py-4">
+                                            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-black ring-1 ring-inset {{ $statusMeta['class'] }}">
+                                                {{ $statusMeta['label'] }}
+                                            </span>
+
+                                            @if($booking->status === 'cancelled' && $booking->cancel_reason)
+                                                <p class="mt-2 max-w-[220px] text-xs leading-5 text-red-600">
+                                                    <span class="font-bold">Lý do hủy:</span> {{ $booking->cancel_reason }}
+                                                </p>
+                                            @endif
+                                        </td>
+
+                                        <td class="px-5 py-4">
+                                            <div class="flex flex-wrap items-center justify-end gap-2">
+                                                <a href="{{ route('web.bookings.success', $booking->id) }}"
+                                                   class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50">
+                                                    Chi tiết
+                                                </a>
+
+                                                @if($booking->status === 'confirmed' && !$isPastStartTime)
+                                                    <a href="{{ route('customer.booking.reschedule.create', $booking->id) }}"
+                                                       class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-700 transition hover:bg-amber-100">
+                                                        Đổi lịch
+                                                    </a>
+                                                @endif
+
+                                                @if($booking->status === 'completed')
+                                                    @if(in_array($booking->id, $reviewedBookingIds))
+                                                        <button disabled
+                                                                class="cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-black text-slate-400">
+                                                            Đã đánh giá
+                                                        </button>
+                                                    @else
+                                                        <button onclick="openReviewModal({{ $booking->id }}, {{ $booking->court_id }}, '{{ addslashes($booking->court?->venue?->name ?? 'Cơ sở này') }}')"
+                                                                class="rounded-xl bg-amber-400 px-3 py-2 text-xs font-black text-zinc-900 shadow-sm transition hover:bg-amber-500">
+                                                            Đánh giá
+                                                        </button>
+                                                    @endif
+                                                @endif
+
+                                                @if($isEligibleStatus)
+                                                    @if($isPastStartTime)
+                                                        <button type="button"
+                                                                onclick="document.getElementById('lateCancelModal').classList.remove('hidden')"
+                                                                class="rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-black text-slate-500 transition hover:bg-slate-200">
+                                                            Hủy sân
+                                                        </button>
+                                                    @else
+                                                        <button type="button"
+                                                                onclick="openCancelModal({{ $booking->id }}, '{{ $ownerPhone ?? '' }}')"
+                                                                class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700 transition hover:bg-red-100">
+                                                            Hủy sân
+                                                        </button>
+                                                    @endif
+                                                @endif
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {{-- MOBILE / TABLET CARDS --}}
+                    <div class="grid gap-4 p-4 xl:hidden">
+                        @foreach($bookings as $booking)
+                            @php
+                                $statusMeta = $statusMap[$booking->status] ?? [
+                                    'label' => ucfirst($booking->status),
+                                    'class' => 'bg-zinc-100 text-zinc-700 ring-zinc-600/20',
+                                ];
+
+                                $slotDate = $booking->slot_date_label;
+                                $mergedTimeStrings = $booking->merged_time_strings ?? [];
+                                $ownerPhone = $booking->owner_phone;
+
+                                if (! $ownerPhone) {
+                                    $ownerPhone = $booking->court?->venue?->ownerRegistration?->phone
+                                        ?? $booking->court?->venue?->owner?->phone;
+                                }
+
+                                $isEligibleStatus = (bool) $booking->is_eligible_status;
+                                $isPastStartTime = (bool) $booking->is_past_start_time;
+                            @endphp
+
+                            <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p class="text-xs font-black uppercase tracking-wider text-slate-400">
+                                            Mã đơn #{{ $booking->id }}
+                                        </p>
+
+                                        <h2 class="mt-1 text-base font-black text-zinc-900">
+                                            {{ $booking->court?->name ?? 'Chưa cập nhật' }}
+                                        </h2>
+
+                                        <p class="mt-1 text-sm font-semibold text-slate-500">
+                                            {{ $booking->court?->venue?->name ?? 'Chưa cập nhật cơ sở' }}
+                                        </p>
+                                    </div>
+
+                                    <span class="inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-black ring-1 ring-inset {{ $statusMeta['class'] }}">
+                                        {{ $statusMeta['label'] }}
+                                    </span>
+                                </div>
+
+                                <div class="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 text-sm">
+                                    <div>
+                                        <p class="text-xs font-black uppercase tracking-wider text-slate-400">
+                                            Thời gian
+                                        </p>
+
+                                        <p class="mt-1 font-black text-zinc-900">
+                                            {{ $slotDate }}
+                                        </p>
+
+                                        <div class="mt-1 space-y-1 font-semibold text-slate-600">
+                                            @forelse($mergedTimeStrings as $timeStr)
+                                                <p>{{ $timeStr }}</p>
+                                            @empty
+                                                <p>—</p>
+                                            @endforelse
+                                        </div>
+                                    </div>
+
+                                    <div class="text-right">
+                                        <p class="text-xs font-black uppercase tracking-wider text-slate-400">
+                                            Tổng tiền
+                                        </p>
+
+                                        <p class="mt-1 font-black text-emerald-700">
+                                            {{ number_format((float) $booking->total_price, 0, ',', '.') }}đ
+                                        </p>
+
+                                        @if($ownerPhone)
+                                            <a href="tel:{{ $ownerPhone }}"
+                                               class="mt-2 inline-flex justify-end rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-black text-emerald-700">
+                                                {{ $ownerPhone }}
+                                            </a>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                @if($booking->status === 'cancelled' && $booking->cancel_reason)
+                                    <div class="mt-3 rounded-2xl bg-red-50 px-3 py-2 text-xs leading-5 text-red-600">
+                                        <span class="font-bold">Lý do hủy:</span> {{ $booking->cancel_reason }}
+                                    </div>
+                                @endif
+
+                                <div class="mt-4 grid gap-2 sm:grid-cols-2">
+                                    <a href="{{ route('web.bookings.success', $booking->id) }}"
+                                       class="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50">
+                                        Chi tiết
+                                    </a>
+
+                                    @if($booking->status === 'confirmed' && !$isPastStartTime)
+                                        <a href="{{ route('customer.booking.reschedule.create', $booking->id) }}"
+                                           class="inline-flex items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm font-black text-amber-700 transition hover:bg-amber-100">
+                                            Đổi lịch
+                                        </a>
+                                    @endif
+
+                                    @if($booking->status === 'completed')
+                                        @if(in_array($booking->id, $reviewedBookingIds))
+                                            <button disabled
+                                                    class="cursor-not-allowed rounded-2xl border border-slate-200 bg-slate-100 px-3 py-2.5 text-sm font-black text-slate-400">
+                                                Đã đánh giá
+                                            </button>
+                                        @else
+                                            <button onclick="openReviewModal({{ $booking->id }}, {{ $booking->court_id }}, '{{ addslashes($booking->court?->venue?->name ?? 'Cơ sở này') }}')"
+                                                    class="rounded-2xl bg-amber-400 px-3 py-2.5 text-sm font-black text-zinc-900 shadow-sm transition hover:bg-amber-500">
+                                                Đánh giá
+                                            </button>
+                                        @endif
+                                    @endif
+
+                                    @if($isEligibleStatus)
+                                        @if($isPastStartTime)
+                                            <button type="button"
+                                                    onclick="document.getElementById('lateCancelModal').classList.remove('hidden')"
+                                                    class="rounded-2xl border border-slate-200 bg-slate-100 px-3 py-2.5 text-sm font-black text-slate-500 transition hover:bg-slate-200">
+                                                Hủy sân
+                                            </button>
+                                        @else
+                                            <button type="button"
+                                                    onclick="openCancelModal({{ $booking->id }}, '{{ $ownerPhone ?? '' }}')"
+                                                    class="rounded-2xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-black text-red-700 transition hover:bg-red-100">
+                                                Hủy sân
+                                            </button>
+                                        @endif
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <div class="border-t border-slate-100 px-5 py-4">
+                        {{ $bookings->links() }}
+                    </div>
+                @endif
+            </div>
+
+            {{-- TAB ĐẶT THEO GÓI --}}
+            <div id="history-tab-package" data-history-tab-panel="package" class="history-tab-panel hidden">
+                <div class="border-b border-slate-100 px-5 py-4">
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h2 class="text-base font-black text-zinc-900">
+                                Danh sách gói đặt sân
+                            </h2>
+                            <p class="mt-1 text-sm text-slate-500">
+                                Theo dõi gói tuần, gói tháng, tiến độ sử dụng và trạng thái thanh toán.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                @if($bookingPackages->isEmpty())
+                    <div class="px-6 py-16 text-center">
+                        <div class="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-emerald-50 text-emerald-500">
+                            <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                            </svg>
+                        </div>
+
+                        <h2 class="text-lg font-black text-zinc-900">
+                            Bạn chưa có gói đặt sân
+                        </h2>
+
+                        <p class="mt-2 text-sm text-slate-500">
+                            Khi đăng ký gói tuần hoặc gói tháng, thông tin gói sẽ xuất hiện ở đây.
+                        </p>
+                    </div>
+                @else
+                    {{-- DESKTOP TABLE --}}
+                    <div class="hidden overflow-x-auto xl:block">
+                        <table class="min-w-full divide-y divide-slate-100">
+                            <thead class="bg-emerald-50/70">
+                                <tr>
+                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-emerald-800">Gói</th>
+                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-emerald-800">Cơ sở</th>
+                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-emerald-800">Thời gian</th>
+                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-emerald-800">Tiến độ</th>
+                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-emerald-800">Thanh toán</th>
+                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-emerald-800">Trạng thái</th>
+                                    <th class="px-5 py-4 text-right text-xs font-black uppercase tracking-wider text-emerald-800">Thao tác</th>
+                                </tr>
+                            </thead>
+
+                            <tbody class="divide-y divide-slate-100 bg-white">
+                                @foreach($bookingPackages as $bookingPackage)
+                                    @php
+                                        $transaction = $bookingPackage->transactions->first();
+
+                                        $packageTypeLabel = $bookingPackage->package?->type === 'month'
+                                            ? 'Gói tháng'
+                                            : 'Gói tuần';
+
+                                        $packageStatus = $bookingPackage->status ?? 'pending_payment';
+
+                                        $packageStatusLabel = $packageStatusLabels[$packageStatus] ?? $packageStatus;
+
+                                        $packageStatusClass = $packageStatusClasses[$packageStatus]
+                                            ?? 'bg-stone-100 text-stone-600 ring-stone-200';
+
+                                        $packageAmount = $bookingPackage->final_amount
+                                            ?? $bookingPackage->total_amount
+                                            ?? 0;
+
+                                        $totalSessions = (int) ($bookingPackage->total_sessions ?: $bookingPackage->bookings->count());
+                                        $usedSessions = (int) ($bookingPackage->used_sessions ?? 0);
+                                        $progressPercent = $totalSessions > 0
+                                            ? min(100, round(($usedSessions / $totalSessions) * 100))
+                                            : 0;
+                                    @endphp
+
+                                    <tr class="align-top transition hover:bg-emerald-50/40">
+                                        <td class="px-5 py-4">
+                                            <p class="text-sm font-black text-zinc-900">
+                                                #PKG{{ $bookingPackage->id }}
+                                            </p>
+
+                                            <p class="mt-1 text-sm font-bold text-zinc-800">
+                                                {{ $bookingPackage->package?->name ?? 'Gói đặt sân' }}
+                                            </p>
+
+                                            <p class="mt-1 text-xs font-semibold text-emerald-700">
+                                                {{ $packageTypeLabel }} · {{ $bookingPackage->weekly_sessions }} buổi/tuần
+                                            </p>
+                                        </td>
+
+                                        <td class="px-5 py-4">
+                                            <p class="text-sm font-black text-zinc-900">
+                                                {{ $bookingPackage->venue?->name ?? 'Chưa cập nhật cơ sở' }}
+                                            </p>
+                                        </td>
+
+                                        <td class="whitespace-nowrap px-5 py-4 text-sm font-semibold text-zinc-700">
+                                            {{ $bookingPackage->start_date?->format('d/m/Y') }}
+                                            -
+                                            {{ $bookingPackage->end_date?->format('d/m/Y') }}
+                                        </td>
+
+                                        <td class="px-5 py-4">
+                                            <p class="text-sm font-black text-zinc-900">
+                                                {{ $usedSessions }}/{{ $totalSessions }} buổi
+                                            </p>
+
+                                            <div class="mt-2 h-2 w-40 overflow-hidden rounded-full bg-slate-100">
+                                                <div class="h-full rounded-full bg-emerald-500"
+                                                     style="width: {{ $progressPercent }}%"></div>
+                                            </div>
+                                        </td>
+
+                                        <td class="whitespace-nowrap px-5 py-4">
+                                            <p class="text-sm font-black text-emerald-700">
+                                                {{ number_format((float) $packageAmount, 0, ',', '.') }}đ
+                                            </p>
+
+                                            @if($transaction)
+                                                <p class="mt-1 text-xs font-semibold text-slate-500">
+                                                    {{ $transaction->transaction_code }}
+                                                </p>
+                                            @endif
+                                        </td>
+
+                                        <td class="px-5 py-4">
+                                            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-black ring-1 ring-inset {{ $packageStatusClass }}">
+                                                {{ $packageStatusLabel }}
+                                            </span>
+                                        </td>
+
+                                        <td class="px-5 py-4 text-right">
+                                            <a href="{{ route('package-bookings.show', $bookingPackage) }}"
+                                               class="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 transition hover:bg-emerald-100">
+                                                Chi tiết
+                                            </a>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {{-- MOBILE / TABLET CARDS --}}
+                    <div class="grid gap-4 p-4 xl:hidden">
                         @foreach($bookingPackages as $bookingPackage)
                             @php
                                 $transaction = $bookingPackage->transactions->first();
-                                $isPaidPackage = $transaction?->payment_status === 'success';
-                                $packageTypeLabel = $bookingPackage->package?->type === 'month' ? 'Gói tháng' : 'Gói tuần';
-                                $statusLabel = $isPaidPackage ? 'Đã xác nhận' : 'Chưa thanh toán';
-                                $statusClass = $isPaidPackage
-                                    ? 'bg-emerald-100 text-emerald-700 ring-emerald-600/20'
-                                    : 'bg-amber-100 text-amber-700 ring-amber-600/20';
+
+                                $packageTypeLabel = $bookingPackage->package?->type === 'month'
+                                    ? 'Gói tháng'
+                                    : 'Gói tuần';
+
+                                $packageStatus = $bookingPackage->status ?? 'pending_payment';
+
+                                $packageStatusLabel = $packageStatusLabels[$packageStatus] ?? $packageStatus;
+
+                                $packageStatusClass = $packageStatusClasses[$packageStatus]
+                                    ?? 'bg-stone-100 text-stone-600 ring-stone-200';
+
+                                $packageAmount = $bookingPackage->final_amount
+                                    ?? $bookingPackage->total_amount
+                                    ?? 0;
+
+                                $totalSessions = (int) ($bookingPackage->total_sessions ?: $bookingPackage->bookings->count());
+                                $usedSessions = (int) ($bookingPackage->used_sessions ?? 0);
+                                $progressPercent = $totalSessions > 0
+                                    ? min(100, round(($usedSessions / $totalSessions) * 100))
+                                    : 0;
                             @endphp
-                            <tr>
-                                <td class="whitespace-nowrap px-5 py-4 text-sm font-black text-zinc-900">#PKG{{ $bookingPackage->id }}</td>
-                                <td class="px-5 py-4">
-                                    <p class="text-sm font-bold text-zinc-900">{{ $bookingPackage->package?->name ?? 'Gói đặt sân' }}</p>
-                                    <p class="mt-1 text-xs text-zinc-500">{{ $packageTypeLabel }} · {{ $bookingPackage->venue?->name ?? 'Chưa cập nhật cơ sở' }}</p>
-                                </td>
-                                <td class="px-5 py-4 text-sm font-semibold text-zinc-700">
-                                    {{ $bookingPackage->start_date?->format('d/m/Y') }} - {{ $bookingPackage->end_date?->format('d/m/Y') }}
-                                </td>
-                                <td class="px-5 py-4 text-sm font-bold text-zinc-800">{{ $bookingPackage->bookings->count() }} ca</td>
-                                <td class="px-5 py-4">
-                                    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset {{ $statusClass }}">
-                                        {{ $statusLabel }}
+
+                            <div class="rounded-3xl border border-emerald-100 bg-white p-4 shadow-sm">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <p class="text-xs font-black uppercase tracking-wider text-emerald-700">
+                                            #PKG{{ $bookingPackage->id }} · {{ $packageTypeLabel }}
+                                        </p>
+
+                                        <h2 class="mt-1 text-base font-black text-zinc-900">
+                                            {{ $bookingPackage->package?->name ?? 'Gói đặt sân' }}
+                                        </h2>
+
+                                        <p class="mt-1 text-sm font-semibold text-slate-500">
+                                            {{ $bookingPackage->venue?->name ?? 'Chưa cập nhật cơ sở' }}
+                                        </p>
+                                    </div>
+
+                                    <span class="inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-black ring-1 ring-inset {{ $packageStatusClass }}">
+                                        {{ $packageStatusLabel }}
                                     </span>
-                                    <p class="mt-1 text-xs font-bold text-emerald-700">{{ number_format((float) $bookingPackage->total_price, 0, ',', '.') }}đ</p>
-                                </td>
-                                <td class="px-5 py-4 text-right">
-                                    <a href="{{ route('package-bookings.show', $bookingPackage) }}" class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100">
-                                        Chi tiết
-                                    </a>
-                                </td>
-                            </tr>
+                                </div>
+
+                                <div class="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 text-sm">
+                                    <div>
+                                        <p class="text-xs font-black uppercase tracking-wider text-slate-400">
+                                            Thời gian
+                                        </p>
+
+                                        <p class="mt-1 font-black text-zinc-900">
+                                            {{ $bookingPackage->start_date?->format('d/m/Y') }}
+                                            -
+                                            {{ $bookingPackage->end_date?->format('d/m/Y') }}
+                                        </p>
+                                    </div>
+
+                                    <div class="text-right">
+                                        <p class="text-xs font-black uppercase tracking-wider text-slate-400">
+                                            Thanh toán
+                                        </p>
+
+                                        <p class="mt-1 font-black text-emerald-700">
+                                            {{ number_format((float) $packageAmount, 0, ',', '.') }}đ
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4 rounded-2xl bg-slate-50 p-3">
+                                    <div class="flex items-center justify-between text-sm">
+                                        <span class="font-bold text-slate-500">
+                                            Tiến độ sử dụng
+                                        </span>
+
+                                        <span class="font-black text-zinc-900">
+                                            {{ $usedSessions }}/{{ $totalSessions }} buổi
+                                        </span>
+                                    </div>
+
+                                    <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
+                                        <div class="h-full rounded-full bg-emerald-500"
+                                             style="width: {{ $progressPercent }}%"></div>
+                                    </div>
+
+                                    <p class="mt-2 text-xs font-semibold text-slate-500">
+                                        {{ $bookingPackage->weekly_sessions }} buổi/tuần
+                                    </p>
+                                </div>
+
+                                <a href="{{ route('package-bookings.show', $bookingPackage) }}"
+                                   class="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-emerald-600 px-3 py-2.5 text-sm font-black text-white transition hover:bg-emerald-700">
+                                    Xem chi tiết gói
+                                </a>
+                            </div>
                         @endforeach
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="grid gap-4 md:hidden">
-                @foreach($bookingPackages as $bookingPackage)
-                    @php
-                        $transaction = $bookingPackage->transactions->first();
-                        $isPaidPackage = $transaction?->payment_status === 'success';
-                        $packageTypeLabel = $bookingPackage->package?->type === 'month' ? 'Gói tháng' : 'Gói tuần';
-                    @endphp
-                    <div class="rounded-lg border border-emerald-100 bg-white p-4 shadow-sm">
-                        <div class="flex items-start justify-between gap-3">
-                            <div>
-                                <p class="text-xs font-semibold uppercase tracking-wider text-emerald-700">#PKG{{ $bookingPackage->id }} · {{ $packageTypeLabel }}</p>
-                                <h2 class="mt-1 text-base font-extrabold text-zinc-900">{{ $bookingPackage->package?->name ?? 'Gói đặt sân' }}</h2>
-                                <p class="mt-1 text-sm text-zinc-500">{{ $bookingPackage->venue?->name ?? 'Chưa cập nhật cơ sở' }}</p>
-                            </div>
-                            <span class="inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-bold {{ $isPaidPackage ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700' }}">
-                                {{ $isPaidPackage ? 'Đã xác nhận' : 'Chưa thanh toán' }}
-                            </span>
-                        </div>
-                        <div class="mt-4 grid grid-cols-2 gap-3 border-t border-stone-100 pt-3 text-sm">
-                            <div>
-                                <p class="text-xs font-semibold uppercase tracking-wider text-stone-400">Thời gian</p>
-                                <p class="mt-1 font-bold text-zinc-800">{{ $bookingPackage->start_date?->format('d/m/Y') }} - {{ $bookingPackage->end_date?->format('d/m/Y') }}</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-xs font-semibold uppercase tracking-wider text-stone-400">Tổng tiền</p>
-                                <p class="mt-1 font-black text-emerald-700">{{ number_format((float) $bookingPackage->total_price, 0, ',', '.') }}đ</p>
-                            </div>
-                        </div>
-                        <a href="{{ route('package-bookings.show', $bookingPackage) }}" class="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-emerald-600 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-700">
-                            Xem chi tiết {{ $bookingPackage->bookings->count() }} ca
-                        </a>
                     </div>
-                @endforeach
+                @endif
             </div>
         </div>
-    @endif
-
-    @if($bookings->isEmpty() && ($bookingPackages ?? collect())->isEmpty())
-        <div class="rounded-lg border border-stone-200 bg-white px-6 py-16 text-center shadow-sm">
-            <div class="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-stone-100 text-stone-400">
-                <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25m10.5-2.25v2.25M3.75 8.25h16.5M4.5 6.75h15A1.5 1.5 0 0 1 21 8.25v10.5a1.5 1.5 0 0 1-1.5 1.5h-15a1.5 1.5 0 0 1-1.5-1.5V8.25a1.5 1.5 0 0 1 1.5-1.5Z" />
-                </svg>
-            </div>
-            <h2 class="text-lg font-extrabold text-zinc-900">Bạn chưa có lịch đặt nào</h2>
-            <p class="mt-2 text-sm text-zinc-500">Khi đặt sân thành công, các đơn sẽ xuất hiện tại đây.</p>
-        </div>
-    @else
-        @if($bookings->isNotEmpty())
-        <div class="hidden overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm md:block">
-            <table class="min-w-full divide-y divide-stone-200">
-                <thead class="bg-stone-50">
-                    <tr>
-                        <th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Mã đơn</th>
-                        <th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Sân</th>
-                        <th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Thời gian</th>
-                        <th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Tổng tiền</th>
-                        <th class="px-5 py-3 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Trạng thái</th>
-                        <th class="px-5 py-3 text-right text-xs font-bold uppercase tracking-wider text-stone-500">Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-stone-100 bg-white">
-                    @foreach($bookings as $booking)
-                        @php
-                            $statusMeta = $statusMap[$booking->status] ?? [
-                                'label' => ucfirst($booking->status),
-                                'class' => 'bg-zinc-100 text-zinc-700 ring-zinc-600/20',
-                            ];
-                            $slotDate = $booking->slot_date_label;
-                            $mergedTimeStrings = $booking->merged_time_strings ?? [];
-                            $ownerPhone = $booking->owner_phone;
-                            $isEligibleStatus = (bool) $booking->is_eligible_status;
-                            $isPastStartTime = (bool) $booking->is_past_start_time;
-                        @endphp
-                        <tr class="align-top">
-                            <td class="whitespace-nowrap px-5 py-4 text-sm font-black text-zinc-900">#{{ $booking->id }}</td>
-                            <td class="px-5 py-4">
-                                <p class="text-sm font-bold text-zinc-900">{{ $booking->court?->name ?? 'Chưa cập nhật' }}</p>
-                                <div class="mt-1 text-xs text-zinc-500">
-                                    {{ $booking->court?->venue?->name ?? 'Chưa cập nhật cơ sở' }}
-                                    @if($ownerPhone)
-                                        <div class="mt-1">
-                                            <a href="tel:{{ $ownerPhone }}" class="inline-flex items-center gap-1 font-bold text-emerald-600 transition hover:text-emerald-800">
-                                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-2.896-1.596-5.48-4.18-7.076-7.076l1.293-.97c.362-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" /></svg>
-                                                {{ $ownerPhone }}
-                                            </a>
-                                        </div>
-                                    @endif
-                                </div>
-                            </td>
-                            <td class="whitespace-nowrap px-5 py-4 text-sm font-semibold text-zinc-700">
-                                <p class="font-bold text-zinc-900 mb-1">{{ $slotDate }}</p>
-                                <div class="text-zinc-600 font-normal space-y-1">
-                                    @foreach($mergedTimeStrings as $timeStr)
-                                        <p>{{ $timeStr }}</p>
-                                    @endforeach
-                                </div>
-                            </td>
-                            <td class="whitespace-nowrap px-5 py-4 text-sm font-bold text-emerald-700">{{ number_format((float) $booking->total_price, 0, ',', '.') }}đ</td>
-                            <td class="px-5 py-4">
-                                <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset {{ $statusMeta['class'] }}">
-                                    {{ $statusMeta['label'] }}
-                                </span>
-                                @if($booking->status === 'cancelled' && $booking->cancel_reason)
-                                    <p class="mt-1.5 max-w-[200px] text-xs text-red-600"><span class="font-semibold">Lý do hủy:</span> {{ $booking->cancel_reason }}</p>
-                                @endif
-                            </td>
-                            <td class="px-5 py-4 text-right">
-    <div class="flex items-center justify-end gap-2">
-        <a href="{{ route('web.bookings.success', $booking->id) }}" class="rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-bold text-zinc-700 transition hover:bg-stone-50">Chi tiết</a>
-        @if($booking->status === 'confirmed' && !$isPastStartTime)
-            <a href="{{ route('customer.booking.reschedule.create', $booking->id) }}" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700 transition hover:bg-amber-100">Đổi lịch</a>
-        @endif
-        
-        @if($booking->status === 'completed')
-            @if(in_array($booking->id, $reviewedBookingIds))
-                <button disabled class="cursor-not-allowed rounded-lg border border-stone-200 bg-stone-100 px-3 py-2 text-xs font-bold text-stone-400">Đã đánh giá</button>
-            @else
-                <button onclick="openReviewModal({{ $booking->id }}, {{ $booking->court_id }}, '{{ addslashes($booking->court?->venue?->name ?? 'Cơ sở này') }}')" class="rounded-lg bg-amber-400 px-3 py-2 text-xs font-bold text-zinc-900 transition hover:bg-amber-500 shadow-sm">Đánh giá</button>
-            @endif
-        @endif
-
-        @if($isEligibleStatus)
-            @if($isPastStartTime)
-                <button type="button" onclick="document.getElementById('lateCancelModal').classList.remove('hidden')" class="rounded-lg border border-stone-200 bg-stone-100 px-3 py-2 text-xs font-bold text-stone-500 transition hover:bg-stone-200 shadow-sm w-full sm:w-auto">
-                    Hủy sân
-                </button>
-            @else
-                <button type="button" onclick="openCancelModal({{ $booking->id }}, '{{ $ownerPhone ?? '' }}')" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-100 shadow-sm w-full sm:w-auto">
-                    Hủy sân
-                </button>
-            @endif
-        @endif
     </div>
-</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-
-        <div class="grid gap-4 md:hidden">
-            @foreach($bookings as $booking)
-                @php
-                    $statusMeta = $statusMap[$booking->status] ?? [
-                        'label' => ucfirst($booking->status),
-                        'class' => 'bg-zinc-100 text-zinc-700 ring-zinc-600/20',
-                    ];
-                    $slotDate = $booking->slot_date_label;
-                    $mergedTimeStrings = $booking->merged_time_strings ?? [];
-                    $ownerPhone = $booking->owner_phone;
-                    $isEligibleStatus = (bool) $booking->is_eligible_status;
-                    $isPastStartTime = (bool) $booking->is_past_start_time;
-                @endphp
-                <div class="rounded-lg border border-stone-200 bg-white p-4 shadow-sm">
-                    <div class="mb-3 flex items-start justify-between gap-3">
-                        <div>
-                            <p class="text-xs font-semibold uppercase tracking-wider text-stone-500">Mã đơn #{{ $booking->id }}</p>
-                            <h2 class="mt-1 text-base font-extrabold text-zinc-900">{{ $booking->court?->name ?? 'Chưa cập nhật' }}</h2>
-                            <div class="mt-1 text-sm text-zinc-500 d-flex flex-wrap items-center gap-2">
-                                <span>{{ $booking->court?->venue?->name ?? 'Chưa cập nhật cơ sở' }}</span>
-                                
-                                @php
-                                    $ownerPhone = $booking->court?->venue?->ownerRegistration?->phone 
-                                               ?? $booking->court?->venue?->owner?->phone;
-                                @endphp
-                                
-                                @if($ownerPhone)
-                                    <span class="text-stone-300">•</span>
-                                    <a href="tel:{{ $ownerPhone }}" class="inline-flex items-center gap-1 font-bold text-emerald-600 transition hover:text-emerald-800">
-                                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-2.896-1.596-5.48-4.18-7.076-7.076l1.293-.97c.362-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" /></svg>
-                                        {{ $ownerPhone }}
-                                    </a>
-                                @endif
-                            </div>
-                        </div>
-                        <span class="inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-bold ring-1 ring-inset {{ $statusMeta['class'] }}">
-                            {{ $statusMeta['label'] }}
-                        </span>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3 border-t border-stone-100 pt-3 text-sm">
-                        <div>
-                            <p class="text-xs font-semibold uppercase tracking-wider text-stone-400">Thời gian</p>
-                            <p class="mt-1 font-bold text-zinc-800 mb-1">{{ $slotDate }}</p>
-                            <div class="text-zinc-600 font-normal space-y-1">
-                                @foreach($mergedTimeStrings as $timeStr)
-                                    <p>{{ $timeStr }}</p>
-                                @endforeach
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-xs font-semibold uppercase tracking-wider text-stone-400">Tổng tiền</p>
-                            <p class="mt-1 font-black text-emerald-700">{{ number_format((float) $booking->total_price, 0, ',', '.') }}đ</p>
-                        </div>
-                    </div>
-
-                    @if($booking->status === 'cancelled' && $booking->cancel_reason)
-                        <div class="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
-                            <span class="font-semibold">Lý do hủy:</span> {{ $booking->cancel_reason }}
-                        </div>
-                    @endif
-
-                    @if($isEligibleStatus)
-                        @if($isPastStartTime)
-                            <button type="button" onclick="document.getElementById('lateCancelModal').classList.remove('hidden')" class="mt-4 w-full rounded-lg border border-stone-200 bg-stone-100 px-3 py-2.5 text-sm font-bold text-stone-500 transition hover:bg-stone-200 shadow-sm">
-                                Hủy sân
-                            </button>
-                        @else
-                            <button type="button" onclick="openCancelModal({{ $booking->id }}, '{{ $ownerPhone ?? '' }}')" class="mt-4 w-full rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-bold text-red-700 transition hover:bg-red-100 shadow-sm">
-                                Hủy sân
-                            </button>
-                        @endif
-                    @endif
-                </div>
-            @endforeach
-        </div>
-
-        <div class="mt-6">
-            {{ $bookings->links() }}
-        </div>
-        @endif
-    @endif
 </div>
+
+<script>
+    function switchHistoryTab(tabName) {
+        document.querySelectorAll('[data-history-tab-panel]').forEach(function (panel) {
+            panel.classList.toggle('hidden', panel.dataset.historyTabPanel !== tabName);
+        });
+
+        document.querySelectorAll('[data-history-tab-button]').forEach(function (button) {
+            const isActive = button.dataset.historyTabButton === tabName;
+
+            button.classList.toggle('bg-emerald-600', isActive);
+            button.classList.toggle('text-white', isActive);
+            button.classList.toggle('shadow-sm', isActive);
+
+            button.classList.toggle('bg-slate-50', ! isActive);
+            button.classList.toggle('text-slate-700', ! isActive);
+            button.classList.toggle('hover:bg-slate-100', ! isActive);
+
+            const icon = button.querySelector('.tab-icon');
+            const count = button.querySelector('.tab-count');
+
+            if (icon) {
+                icon.classList.toggle('bg-white/20', isActive);
+                icon.classList.toggle('text-white', isActive);
+                icon.classList.toggle('bg-slate-100', ! isActive);
+                icon.classList.toggle('text-slate-500', ! isActive);
+            }
+
+            if (count) {
+                count.classList.toggle('bg-white/20', isActive);
+                count.classList.toggle('text-white', isActive);
+                count.classList.toggle('bg-slate-100', ! isActive);
+                count.classList.toggle('text-slate-600', ! isActive);
+            }
+        });
+
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', tabName);
+        window.history.replaceState({}, '', url);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        switchHistoryTab(@json($activeTab));
+    });
+</script>
 <!-- MODAL HỦY SÂN -->
 <div id="lateCancelModal" class="fixed inset-0 z-[70] hidden flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
     <div class="w-full max-w-sm rounded-3xl bg-white shadow-2xl overflow-hidden transform transition-all">
