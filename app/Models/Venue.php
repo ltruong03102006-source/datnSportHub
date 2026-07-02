@@ -159,6 +159,8 @@ class Venue extends Model
     {
         return $query
             ->withAvg(['reviews as avg_rating' => fn (Builder $q) => $q->where('reviews.is_hidden', false)], 'rating')
+            ->withCount(['reviews as reviews_count' => fn (Builder $q) => $q->where('reviews.is_hidden', false)])
+            ->withCount(['bookings as bookings_count' => fn (Builder $q) => $q->whereNotIn('bookings.status', ['cancelled', 'rejected'])])
             ->selectSub(function ($sub) {
                 $sub->selectRaw('MIN(slot_prices.price)')
                     ->from('slot_prices')
