@@ -20,6 +20,14 @@ export const DISTANCE_OPTIONS = [
     { value: 10, label: 'Trong 10 km' },
 ];
 
+export const SORT_OPTIONS = [
+    { value: 'ranking', label: 'Xếp hạng tốt nhất' },
+    { value: 'rating', label: 'Đánh giá cao nhất' },
+    { value: 'bookings', label: 'Đặt nhiều nhất' },
+    { value: 'newest', label: 'Mới nhất' },
+    { value: 'name', label: 'Tên A-Z' },
+];
+
 export default (config = {}) => ({
     sports: config.sports ?? [],
     sport: config.sport ?? null,
@@ -42,6 +50,8 @@ export default (config = {}) => ({
     priceBuckets: PRICE_BUCKETS,
     ratingOptions: RATING_OPTIONS,
     distanceOptions: DISTANCE_OPTIONS,
+    sortOptions: SORT_OPTIONS,
+    sort: 'ranking',
     price: '',
     minRating: 0,
     radius: '',
@@ -67,6 +77,7 @@ export default (config = {}) => ({
             if (match) this.sport = match.id;
         }
         this.query = params.get('q') ?? '';
+        this.sort = this.sortOptions.some((option) => option.value === params.get('sort')) ? params.get('sort') : 'ranking';
         this.province = params.get('province_code') ?? '';
         this.ward = params.get('ward_code') ?? '';
 
@@ -106,6 +117,7 @@ export default (config = {}) => ({
             if (match) params.set('sport', match.slug);
         }
         if (this.query.trim() !== '') params.set('q', this.query.trim());
+        if (this.sort !== 'ranking') params.set('sort', this.sort);
         if (this.province) params.set('province_code', this.province);
         if (this.ward) params.set('ward_code', this.ward);
 
@@ -184,6 +196,13 @@ export default (config = {}) => ({
         this.load();
     },
 
+    selectSort(value) {
+        if (this.sort === value) return;
+        this.sort = this.sortOptions.some((option) => option.value === value) ? value : 'ranking';
+        this.page = 1;
+        this.load();
+    },
+
     async selectDistance(km) {
         // Toggle off
         if (this.radius === km) {
@@ -243,6 +262,7 @@ export default (config = {}) => ({
             if (this.query.trim() !== '' && this.sport && this.sport !== 'all') {
                 url.searchParams.set('sport', this.sport);
             }
+            url.searchParams.set('sort', this.sort);
             if (this.province) url.searchParams.set('province_code', this.province);
             if (this.ward) url.searchParams.set('ward_code', this.ward);
 
@@ -352,6 +372,10 @@ export default (config = {}) => ({
 
     get distanceLabel() {
         return this.distanceOptions.find((d) => d.value === this.radius)?.label ?? '';
+    },
+
+    get sortLabel() {
+        return this.sortOptions.find((option) => option.value === this.sort)?.label ?? 'Xếp hạng tốt nhất';
     },
 
     get pages() {

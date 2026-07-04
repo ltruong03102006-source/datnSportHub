@@ -384,15 +384,46 @@
             <section class="min-w-0">
                 
                 <div class="mb-5 border-b border-stone-200/60 pb-3">
-                    <p class="text-sm font-medium text-stone-500">
-                        <template x-if="!loading && meta.total > 0">
-                            <span>Đang hiển thị <span class="font-bold text-zinc-900" x-text="rangeLabel"></span>
-                                trong <span class="font-bold text-zinc-900" x-text="meta.total"></span> cơ sở
-                                <span x-show="activeSportName">· Môn <span class="font-bold text-zinc-900" x-text="activeSportName"></span></span>
-                            </span>
-                        </template>
-                        <span x-show="loading" class="animate-pulse">Đang đồng bộ dữ liệu…</span>
-                    </p>
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <p class="text-sm font-medium text-stone-500">
+                            <template x-if="!loading && meta.total > 0">
+                                <span>Đang hiển thị <span class="font-bold text-zinc-900" x-text="rangeLabel"></span>
+                                    trong <span class="font-bold text-zinc-900" x-text="meta.total"></span> cơ sở
+                                    <span x-show="activeSportName">· Môn <span class="font-bold text-zinc-900" x-text="activeSportName"></span></span>
+                                </span>
+                            </template>
+                            <span x-show="loading" class="animate-pulse">Đang đồng bộ dữ liệu...</span>
+                        </p>
+
+                        <div x-data="{ open: false }" @click.outside="open = false" class="relative w-full sm:w-64">
+                            <button
+                                type="button"
+                                @click="open = !open"
+                                class="flex w-full items-center justify-between gap-2 rounded-xl border border-stone-200 bg-white px-3 py-2 text-left text-sm font-semibold text-zinc-700 shadow-sm transition hover:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                            >
+                                <span class="flex items-center gap-2">
+                                    <svg class="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 7h12M3 12h9M3 17h6M17 7l2-2 2 2M19 5v14" />
+                                    </svg>
+                                    <span x-text="sortLabel"></span>
+                                </span>
+                                <svg class="h-4 w-4 shrink-0 text-stone-400" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                                </svg>
+                            </button>
+                            <div x-show="open" x-cloak x-transition.opacity class="absolute right-0 z-30 mt-2 w-full overflow-hidden rounded-xl border border-stone-200 bg-white py-1 shadow-lg">
+                                <template x-for="option in sortOptions" :key="option.value">
+                                    <button
+                                        type="button"
+                                        @click="selectSort(option.value); open = false"
+                                        x-text="option.label"
+                                        :class="sort === option.value ? 'bg-emerald-50 font-bold text-emerald-700' : 'text-zinc-700 hover:bg-stone-50'"
+                                        class="block w-full px-3 py-2 text-left text-sm transition"
+                                    ></button>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
 
                     {{-- Bộ lọc đang áp dụng --}}
                     <div x-show="query.trim() !== '' || hasActiveFilters" x-cloak class="mt-3 flex flex-wrap items-center gap-2">
@@ -504,9 +535,21 @@
         <p class="mt-1 text-xs font-semibold text-emerald-600" x-text="court.courts_count ? court.courts_count + ' sân con' : 'Đang cập nhật'"></p>
 
         <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
+            <span x-show="court.ranking_score" x-cloak class="inline-flex items-center gap-1 rounded-md bg-zinc-900 px-2 py-0.5 text-xs font-bold text-white">
+                <svg class="h-3 w-3 text-amber-300" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M5 4h14v3a5 5 0 0 1-4 4.9V14h2v2H7v-2h2v-2.1A5 5 0 0 1 5 7V4Zm2 2v1a3 3 0 1 0 6 0V6H7Zm8 0v1a4.97 4.97 0 0 1-.42 2H15a3 3 0 0 0 3-3h-3ZM9 18h6v2H9v-2Z" />
+                </svg>
+                <span x-text="court.ranking_score + ' điểm'"></span>
+            </span>
             <span x-show="court.avg_rating" x-cloak class="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700">
                 <svg class="h-3 w-3" viewBox="0 0 24 24" fill="currentColor"><path d="M11.48 3.5a.56.56 0 0 1 1.04 0l2.13 5.11 5.52.44c.5.04.7.66.32.99l-4.2 3.6 1.28 5.39c.12.49-.42.88-.85.62L12 17.34l-4.74 2.91c-.43.26-.97-.13-.85-.62l1.28-5.39-4.2-3.6c-.38-.33-.18-.95.32-.99l5.52-.44 2.13-5.11Z" /></svg>
                 <span x-text="court.avg_rating"></span>
+            </span>
+            <span x-show="court.bookings_count" x-cloak class="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-xs font-bold text-indigo-700">
+                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3M4 11h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z" />
+                </svg>
+                <span x-text="court.bookings_count + ' lượt'"></span>
             </span>
             <span x-show="court.min_price" x-cloak class="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700">
                 <span x-text="'từ ' + formatPrice(court.min_price) + 'đ'"></span>
