@@ -15,7 +15,7 @@
     $currentPageTotal = $collection->sum('amount');
 
     $currentPageSuccess = $collection->filter(function ($transaction) {
-        return in_array($transaction->payment_status ?? $transaction->status, ['success', 'paid', 'completed'], true);
+        return in_array($transaction->payment_status ?? $transaction->status, ['success', 'paid', 'completed', 'refunded'], true);
     })->count();
 
     $currentPagePending = $collection->filter(function ($transaction) {
@@ -125,7 +125,7 @@
 
     .tx-stats {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 14px;
         margin-bottom: 16px;
     }
@@ -179,7 +179,7 @@
 
     .tx-filter-grid {
         display: grid;
-        grid-template-columns: 1.2fr 1.2fr .9fr .9fr auto;
+        grid-template-columns: 1.2fr 1.2fr .9fr auto;
         gap: 12px;
         align-items: end;
     }
@@ -542,14 +542,10 @@
             </div>
 
             <div class="tx-stat success">
-                <span>Thành công</span>
+                <span>Đã ghi nhận</span>
                 <strong>{{ number_format($currentPageSuccess) }}</strong>
             </div>
 
-            <div class="tx-stat pending">
-                <span>Đang chờ</span>
-                <strong>{{ number_format($currentPagePending) }}</strong>
-            </div>
         </div>
 
         <form method="GET" class="tx-panel tx-filter">
@@ -576,24 +572,12 @@
                     <label>Trạng thái</label>
                     <select name="status" class="tx-select">
                         <option value="">Tất cả</option>
-                        <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Đang chờ</option>
                         <option value="success" {{ request('status') === 'success' ? 'selected' : '' }}>Thành công</option>
-                        <option value="failed" {{ request('status') === 'failed' ? 'selected' : '' }}>Thất bại</option>
                         <option value="refunded" {{ request('status') === 'refunded' ? 'selected' : '' }}>Hoàn tiền</option>
                     </select>
                 </div>
 
-                <div class="tx-field">
-                    <label>Phương thức</label>
-                    <select name="payment_method" class="tx-select">
-                        <option value="">Tất cả</option>
-                        @foreach ($paymentMethods as $method)
-                            <option value="{{ $method }}" {{ request('payment_method') === $method ? 'selected' : '' }}>
-                                {{ $method }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
+
 
                 <div class="tx-actions">
                     <button type="submit" class="tx-btn primary">
@@ -636,7 +620,6 @@
                                 <th>Loại đơn</th>
                                 <th>Thông tin đơn</th>
                                 <th>Số tiền</th>
-                                <th>Thanh toán</th>
                                 <th>Trạng thái</th>
                                 <th>Thời gian</th>
                                 <th></th>
@@ -698,11 +681,6 @@
                                         </span>
                                     </td>
 
-                                    <td>
-                                        <span class="tx-pill method">
-                                            {{ $transaction->payment_method ?: '—' }}
-                                        </span>
-                                    </td>
 
                                     <td>
                                         <span class="tx-pill {{ $statusItem['class'] }}">
@@ -717,9 +695,15 @@
                                     </td>
 
                                     <td style="text-align: right;">
-                                        <a href="{{ route('transactions.show', $transaction) }}" class="tx-btn tx-detail">
-                                            Chi tiết
-                                        </a>
+                                        @if($transaction->exists)
+                                            <a href="{{ route('transactions.show', $transaction) }}" class="tx-btn tx-detail">
+                                                Chi tiết
+                                            </a>
+                                        @else
+                                            <a href="{{ route('account.bookings.index') }}" class="tx-btn tx-detail">
+                                                Xem đặt sân
+                                            </a>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach
