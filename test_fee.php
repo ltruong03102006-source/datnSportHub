@@ -1,0 +1,1 @@
+<?php require 'vendor/autoload.php'; \ = require_once 'bootstrap/app.php'; \->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); Auth::loginUsingId(16); \ = Illuminate\Http\Request::create('/api/bookings/144/cancel-fee', 'GET'); echo app(App\Http\Controllers\Web\UserBookingController::class)->calculateCancelFee(\, App\Models\Booking::find(144))->getContent();

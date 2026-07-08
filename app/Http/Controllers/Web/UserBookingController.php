@@ -483,7 +483,12 @@ class UserBookingController extends Controller
         // Rủi ro lố giờ (Cố tình request API ảo) -> Phạt max 100%
         if ($diffInHours < 0) return 100;
 
-        // Lấy danh sách cấu hình, SẮP XẾP TĂNG DẦN (Ví dụ: 6h, 12h, 24h)
+        // QUY ĐỊNH HỆ THỐNG: Hủy trong vòng 1 giờ trước ca -> Phạt mặc định 30%
+        if ($diffInHours < 1) {
+            return 30;
+        }
+
+        // Lấy danh sách cấu hình của chủ sân, SẮP XẾP TĂNG DẦN (Ví dụ: 6h, 12h, 24h)
         $policies = \App\Models\CancellationPolicy::where('venue_id', $firstBooking->court->venue_id)
             ->orderBy('hours_before', 'asc')
             ->get();
@@ -492,14 +497,15 @@ class UserBookingController extends Controller
         if ($policies->isEmpty()) return 0;
 
         // Quét tìm mốc vi phạm:
-        // Nếu hủy cách 14h: 14 < 6(False) -> 14 < 12(False) -> 14 < 24(True). Bị phạt mốc 24h!
         foreach ($policies as $policy) {
             if ($diffInHours < $policy->hours_before) {
+                // Ưu tiên mức phạt cao hơn giữa hệ thống (30%) và chủ sân nếu hủy sát giờ
+                // Nhưng ở đây diffInHours >= 1 rồi, nên cứ lấy theo chủ sân.
                 return $policy->fee_percent;
             }
         }
 
-        // Hủy quá sớm (VD hủy trước 30 tiếng, không vi phạm mốc 24h lớn nhất) -> An toàn
+        // Hủy quá sớm -> An toàn
         return 0;
     }
 }

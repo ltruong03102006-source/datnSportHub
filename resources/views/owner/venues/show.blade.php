@@ -251,13 +251,13 @@
                 <h2 class="text-3xl font-bold text-slate-800 mb-2">
                     {{ $venue->name }}
 
-                    @if($venue->status === 'approved')
+                    @if($venue->status === 'active')
                         <span class="status-badge status-approved">
                             Hoạt động
                         </span>
-                    @elseif($venue->status === 'rejected')
+                    @elseif($venue->status === 'inactive')
                         <span class="status-badge status-rejected">
-                            Bị từ chối
+                            Ngừng hoạt động
                         </span>
                     @else
                         <span class="status-badge status-pending">

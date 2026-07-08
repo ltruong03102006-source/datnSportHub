@@ -260,15 +260,6 @@
     </div>
 
     <div class="mt-6 flex flex-col sm:flex-row gap-3">
-        @if($booking->status === 'pending' || $booking->status === 'confirmed')
-            <form action="{{ route('account.bookings.cancel', $booking->id) }}" method="POST" class="flex-1" onsubmit="return confirm('Bạn có chắc chắn muốn hủy đơn này không?')">
-                @csrf
-                <input type="hidden" name="reason" value="Khách tự hủy từ trang chi tiết">
-                <button type="submit" class="w-full flex items-center justify-center rounded-xl border-2 border-rose-600 bg-white px-4 py-3.5 text-sm font-black uppercase tracking-widest text-rose-600 shadow-sm transition hover:bg-rose-50 active:scale-[0.98]">
-                    Hủy đơn
-                </button>
-            </form>
-        @endif
         <a href="{{ route('account.bookings.index') }}" class="flex-1 flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-md shadow-emerald-600/20 transition hover:bg-emerald-700 active:scale-[0.98]">
             Quản lý lịch đặt
         </a>
