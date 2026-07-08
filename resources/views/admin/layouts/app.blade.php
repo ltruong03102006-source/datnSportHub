@@ -299,15 +299,20 @@
             <a href="{{ route('admin.transactions.index') }}" class="nav-item {{ request()->routeIs('admin.transactions.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-wallet"></i> Lịch sử giao dịch
             </a>
+            <a href="{{ route('admin.withdrawals.index') }}" class="nav-item {{ request()->routeIs('admin.withdrawals.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-money-bill-transfer"></i> Yêu cầu rút tiền
+            </a>
             <!-- Mock links matching the screenshot -->
             {{-- <a href="#" class="nav-item"><i class="fa-solid fa-wallet"></i> Thanh toán</a>
             <a href="#" class="nav-item"><i class="fa-regular fa-star"></i> Đánh giá</a> --}}
             <a href="{{ route('admin.reports.index') }}" class="nav-item {{ request()->routeIs('admin.reports.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-triangle-exclamation"></i> Báo cáo vi phạm
             </a>
+            <a href="{{ route('admin.settings.index') }}" class="nav-item {{ request()->routeIs('admin.settings.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-gear"></i> Cài đặt hệ thống
+            </a>
             {{-- <a href="#" class="nav-item"><i class="fa-regular fa-bell"></i> Thông báo</a>
-            <a href="#" class="nav-item"><i class="fa-solid fa-chart-simple"></i> Thống kê</a>
-            <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i> Cài đặt hệ thống</a> --}}
+            <a href="#" class="nav-item"><i class="fa-solid fa-chart-simple"></i> Thống kê</a> --}}
         </nav>
 
         <div class="sidebar-footer">

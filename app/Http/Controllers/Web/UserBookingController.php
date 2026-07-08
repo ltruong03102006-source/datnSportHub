@@ -53,18 +53,22 @@ class UserBookingController extends Controller
             ? $hours . 'h' . ($minutes > 0 ? $minutes . 'p' : '') 
             : $minutes . 'p';
 
+        $bookingHoldTime = \App\Models\Setting::get('booking_hold_time', 15);
+
         return view('bookings.success', [
             'booking' => $booking,
             'bookingGroup' => $bookingGroup,
             'totalGroupPrice' => $totalGroupPrice,
             'totalDurationStr' => $totalDurationStr,
             'statusMeta' => $this->statusMeta($booking->status),
+            'bookingHoldTime' => $bookingHoldTime,
         ]);
     }
 
     public function history(BookingCompletionService $completionService): View
     {
         $completionService->completeExpiredBookings(userId: Auth::id());
+        $completionService->cancelExpiredPendingBookings(userId: Auth::id());
 
         $now = now('Asia/Ho_Chi_Minh');
         $userConfirmedBookings = Booking::where('user_id', Auth::id())
@@ -265,11 +269,32 @@ class UserBookingController extends Controller
                 // --- SỬA TẠI ĐÂY: GỌI THUẬT TOÁN TÍNH PHẠT ĐỘNG ---
                 $feePercent = $this->determineCancellationFeePercent($firstBooking);
 
+                $user = Auth::user();
+
                 foreach ($groupBookings as $b) {
-                    // --- SỬA TẠI ĐÂY: DÙNG BIẾN $feePercent ---
-                    $fee = ($b->total_price * $feePercent) / 100;
-                    $refund = $b->total_price - $fee;
-                    $refundStatus = $refund > 0 ? 'pending' : 'none';
+                    $fee = 0;
+                    $refund = 0;
+                    $refundStatus = 'none';
+
+                    if ($b->payment_status === 'paid') {
+                        $fee = ($b->total_price * $feePercent) / 100;
+                        $refund = $b->total_price - $fee;
+                        
+                        if ($refund > 0) {
+                            $refundStatus = 'refunded';
+                            
+                            $user->balance += $refund;
+                            $user->save();
+
+                            \App\Models\WalletTransaction::create([
+                                'user_id' => $user->id,
+                                'type' => 'refund',
+                                'amount' => $refund,
+                                'balance_after' => $user->balance,
+                                'description' => 'Hoàn tiền sau khi trừ phí hủy cho đơn đặt sân #' . $b->id,
+                            ]);
+                        }
+                    }
 
                     $oldStatus = $b->status;
                     $b->update([
@@ -359,8 +384,10 @@ class UserBookingController extends Controller
         $feePercent = $this->determineCancellationFeePercent($firstBooking);
         
         $totalPrice = $groupBookings->sum('total_price');
-        $fee = ($totalPrice * $feePercent) / 100;
-        $refund = $totalPrice - $fee;
+        $isPaid = $firstBooking->payment_status === 'paid';
+        
+        $fee = $isPaid ? ($totalPrice * $feePercent) / 100 : 0;
+        $refund = $isPaid ? ($totalPrice - $fee) : 0;
 
         return response()->json([
             'success' => true,

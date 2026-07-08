@@ -90,4 +90,38 @@ class BookingCompletionService
             $booking->created_at?->format('Y-m-d H:i:s.u') ?? $booking->id,
         ]);
     }
+
+    public function cancelExpiredPendingBookings(?int $ownerId = null, ?int $userId = null): int
+    {
+        $holdTimeMinutes = \App\Models\Setting::get('booking_hold_time', 15);
+        $now = now('Asia/Ho_Chi_Minh');
+        
+        $expiredBookings = Booking::where('status', 'pending')
+            ->where('payment_status', 'unpaid')
+            ->where('created_at', '<=', $now->subMinutes($holdTimeMinutes))
+            ->when($ownerId, fn ($query) => $query->whereHas(
+                'court.venue',
+                fn ($venueQuery) => $venueQuery->where('owner_id', $ownerId)
+            ))
+            ->when($userId, fn ($query) => $query->where('user_id', $userId))
+            ->get();
+            
+        $cancelledCount = 0;
+        foreach ($expiredBookings as $booking) {
+            $booking->update([
+                'status' => 'cancelled',
+                'cancel_reason' => 'Hệ thống tự động hủy do quá hạn thanh toán.',
+            ]);
+            \App\Models\BookingLog::create([
+                'booking_id' => $booking->id,
+                'changed_by' => $booking->user_id, // Ghi nhận là user bị hủy do quá hạn
+                'old_status' => 'pending',
+                'new_status' => 'cancelled',
+                'note' => "Quá hạn thanh toán ({$holdTimeMinutes} phút). Slot đã được giải phóng.",
+            ]);
+            $cancelledCount++;
+        }
+        
+        return $cancelledCount;
+    }
 }

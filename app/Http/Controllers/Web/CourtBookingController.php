@@ -8,6 +8,7 @@ use App\Models\Booking;
 use App\Models\TimeSlot;
 use App\Models\SlotPrice;
 use App\Models\Transaction;
+use App\Models\Setting;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -58,6 +59,7 @@ class CourtBookingController extends Controller
             'start_time' => 'required|date_format:H:i',
             'end_time'   => 'required|date_format:H:i|after:start_time',
             'note'       => 'nullable|string|max:1000',
+            'payment_method' => 'nullable|in:COD,wallet',
         ], [
             'court_id.required'    => 'Vui lòng chọn sân cần đặt.',
             'court_id.exists'      => 'Sân được chọn không tồn tại trong hệ thống.',
@@ -93,6 +95,7 @@ class CourtBookingController extends Controller
         $startTime = $request->input('start_time');
         $endTime   = $request->input('end_time');
         $note      = $request->input('note');
+        $paymentMethod = $request->input('payment_method', 'COD');
 
         try {
             // Thực hiện giao dịch DB Transaction để đảm bảo tính nhất quán dữ liệu
@@ -114,11 +117,17 @@ class CourtBookingController extends Controller
                 }
 
                 // 3. Kiểm tra khung giờ có bị giữ bởi booking đã xác nhận không.
-                // Theo luồng mới: booking đang chờ (pending) chưa giữ slot,
-                // người khác vẫn được gửi yêu cầu đặt cùng ca cho tới khi có đơn được xác nhận.
+                // Luồng giữ chỗ: các booking 'pending' chưa quá hạn cũng được tính là đang bận.
+                $holdTimeMinutes = Setting::get('booking_hold_time', 15);
                 $isOverlapped = Booking::where('court_id', $courtId)
                     ->where('slot_date', $slotDate)
-                    ->where('status', 'confirmed')
+                    ->where(function ($q) use ($holdTimeMinutes) {
+                        $q->where('status', 'confirmed')
+                          ->orWhere(function ($q2) use ($holdTimeMinutes) {
+                              $q2->where('status', 'pending')
+                                 ->where('created_at', '>=', now()->subMinutes($holdTimeMinutes));
+                          });
+                    })
                     ->where(function ($query) use ($startTime, $endTime) {
                         $query->where('start_time', '<', $endTime)
                               ->where('end_time', '>', $startTime);
@@ -158,6 +167,14 @@ class CourtBookingController extends Controller
                     $price     = round(max(0.5, $hours) * 150000); // 150k/giờ, tối thiểu nửa giờ
                 }
 
+                // Check wallet balance if payment_method is wallet
+                $userModel = \App\Models\User::find($userId);
+                if ($paymentMethod === 'wallet') {
+                    if ($userModel->balance < $price) {
+                        throw new Exception("Số dư ví không đủ để thanh toán. Vui lòng nạp thêm hoặc chọn phương thức khác.", 402);
+                    }
+                }
+
                 // 5. Lưu booking mới vào database
                 $newBooking = Booking::create([
                     'court_id'    => $courtId,
@@ -166,9 +183,24 @@ class CourtBookingController extends Controller
                     'start_time'  => $startTime,
                     'end_time'    => $endTime,
                     'total_price' => $price,
-                    'status'      => 'pending', // Chờ phê duyệt
+                    'status'      => $paymentMethod === 'wallet' ? 'confirmed' : 'pending', // Auto confirm if paid via wallet
+                    'payment_status' => $paymentMethod === 'wallet' ? 'paid' : 'unpaid',
                     'note'        => $note
                 ]);
+
+                // Deduct balance and record if wallet
+                if ($paymentMethod === 'wallet') {
+                    $userModel->balance -= $price;
+                    $userModel->save();
+
+                    \App\Models\WalletTransaction::create([
+                        'user_id' => $userId,
+                        'type' => 'payment',
+                        'amount' => $price,
+                        'balance_after' => $userModel->balance,
+                        'description' => 'Thanh toán đặt sân #' . $newBooking->id,
+                    ]);
+                }
 
                 // 6. Tạo bản ghi giao dịch ban đầu cho booking mới để lịch sử thanh toán có dữ liệu.
                 Transaction::updateOrCreate(
@@ -177,9 +209,9 @@ class CourtBookingController extends Controller
                         'user_id' => $newBooking->user_id,
                         'transaction_code' => 'TXN-' . $newBooking->id . '-' . now()->format('YmdHis'),
                         'amount' => $newBooking->total_price,
-                        'payment_method' => 'COD',
-                        'payment_gateway' => null,
-                        'payment_status' => 'pending',
+                        'payment_method' => $paymentMethod,
+                        'payment_gateway' => $paymentMethod === 'wallet' ? 'WALLET' : null,
+                        'payment_status' => $paymentMethod === 'wallet' ? 'success' : 'pending',
                         'transaction_time' => now(),
                         'note' => 'Giao dịch được tạo khi khách hàng đặt sân.',
                     ]

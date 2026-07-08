@@ -23,9 +23,21 @@ class ProfileController extends Controller
             ->limit(10)
             ->get();
 
+        $walletTransactions = \App\Models\WalletTransaction::where('user_id', $user->id)
+            ->latest()
+            ->limit(15)
+            ->get();
+
+        $withdrawalRequests = \App\Models\WithdrawalRequest::where('user_id', $user->id)
+            ->latest()
+            ->limit(10)
+            ->get();
+
         return view('account.profile', [
             'user' => $user,
             'loginHistories' => $loginHistories,
+            'walletTransactions' => $walletTransactions,
+            'withdrawalRequests' => $withdrawalRequests,
         ]);
     }
 

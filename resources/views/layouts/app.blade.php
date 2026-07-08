@@ -390,11 +390,51 @@
                 });
             }
 
+            let currentUnreadCount = 0;
+            let isFirstLoad = true;
+
+            function playBeepSound() {
+                try {
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Note A5
+                    
+                    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    
+                    oscillator.start();
+                    oscillator.stop(audioCtx.currentTime + 0.3);
+                } catch(e) {
+                    console.log("Audio not supported or blocked");
+                }
+            }
+
             async function loadUnreadCount() {
                 try {
                     const response = await fetch(unreadCountUrl, { headers: { 'Accept': 'application/json' } });
                     if (!response.ok) throw new Error('Không thể tải số lượng thông báo.');
                     const { count } = await response.json();
+                    
+                    // Phát tiếng bíp nếu có thông báo MỚI
+                    if (!isFirstLoad && count > currentUnreadCount) {
+                        playBeepSound();
+                        showToast('Bạn có thông báo mới!', 'success');
+                        
+                        // Tự động làm mới danh sách thông báo để khách hàng thấy liền
+                        if (typeof loadNotifications === 'function') {
+                            loadNotifications();
+                        }
+                    }
+                    
+                    currentUnreadCount = count;
+                    isFirstLoad = false;
+
                     notificationBadge.textContent = count > 99 ? '99+' : count;
                     notificationBadge.style.display = count > 0 ? 'inline-flex' : 'none';
                 } catch (error) {
@@ -430,6 +470,9 @@
             });
 
             loadUnreadCount();
+            
+            // Tự động quét thông báo mỗi 10 giây
+            setInterval(loadUnreadCount, 10000);
         });
     </script>
     @endauth
