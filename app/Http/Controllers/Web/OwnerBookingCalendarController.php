@@ -169,7 +169,30 @@ class OwnerBookingCalendarController extends Controller
             }
 
             $oldStatus = $lockedBooking->status;
-            $lockedBooking->update(['status' => $validated['status']]);
+            
+            $updateData = ['status' => $validated['status']];
+            if ($validated['status'] === 'rejected') {
+                if ($lockedBooking->payment_status === 'paid') {
+                    $updateData['refund_amount'] = $lockedBooking->total_price;
+                    $updateData['refund_status'] = 'refunded';
+                    
+                    $user = $lockedBooking->user;
+                    $user->balance += $lockedBooking->total_price;
+                    $user->save();
+
+                    \App\Models\WalletTransaction::create([
+                        'user_id' => $user->id,
+                        'type' => 'refund',
+                        'amount' => $lockedBooking->total_price,
+                        'balance_after' => $user->balance,
+                        'description' => 'Hoàn tiền do chủ sân từ chối đơn đặt #' . $lockedBooking->id,
+                    ]);
+                } else {
+                    $updateData['refund_amount'] = 0;
+                    $updateData['refund_status'] = 'none';
+                }
+            }
+            $lockedBooking->update($updateData);
 
             BookingLog::create([
                 'booking_id' => $lockedBooking->id,
@@ -230,14 +253,34 @@ class OwnerBookingCalendarController extends Controller
 
             $oldStatus = $lockedBooking->status;
             
-            // CẬP NHẬT: Thêm tiền tố và lưu logic hoàn tiền (Chủ sân hủy -> Khách không mất phí, hoàn 100% ca đó)
-            $lockedBooking->update([
+            // CẬP NHẬT: Thêm tiền tố và lưu logic hoàn tiền (Chủ sân hủy -> Khách không mất phí, hoàn 100% ca đó nếu đã thanh toán)
+            $updateData = [
                 'status' => 'cancelled',
                 'cancel_reason' => 'Chủ sân hủy: ' . $validated['reason'],
                 'cancellation_fee' => 0, 
-                'refund_amount' => $lockedBooking->total_price, 
-                'refund_status' => 'pending'
-            ]);
+            ];
+
+            if ($lockedBooking->payment_status === 'paid') {
+                $updateData['refund_amount'] = $lockedBooking->total_price;
+                $updateData['refund_status'] = 'refunded';
+                
+                $user = $lockedBooking->user;
+                $user->balance += $lockedBooking->total_price;
+                $user->save();
+
+                \App\Models\WalletTransaction::create([
+                    'user_id' => $user->id,
+                    'type' => 'refund',
+                    'amount' => $lockedBooking->total_price,
+                    'balance_after' => $user->balance,
+                    'description' => 'Hoàn tiền do chủ sân hủy đơn đặt #' . $lockedBooking->id,
+                ]);
+            } else {
+                $updateData['refund_amount'] = 0;
+                $updateData['refund_status'] = 'none';
+            }
+
+            $lockedBooking->update($updateData);
 
             BookingLog::create([
                 'booking_id' => $lockedBooking->id,

@@ -9,12 +9,12 @@ use Illuminate\Support\Facades\Schema;
 
 class Notification extends Model
 {
-    use HasFactory;
+    use HasFactory, \Illuminate\Database\Eloquent\Concerns\HasUuids;
 
     /** Bảng notifications dùng UUID làm khóa chính. */
-    public $incrementing = true;
+    public $incrementing = false;
 
-    protected $keyType = 'int';
+    protected $keyType = 'string';
 
     protected $fillable = [
         'user_id',

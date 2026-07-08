@@ -34,6 +34,11 @@ class AdminBookingController extends Controller
             $query->where('status', $status);
         }
 
+        // Lọc theo trạng thái hoàn tiền
+        if ($refundStatus = $request->input('refund_status')) {
+            $query->where('refund_status', $refundStatus);
+        }
+
         // Sắp xếp lịch đặt mới nhất
         $bookingStats = [
             'total' => (clone $baseQuery)->count(),
@@ -49,5 +54,29 @@ class AdminBookingController extends Controller
             ->withQueryString();
 
         return view('admin.bookings.index', compact('bookings', 'bookingStats'));
+    }
+
+    /**
+     * Xác nhận đã hoàn tiền cho khách
+     */
+    public function refund(Request $request, Booking $booking)
+    {
+        if ($booking->refund_status !== 'pending') {
+            return back()->with('error', 'Đơn hàng này không có yêu cầu hoàn tiền hoặc đã được hoàn.');
+        }
+
+        $booking->update([
+            'refund_status' => 'refunded'
+        ]);
+
+        \App\Models\BookingLog::create([
+            'booking_id' => $booking->id,
+            'changed_by' => \Illuminate\Support\Facades\Auth::id(),
+            'old_status' => $booking->status,
+            'new_status' => $booking->status,
+            'note' => 'Hệ thống Admin đã xác nhận hoàn tiền cho khách hàng.',
+        ]);
+
+        return back()->with('success', 'Đã xác nhận hoàn tiền thành công.');
     }
 }

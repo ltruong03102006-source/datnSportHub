@@ -22,4 +22,26 @@ Schedule::call(function () {
                   });
         })->update(['status' => 'expired']);
 })->everyMinute();
+// --- AUTO EXPIRE BOOKINGS QUÁ HẠN THANH TOÁN ---
+Schedule::call(function () {
+    $holdTimeMinutes = \App\Models\Setting::get('booking_hold_time', 15);
+    $expiredBookings = \App\Models\Booking::where('status', 'pending')
+        ->where('payment_status', 'unpaid')
+        ->where('created_at', '<=', now()->subMinutes($holdTimeMinutes))
+        ->get();
+        
+    foreach ($expiredBookings as $booking) {
+        $booking->update([
+            'status' => 'cancelled',
+            'cancel_reason' => 'Hệ thống tự động hủy do quá hạn thanh toán.',
+        ]);
+        \App\Models\BookingLog::create([
+            'booking_id' => $booking->id,
+            'changed_by' => null, // Hệ thống
+            'old_status' => 'pending',
+            'new_status' => 'cancelled',
+            'note' => "Quá hạn thanh toán ({$holdTimeMinutes} phút). Slot đã được giải phóng.",
+        ]);
+    }
+})->everyMinute();
 // --------------------------------------------------

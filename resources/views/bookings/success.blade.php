@@ -52,7 +52,7 @@
                 </div>
                 <div class="flex items-start gap-x-4">
                     <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Trạng thái:</p>
-                    <p class="text-sm font-bold {{ $booking->status === 'pending' ? 'text-amber-600' : 'text-emerald-600' }}">{{ $statusLabel }}</p>
+                    <p id="booking-status-text" class="text-sm font-bold {{ $booking->status === 'pending' ? 'text-amber-600' : 'text-emerald-600' }}">{{ $statusLabel }}</p>
                 </div>
             </div>
 
@@ -134,7 +134,7 @@
 
                 <div class="flex items-start gap-x-4 pt-2">
                     <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Trạng thái TT:</p>
-                    <div class="flex-1">
+                    <div class="flex-1" id="payment-status-block">
                         @if(($booking->payment_status ?? 'unpaid') === 'paid')
                             <p class="text-sm font-bold text-zinc-900 mb-1">Đã thanh toán</p>
                             <span class="inline-flex items-center gap-1.5 rounded bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-600 ring-1 ring-inset ring-emerald-500/20">
@@ -155,8 +155,15 @@
             @if(($booking->payment_status ?? 'unpaid') !== 'paid' && $booking->status !== 'cancelled' && $booking->status !== 'rejected')
                 <div class="border-t border-stone-100 border-dashed my-5"></div>
                 
-                <div class="rounded-2xl border border-stone-200 bg-stone-50 p-5">
+                <div id="payment-section" class="rounded-2xl border border-stone-200 bg-stone-50 p-5">
                     <h3 class="mb-4 text-center text-sm font-extrabold uppercase tracking-wider text-zinc-900">Thanh toán đơn hàng</h3>
+                    
+                    @if($booking->status === 'pending')
+                        <div class="mb-6 rounded-xl bg-amber-100/50 border border-amber-200 p-4 text-center">
+                            <p class="text-sm font-semibold text-amber-800 mb-1">Vui lòng thanh toán trong thời gian đếm ngược để giữ chỗ.</p>
+                            <div class="text-2xl font-black text-amber-600 tabular-nums" id="payment-countdown">--:--</div>
+                        </div>
+                    @endif
                     
                     <div class="flex flex-col md:flex-row gap-6 items-center md:items-start justify-center">
                         <!-- VietQR Section -->
@@ -259,4 +266,76 @@
     </div>
 
 </div>
+
+@section('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const countdownEl = document.getElementById('payment-countdown');
+        if (countdownEl) {
+            // Lấy thời gian tạo booking từ PHP (chuỗi ISO chuẩn)
+            const createdAtStr = "{{ $booking->created_at->toISOString() }}";
+            const holdTimeMinutes = {{ $bookingHoldTime ?? 15 }};
+            
+            const createdAt = new Date(createdAtStr).getTime();
+            const holdTimeMs = holdTimeMinutes * 60 * 1000;
+            const expireAt = createdAt + holdTimeMs;
+
+            const timer = setInterval(() => {
+                const now = new Date().getTime();
+                const distance = expireAt - now;
+
+                if (distance <= 0) {
+                    clearInterval(timer);
+                    
+                    // Đổi text đếm ngược
+                    countdownEl.innerHTML = "Đã hết hạn giữ chỗ";
+                    countdownEl.classList.remove('text-amber-600');
+                    countdownEl.classList.add('text-red-600');
+                    
+                    // Cập nhật trạng thái tổng quan thành Đã Hủy
+                    const statusTextEl = document.getElementById('booking-status-text');
+                    if(statusTextEl) {
+                        statusTextEl.innerHTML = "Đã hủy";
+                        statusTextEl.className = "text-sm font-bold text-red-600";
+                    }
+
+                    // Cập nhật trạng thái TT thành Đã hủy
+                    const paymentStatusBlock = document.getElementById('payment-status-block');
+                    if (paymentStatusBlock) {
+                        paymentStatusBlock.innerHTML = `
+                            <p class="text-sm font-bold text-zinc-900 mb-1">Đã hủy đơn</p>
+                            <span class="inline-flex items-center gap-1.5 rounded bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600 ring-1 ring-inset ring-red-500/20">
+                                Đơn đã bị hủy do hết hạn thanh toán
+                            </span>
+                        `;
+                    }
+
+                    // Ẩn block chứa QR và thanh toán (Trừ thông báo hết hạn)
+                    const paymentSection = document.getElementById('payment-section');
+                    if (paymentSection) {
+                        // Ẩn tất cả các div con ngoại trừ cái thông báo đếm ngược đầu tiên
+                        Array.from(paymentSection.children).forEach((child, index) => {
+                            // index 0 là thẻ h3 tiêu đề, index 1 là thông báo đếm ngược
+                            if(index > 1) {
+                                child.style.display = 'none';
+                            }
+                        });
+                        
+                        // Đổi màu title
+                        const titleEl = paymentSection.querySelector('h3');
+                        if (titleEl) {
+                            titleEl.innerHTML = "ĐƠN HÀNG ĐÃ BỊ HỦY";
+                            titleEl.className = "mb-4 text-center text-sm font-extrabold uppercase tracking-wider text-red-600";
+                        }
+                    }
+
+                } else {
+                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                    countdownEl.innerHTML = minutes.toString().padStart(2, '0') + ":" + seconds.toString().padStart(2, '0');
+                }
+            }, 1000);
+        }
+    });
+</script>
 @endsection

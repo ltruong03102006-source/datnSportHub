@@ -134,19 +134,14 @@
             Chờ duyệt
         </span>
 
-    @elseif($venue->status === 'approved')
+    @elseif($venue->status === 'active')
         <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700 border border-green-200 backdrop-blur-md">
             Hoạt động
         </span>
 
-    @elseif($venue->status === 'rejected')
-        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700 border border-red-200 backdrop-blur-md">
-            Bị từ chối
-        </span>
-
     @elseif($venue->status === 'inactive')
-        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-700 border border-slate-200 backdrop-blur-md">
-            Tạm ngừng
+        <span class="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700 border border-red-200 backdrop-blur-md">
+            Ngừng hoạt động
         </span>
 
     @elseif($venue->status === 'suspended')

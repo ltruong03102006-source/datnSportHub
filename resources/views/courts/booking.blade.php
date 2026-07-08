@@ -180,6 +180,14 @@
             <p id="summaryPrice" class="text-xl font-black text-emerald-600">0₫</p>
         </div>
         
+        <div class="hidden sm:block border-l border-stone-200/60 pl-6 pr-4">
+            <p class="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1">Thanh toán</p>
+            <select id="paymentMethod" class="rounded-lg border border-stone-200 bg-stone-50 px-2 py-1.5 text-sm font-medium text-zinc-900 outline-none">
+                <option value="COD">Thanh toán sau (COD)</option>
+                <option value="wallet">Số dư ví ({{ number_format(Auth::user()?->balance ?? 0) }}₫)</option>
+            </select>
+        </div>
+        
         <button id="btnSubmitBooking" onclick="submitBooking()" class="shrink-0 rounded-xl bg-zinc-900 px-6 py-3 sm:px-8 text-sm font-bold text-white shadow-md shadow-zinc-900/20 transition hover:bg-emerald-600 hover:shadow-emerald-600/30 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 active:scale-95">
             Xác nhận ngay
         </button>
@@ -522,6 +530,7 @@
 
         const selectedDate = datePicker.value;
         const slotIds = selectedSlots.map(s => s.slot_id);
+        const paymentMethod = document.getElementById('paymentMethod') ? document.getElementById('paymentMethod').value : 'COD';
 
         document.getElementById('slotIdInput').value = JSON.stringify(slotIds);
         document.getElementById('selectedDateInput').value = selectedDate;
@@ -548,6 +557,7 @@
                 body: JSON.stringify({
                     court_id: courtId,
                     slot_date: selectedDate,
+                    payment_method: paymentMethod,
                     slots: selectedSlots.map(slot => ({
                         start_time: slot.start_time,
                         end_time: slot.end_time,

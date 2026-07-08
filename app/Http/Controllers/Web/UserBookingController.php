@@ -53,18 +53,22 @@ class UserBookingController extends Controller
             ? $hours . 'h' . ($minutes > 0 ? $minutes . 'p' : '') 
             : $minutes . 'p';
 
+        $bookingHoldTime = \App\Models\Setting::get('booking_hold_time', 15);
+
         return view('bookings.success', [
             'booking' => $booking,
             'bookingGroup' => $bookingGroup,
             'totalGroupPrice' => $totalGroupPrice,
             'totalDurationStr' => $totalDurationStr,
             'statusMeta' => $this->statusMeta($booking->status),
+            'bookingHoldTime' => $bookingHoldTime,
         ]);
     }
 
     public function history(BookingCompletionService $completionService): View
     {
         $completionService->completeExpiredBookings(userId: Auth::id());
+        $completionService->cancelExpiredPendingBookings(userId: Auth::id());
 
         $now = now('Asia/Ho_Chi_Minh');
         $userConfirmedBookings = Booking::where('user_id', Auth::id())
@@ -265,11 +269,32 @@ class UserBookingController extends Controller
                 // --- SỬA TẠI ĐÂY: GỌI THUẬT TOÁN TÍNH PHẠT ĐỘNG ---
                 $feePercent = $this->determineCancellationFeePercent($firstBooking);
 
+                $user = Auth::user();
+
                 foreach ($groupBookings as $b) {
-                    // --- SỬA TẠI ĐÂY: DÙNG BIẾN $feePercent ---
-                    $fee = ($b->total_price * $feePercent) / 100;
-                    $refund = $b->total_price - $fee;
-                    $refundStatus = $refund > 0 ? 'pending' : 'none';
+                    $fee = 0;
+                    $refund = 0;
+                    $refundStatus = 'none';
+
+                    if ($b->payment_status === 'paid') {
+                        $fee = ($b->total_price * $feePercent) / 100;
+                        $refund = $b->total_price - $fee;
+                        
+                        if ($refund > 0) {
+                            $refundStatus = 'refunded';
+                            
+                            $user->balance += $refund;
+                            $user->save();
+
+                            \App\Models\WalletTransaction::create([
+                                'user_id' => $user->id,
+                                'type' => 'refund',
+                                'amount' => $refund,
+                                'balance_after' => $user->balance,
+                                'description' => 'Hoàn tiền sau khi trừ phí hủy cho đơn đặt sân #' . $b->id,
+                            ]);
+                        }
+                    }
 
                     $oldStatus = $b->status;
                     $b->update([
@@ -359,8 +384,10 @@ class UserBookingController extends Controller
         $feePercent = $this->determineCancellationFeePercent($firstBooking);
         
         $totalPrice = $groupBookings->sum('total_price');
-        $fee = ($totalPrice * $feePercent) / 100;
-        $refund = $totalPrice - $fee;
+        $isPaid = $firstBooking->payment_status === 'paid';
+        
+        $fee = $isPaid ? ($totalPrice * $feePercent) / 100 : 0;
+        $refund = $isPaid ? ($totalPrice - $fee) : 0;
 
         return response()->json([
             'success' => true,
@@ -456,7 +483,12 @@ class UserBookingController extends Controller
         // Rủi ro lố giờ (Cố tình request API ảo) -> Phạt max 100%
         if ($diffInHours < 0) return 100;
 
-        // Lấy danh sách cấu hình, SẮP XẾP TĂNG DẦN (Ví dụ: 6h, 12h, 24h)
+        // QUY ĐỊNH HỆ THỐNG: Hủy trong vòng 1 giờ trước ca -> Phạt mặc định 30%
+        if ($diffInHours < 1) {
+            return 30;
+        }
+
+        // Lấy danh sách cấu hình của chủ sân, SẮP XẾP TĂNG DẦN (Ví dụ: 6h, 12h, 24h)
         $policies = \App\Models\CancellationPolicy::where('venue_id', $firstBooking->court->venue_id)
             ->orderBy('hours_before', 'asc')
             ->get();
@@ -465,14 +497,15 @@ class UserBookingController extends Controller
         if ($policies->isEmpty()) return 0;
 
         // Quét tìm mốc vi phạm:
-        // Nếu hủy cách 14h: 14 < 6(False) -> 14 < 12(False) -> 14 < 24(True). Bị phạt mốc 24h!
         foreach ($policies as $policy) {
             if ($diffInHours < $policy->hours_before) {
+                // Ưu tiên mức phạt cao hơn giữa hệ thống (30%) và chủ sân nếu hủy sát giờ
+                // Nhưng ở đây diffInHours >= 1 rồi, nên cứ lấy theo chủ sân.
                 return $policy->fee_percent;
             }
         }
 
-        // Hủy quá sớm (VD hủy trước 30 tiếng, không vi phạm mốc 24h lớn nhất) -> An toàn
+        // Hủy quá sớm -> An toàn
         return 0;
     }
 }
