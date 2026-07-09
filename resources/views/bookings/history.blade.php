@@ -348,6 +348,13 @@
                                                     </a>
                                                 @endif
 
+                                                @if($booking->payment_status === 'paid' && !in_array($booking->status, ['cancelled', 'rejected']))
+                                                    <a href="{{ route('account.bookings.invoice', $booking->id) }}"
+                                                       class="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-black text-indigo-700 transition hover:bg-indigo-100">
+                                                        Xuất HĐ
+                                                    </a>
+                                                @endif
+
                                                 @if($booking->status === 'completed')
                                                     @if(in_array($booking->id, $reviewedBookingIds))
                                                         <button disabled
@@ -476,6 +483,13 @@
                                        class="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50">
                                         Chi tiết
                                     </a>
+
+                                    @if($booking->payment_status === 'paid' && !in_array($booking->status, ['cancelled', 'rejected']))
+                                        <a href="{{ route('account.bookings.invoice', $booking->id) }}"
+                                           class="inline-flex items-center justify-center rounded-2xl border border-indigo-200 bg-indigo-50 px-3 py-2.5 text-sm font-black text-indigo-700 transition hover:bg-indigo-100">
+                                            Xuất HĐ
+                                        </a>
+                                    @endif
 
                                     @if($booking->status === 'confirmed' && !$isPastStartTime)
                                         <a href="{{ route('customer.booking.reschedule.create', $booking->id) }}"

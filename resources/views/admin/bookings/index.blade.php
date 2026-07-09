@@ -543,6 +543,13 @@
                             </td>
                             <td>
                                 <span class="payment-badge {{ $paymentClass }}">{{ $paymentText }}</span>
+                                @if($booking->payment_status === 'paid' && !in_array($booking->status, ['cancelled', 'rejected']))
+                                    <div style="margin-top: 6px;">
+                                        <a href="{{ route('admin.bookings.invoice', $booking->id) }}" style="font-size: 12px; color: #059669; font-weight: 600; text-decoration: underline;">
+                                            <i class="fa-solid fa-file-pdf"></i> Xuất hóa đơn
+                                        </a>
+                                    </div>
+                                @endif
                             </td>
                             <td>
                                 <span class="status-badge {{ $statusClass }}">{{ $statusText }}</span>

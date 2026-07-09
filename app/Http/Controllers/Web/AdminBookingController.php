@@ -79,4 +79,27 @@ class AdminBookingController extends Controller
 
         return back()->with('success', 'Đã xác nhận hoàn tiền thành công.');
     }
+
+    /**
+     * Xuất hóa đơn PDF cho booking đã thanh toán
+     */
+    public function exportInvoice(Booking $booking)
+    {
+        if ($booking->payment_status !== 'paid') {
+            return back()->with('error', 'Chỉ có thể xuất hóa đơn cho các đơn đặt sân đã thanh toán.');
+        }
+
+        if ($booking->status === 'cancelled' || $booking->status === 'rejected') {
+            return back()->with('error', 'Không thể xuất hóa đơn cho đơn đã hủy hoặc bị từ chối.');
+        }
+
+        $booking->load(['court.venue', 'user']);
+
+        // Generate PDF
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('bookings.invoice', [
+            'booking' => $booking
+        ]);
+
+        return $pdf->download("Hoa_Don_Dat_San_{$booking->id}.pdf");
+    }
 }

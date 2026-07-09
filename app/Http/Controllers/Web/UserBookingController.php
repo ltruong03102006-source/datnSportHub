@@ -340,6 +340,28 @@ class UserBookingController extends Controller
         return back()->with('success', 'Hủy yêu cầu đặt sân thành công.');
     }
 
+    public function exportInvoice(Booking $booking)
+    {
+        $this->ensureOwner($booking);
+
+        if ($booking->payment_status !== 'paid') {
+            abort(403, 'Chỉ có thể xuất hóa đơn cho các đơn đặt sân đã thanh toán.');
+        }
+
+        if ($booking->status === 'cancelled' || $booking->status === 'rejected') {
+            abort(403, 'Không thể xuất hóa đơn cho đơn đã hủy hoặc bị từ chối.');
+        }
+
+        $booking->load(['court.venue', 'user']);
+
+        // Generate PDF
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('bookings.invoice', [
+            'booking' => $booking
+        ]);
+
+        return $pdf->download("Hoa_Don_Dat_San_{$booking->id}.pdf");
+    }
+
     private function ensureOwner(Booking $booking): void
     {
         if ((int) $booking->user_id !== (int) Auth::id()) {

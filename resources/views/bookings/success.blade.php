@@ -263,6 +263,11 @@
         <a href="{{ route('account.bookings.index') }}" class="flex-1 flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-md shadow-emerald-600/20 transition hover:bg-emerald-700 active:scale-[0.98]">
             Quản lý lịch đặt
         </a>
+        @if($booking->payment_status === 'paid' && !in_array($booking->status, ['cancelled', 'rejected']))
+            <a href="{{ route('account.bookings.invoice', $booking->id) }}" class="flex-1 flex items-center justify-center rounded-xl border-2 border-indigo-200 bg-indigo-50 px-4 py-3.5 text-sm font-black uppercase tracking-widest text-indigo-700 shadow-sm transition hover:bg-indigo-100 active:scale-[0.98]">
+                Xuất hóa đơn PDF
+            </a>
+        @endif
     </div>
 
 </div>

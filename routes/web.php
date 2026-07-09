@@ -119,6 +119,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Quản lý Lịch đặt
         Route::get('/bookings', [AdminBookingController::class, 'index'])->name('bookings.index');
         Route::post('/bookings/{booking}/refund', [AdminBookingController::class, 'refund'])->name('bookings.refund');
+        Route::get('/bookings/{booking}/invoice', [AdminBookingController::class, 'exportInvoice'])->name('bookings.invoice');
 
         // Quản lý Sân con (Courts)
         Route::get('/courts', [AdminCourtController::class, 'index'])->name('courts.index');
@@ -249,6 +250,10 @@ Route::middleware('auth')->group(function () {
 
         // 2. Hủy đặt sân & tính phí
         Route::get('/bookings/{booking}/cancel-fee', [UserBookingController::class, 'calculateCancelFee'])->name('bookings.cancel-fee');
+        Route::post('/bookings/{booking}/cancel', [UserBookingController::class, 'cancel'])->name('bookings.cancel');
+        
+        // 3. Xuất hóa đơn PDF
+        Route::get('/bookings/{booking}/invoice', [UserBookingController::class, 'exportInvoice'])->name('bookings.invoice');
         Route::post('/bookings/{booking}/cancel', [UserBookingController::class, 'cancel'])->name('bookings.cancel');
 
         // 3. Danh sách sân yêu thích
