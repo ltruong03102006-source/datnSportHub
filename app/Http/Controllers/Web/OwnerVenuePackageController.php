@@ -37,9 +37,14 @@ class OwnerVenuePackageController extends Controller
         return view('owner.packages.index', compact('venues'));
     }
 
-    public function create(Request $request, Venue $venue): View
+    public function create(Request $request, Venue $venue): View|RedirectResponse
     {
         $this->authorizeOwner($request, $venue);
+        if (! $this->isVenueApproved($venue)) {
+            return redirect()
+                ->route('owner.web.packages.index')
+                ->with('error', 'Cơ sở phải được Admin duyệt trước khi tạo gói đặt sân.');
+        }
 
         return view('owner.packages.create', compact('venue'));
     }
@@ -47,6 +52,11 @@ class OwnerVenuePackageController extends Controller
     public function store(StoreVenuePackageRequest $request, Venue $venue): RedirectResponse
     {
         $this->authorizeOwner($request, $venue);
+        if (! $this->isVenueApproved($venue)) {
+            return redirect()
+                ->route('owner.web.packages.index')
+                ->with('error', 'Cơ sở phải được Admin duyệt trước khi tạo gói đặt sân.');
+        }
 
         $data = $request->validated();
 
@@ -128,6 +138,12 @@ class OwnerVenuePackageController extends Controller
     public function toggleVenue(Request $request, Venue $venue): RedirectResponse
     {
         $this->authorizeOwner($request, $venue);
+        if (! $this->isVenueApproved($venue)) {
+            return back()->with(
+                'error',
+                'Cơ sở phải được Admin duyệt trước khi bật chức năng đặt gói.'
+            );
+        }
 
         $isEnabled = ! (bool) $venue->allow_package_booking;
 
@@ -147,6 +163,12 @@ class OwnerVenuePackageController extends Controller
     {
         $this->authorizeOwner($request, $venue);
         $this->ensurePackageBelongsToVenue($venue, $package);
+        if (! $this->isVenueApproved($venue)) {
+            return back()->with(
+                'error',
+                'Cơ sở phải được Admin duyệt trước khi bật hoặc tạo gói đặt sân.'
+            );
+        }
 
         if (! $venue->allow_package_booking && $package->status !== 'active') {
             return back()->with(
@@ -176,5 +198,10 @@ class OwnerVenuePackageController extends Controller
             (int) $package->venue_id === (int) $venue->id,
             404
         );
+    }
+
+    private function isVenueApproved(Venue $venue): bool
+    {
+        return in_array($venue->status, ['approved', 'active'], true);
     }
 }

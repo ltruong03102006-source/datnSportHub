@@ -67,6 +67,7 @@
             @forelse($venues as $venue)
                 @php
                     $allowPackageBooking = (bool) data_get($venue, 'allow_package_booking', false);
+                    $venueCanManagePackages = in_array($venue->status, ['approved', 'active'], true);
                     $activePackageCount = $venue->packages->where('status', 'active')->count();
                     $totalPackageCount = $venue->packages->count();
                 @endphp
@@ -98,17 +99,30 @@
                                 @csrf
 
                                 <button type="submit"
-                                        class="rounded-lg px-4 py-2 text-sm font-bold {{ $allowPackageBooking ? 'bg-rose-100 text-rose-700 hover:bg-rose-200' : 'bg-emerald-600 text-white hover:bg-emerald-700' }}">
+                                        @disabled(! $venueCanManagePackages)
+                                        class="rounded-lg px-4 py-2 text-sm font-bold {{ ! $venueCanManagePackages ? 'cursor-not-allowed bg-slate-100 text-slate-400' : ($allowPackageBooking ? 'bg-rose-100 text-rose-700 hover:bg-rose-200' : 'bg-emerald-600 text-white hover:bg-emerald-700') }}">
                                     {{ $allowPackageBooking ? 'Tắt đặt gói' : 'Bật đặt gói' }}
                                 </button>
                             </form>
 
-                            <a href="{{ route('owner.web.venues.packages.create', $venue) }}"
-                               class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700">
-                                + Thêm gói
-                            </a>
+                            @if($venueCanManagePackages)
+                                <a href="{{ route('owner.web.venues.packages.create', $venue) }}"
+                                   class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700">
+                                    + Thêm gói
+                                </a>
+                            @else
+                                <span class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-bold text-slate-400">
+                                    Chờ Admin duyệt
+                                </span>
+                            @endif
                         </div>
                     </div>
+
+                    @if(! $venueCanManagePackages)
+                        <div class="border-b border-amber-100 bg-amber-50 px-5 py-3 text-sm font-semibold text-amber-700">
+                            Cơ sở này chưa được Admin duyệt nên chưa thể bật đặt gói hoặc tạo gói mới.
+                        </div>
+                    @endif
 
                     <div class="grid gap-4 border-b border-slate-100 bg-slate-50 px-5 py-4 md:grid-cols-3">
                         <div class="rounded-xl bg-white p-4">

@@ -93,8 +93,47 @@
 
     $startDate = Carbon::parse($bookingPackage->start_date)->startOfDay();
     $endDate = Carbon::parse($bookingPackage->end_date)->startOfDay();
+    $packageCreatedAt = $bookingPackage->created_at
+        ? Carbon::parse($bookingPackage->created_at)
+        : now();
+
+    $firstEffectiveSessionDate = function ($weekday, $firstSlotStartTime) use ($startDate, $packageCreatedAt) {
+        $firstDate = $startDate->dayOfWeek === (int) $weekday
+            ? $startDate->copy()
+            : $startDate->copy()->next((int) $weekday);
+
+        if (blank($firstSlotStartTime) || ! $firstDate->isSameDay($packageCreatedAt)) {
+            return $firstDate;
+        }
+
+        $slotStart = Carbon::parse($firstDate->format('Y-m-d') . ' ' . $firstSlotStartTime);
+
+        return $slotStart->lessThanOrEqualTo($packageCreatedAt)
+            ? $firstDate->copy()->addWeek()
+            : $firstDate;
+    };
 
     $previewRows = collect();
+    $playStatusForRow = function ($date, $endTime, $bookingStatus = null) {
+        if ($bookingStatus === 'completed') {
+            return [
+                'label' => 'Đã chơi',
+                'class' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+            ];
+        }
+
+        if ($date && $endTime && Carbon::parse(Carbon::parse($date)->format('Y-m-d') . ' ' . $endTime)->lt(now())) {
+            return [
+                'label' => 'Đã chơi',
+                'class' => 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+            ];
+        }
+
+        return [
+            'label' => 'Chưa chơi',
+            'class' => 'bg-slate-100 text-slate-600 ring-slate-200',
+        ];
+    };
 
     if ($bookingPackage->bookings->isEmpty()) {
         foreach ($bookingPackage->sessions as $session) {
@@ -110,13 +149,13 @@
             $firstSessionSlot = $sessionSlotRows->first()?->timeSlot;
             $lastSessionSlot = $sessionSlotRows->last()?->timeSlot;
 
-            $firstDate = $startDate->dayOfWeek === $weekday
-                ? $startDate->copy()
-                : $startDate->copy()->next($weekday);
+            $firstDate = $firstEffectiveSessionDate($weekday, $firstSessionSlot?->start_time);
 
             $cursor = $firstDate->copy();
 
             while ($cursor->lte($endDate)) {
+                $playStatus = $playStatusForRow($cursor, $lastSessionSlot?->end_time);
+
                 $previewRows->push([
                     'date' => $cursor->copy(),
                     'weekday' => $weekday,
@@ -126,6 +165,8 @@
                     'price' => (float) ($session->price_per_session ?? 0),
                     'status_label' => 'Chờ thanh toán',
                     'status_class' => 'bg-amber-50 text-amber-700 ring-amber-200',
+                    'play_status_label' => $playStatus['label'],
+                    'play_status_class' => $playStatus['class'],
                 ]);
 
                 $cursor->addWeek();
@@ -135,7 +176,9 @@
         $previewRows = $previewRows->sortBy('date')->values();
     }
 
-    $actualRows = $bookingPackage->bookings->map(function ($booking) use ($bookingStatusLabels, $bookingStatusClasses) {
+    $actualRows = $bookingPackage->bookings->map(function ($booking) use ($bookingStatusLabels, $bookingStatusClasses, $playStatusForRow) {
+        $playStatus = $playStatusForRow($booking->slot_date, $booking->end_time, $booking->status);
+
         return [
             'date' => Carbon::parse($booking->slot_date),
             'weekday' => Carbon::parse($booking->slot_date)->dayOfWeek,
@@ -145,10 +188,18 @@
             'price' => (float) $booking->total_price,
             'status_label' => $bookingStatusLabels[$booking->status] ?? $booking->status,
             'status_class' => $bookingStatusClasses[$booking->status] ?? 'bg-stone-100 text-stone-600 ring-stone-200',
+            'play_status_label' => $playStatus['label'],
+            'play_status_class' => $playStatus['class'],
         ];
     })->sortBy('date')->values();
 
     $scheduleRows = $actualRows->isNotEmpty() ? $actualRows : $previewRows;
+    $displayStartDate = $scheduleRows->isNotEmpty()
+        ? $scheduleRows->first()['date']
+        : $bookingPackage->start_date;
+    $displayEndDate = $scheduleRows->isNotEmpty()
+        ? $scheduleRows->last()['date']
+        : $bookingPackage->end_date;
 
     $nextBooking = $bookingPackage->bookings
         ->filter(function ($booking) {
@@ -205,6 +256,30 @@
 
         return substr((string) $value, 0, 5);
     };
+    $fixedSessionRows = $bookingPackage->sessions
+        ->map(function ($session) use ($firstEffectiveSessionDate) {
+            $sessionSlotRows = method_exists($session, 'slots') && $session->slots->isNotEmpty()
+                ? $session->slots->sortBy('slot_order')->values()
+                : collect([(object) [
+                    'timeSlot' => $session->timeSlot,
+                    'price' => $session->price_per_session,
+                ]]);
+
+            $firstSessionSlot = $sessionSlotRows->first()?->timeSlot;
+            $lastSessionSlot = $sessionSlotRows->last()?->timeSlot;
+            $sessionFirstDate = $firstEffectiveSessionDate((int) $session->weekday, $firstSessionSlot?->start_time);
+
+            return [
+                'session' => $session,
+                'slot_rows' => $sessionSlotRows,
+                'first_slot' => $firstSessionSlot,
+                'last_slot' => $lastSessionSlot,
+                'first_date' => $sessionFirstDate,
+                'sort_key' => str_pad((string) (int) $session->weekday, 2, '0', STR_PAD_LEFT) . ' ' . ($firstSessionSlot?->start_time ?? '00:00:00'),
+            ];
+        })
+        ->sortBy('sort_key')
+        ->values();
 @endphp
 
 <div class="min-h-[calc(100vh-80px)] bg-slate-50">
@@ -250,9 +325,9 @@
                         <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
                             {{ $bookingPackage->venue?->name ?? 'Chưa cập nhật cơ sở' }}
                             ·
-                            {{ $bookingPackage->start_date?->format('d/m/Y') }}
+                            {{ $displayStartDate ? Carbon::parse($displayStartDate)->format('d/m/Y') : '—' }}
                             -
-                            {{ $bookingPackage->end_date?->format('d/m/Y') }}
+                            {{ $displayEndDate ? Carbon::parse($displayEndDate)->format('d/m/Y') : '—' }}
                         </p>
 
                         <div class="mt-5 flex flex-wrap gap-2">
@@ -471,61 +546,57 @@
                     </div>
 
                     <div class="mt-5 grid gap-3 md:grid-cols-2">
-                        @forelse($bookingPackage->sessions as $session)
+                        @forelse($fixedSessionRows as $sessionRow)
                             @php
-                                $sessionSlotRows = method_exists($session, 'slots') && $session->slots->isNotEmpty()
-                                    ? $session->slots->sortBy('slot_order')->values()
-                                    : collect([(object) [
-                                        'timeSlot' => $session->timeSlot,
-                                        'price' => $session->price_per_session,
-                                    ]]);
-
-                                $firstSessionSlot = $sessionSlotRows->first()?->timeSlot;
-                                $lastSessionSlot = $sessionSlotRows->last()?->timeSlot;
-
-                                $sessionWeekday = (int) $session->weekday;
-                                $sessionFirstDate = $startDate->dayOfWeek === $sessionWeekday
-                                    ? $startDate->copy()
-                                    : $startDate->copy()->next($sessionWeekday);
+                                $session = $sessionRow['session'];
+                                $sessionSlotRows = $sessionRow['slot_rows'];
+                                $sessionFirstDate = $sessionRow['first_date'];
                             @endphp
 
-                            <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                            <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4 transition hover:border-emerald-100 hover:bg-emerald-50/30">
                                 <div class="flex items-start justify-between gap-3">
                                     <div>
-                                        <p class="text-sm font-black text-zinc-900">
-                                            Buổi {{ $session->session_order }}
+                                        <p class="text-base font-black text-zinc-900">
+                                            Buoi {{ $loop->iteration }}
                                         </p>
 
                                         <p class="mt-1 text-sm font-semibold text-slate-600">
                                             {{ $session->court?->name ?? '—' }}
                                         </p>
-
-                                        <p class="mt-1 text-xs font-bold text-emerald-700">
-                                            Bắt đầu: {{ $sessionFirstDate->format('d/m/Y') }}
-                                        </p>
                                     </div>
 
-                                    <span class="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-black text-slate-600 ring-1 ring-slate-200">
+                                    <span class="shrink-0 rounded-full bg-white px-3 py-1 text-xs font-black text-emerald-700 ring-1 ring-emerald-200">
                                         {{ $weekdayLabels[(int) $session->weekday] ?? '—' }}
                                     </span>
                                 </div>
 
-                                <div class="mt-3 flex flex-wrap gap-2">
-                                    @foreach($sessionSlotRows as $slotRow)
-                                        <span class="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-600 ring-1 ring-slate-200">
-                                            {{ substr($slotRow->timeSlot?->start_time, 0, 5) }}
-                                            -
-                                            {{ substr($slotRow->timeSlot?->end_time, 0, 5) }}
-                                        </span>
-                                    @endforeach
-                                </div>
+                                <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                                    <div class="rounded-xl bg-white px-3 py-2 ring-1 ring-slate-200">
+                                        <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                            Khung gio
+                                        </p>
 
-                                <p class="mt-3 text-xs font-bold text-slate-500">
-                                    Giá ghi nhận:
-                                    <span class="text-emerald-700">
-                                        {{ $formatMoney($session->price_per_session) }} / buổi
-                                    </span>
-                                </p>
+                                        <div class="mt-1 flex flex-wrap gap-1.5">
+                                            @foreach($sessionSlotRows as $slotRow)
+                                                <span class="rounded-full bg-slate-50 px-2.5 py-1 text-xs font-black text-slate-700 ring-1 ring-slate-200">
+                                                    {{ substr($slotRow->timeSlot?->start_time, 0, 5) }}
+                                                    -
+                                                    {{ substr($slotRow->timeSlot?->end_time, 0, 5) }}
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    </div>
+
+                                    <div class="rounded-xl bg-white px-3 py-2 ring-1 ring-slate-200">
+                                        <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                            Gia ghi nhan
+                                        </p>
+
+                                        <p class="mt-1 text-sm font-black text-emerald-700">
+                                            {{ $formatMoney($session->price_per_session) }} / buoi
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         @empty
                             <div class="rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-500">
@@ -577,7 +648,7 @@
                                 <button type="submit"
                                         class="w-full rounded-2xl border border-rose-200 bg-rose-50 px-5 py-3 text-sm font-black text-rose-700 transition hover:bg-rose-100"
                                         onclick="return confirm('Bạn chắc chắn muốn hủy các buổi tương lai trong gói này?')">
-                                    Hủy các buổi tương lai
+                                    Hủy gói
                                 </button>
                             </form>
                         @elseif($bookingPackage->status === 'paused')
@@ -736,8 +807,7 @@
                             <th class="px-5 py-4">Thứ</th>
                             <th class="px-5 py-4">Sân</th>
                             <th class="px-5 py-4">Giờ</th>
-                            <th class="px-5 py-4">Giá buổi</th>
-                            <th class="px-5 py-4">Trạng thái</th>
+                            <th class="px-5 py-4">Trang thai</th>
                         </tr>
                     </thead>
 
@@ -766,19 +836,15 @@
                                     {{ substr((string) $row['end_time'], 0, 5) }}
                                 </td>
 
-                                <td class="whitespace-nowrap px-5 py-4 font-black text-emerald-700">
-                                    {{ $formatMoney($row['price']) }}
-                                </td>
-
                                 <td class="px-5 py-4">
-                                    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-black ring-1 ring-inset {{ $row['status_class'] }}">
-                                        {{ $row['status_label'] }}
+                                    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-black ring-1 ring-inset {{ $row['play_status_class'] }}">
+                                        {{ $row['play_status_label'] }}
                                     </span>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-5 py-12 text-center">
+                                <td colspan="6" class="px-5 py-12 text-center">
                                     <div class="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-slate-100 text-slate-400">
                                         <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25m10.5-2.25v2.25M3.75 8.25h16.5M4.5 6.75h15A1.5 1.5 0 0 1 21 8.25v10.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.75V8.25a1.5 1.5 0 0 1 1.5-1.5Z" />

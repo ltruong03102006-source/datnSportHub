@@ -138,6 +138,10 @@ class CourtBookingController extends Controller
                     throw new Exception("Khung giờ từ {$startTime} đến {$endTime} vào ngày {$slotDate} đã có người đặt trước. Vui lòng chọn khung giờ khác.", 409);
                 }
 
+                if (app(\App\Services\AvailabilityService::class)->hasActivePackageBooking($court, $slotDate, $startTime, $endTime)) {
+                    throw new Exception("Khung gio tu {$startTime} den {$endTime} vao ngay {$slotDate} da co khach dat theo goi. Vui long chon khung gio khac.", 409);
+                }
+
                 // 4. Tính toán giá tiền thực tế dựa trên cấu hình slot_prices (nếu có)
                 // Tìm time_slot khớp nhất hoặc tính theo giờ
                 $dayOfWeek = date('w', strtotime($slotDate)); // 0 (CN) -> 6 (Thứ 7)

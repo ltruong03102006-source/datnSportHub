@@ -65,6 +65,23 @@
 
                     <div id="formAlert" class="alert d-none" role="alert"></div>
 
+                    @if ($errors->any())
+                        <div class="alert alert-danger" role="alert">
+                            <div class="fw-bold mb-2">Vui lòng kiểm tra lại thông tin tạo cơ sở.</div>
+                            <ul class="mb-0 ps-3">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
+                    @if(session('error'))
+                        <div class="alert alert-danger" role="alert">
+                            {{ session('error') }}
+                        </div>
+                    @endif
+
                     <div class="d-flex flex-wrap gap-2 mb-4">
                         <div class="d-flex align-items-center gap-2"><span class="step-pill active" data-step="1">1</span><span class="fw-semibold">Thông tin</span></div>
                         <div class="text-muted">›</div>
@@ -95,7 +112,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Tỉnh/Thành phố <span class="text-danger">*</span></label>
-                                    <select name="province_code" id="province_code" class="form-select"
+                                    <select name="province_code" id="province_code" class="form-select" required
                                             data-old-ward="{{ old('ward_code') }}">
                                         <option value="">-- Chọn tỉnh/thành --</option>
                                         @foreach ($provinces as $province)
@@ -106,7 +123,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Phường/Xã <span class="text-danger">*</span></label>
-                                    <select name="ward_code" id="ward_code" class="form-select" disabled>
+                                    <select name="ward_code" id="ward_code" class="form-select" disabled required>
                                         <option value="">-- Phường/Xã --</option>
                                     </select>
                                     @error('ward_code')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
@@ -271,10 +288,53 @@
         formAlert.classList.remove('d-none');
     }
 
+    function showInvalidField() {
+        const invalidField = form.querySelector(':invalid');
+        if (!invalidField) {
+            return false;
+        }
+
+        const panel = invalidField.closest('.step-panel');
+        if (panel) {
+            currentStep = Number(panel.dataset.panel);
+            updateStep();
+        }
+
+        setTimeout(() => invalidField.reportValidity(), 60);
+        return true;
+    }
+
+    function validateLocationSelection() {
+        const provinceSelect = document.getElementById('province_code');
+        const wardSelect = document.getElementById('ward_code');
+
+        if (!provinceSelect?.value) {
+            currentStep = 1;
+            updateStep();
+            showAlert('Vui lòng chọn tỉnh/thành phố.');
+            setTimeout(() => provinceTS?.focus(), 60);
+            return false;
+        }
+
+        if (!wardSelect?.value) {
+            currentStep = 1;
+            updateStep();
+            showAlert('Vui lòng chọn phường/xã.');
+            setTimeout(() => wardTS?.focus(), 60);
+            return false;
+        }
+
+        return true;
+    }
+
     form.addEventListener('submit', function (e) {
-        if (!form.checkValidity()) {
+        if (!validateLocationSelection()) {
             e.preventDefault();
-            form.reportValidity();
+            return;
+        }
+
+        if (showInvalidField()) {
+            e.preventDefault();
             return;
         }
 
@@ -290,17 +350,29 @@
     });
 
     nextBtn.addEventListener('click', () => {
-    if (currentStep < 4) {
-        currentStep++;
-        updateStep();
+        const currentPanel = document.querySelector(`.step-panel[data-panel="${currentStep}"]`);
+        const invalidField = currentPanel?.querySelector(':invalid');
 
-        if (currentStep === 2) {
-            setTimeout(() => {
-                map.invalidateSize();
-            }, 300);
+        if (invalidField) {
+            invalidField.reportValidity();
+            return;
         }
-    }
-});
+
+        if (currentStep === 1 && !validateLocationSelection()) {
+            return;
+        }
+
+        if (currentStep < 4) {
+            currentStep++;
+            updateStep();
+
+            if (currentStep === 2) {
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 300);
+            }
+        }
+    });
 
     updateStep();
 
@@ -391,6 +463,7 @@ L.tileLayer(
         wardTS.clear(true);
         wardTS.clearOptions();
         wardTS.disable();
+        wardEl.disabled = true;
 
         if (!provinceCode) {
             return;
@@ -401,11 +474,14 @@ L.tileLayer(
             const json = await res.json();
             wardTS.addOptions(json.data.map((w) => ({ value: w.code, text: w.name })));
             wardTS.enable();
+            wardEl.disabled = false;
             if (selectedWard) {
                 wardTS.setValue(selectedWard, true);
             }
         } catch (err) {
             wardTS.disable();
+            wardEl.disabled = true;
+            showAlert('Không tải được danh sách phường/xã. Vui lòng chọn lại tỉnh/thành phố.');
         }
     }
 
