@@ -49,6 +49,14 @@ Route::get('/register', [AuthController::class, 'showRegister'])->name('register
 Route::post('/register', [AuthController::class, 'register'])->name('register.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+// Social login (Google / Facebook)
+Route::get('/auth/{provider}/redirect', [\App\Http\Controllers\Web\SocialAuthController::class, 'redirect'])
+    ->whereIn('provider', ['google', 'facebook'])
+    ->name('social.redirect');
+Route::get('/auth/{provider}/callback', [\App\Http\Controllers\Web\SocialAuthController::class, 'callback'])
+    ->whereIn('provider', ['google', 'facebook'])
+    ->name('social.callback');
+
 // VNPay Callback Route
 Route::get('/vnpay/callback', [VnPayController::class, 'vnpayReturn'])->name('vnpay.callback');
 
