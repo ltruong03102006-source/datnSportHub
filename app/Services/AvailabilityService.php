@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\BookingPackageSession;
 use App\Models\Court;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -23,11 +24,14 @@ class AvailabilityService
             ->where('status', 'confirmed')
             ->get();
 
-        return $slots->map(function($slot) use ($bookedSlots, $date) {
+        $packageSessions = $this->activePackageSessionsForDate($court, $date);
+
+        return $slots->map(function($slot) use ($bookedSlots, $packageSessions, $date) {
             $isBooked = $bookedSlots->contains(function ($booking) use ($slot) {
                 return $booking->start_time < $slot->end_time
                     && $booking->end_time > $slot->start_time;
-            });
+            }) || $this->packageSessionsOverlap($packageSessions, $slot->start_time, $slot->end_time);
+
             $isPast = Carbon::parse($date->format('Y-m-d') . ' ' . $slot->start_time)->isPast();
 
             return [
@@ -43,5 +47,61 @@ class AvailabilityService
                 'is_booked'        => $isBooked, // Biến này bắt buộc phải có
             ];
         });
+    }
+
+    public function hasActivePackageBooking(Court $court, Carbon|string $date, string $startTime, string $endTime): bool
+    {
+        $date = $date instanceof Carbon
+            ? $date->copy()
+            : Carbon::parse($date);
+
+        return $this->packageSessionsOverlap(
+            $this->activePackageSessionsForDate($court, $date),
+            $startTime,
+            $endTime
+        );
+    }
+
+    private function activePackageSessionsForDate(Court $court, Carbon $date): Collection
+    {
+        return BookingPackageSession::query()
+            ->with(['timeSlot', 'slots.timeSlot'])
+            ->where('court_id', $court->id)
+            ->where('weekday', $date->dayOfWeek)
+            ->whereHas('bookingPackage', function ($query) use ($date) {
+                $query->where('status', 'active')
+                    ->whereDate('start_date', '<=', $date->toDateString())
+                    ->whereDate('end_date', '>=', $date->toDateString());
+            })
+            ->get();
+    }
+
+    private function packageSessionsOverlap(Collection $packageSessions, string $startTime, string $endTime): bool
+    {
+        $startTime = $this->normalizeTime($startTime);
+        $endTime = $this->normalizeTime($endTime);
+
+        return $packageSessions->contains(function (BookingPackageSession $session) use ($startTime, $endTime) {
+            $slotRows = $session->slots->isNotEmpty()
+                ? $session->slots->sortBy('slot_order')->values()
+                : collect([(object) ['timeSlot' => $session->timeSlot]]);
+
+            $firstSlot = $slotRows->first()?->timeSlot;
+            $lastSlot = $slotRows->last()?->timeSlot;
+
+            if (! $firstSlot || ! $lastSlot) {
+                return false;
+            }
+
+            $packageStart = $this->normalizeTime($firstSlot->start_time);
+            $packageEnd = $this->normalizeTime($lastSlot->end_time);
+
+            return $packageStart < $endTime && $packageEnd > $startTime;
+        });
+    }
+
+    private function normalizeTime(string $time): string
+    {
+        return date('H:i:s', strtotime($time));
     }
 }

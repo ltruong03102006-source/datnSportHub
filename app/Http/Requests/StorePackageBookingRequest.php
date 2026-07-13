@@ -59,7 +59,6 @@ class StorePackageBookingRequest extends FormRequest
             'sessions.*.time_slot_ids.*' => [
                 'required',
                 'integer',
-                'distinct',
                 'exists:time_slots,id',
             ],
 
@@ -111,41 +110,28 @@ class StorePackageBookingRequest extends FormRequest
                     ->with('venue')
                     ->find($this->input('package_id'));
 
-                $sessions = collect($this->input('sessions', []))
-                    ->values();
+                $sessions = collect($this->input('sessions', []))->values();
 
                 if (! $package || $sessions->isEmpty()) {
                     return;
                 }
 
                 if (! $package->venue?->allow_package_booking) {
-                    $validator->errors()->add(
-                        'package_id',
-                        'Cơ sở sân chưa bật chức năng đặt theo gói.'
-                    );
+                    $validator->errors()->add('package_id', 'Co so san chua bat chuc nang dat theo goi.');
                 }
 
                 if ($package->status !== 'active') {
-                    $validator->errors()->add(
-                        'package_id',
-                        'Gói đặt sân hiện không hoạt động.'
-                    );
+                    $validator->errors()->add('package_id', 'Goi dat san hien khong hoat dong.');
                 }
 
                 $maxSessionsPerWeek = (int) ($package->max_sessions_per_week ?: 7);
 
                 if ($sessions->count() > $maxSessionsPerWeek) {
-                    $validator->errors()->add(
-                        'sessions',
-                        "Gói này chỉ cho phép tối đa {$maxSessionsPerWeek} buổi/tuần."
-                    );
+                    $validator->errors()->add('sessions', "Goi nay chi cho phep toi da {$maxSessionsPerWeek} buoi/tuan.");
                 }
 
                 if ($this->filled('weekly_sessions') && (int) $this->input('weekly_sessions') !== $sessions->count()) {
-                    $validator->errors()->add(
-                        'weekly_sessions',
-                        'Số buổi/tuần không khớp với số buổi đã chọn.'
-                    );
+                    $validator->errors()->add('weekly_sessions', 'So buoi/tuan khong khop voi so buoi da chon.');
                 }
 
                 $duplicateKeys = $sessions->map(function (array $session) {
@@ -163,10 +149,7 @@ class StorePackageBookingRequest extends FormRequest
                 });
 
                 if ($duplicateKeys->unique()->count() !== $duplicateKeys->count()) {
-                    $validator->errors()->add(
-                        'sessions',
-                        'Không được chọn trùng cùng thứ, cùng sân và cùng khung giờ trong một gói.'
-                    );
+                    $validator->errors()->add('sessions', 'Khong duoc chon trung cung thu, san va khung gio trong mot goi.');
                 }
 
                 if ($sessions->count() === 7) {
@@ -177,10 +160,7 @@ class StorePackageBookingRequest extends FormRequest
                         ->count();
 
                     if ($weekdayCount !== 7) {
-                        $validator->errors()->add(
-                            'sessions',
-                            'Nếu chọn 7 buổi/tuần thì cần chọn đủ 7 ngày khác nhau.'
-                        );
+                        $validator->errors()->add('sessions', 'Neu chon 7 buoi/tuan thi can chon du 7 ngay khac nhau.');
                     }
                 }
 
@@ -191,32 +171,27 @@ class StorePackageBookingRequest extends FormRequest
                         ->with('venue')
                         ->find($session['court_id'] ?? null);
 
-                    $timeSlot = TimeSlot::query()
-                        ->find($session['time_slot_id'] ?? null);
+                    $timeSlots = TimeSlot::query()
+                        ->whereIn('id', $session['time_slot_ids'] ?? [])
+                        ->get();
 
-                    if (! $court || ! $timeSlot) {
+                    if (! $court || $timeSlots->isEmpty()) {
                         continue;
                     }
 
                     if ((int) $package->venue_id !== (int) $court->venue_id) {
-                        $validator->errors()->add(
-                            "sessions.{$index}.court_id",
-                            "Buổi {$rowNumber}: Sân không thuộc cơ sở của gói đã chọn."
-                        );
+                        $validator->errors()->add("sessions.{$index}.court_id", "Buoi {$rowNumber}: San khong thuoc co so cua goi da chon.");
                     }
 
-                    if ((int) $timeSlot->court_id !== (int) $court->id) {
-                        $validator->errors()->add(
-                            "sessions.{$index}.time_slot_id",
-                            "Buổi {$rowNumber}: Khung giờ không thuộc sân đã chọn."
-                        );
+                    foreach ($timeSlots as $timeSlot) {
+                        if ((int) $timeSlot->court_id !== (int) $court->id) {
+                            $validator->errors()->add("sessions.{$index}.time_slot_ids", "Buoi {$rowNumber}: Khung gio khong thuoc san da chon.");
+                            break;
+                        }
                     }
 
                     if (method_exists($court, 'canBeBooked') && ! $court->canBeBooked()) {
-                        $validator->errors()->add(
-                            "sessions.{$index}.court_id",
-                            "Buổi {$rowNumber}: Sân hiện không cho phép đặt online."
-                        );
+                        $validator->errors()->add("sessions.{$index}.court_id", "Buoi {$rowNumber}: San hien khong cho phep dat online.");
                     }
                 }
             },

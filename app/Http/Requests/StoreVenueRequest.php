@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class StoreVenueRequest extends FormRequest
@@ -57,5 +59,15 @@ class StoreVenueRequest extends FormRequest
             'ward_code.required' => 'Vui lòng chọn phường/xã.',
             'ward_code.exists' => 'Phường/xã không hợp lệ hoặc không thuộc tỉnh đã chọn.',
         ];
+    }
+
+    protected function failedValidation(Validator $validator): void
+    {
+        Log::warning('Owner venue validation failed.', [
+            'owner_id' => $this->user()?->id,
+            'errors' => $validator->errors()->toArray(),
+        ]);
+
+        parent::failedValidation($validator);
     }
 }

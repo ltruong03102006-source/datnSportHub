@@ -251,7 +251,7 @@
                 <h2 class="text-3xl font-bold text-slate-800 mb-2">
                     {{ $venue->name }}
 
-                    @if($venue->status === 'active')
+                    @if(in_array($venue->status, ['active', 'approved']))
                         <span class="status-badge status-approved">
                             Hoạt động
                         </span>

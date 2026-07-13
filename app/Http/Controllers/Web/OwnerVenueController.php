@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse; // Dòng khai báo cực kỳ quan trọng v�
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 use App\Models\Booking;
@@ -41,68 +42,90 @@ class OwnerVenueController extends Controller
     {
         $validated = $request->validated();
         $bannerPath = $request->file('banner')->store('venues', 'public');
+        $createdVenue = null;
 
-        DB::transaction(function () use ($request, $validated, $bannerPath) {
-            $venue = Venue::create([
-                'owner_id' => Auth::id(),
-                'sport_id' => $validated['sport_id'],
-                'name' => $validated['name'],
-                'address' => $validated['address'],
-                'province_code' => $validated['province_code'],
-                'ward_code' => $validated['ward_code'],
-                'phone' => $validated['phone'],
-                'email' => $validated['email'],
-                'open_hours' => $validated['open_hours'] ?? null,
-                'close_hours' => $validated['close_hours'] ?? null,
-                'google_maps_address' => $validated['google_maps_address'],
-                'description' => $validated['description'] ?? null,
-                'banner' => $bannerPath,
-                'lat' => $validated['lat'],
-                'lng' => $validated['lng'],
-                'status' => 'pending',
-            ]);
-
-            if ($request->hasFile('gallery_images')) {
-                foreach ($request->file('gallery_images') as $file) {
-                    $venue->images()->create([
-                        'image_path' => $file->store('venues/gallery', 'public'),
-                    ]);
-                }
-            }
-
-            if (Schema::hasTable('venue_legal_documents')) {
-                $venue->legalDocument()->create([
-                    'owner_name' => $validated['owner_name'],
-                    'citizen_id' => $validated['citizen_id'],
-                    'business_license_number' => $validated['business_license_number'],
+        try {
+            DB::transaction(function () use ($request, $validated, $bannerPath, &$createdVenue) {
+                $venue = Venue::create([
+                    'owner_id' => Auth::id(),
+                    'sport_id' => $validated['sport_id'],
+                    'name' => $validated['name'],
                     'address' => $validated['address'],
-                    'bank_name' => $validated['bank_name'],
-                    'bank_account_number' => $validated['bank_account_number'],
-                    'bank_account_holder' => $validated['bank_account_holder'],
-                    'citizen_front_image' => $request->file('citizen_front_image')->store('venue-documents', 'public'),
-                    'citizen_back_image' => $request->file('citizen_back_image')->store('venue-documents', 'public'),
-                    'business_license_file' => $request->file('business_license_file')->store('venue-documents', 'public'),
-                    'rental_contract_file' => $request->hasFile('rental_contract_file')
-                        ? $request->file('rental_contract_file')->store('venue-documents', 'public')
-                        : null,
-                    'land_certificate_file' => $request->hasFile('land_certificate_file')
-                        ? $request->file('land_certificate_file')->store('venue-documents', 'public')
-                        : null,
+                    'province_code' => $validated['province_code'],
+                    'ward_code' => $validated['ward_code'],
+                    'phone' => $validated['phone'],
+                    'email' => $validated['email'],
+                    'open_hours' => $validated['open_hours'] ?? null,
+                    'close_hours' => $validated['close_hours'] ?? null,
+                    'google_maps_address' => $validated['google_maps_address'],
+                    'description' => $validated['description'] ?? null,
+                    'banner' => $bannerPath,
+                    'lat' => $validated['lat'],
+                    'lng' => $validated['lng'],
                     'status' => 'pending',
                 ]);
+
+                if ($request->hasFile('gallery_images')) {
+                    foreach ($request->file('gallery_images') as $file) {
+                        $venue->images()->create([
+                            'image_path' => $file->store('venues/gallery', 'public'),
+                        ]);
+                    }
+                }
+
+                if (Schema::hasTable('venue_legal_documents')) {
+                    $venue->legalDocument()->create([
+                        'owner_name' => $validated['owner_name'],
+                        'citizen_id' => $validated['citizen_id'],
+                        'business_license_number' => $validated['business_license_number'],
+                        'address' => $validated['address'],
+                        'bank_name' => $validated['bank_name'],
+                        'bank_account_number' => $validated['bank_account_number'],
+                        'bank_account_holder' => $validated['bank_account_holder'],
+                        'citizen_front_image' => $request->file('citizen_front_image')->store('venue-documents', 'public'),
+                        'citizen_back_image' => $request->file('citizen_back_image')->store('venue-documents', 'public'),
+                        'business_license_file' => $request->file('business_license_file')->store('venue-documents', 'public'),
+                        'rental_contract_file' => $request->hasFile('rental_contract_file')
+                            ? $request->file('rental_contract_file')->store('venue-documents', 'public')
+                            : null,
+                        'land_certificate_file' => $request->hasFile('land_certificate_file')
+                            ? $request->file('land_certificate_file')->store('venue-documents', 'public')
+                            : null,
+                        'status' => 'pending',
+                    ]);
+                }
+
+                $createdVenue = $venue;
+            });
+        } catch (\Throwable $e) {
+            Log::error('Owner venue creation failed.', [
+                'owner_id' => Auth::id(),
+                'message' => $e->getMessage(),
+            ]);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không thể lưu cơ sở lúc này. Vui lòng kiểm tra lại thông tin hoặc thử lại sau.',
+                ], 500);
             }
-        });
+
+            return back()
+                ->withInput()
+                ->with('error', 'Không thể lưu cơ sở lúc này. Vui lòng kiểm tra lại thông tin hoặc thử lại sau.');
+        }
 
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
+                'venue_id' => $createdVenue?->id,
                 'message' => 'Tạo điểm sân thành công'
             ]);
         }
 
         return redirect()
             ->route('owner.web.venues.index')
-            ->with('success', 'Đã gửi yêu cầu tạo cơ sở, vui lòng chờ Admin duyệt.');
+            ->with('success', 'Đã gửi yêu cầu tạo cơ sở, vui lòng chờ Admin duyệt. Mã cơ sở: #' . $createdVenue?->id);
     }
 
     // Xử lý lưu cập nhật

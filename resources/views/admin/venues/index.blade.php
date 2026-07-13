@@ -1,4 +1,4 @@
-@extends('admin.layouts.app')
+﻿@extends('admin.layouts.app')
 
 @push('styles')
 <style>
@@ -446,7 +446,7 @@
                     <div class="address-text">{{ $venue->address }}</div>
                 </td>
                 <td>
-                    @if($venue->status === 'active')
+                    @if(in_array($venue->status, ['approved']))
                         <span class="badge bg-success-subtle text-success">Hoạt động</span>
                     @elseif($venue->status === 'inactive')
                         <span class="badge bg-danger-subtle text-danger">Ngừng HĐ</span>

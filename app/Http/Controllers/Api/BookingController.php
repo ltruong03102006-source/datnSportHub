@@ -65,6 +65,15 @@ class BookingController extends Controller
                         throw new HttpException(409, 'This time slot has already been booked');
                     }
 
+                    if (app(\App\Services\AvailabilityService::class)->hasActivePackageBooking(
+                        $court,
+                        $request->slot_date,
+                        $slot['start_time'],
+                        $slot['end_time']
+                    )) {
+                        throw new HttpException(409, 'This time slot has already been booked by an active package');
+                    }
+
                     $price = DB::table('slot_prices')
                         ->join('time_slots', 'slot_prices.time_slot_id', '=', 'time_slots.id')
                         ->where('time_slots.court_id', $request->court_id)

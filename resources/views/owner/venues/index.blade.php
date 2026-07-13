@@ -134,7 +134,7 @@
             Chờ duyệt
         </span>
 
-    @elseif($venue->status === 'active')
+    @elseif(in_array($venue->status, ['approved']))
         <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700 border border-green-200 backdrop-blur-md">
             Hoạt động
         </span>
@@ -197,7 +197,7 @@
         </form>
 
     {{-- Đã duyệt và đang hoạt động -> chỉ cho tạm ngừng --}}
-    @elseif($venue->status === 'approved')
+    @elseif(in_array($venue->status, ['approved']))
         <form action="{{ route('owner.web.venues.destroy', $venue->id) }}"
               method="POST"
               class="inline-block w-full"
