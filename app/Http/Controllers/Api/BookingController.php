@@ -50,7 +50,7 @@ class BookingController extends Controller
                 }
             }
 
-            $bookings = DB::transaction(function () use ($request, $slots, $dayOfWeek, $now, $court, $holdCutoff) {
+            $bookings = DB::transaction(function () use ($request, $slots, $dayOfWeek, $now, $court) {
                 $created = collect();
 
                 foreach ($slots as $slot) {
