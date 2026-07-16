@@ -446,12 +446,10 @@
                     <div class="address-text">{{ $venue->address }}</div>
                 </td>
                 <td>
-                    @if($venue->status === 'approved')
-                        <span class="badge bg-success-subtle text-success">Đã duyệt</span>
-                    @elseif($venue->status === 'pending')
-                        <span class="badge bg-warning-subtle text-warning">Chờ duyệt</span>
-                    @elseif($venue->status === 'rejected')
-                        <span class="badge bg-danger-subtle text-danger">Từ chối</span>
+                    @if(in_array($venue->status, ['approved']))
+                        <span class="badge bg-success-subtle text-success">Hoạt động</span>
+                    @elseif($venue->status === 'inactive')
+                        <span class="badge bg-danger-subtle text-danger">Ngừng HĐ</span>
                     @else
                         <span class="badge bg-secondary-subtle text-secondary">{{ ucfirst($venue->status) }}</span>
                     @endif

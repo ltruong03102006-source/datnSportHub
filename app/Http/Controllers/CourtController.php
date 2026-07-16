@@ -43,6 +43,7 @@ class CourtController extends Controller
     private function venueListResponse(Request $request, ?int $sportId, string $message): JsonResponse
     {
         $search = trim((string) $request->query('q', ''));
+        $sort = $this->normalizeSort((string) $request->query('sort', 'ranking'));
         
         // Chuyển từ query Court sang query Venue
         $query = Venue::query()
@@ -85,7 +86,7 @@ class CourtController extends Controller
         );
 
         $this->applySearch($query, $search);
-        $this->applySorting($query, $search);
+        $this->applySorting($query, $search, $sort);
 
         $paginator = $query->paginate(15)->withQueryString();
         $payload = $paginator->getCollection()
@@ -149,11 +150,34 @@ class CourtController extends Controller
         });
     }
 
-    private function applySorting(Builder $query, string $search): void
+    private function normalizeSort(string $sort): string
+    {
+        return in_array($sort, ['ranking', 'rating', 'bookings', 'name', 'newest'], true)
+            ? $sort
+            : 'ranking';
+    }
+
+    private function applySorting(Builder $query, string $search, string $sort): void
     {
         if ($search !== '' && $this->supportsFullTextSearch()) {
             $query->orderByDesc('search_score');
         }
+
+        match ($sort) {
+            'rating' => $query
+                ->orderByDesc('avg_rating')
+                ->orderByDesc('reviews_count')
+                ->orderByDesc('bookings_count'),
+            'bookings' => $query
+                ->orderByDesc('bookings_count')
+                ->orderByDesc('avg_rating'),
+            'name' => $query->orderBy('venues.name'),
+            'newest' => $query->orderByDesc('venues.created_at'),
+            default => $query
+                ->orderByRaw('(COALESCE(avg_rating, 0) * 14) + (LEAST(COALESCE(bookings_count, 0), 100) * 0.3) DESC')
+                ->orderByDesc('reviews_count')
+                ->orderByDesc('bookings_count'),
+        };
 
         $query
             ->orderBy('venues.name')
@@ -221,6 +245,9 @@ class CourtController extends Controller
             'ward_code' => $venue->ward_code,
             'ward_name' => $venue->ward?->name,
             'avg_rating' => $venue->avg_rating !== null ? round((float) $venue->avg_rating, 1) : null,
+            'reviews_count' => (int) ($venue->reviews_count ?? 0),
+            'bookings_count' => (int) ($venue->bookings_count ?? 0),
+            'ranking_score' => $this->rankingScore($venue),
             'min_price' => $venue->min_price !== null ? (int) $venue->min_price : null,
             'distance_km' => isset($venue->distance_km) ? round((float) $venue->distance_km, 1) : null,
             'lat' => $venue->lat,
@@ -228,6 +255,14 @@ class CourtController extends Controller
             'phone' => $phone, // Đã đổi thành phone và trả về SĐT thật
             'courts_count' => $venue->courts_count ?? 0,
         ];
+    }
+
+    private function rankingScore(Venue $venue): float
+    {
+        $ratingScore = ((float) ($venue->avg_rating ?? 0) / 5) * 70;
+        $bookingScore = min((int) ($venue->bookings_count ?? 0), 100) * 0.3;
+
+        return round($ratingScore + $bookingScore, 1);
     }
 
     private function countsPerSport(): array

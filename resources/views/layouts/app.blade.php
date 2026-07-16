@@ -8,6 +8,38 @@
     <title>@yield('title', 'SportHub')</title>
 
     @stack('meta')
+
+    <script>
+        (() => {
+            const storageKey = 'sporthub_theme';
+            const preferredDarkQuery = '(prefers-color-scheme: dark)';
+            const resolveTheme = () => {
+                const storedTheme = localStorage.getItem(storageKey);
+                const prefersDark = window.matchMedia?.(preferredDarkQuery).matches;
+
+                return storedTheme ? storedTheme === 'dark' : prefersDark;
+            };
+            const applyTheme = (isDark) => {
+                document.documentElement.classList.toggle('dark', isDark);
+                document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+            };
+            const shouldUseDark = resolveTheme();
+
+            applyTheme(shouldUseDark);
+
+            window.themeSwitcher = () => ({
+                isDark: shouldUseDark,
+                init() {
+                    this.isDark = document.documentElement.classList.contains('dark');
+                },
+                toggleTheme() {
+                    this.isDark = !this.isDark;
+                    localStorage.setItem(storageKey, this.isDark ? 'dark' : 'light');
+                    applyTheme(this.isDark);
+                },
+            });
+        })();
+    </script>
     
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
@@ -45,11 +77,58 @@
         nav a.nav-link:hover {
             color: #059669 !important; /* hover:text-emerald-600 */
         }
+
+        .dark nav a.nav-link {
+            color: #d4d4d8;
+        }
+        .dark nav a.nav-link.active,
+        .dark nav a.nav-link:hover {
+            color: #34d399 !important;
+        }
+        .dark .bg-white {
+            background-color: #18181b !important;
+        }
+        .dark .bg-stone-50,
+        .dark .bg-stone-100 {
+            background-color: #27272a !important;
+        }
+        .dark .bg-stone-200\/60 {
+            background-color: rgba(63, 63, 70, 0.6) !important;
+        }
+        .dark .border-stone-100,
+        .dark .border-stone-200,
+        .dark .border-stone-200\/60,
+        .dark .border-stone-200\/80 {
+            border-color: #3f3f46 !important;
+        }
+        .dark .text-zinc-900,
+        .dark .text-zinc-800,
+        .dark .text-zinc-700 {
+            color: #f4f4f5 !important;
+        }
+        .dark .text-zinc-600,
+        .dark .text-zinc-500,
+        .dark .text-stone-500 {
+            color: #a1a1aa !important;
+        }
+        .dark .text-stone-400,
+        .dark .text-zinc-400 {
+            color: #71717a !important;
+        }
+        .dark .shadow-sm,
+        .dark .shadow,
+        .dark .shadow-lg,
+        .dark .shadow-xl {
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35) !important;
+        }
     </style>
 </head>
-<body class="flex min-h-screen flex-col bg-stone-50 font-sans text-zinc-900 antialiased">
+<body
+    x-data="themeSwitcher()"
+    class="flex min-h-screen flex-col bg-stone-50 font-sans text-zinc-900 antialiased transition-colors duration-200 dark:bg-zinc-950 dark:text-zinc-100"
+>
     
-    <header x-data="{ open: false }" class="sticky top-0 z-30 border-b border-stone-200/80 bg-white/90 backdrop-blur-md">
+    <header x-data="{ open: false }" class="sticky top-0 z-30 border-b border-stone-200/80 bg-white/90 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/90">
         
         <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
             <a href="{{ url('/') }}" class="flex items-center gap-2.5 transition hover:opacity-80">
@@ -73,6 +152,21 @@
                 </a>
                 @endauth
             </nav>
+
+            <button
+                type="button"
+                @click="toggleTheme()"
+                class="hidden h-10 w-10 place-items-center rounded-lg border border-stone-200 bg-white text-zinc-700 shadow-sm transition hover:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 md:grid dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                :aria-label="isDark ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'"
+                :title="isDark ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'"
+            >
+                <svg x-show="!isDark" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m0 13.5V21m8.25-9h-2.25M6 12H3.75m14.78-6.53-1.59 1.59M7.06 16.94l-1.59 1.59m13.06 0-1.59-1.59M7.06 7.06 5.47 5.47M12 8.25a3.75 3.75 0 1 1 0 7.5 3.75 3.75 0 0 1 0-7.5Z" />
+                </svg>
+                <svg x-show="isDark" x-cloak class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 15.75A9.75 9.75 0 0 1 8.25 2.25a7.5 7.5 0 1 0 13.5 13.5Z" />
+                </svg>
+            </button>
 
             @guest
             <div class="hidden items-center gap-3 md:flex">
@@ -118,6 +212,7 @@
                     </div>
                     
                     <a href="{{ route('account.bookings.index') }}" class="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-stone-50 hover:text-emerald-700 transition">Lịch sử đặt sân</a>
+                    <a href="{{ route('transactions.index') }}" class="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-stone-50 hover:text-emerald-700 transition">Lịch sử giao dịch</a>
                     <a href="{{ route('account.reviews.index') }}" class="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-stone-50 hover:text-emerald-700 transition">Đánh giá của tôi</a>
                     
                     <a href="{{ route('account.profile.show') }}" class="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-stone-50 hover:text-emerald-700 transition">Trang cá nhân</a>
@@ -138,6 +233,21 @@
                 <a href="{{ route('home') }}" class="rounded-lg px-3 py-2.5 transition {{ request()->routeIs('home') ? 'text-emerald-700 bg-emerald-50 font-bold' : 'text-zinc-700 hover:bg-stone-100' }}">Tìm sân</a>
                 <a href="{{ route('venues.nearby') }}" class="rounded-lg px-3 py-2.5 transition {{ request()->routeIs('venues.nearby') ? 'text-emerald-700 bg-emerald-50 font-bold' : 'text-zinc-700 hover:bg-stone-100' }}">Tìm sân gần đây</a>
                 <a href="{{ route('rankings') }}" class="rounded-lg px-3 py-2.5 transition {{ request()->routeIs('rankings') ? 'text-emerald-700 bg-emerald-50 font-bold' : 'text-zinc-700 hover:bg-stone-100' }}">Nổi bật</a>
+                <button
+                    type="button"
+                    @click="toggleTheme()"
+                    class="flex items-center justify-between rounded-lg px-3 py-2.5 text-left font-semibold text-zinc-700 transition hover:bg-stone-100 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                >
+                    <span x-text="isDark ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'"></span>
+                    <span class="grid h-8 w-8 place-items-center rounded-lg border border-stone-200 bg-white text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100">
+                        <svg x-show="!isDark" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m0 13.5V21m8.25-9h-2.25M6 12H3.75m14.78-6.53-1.59 1.59M7.06 16.94l-1.59 1.59m13.06 0-1.59-1.59M7.06 7.06 5.47 5.47M12 8.25a3.75 3.75 0 1 1 0 7.5 3.75 3.75 0 0 1 0-7.5Z" />
+                        </svg>
+                        <svg x-show="isDark" x-cloak class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 15.75A9.75 9.75 0 0 1 8.25 2.25a7.5 7.5 0 1 0 13.5 13.5Z" />
+                        </svg>
+                    </span>
+                </button>
                 @auth
         <a href="{{ route('community.index') }}" class="rounded-lg px-3 py-2.5 transition {{ request()->routeIs('community.*') ? 'text-emerald-700 bg-emerald-50 font-bold' : 'text-zinc-700 hover:bg-stone-100' }}">Cộng đồng</a>
         @endauth
@@ -181,6 +291,7 @@
                     </div>
                     <a href="{{ route('account.profile.show') }}" class="rounded-lg px-3 py-2.5 text-zinc-700 hover:bg-stone-100">Trang cá nhân</a>
                     <a href="{{ route('account.bookings.index') }}" class="rounded-lg px-3 py-2.5 text-zinc-700 hover:bg-stone-100">Lịch sử đặt sân</a>
+                    <a href="{{ route('transactions.index') }}" class="rounded-lg px-3 py-2.5 text-zinc-700 hover:bg-stone-100">Lịch sử giao dịch</a>
                     <a href="{{ route('account.reviews.index') }}" class="rounded-lg px-3 py-2.5 text-zinc-700 hover:bg-stone-100">Đánh giá của tôi</a>
                     <button onclick="handleLogout()" class="rounded-lg px-3 py-2.5 text-left font-semibold text-red-600 hover:bg-red-50">Đăng xuất</button>
                 </div>
@@ -388,11 +499,51 @@
                 });
             }
 
+            let currentUnreadCount = 0;
+            let isFirstLoad = true;
+
+            function playBeepSound() {
+                try {
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Note A5
+                    
+                    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    
+                    oscillator.start();
+                    oscillator.stop(audioCtx.currentTime + 0.3);
+                } catch(e) {
+                    console.log("Audio not supported or blocked");
+                }
+            }
+
             async function loadUnreadCount() {
                 try {
                     const response = await fetch(unreadCountUrl, { headers: { 'Accept': 'application/json' } });
                     if (!response.ok) throw new Error('Không thể tải số lượng thông báo.');
                     const { count } = await response.json();
+                    
+                    // Phát tiếng bíp nếu có thông báo MỚI
+                    if (!isFirstLoad && count > currentUnreadCount) {
+                        playBeepSound();
+                        showToast('Bạn có thông báo mới!', 'success');
+                        
+                        // Tự động làm mới danh sách thông báo để khách hàng thấy liền
+                        if (typeof loadNotifications === 'function') {
+                            loadNotifications();
+                        }
+                    }
+                    
+                    currentUnreadCount = count;
+                    isFirstLoad = false;
+
                     notificationBadge.textContent = count > 99 ? '99+' : count;
                     notificationBadge.style.display = count > 0 ? 'inline-flex' : 'none';
                 } catch (error) {
@@ -428,6 +579,9 @@
             });
 
             loadUnreadCount();
+            
+            // Tự động quét thông báo mỗi 10 giây
+            setInterval(loadUnreadCount, 10000);
         });
     </script>
     @endauth

@@ -431,6 +431,13 @@
                     <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>Từ chối</option>
                 </select>
 
+                <select name="refund_status" class="filter-control" onchange="this.form.submit()">
+                    <option value="">Trạng thái hoàn tiền</option>
+                    <option value="pending" {{ request('refund_status') === 'pending' ? 'selected' : '' }}>Chờ hoàn</option>
+                    <option value="refunded" {{ request('refund_status') === 'refunded' ? 'selected' : '' }}>Đã hoàn</option>
+                    <option value="none" {{ request('refund_status') === 'none' ? 'selected' : '' }}>Không hoàn</option>
+                </select>
+
                 <div class="search-box">
                     <i class="fa-solid fa-magnifying-glass"></i>
                     <input
@@ -467,6 +474,7 @@
                         <th>Số tiền</th>
                         <th>Thanh toán</th>
                         <th>Trạng thái</th>
+                        <th>Hoàn tiền</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -539,10 +547,24 @@
                             <td>
                                 <span class="status-badge {{ $statusClass }}">{{ $statusText }}</span>
                             </td>
+                            <td>
+                                @if($booking->refund_status === 'pending')
+                                    <div class="cell-title text-orange-600" style="color: #d97706">{{ number_format($booking->refund_amount) }}đ</div>
+                                    <form action="{{ route('admin.bookings.refund', $booking->id) }}" method="POST" style="margin-top: 4px;">
+                                        @csrf
+                                        <button type="submit" class="status-badge" style="background: #27ae60; color: #fff; border: none; cursor: pointer; padding: 4px 10px;" onclick="return confirm('Bạn xác nhận đã hoàn tiền cho đơn này?')">Xác nhận hoàn</button>
+                                    </form>
+                                @elseif($booking->refund_status === 'refunded')
+                                    <div class="cell-title text-green-600" style="color: #27ae60">{{ number_format($booking->refund_amount) }}đ</div>
+                                    <span class="status-badge status-completed">Đã hoàn tiền</span>
+                                @else
+                                    <span style="color: #999;">-</span>
+                                @endif
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7">
+                            <td colspan="8">
                                 <div class="empty-state">
                                     <i class="fa-regular fa-calendar-xmark"></i>
                                     Không tìm thấy booking nào.

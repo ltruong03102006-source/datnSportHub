@@ -28,6 +28,8 @@ use App\Http\Controllers\Web\VnPayController;
 use App\Http\Controllers\Web\OwnerVenuePackageController;
 use App\Http\Controllers\Web\PackageBookingController;
 use App\Http\Controllers\Web\AdminPackageController;
+use App\Http\Controllers\Web\TransactionController;
+use App\Http\Controllers\Web\AdminTransactionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -116,6 +118,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Quản lý Lịch đặt
         Route::get('/bookings', [AdminBookingController::class, 'index'])->name('bookings.index');
+        Route::post('/bookings/{booking}/refund', [AdminBookingController::class, 'refund'])->name('bookings.refund');
 
         // Quản lý Sân con (Courts)
         Route::get('/courts', [AdminCourtController::class, 'index'])->name('courts.index');
@@ -131,6 +134,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/transactions', [AdminTransactionController::class, 'index'])->name('transactions.index');
         Route::get('/transactions/{transaction}', [AdminTransactionController::class, 'show'])->name('transactions.show');
         Route::get('/packages', [AdminPackageController::class, 'index'])->name('packages.index');
+
+        // Quản lý Yêu cầu rút tiền
+        Route::get('/withdrawals', [\App\Http\Controllers\Web\AdminWithdrawalController::class, 'index'])->name('withdrawals.index');
+        Route::patch('/withdrawals/{withdrawal}/status', [\App\Http\Controllers\Web\AdminWithdrawalController::class, 'updateStatus'])->name('withdrawals.updateStatus');
+
+        // Cấu hình hệ thống
+        Route::get('/settings', [\App\Http\Controllers\Web\AdminSettingController::class, 'index'])->name('settings.index');
+        Route::post('/settings', [\App\Http\Controllers\Web\AdminSettingController::class, 'store'])->name('settings.store');
     });
 });
 
@@ -249,6 +260,9 @@ Route::middleware('auth')->group(function () {
         Route::put('/profile/password', [\App\Http\Controllers\Web\ProfileController::class, 'updatePassword'])->name('profile.password');
         Route::post('/profile/avatar', [\App\Http\Controllers\Web\ProfileController::class, 'updateAvatar'])->name('profile.avatar');
         Route::put('/profile/bank', [\App\Http\Controllers\Web\ProfileController::class, 'updateBankInfo'])->name('profile.bank');
+
+        // 5. Rút tiền ví
+        Route::post('/wallet/withdraw', [\App\Http\Controllers\Web\WalletController::class, 'withdraw'])->name('wallet.withdraw');
     }); // <-- Ngoặc đóng của group account
 
     // Notifications

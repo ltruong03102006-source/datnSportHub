@@ -50,11 +50,24 @@ class VenueRankingService
             'name' => $venue->name,
             'sport_name' => $venue->sport?->name,
             'address' => $venue->address,
-            'thumbnail' => $venue->banner ? asset('storage/' . $venue->banner) : null,
+            'thumbnail' => $this->thumbnailUrl($venue),
             'avg_rating' => round((float) $venue->avg_rating, 1),
             'reviews_count' => (int) $venue->reviews_count,
             'bookings_count' => (int) $venue->bookings_count,
             'ranking_score' => (float) ($venue->ranking_score ?? 0),
         ];
+    }
+
+    private function thumbnailUrl(Venue $venue): ?string
+    {
+        if (! $venue->banner) {
+            return null;
+        }
+
+        if (str_starts_with($venue->banner, 'http://') || str_starts_with($venue->banner, 'https://')) {
+            return $venue->banner;
+        }
+
+        return asset('storage/' . $venue->banner);
     }
 }

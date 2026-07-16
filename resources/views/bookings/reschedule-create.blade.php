@@ -11,6 +11,7 @@
     @endforeach
 </div>
 @if(session('error'))<div class="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{{ session('error') }}</div>@endif
+@if($errors->any())<div class="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700"><ul class="list-disc space-y-1 pl-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 <form method="POST" action="{{ route('customer.booking.reschedule.store',$booking) }}">@csrf
 <div class="mb-3"><label class="form-label">Ngày mới</label><input id="new-slot-date" class="form-control" type="date" min="{{ now()->toDateString() }}" name="new_slot_date" value="{{ old('new_slot_date') }}" required></div>
 <input type="hidden" name="new_time_slot_ids[]" id="new-time-slot-id" disabled>

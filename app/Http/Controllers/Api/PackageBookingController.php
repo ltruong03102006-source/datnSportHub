@@ -296,7 +296,9 @@ class PackageBookingController extends Controller
 
             'weekly_sessions' => $bookingPackage->weekly_sessions,
             'total_sessions' => $bookingPackage->total_sessions,
-            'used_sessions' => $bookingPackage->used_sessions,
+            'used_sessions' => method_exists($bookingPackage, 'usedSessionsCount')
+                ? $bookingPackage->usedSessionsCount()
+                : $bookingPackage->used_sessions,
             'remaining_sessions' => method_exists($bookingPackage, 'remainingSessions')
                 ? $bookingPackage->remainingSessions()
                 : max(0, (int) $bookingPackage->total_sessions - (int) $bookingPackage->used_sessions),
@@ -305,7 +307,9 @@ class PackageBookingController extends Controller
             'discount_amount' => (float) $bookingPackage->discount_amount,
             'final_amount' => (float) $bookingPackage->final_amount,
 
-            'status' => $bookingPackage->status,
+            'status' => method_exists($bookingPackage, 'displayStatus')
+                ? $bookingPackage->displayStatus()
+                : $bookingPackage->status,
             'status_label' => method_exists($bookingPackage, 'statusLabel')
                 ? $bookingPackage->statusLabel()
                 : $bookingPackage->status,

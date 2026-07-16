@@ -92,7 +92,9 @@ class NotificationController extends Controller
 
     private function wantsJsonResponse(Request $request): bool
     {
-        return $request->expectsJson() || $request->ajax();
+        return $request->expectsJson()
+            || $request->ajax()
+            || $request->routeIs('notifications.latest', 'notifications.unread-count');
     }
 
     private function redirectByRole(Request $request)

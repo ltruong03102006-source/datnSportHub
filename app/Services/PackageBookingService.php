@@ -7,6 +7,7 @@ use App\Models\BookingPackage;
 use App\Models\BookingPackageSession;
 use App\Models\Court;
 use App\Models\SlotPrice;
+use App\Models\Setting;
 use App\Models\TimeSlot;
 use App\Models\Transaction;
 use App\Models\VenuePackage;
@@ -56,7 +57,13 @@ class PackageBookingService
      * - Chọn đủ 7 thứ trong tuần
      * => sinh đủ 31 buổi.
      */
-    public function generateDatesForWeekday(Carbon|string $startDate, int $weekday, string $type, int $duration): Collection
+    public function generateDatesForWeekday(
+        Carbon|string $startDate,
+        int $weekday,
+        string $type,
+        int $duration,
+        ?string $startTime = null
+    ): Collection
     {
         $periodStart = Carbon::parse($startDate)->startOfDay();
         $periodEnd = $this->periodEndDate($periodStart, $type, $duration);
@@ -64,6 +71,14 @@ class PackageBookingService
         $firstDate = $periodStart->dayOfWeek === $weekday
             ? $periodStart->copy()
             : $periodStart->copy()->next($weekday);
+
+        if ($firstDate->isSameDay(now('Asia/Ho_Chi_Minh')) || ($startTime && $this->sessionStartHasPassed($firstDate, $startTime))) {
+            $firstDate->addWeek();
+
+            if ($type === 'week') {
+                $periodEnd->addWeek();
+            }
+        }
 
         $dates = collect();
         $cursor = $firstDate->copy();
@@ -106,7 +121,7 @@ class PackageBookingService
         return Booking::query()
             ->where('court_id', $court->id)
             ->whereIn('slot_date', $dates->map(fn (Carbon $date) => $date->toDateString())->all())
-            ->whereIn('status', ['pending', 'confirmed'])
+            ->where('status', 'confirmed')
             ->where(function ($query) use ($startTime, $endTime) {
                 $query->where('start_time', '<', $endTime)
                     ->where('end_time', '>', $startTime);
@@ -145,7 +160,12 @@ class PackageBookingService
         array $sessions,
         Carbon|string $startDate
     ): Collection {
-        return $this->buildMultiSlotSessionPlans($package, $sessions, $startDate, false);
+        return $this->buildMultiSlotSessionPlans(
+            $package,
+            $sessions,
+            $this->effectivePackageStartDate($startDate),
+            false
+        );
     }
 
     /**
@@ -204,6 +224,8 @@ class PackageBookingService
         Carbon|string $startDate
     ): BookingPackage {
         return DB::transaction(function () use ($userId, $package, $sessions, $startDate) {
+            $effectiveStartDate = $this->effectivePackageStartDate($startDate);
+
             $package = VenuePackage::query()
                 ->with('venue')
                 ->lockForUpdate()
@@ -213,7 +235,7 @@ class PackageBookingService
             $this->assertPackageHasCapacity($package);
             $this->assertSessionCountIsValid($package, $sessions);
 
-            $sessionPlans = $this->buildMultiSlotSessionPlans($package, $sessions, $startDate, true);
+            $sessionPlans = $this->buildMultiSlotSessionPlans($package, $sessions, $effectiveStartDate, true);
 
             if ($sessionPlans->isEmpty()) {
                 throw new RuntimeException('Gói đặt sân không có buổi hợp lệ.');
@@ -230,8 +252,8 @@ class PackageBookingService
 
             $price = $this->calculatePrice($package, $sessionPlans);
 
-            $start = Carbon::parse($startDate)->startOfDay();
-            $end = $this->periodEndDate($start, $package->type, (int) $package->duration);
+            $start = $allDates->min()->copy()->startOfDay();
+            $end = $allDates->max();
 
             $bookingPackage = BookingPackage::create([
                 'user_id' => $userId,
@@ -313,6 +335,10 @@ class PackageBookingService
                 throw new RuntimeException('Chỉ có thể kích hoạt gói đang chờ thanh toán.');
             }
 
+            if ($this->paymentHoldExpired($bookingPackage)) {
+                throw new RuntimeException('Thời gian giữ chỗ thanh toán đã hết. Vui lòng tạo lại gói để đặt lịch mới.');
+            }
+
             if ($bookingPackage->sessions->isEmpty()) {
                 throw new RuntimeException('Gói chưa có cấu hình buổi cố định.');
             }
@@ -351,7 +377,8 @@ class PackageBookingService
                     $bookingPackage->start_date,
                     (int) $session->weekday,
                     $bookingPackage->package->type,
-                    (int) $bookingPackage->package->duration
+                    (int) $bookingPackage->package->duration,
+                    $firstSlot->start_time
                 );
 
                 $startTime = $firstSlot->start_time;
@@ -559,20 +586,22 @@ class PackageBookingService
                     }
                 }
 
-                $dates = $this->generateDatesForWeekday(
-                    $startDate,
-                    $weekday,
-                    $package->type,
-                    (int) $package->duration
-                );
-
-                if ($dates->isEmpty()) {
-                    throw new RuntimeException('Buổi ' . ($index + 1) . ' không sinh được ngày hợp lệ.');
-                }
 
                 $firstTimeSlot = $timeSlots->first();
                 $lastTimeSlot = $timeSlots->last();
                 $startTime = $firstTimeSlot->start_time;
+
+                $dates = $this->generateDatesForWeekday(
+                    $startDate,
+                    $weekday,
+                    $package->type,
+                    (int) $package->duration,
+                    $startTime
+                );
+
+                if ($dates->isEmpty()) {
+                    throw new RuntimeException('Buoi ' . ($index + 1) . ' khong sinh duoc ngay hop le.');
+                }
                 $endTime = $lastTimeSlot->end_time;
 
                 $conflicts = $this->conflictingBookingsForRange($court, $startTime, $endTime, $dates);
@@ -643,7 +672,8 @@ class PackageBookingService
                     $startDate,
                     $weekday,
                     $package->type,
-                    (int) $package->duration
+                    (int) $package->duration,
+                    $timeSlot->start_time
                 );
 
                 if ($dates->isEmpty()) {
@@ -768,6 +798,31 @@ class PackageBookingService
         return $start->copy()->addMonthsNoOverflow($duration)->subDay();
     }
 
+    private function effectivePackageStartDate(Carbon|string $startDate): Carbon
+    {
+        $start = Carbon::parse($startDate, 'Asia/Ho_Chi_Minh')->startOfDay();
+
+        return $start;
+    }
+
+    private function sessionStartHasPassed(Carbon $date, string $startTime): bool
+    {
+        $now = now('Asia/Ho_Chi_Minh');
+
+        if (! $date->isSameDay($now)) {
+            return false;
+        }
+
+        $time = Carbon::parse($startTime);
+        $sessionStart = $date->copy()->setTime(
+            (int) $time->format('H'),
+            (int) $time->format('i'),
+            (int) $time->format('s')
+        );
+
+        return $sessionStart->lessThanOrEqualTo($now);
+    }
+
     private function createPendingTransaction(BookingPackage $bookingPackage, int $userId): void
     {
         if (! Schema::hasTable('transactions')) {
@@ -786,6 +841,23 @@ class PackageBookingService
             'transaction_time' => now(),
             'note' => "Tạo giao dịch chờ thanh toán cho gói đặt sân #{$bookingPackage->id}.",
         ]));
+    }
+
+    public function paymentHoldExpiresAt(BookingPackage $bookingPackage): Carbon
+    {
+        $holdMinutes = (int) Setting::get('booking_hold_time', 15);
+        $holdMinutes = max(1, $holdMinutes);
+
+        return Carbon::parse($bookingPackage->created_at)->addMinutes($holdMinutes);
+    }
+
+    public function paymentHoldExpired(BookingPackage $bookingPackage): bool
+    {
+        if ($bookingPackage->status !== 'pending_payment') {
+            return false;
+        }
+
+        return $this->paymentHoldExpiresAt($bookingPackage)->lte(now());
     }
 
     private function markPackageTransactionSuccess(BookingPackage $bookingPackage, string $transactionStatus): void

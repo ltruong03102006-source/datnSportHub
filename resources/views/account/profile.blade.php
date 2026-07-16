@@ -69,6 +69,12 @@
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" /></svg>
                     Bảo mật
                 </button>
+                <button type="button" @click="tab = 'wallet'"
+                    :class="tab === 'wallet' ? 'bg-emerald-50 text-emerald-800' : 'text-zinc-600 hover:bg-stone-50'"
+                    class="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a2.25 2.25 0 0 0-2.25-2.25H15a3 3 0 1 1-6 0H5.25A2.25 2.25 0 0 0 3 12m18 0v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 9m18 0V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v3" /></svg>
+                    Ví điện tử & Số dư
+                </button>
                 @if($user->role === 'owner')
                 <button type="button" @click="tab = 'bank'"
                     :class="tab === 'bank' ? 'bg-emerald-50 text-emerald-800' : 'text-zinc-600 hover:bg-stone-50'"
@@ -172,6 +178,164 @@
                                             <td class="whitespace-nowrap py-2.5 pr-4 font-semibold text-zinc-800">{{ $login->logged_in_at->format('H:i · d/m/Y') }}</td>
                                             <td class="whitespace-nowrap py-2.5 pr-4 text-zinc-600 tabular-nums">{{ $login->ip_address ?? '—' }}</td>
                                             <td class="py-2.5 text-zinc-600" title="{{ $login->user_agent }}">{{ $login->device_label }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            {{-- Tab: Ví điện tử --}}
+            <div x-show="tab === 'wallet'" x-cloak class="space-y-6">
+                <!-- Số dư hiện tại -->
+                <div class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+                    <h2 class="text-base font-bold text-zinc-900">Số dư ví</h2>
+                    <p class="mt-1 text-sm text-stone-500">Số dư hiện tại của bạn.</p>
+                    <div class="mt-4 flex items-center justify-between p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                        <div>
+                            <p class="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Khả dụng</p>
+                            <p class="text-3xl font-black text-emerald-700">{{ number_format($user->balance ?? 0) }}đ</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rút tiền -->
+                <div class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8"
+                    x-data="{ 
+                        banks: [], 
+                        selectedBank: '{{ old('bank_name', $user->bank_name) }}',
+                        fetchBanks() {
+                            fetch('https://api.vietqr.io/v2/banks')
+                                .then(res => res.json())
+                                .then(data => {
+                                    if(data.code === '00') {
+                                        this.banks = data.data;
+                                    }
+                                });
+                        }
+                    }"
+                    x-init="fetchBanks()"
+                >
+                    <h2 class="text-base font-bold text-zinc-900">Yêu cầu Rút tiền</h2>
+                    <p class="mt-1 text-sm text-stone-500">Rút số dư về tài khoản ngân hàng của bạn.</p>
+
+                    <form method="POST" action="{{ route('account.wallet.withdraw') }}" class="mt-6 grid gap-4 sm:max-w-md">
+                        @csrf
+                        <div>
+                            <label for="withdraw_amount" class="mb-1.5 block text-xs font-semibold text-stone-500">Số tiền muốn rút (Tối đa {{ number_format($user->balance ?? 0) }}đ)</label>
+                            <input id="withdraw_amount" name="amount" type="number" min="10000" max="{{ $user->balance ?? 0 }}" required placeholder="Nhập số tiền..."
+                                class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10">
+                            @error('amount') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label for="withdraw_bank_name" class="mb-1.5 block text-xs font-semibold text-stone-500">Ngân hàng</label>
+                            <select id="withdraw_bank_name" name="bank_name" x-model="selectedBank" required
+                                class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10">
+                                <option value="">-- Chọn ngân hàng --</option>
+                                <template x-for="bank in banks" :key="bank.id">
+                                    <option :value="bank.shortName" x-text="`${bank.shortName} - ${bank.name}`" :selected="bank.shortName == selectedBank"></option>
+                                </template>
+                            </select>
+                            @error('bank_name') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label for="withdraw_bank_account_no" class="mb-1.5 block text-xs font-semibold text-stone-500">Số tài khoản</label>
+                            <input id="withdraw_bank_account_no" name="bank_account_no" type="text" value="{{ old('bank_account_no', $user->bank_account_no) }}" required placeholder="VD: 123456789"
+                                class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10">
+                            @error('bank_account_no') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label for="withdraw_bank_account_name" class="mb-1.5 block text-xs font-semibold text-stone-500">Tên chủ tài khoản</label>
+                            <input id="withdraw_bank_account_name" name="bank_account_name" type="text" value="{{ old('bank_account_name', $user->bank_account_name) }}" required placeholder="VD: NGUYEN VAN A"
+                                class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10 uppercase">
+                            @error('bank_account_name') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <button type="submit" class="rounded-lg bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800" {{ ($user->balance ?? 0) < 10000 ? 'disabled' : '' }}>
+                                Gửi yêu cầu rút tiền
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Lịch sử rút tiền -->
+                <div class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+                    <h2 class="text-base font-bold text-zinc-900">Lịch sử Yêu cầu Rút tiền</h2>
+                    <p class="mt-1 text-sm text-stone-500">Các yêu cầu rút tiền gần đây của bạn.</p>
+                    
+                    @if ($withdrawalRequests->isEmpty())
+                        <p class="mt-4 text-sm text-stone-500">Chưa có yêu cầu rút tiền nào.</p>
+                    @else
+                        <div class="mt-4 overflow-x-auto">
+                            <table class="min-w-full divide-y divide-stone-200 text-sm">
+                                <thead>
+                                    <tr class="text-left text-xs font-bold uppercase tracking-wider text-stone-400">
+                                        <th class="py-2 pr-4">Mã YC</th>
+                                        <th class="py-2 pr-4">Số tiền</th>
+                                        <th class="py-2 pr-4">Trạng thái</th>
+                                        <th class="py-2">Thời gian</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-stone-100">
+                                    @foreach ($withdrawalRequests as $req)
+                                        <tr>
+                                            <td class="whitespace-nowrap py-2.5 pr-4 text-zinc-600">#{{ $req->id }}</td>
+                                            <td class="whitespace-nowrap py-2.5 pr-4 font-semibold text-emerald-600">{{ number_format($req->amount) }}đ</td>
+                                            <td class="whitespace-nowrap py-2.5 pr-4">
+                                                @if($req->status === 'pending')
+                                                    <span class="inline-flex rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">Đang chờ</span>
+                                                @elseif($req->status === 'approved')
+                                                    <span class="inline-flex rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">Đã chuyển</span>
+                                                @else
+                                                    <span class="inline-flex rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">Từ chối</span>
+                                                @endif
+                                            </td>
+                                            <td class="whitespace-nowrap py-2.5 text-zinc-500">{{ $req->created_at->format('H:i d/m/Y') }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </div>
+
+                <!-- Lịch sử giao dịch ví -->
+                <div class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+                    <h2 class="text-base font-bold text-zinc-900">Biến động số dư ví</h2>
+                    <p class="mt-1 text-sm text-stone-500">Chi tiết các giao dịch cộng/trừ tiền.</p>
+                    
+                    @if ($walletTransactions->isEmpty())
+                        <p class="mt-4 text-sm text-stone-500">Chưa có giao dịch nào.</p>
+                    @else
+                        <div class="mt-4 overflow-x-auto">
+                            <table class="min-w-full divide-y divide-stone-200 text-sm">
+                                <thead>
+                                    <tr class="text-left text-xs font-bold uppercase tracking-wider text-stone-400">
+                                        <th class="py-2 pr-4">Loại</th>
+                                        <th class="py-2 pr-4">Số tiền</th>
+                                        <th class="py-2 pr-4">Số dư sau GD</th>
+                                        <th class="py-2 pr-4">Ghi chú</th>
+                                        <th class="py-2">Thời gian</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-stone-100">
+                                    @foreach ($walletTransactions as $txn)
+                                        <tr>
+                                            <td class="whitespace-nowrap py-2.5 pr-4">
+                                                @if($txn->type === 'deposit') <span class="text-blue-600 font-medium">Nạp tiền</span>
+                                                @elseif($txn->type === 'withdraw') <span class="text-orange-600 font-medium">Rút tiền</span>
+                                                @elseif($txn->type === 'refund') <span class="text-emerald-600 font-medium">Hoàn tiền</span>
+                                                @elseif($txn->type === 'payment') <span class="text-red-600 font-medium">Thanh toán</span>
+                                                @else <span class="text-zinc-600">{{ $txn->type }}</span> @endif
+                                            </td>
+                                            <td class="whitespace-nowrap py-2.5 pr-4 font-bold {{ in_array($txn->type, ['deposit', 'refund']) ? 'text-emerald-600' : 'text-red-500' }}">
+                                                {{ in_array($txn->type, ['deposit', 'refund']) ? '+' : '-' }}{{ number_format($txn->amount) }}đ
+                                            </td>
+                                            <td class="whitespace-nowrap py-2.5 pr-4 font-semibold text-zinc-700">{{ number_format($txn->balance_after) }}đ</td>
+                                            <td class="py-2.5 pr-4 text-zinc-600 max-w-xs truncate" title="{{ $txn->description }}">{{ $txn->description }}</td>
+                                            <td class="whitespace-nowrap py-2.5 text-zinc-500">{{ $txn->created_at->format('H:i d/m/Y') }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>

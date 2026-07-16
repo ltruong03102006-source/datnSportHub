@@ -11,7 +11,7 @@ class Notification extends Model
 {
     use HasFactory;
 
-    /** Bảng notifications dùng UUID làm khóa chính. */
+    /** Bảng notifications của dự án dùng khóa chính số tự tăng. */
     public $incrementing = true;
 
     protected $keyType = 'int';
