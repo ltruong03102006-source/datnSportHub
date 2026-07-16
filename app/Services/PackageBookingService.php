@@ -7,6 +7,7 @@ use App\Models\BookingPackage;
 use App\Models\BookingPackageSession;
 use App\Models\Court;
 use App\Models\SlotPrice;
+use App\Models\Setting;
 use App\Models\TimeSlot;
 use App\Models\Transaction;
 use App\Models\VenuePackage;
@@ -332,6 +333,10 @@ class PackageBookingService
 
             if ($bookingPackage->status !== 'pending_payment') {
                 throw new RuntimeException('Chỉ có thể kích hoạt gói đang chờ thanh toán.');
+            }
+
+            if ($this->paymentHoldExpired($bookingPackage)) {
+                throw new RuntimeException('Thời gian giữ chỗ thanh toán đã hết. Vui lòng tạo lại gói để đặt lịch mới.');
             }
 
             if ($bookingPackage->sessions->isEmpty()) {
@@ -836,6 +841,23 @@ class PackageBookingService
             'transaction_time' => now(),
             'note' => "Tạo giao dịch chờ thanh toán cho gói đặt sân #{$bookingPackage->id}.",
         ]));
+    }
+
+    public function paymentHoldExpiresAt(BookingPackage $bookingPackage): Carbon
+    {
+        $holdMinutes = (int) Setting::get('booking_hold_time', 15);
+        $holdMinutes = max(1, $holdMinutes);
+
+        return Carbon::parse($bookingPackage->created_at)->addMinutes($holdMinutes);
+    }
+
+    public function paymentHoldExpired(BookingPackage $bookingPackage): bool
+    {
+        if ($bookingPackage->status !== 'pending_payment') {
+            return false;
+        }
+
+        return $this->paymentHoldExpiresAt($bookingPackage)->lte(now());
     }
 
     private function markPackageTransactionSuccess(BookingPackage $bookingPackage, string $transactionStatus): void

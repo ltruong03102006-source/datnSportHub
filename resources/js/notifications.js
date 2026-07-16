@@ -2,7 +2,10 @@ function qs(selector, ctx = document) { return ctx.querySelector(selector); }
 
 async function fetchUnreadCount() {
     try {
-        const res = await fetch('/notifications/unread-count', { credentials: 'same-origin' });
+        const res = await fetch('/notifications/unread-count', {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' },
+        });
         if (!res.ok) return;
         const data = await res.json();
         const badge = document.getElementById('notification-badge');
@@ -21,7 +24,10 @@ async function fetchUnreadCount() {
 
 async function fetchLatestAndRender() {
     try {
-        const res = await fetch('/notifications/latest', { credentials: 'same-origin' });
+        const res = await fetch('/notifications/latest', {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' },
+        });
         if (!res.ok) return;
         const items = await res.json();
         const container = document.getElementById('notification-list');

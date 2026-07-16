@@ -8,6 +8,7 @@ use App\Jobs\SendBookingConfirmation;
 use App\Models\Booking;
 use App\Models\BookingLog;
 use App\Models\Court;
+use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -35,6 +36,8 @@ class BookingController extends Controller
 
         $dayOfWeek = Carbon::parse($request->slot_date)->dayOfWeek;
         $now = Carbon::now();
+        $holdTimeMinutes = max(1, (int) Setting::get('booking_hold_time', 15));
+        $holdCutoff = $now->copy()->subMinutes($holdTimeMinutes);
 
         try {
             foreach ($slots as $index => $slot) {
@@ -47,13 +50,19 @@ class BookingController extends Controller
                 }
             }
 
-            $bookings = DB::transaction(function () use ($request, $slots, $dayOfWeek, $now) {
+            $bookings = DB::transaction(function () use ($request, $slots, $dayOfWeek, $now, $court, $holdCutoff) {
                 $created = collect();
 
                 foreach ($slots as $slot) {
                     $conflict = Booking::where('court_id', $request->court_id)
                         ->where('slot_date', $request->slot_date)
-                        ->whereIn('status', ['confirmed', 'completed'])
+                        ->where(function ($statusQuery) use ($holdCutoff) {
+                            $statusQuery->whereIn('status', ['confirmed', 'completed'])
+                                ->orWhere(function ($pendingQuery) use ($holdCutoff) {
+                                    $pendingQuery->where('status', 'pending')
+                                        ->where('created_at', '>=', $holdCutoff);
+                                });
+                        })
                         ->where(function ($q) use ($slot) {
                             $q->where('start_time', '<', $slot['end_time'])
                                 ->where('end_time', '>', $slot['start_time']);

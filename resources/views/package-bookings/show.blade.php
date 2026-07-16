@@ -12,6 +12,9 @@
 
     $paidTransactionStatuses = ['success', 'paid', 'completed'];
     $paidPackageStatuses = ['active', 'paused', 'completed'];
+    $displayPackageStatus = method_exists($bookingPackage, 'displayStatus')
+        ? $bookingPackage->displayStatus()
+        : $bookingPackage->status;
 
     $isPaidTransaction = $transaction && in_array($transactionStatus, $paidTransactionStatuses, true);
 
@@ -33,6 +36,12 @@
     $discountAmount = (float) ($bookingPackage->discount_amount ?? 0);
 
     $qrUrl = null;
+    $packageHoldExpiresAt = method_exists($bookingPackage, 'paymentHoldExpiresAt')
+        ? $bookingPackage->paymentHoldExpiresAt()
+        : ($bookingPackage->created_at ? Carbon::parse($bookingPackage->created_at)->addMinutes(max(1, (int) \App\Models\Setting::get('booking_hold_time', 15))) : null);
+    $packageHoldExpired = method_exists($bookingPackage, 'paymentHoldExpired')
+        ? $bookingPackage->paymentHoldExpired()
+        : ($bookingPackage->status === 'pending_payment' && $packageHoldExpiresAt && $packageHoldExpiresAt->lte(now()));
 
     if (! $isPaidPackage && $hasBankInfo && $finalAmount > 0) {
         $addInfo = 'THANH TOAN GOI PKG' . $bookingPackage->id;
@@ -135,6 +144,13 @@
         ];
     };
 
+    $inactiveScheduleStatus = function () use ($displayPackageStatus, $statusLabels, $statusClasses) {
+        return [
+            'label' => $statusLabels[$displayPackageStatus] ?? 'Chưa hoạt động',
+            'class' => $statusClasses[$displayPackageStatus] ?? 'bg-slate-100 text-slate-600 ring-slate-200',
+        ];
+    };
+
     if ($bookingPackage->bookings->isEmpty()) {
         foreach ($bookingPackage->sessions as $session) {
             $weekday = (int) $session->weekday;
@@ -154,7 +170,9 @@
             $cursor = $firstDate->copy();
 
             while ($cursor->lte($endDate)) {
-                $playStatus = $playStatusForRow($cursor, $lastSessionSlot?->end_time);
+                $playStatus = $isPaidPackage
+                    ? $playStatusForRow($cursor, $lastSessionSlot?->end_time)
+                    : $inactiveScheduleStatus();
 
                 $previewRows->push([
                     'date' => $cursor->copy(),
@@ -176,8 +194,10 @@
         $previewRows = $previewRows->sortBy('date')->values();
     }
 
-    $actualRows = $bookingPackage->bookings->map(function ($booking) use ($bookingStatusLabels, $bookingStatusClasses, $playStatusForRow) {
-        $playStatus = $playStatusForRow($booking->slot_date, $booking->end_time, $booking->status);
+    $actualRows = $bookingPackage->bookings->map(function ($booking) use ($bookingStatusLabels, $bookingStatusClasses, $playStatusForRow, $inactiveScheduleStatus, $isPaidPackage) {
+        $playStatus = $isPaidPackage
+            ? $playStatusForRow($booking->slot_date, $booking->end_time, $booking->status)
+            : $inactiveScheduleStatus();
 
         return [
             'date' => Carbon::parse($booking->slot_date),
@@ -227,7 +247,9 @@
         })
         ->first();
 
-    $usedSessions = (int) ($bookingPackage->used_sessions ?? 0);
+    $usedSessions = method_exists($bookingPackage, 'usedSessionsCount')
+        ? $bookingPackage->usedSessionsCount()
+        : (int) ($bookingPackage->used_sessions ?? 0);
     $totalSessions = (int) ($bookingPackage->total_sessions ?: $scheduleRows->count());
     $remainingSessions = max(0, $totalSessions - $usedSessions);
 
@@ -241,9 +263,9 @@
 
     $durationLabel = trim(($bookingPackage->package?->duration ?? '—') . ' ' . ($bookingPackage->package?->type === 'month' ? 'tháng' : 'tuần'));
 
-    $statusLabel = $statusLabels[$bookingPackage->status] ?? $bookingPackage->status;
+    $statusLabel = $statusLabels[$displayPackageStatus] ?? $displayPackageStatus;
 
-    $statusClass = $statusClasses[$bookingPackage->status] ?? 'bg-stone-100 text-stone-600 ring-stone-200';
+    $statusClass = $statusClasses[$displayPackageStatus] ?? 'bg-stone-100 text-stone-600 ring-stone-200';
 
     $formatMoney = function ($value) {
         return number_format((float) $value, 0, ',', '.') . 'đ';
@@ -374,7 +396,7 @@
             </div>
         </div>
 
-        @if(! $isPaidPackage && $bookingPackage->status === 'pending_payment')
+        @if(! $isPaidPackage && $displayPackageStatus === 'pending_payment')
             <div class="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div>
@@ -386,6 +408,17 @@
                             Đây là lịch dự kiến của gói. Sau khi thanh toán được xác nhận, hệ thống mới sinh các booking con
                             và chuyển gói sang trạng thái hoạt động.
                         </p>
+
+                        @if($packageHoldExpiresAt)
+                            <div data-package-payment-alert class="mt-3 rounded-2xl border {{ $packageHoldExpired ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-amber-200 bg-white/70 text-amber-800' }} px-4 py-3 text-sm font-bold">
+                                @if($packageHoldExpired)
+                                    Booking đã bị hủy do quá thời gian giữ chỗ. Vui lòng tạo gói mới nếu bạn vẫn muốn đặt lịch.
+                                @else
+                                    Giữ chỗ đến {{ $packageHoldExpiresAt->format('H:i d/m/Y') }}.
+                                    Còn lại <span data-package-payment-countdown data-expires-at="{{ $packageHoldExpiresAt->toIso8601String() }}"></span>.
+                                @endif
+                            </div>
+                        @endif
 
                         @if($transaction)
                             <p class="mt-3 text-sm text-amber-800">
@@ -618,7 +651,7 @@
                     </p>
 
                     <div class="mt-5 space-y-3">
-                        @if($bookingPackage->status === 'pending_payment')
+                        @if($displayPackageStatus === 'pending_payment')
                             <form method="POST" action="{{ route('package-bookings.cancel', $bookingPackage) }}">
                                 @csrf
                                 <input type="hidden" name="mode" value="all">
@@ -629,7 +662,7 @@
                                     Hủy yêu cầu đăng ký
                                 </button>
                             </form>
-                        @elseif($bookingPackage->status === 'active')
+                        @elseif($displayPackageStatus === 'active')
                             <form method="POST" action="{{ route('package-bookings.pause', $bookingPackage) }}">
                                 @csrf
                                 @method('PATCH')
@@ -651,7 +684,7 @@
                                     Hủy gói
                                 </button>
                             </form>
-                        @elseif($bookingPackage->status === 'paused')
+                        @elseif($displayPackageStatus === 'paused')
                             <form method="POST" action="{{ route('package-bookings.resume', $bookingPackage) }}">
                                 @csrf
                                 @method('PATCH')
@@ -685,11 +718,24 @@
                         Thanh toán
                     </h2>
 
-                    @if(! $isPaidPackage)
+                    @if(! $isPaidPackage && $displayPackageStatus === 'pending_payment')
                         <p class="mt-1 text-sm text-slate-500">
                             Quét QR hoặc chuyển khoản theo thông tin bên dưới.
                         </p>
 
+                        @if($packageHoldExpiresAt)
+                            <div data-package-payment-alert class="mt-4 rounded-2xl border {{ $packageHoldExpired ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-emerald-200 bg-emerald-50 text-emerald-800' }} px-4 py-3 text-sm font-bold">
+                                @if($packageHoldExpired)
+                                    Mã QR này đã hết hạn giữ chỗ. Vui lòng tạo gói mới nếu bạn vẫn muốn đặt lịch.
+                                @else
+                                    Mã QR giữ chỗ đến {{ $packageHoldExpiresAt->format('H:i d/m/Y') }}.
+                                    Còn lại <span data-package-payment-countdown data-expires-at="{{ $packageHoldExpiresAt->toIso8601String() }}"></span>.
+                                @endif
+                            </div>
+                        @endif
+
+                        @if(! $packageHoldExpired)
+                        <div data-package-payment-live-area>
                         <div class="mt-5 rounded-3xl border border-amber-100 bg-amber-50 p-4">
                             @if($qrUrl)
                                 <img src="{{ $qrUrl }}"
@@ -734,6 +780,9 @@
                             </p>
                         </div>
 
+                        </div>
+                        @endif
+
                         @if($transaction)
                             <div class="mt-4 rounded-2xl bg-slate-50 p-4 text-sm">
                                 <p class="font-bold text-slate-500">
@@ -752,6 +801,30 @@
                                 </p>
                             </div>
                         @endif
+                    @elseif(! $isPaidPackage)
+                        <div class="mt-4 rounded-3xl border border-rose-100 bg-rose-50 p-5">
+                            <p class="text-sm font-black text-rose-800">
+                                Gói này đã hết thời gian thanh toán hoặc đã bị hủy.
+                            </p>
+
+                            <p class="mt-2 text-sm font-semibold text-rose-700">
+                                Mã QR và thông tin chuyển khoản không còn hiệu lực. Vui lòng tạo gói mới nếu bạn vẫn muốn đặt lịch.
+                            </p>
+
+                            @if($transaction)
+                                <div class="mt-3 space-y-2 text-sm text-rose-700">
+                                    <p>
+                                        <span class="font-black">Mã giao dịch:</span>
+                                        {{ $transaction->transaction_code }}
+                                    </p>
+
+                                    <p>
+                                        <span class="font-black">Trạng thái:</span>
+                                        {{ $transactionStatus ?? '—' }}
+                                    </p>
+                                </div>
+                            @endif
+                        </div>
                     @else
                         <div class="mt-4 rounded-3xl border border-emerald-100 bg-emerald-50 p-5">
                             <p class="text-sm font-black text-emerald-900">
@@ -895,4 +968,60 @@
         </div>
     </div>
 </div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const countdownNodes = [...document.querySelectorAll('[data-package-payment-countdown]')];
+
+        if (countdownNodes.length === 0) {
+            return;
+        }
+
+        let countdownTimer = null;
+
+        const renderCountdown = () => {
+            let hasExpired = false;
+
+            countdownNodes.forEach(node => {
+                const expiresAt = new Date(node.dataset.expiresAt).getTime();
+                const remaining = expiresAt - Date.now();
+
+                if (remaining <= 0) {
+                    node.textContent = 'đã hết hạn';
+                    hasExpired = true;
+                    return;
+                }
+
+                const minutes = Math.floor(remaining / 60000);
+                const seconds = Math.floor((remaining % 60000) / 1000);
+                node.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            });
+
+            if (hasExpired) {
+                document.querySelectorAll('[data-package-payment-live-area]').forEach(area => {
+                    area.classList.add('hidden');
+                });
+
+                document.querySelectorAll('[data-package-payment-alert]').forEach(alert => {
+                    alert.classList.remove(
+                        'border-emerald-200',
+                        'bg-emerald-50',
+                        'text-emerald-800',
+                        'border-amber-200',
+                        'bg-white/70',
+                        'text-amber-800'
+                    );
+                    alert.classList.add('border-rose-200', 'bg-rose-50', 'text-rose-700');
+                    alert.textContent = 'Mã QR này đã hết hạn giữ chỗ. Vui lòng tạo gói mới nếu bạn vẫn muốn đặt lịch.';
+                });
+
+                if (countdownTimer) {
+                    clearInterval(countdownTimer);
+                }
+            }
+        };
+
+        renderCountdown();
+        countdownTimer = setInterval(renderCountdown, 1000);
+    });
+</script>
 @endsection

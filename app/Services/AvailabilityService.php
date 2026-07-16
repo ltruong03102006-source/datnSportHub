@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\BookingPackageSession;
 use App\Models\Court;
+use App\Models\Setting;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -17,11 +18,18 @@ class AvailabilityService
             ->with(['prices' => fn($query) => $query->where('day_of_week', $dayOfWeek)])
             ->get();
 
+        $holdMinutes = max(1, (int) Setting::get('booking_hold_time', 15));
+        $holdCutoff = now()->subMinutes($holdMinutes);
+
         $bookedSlots = $court->bookings()
             ->whereDate('slot_date', $date->format('Y-m-d'))
-            // Chỉ booking đã xác nhận mới khóa ca.
-            // Booking pending chỉ là yêu cầu, khách khác vẫn được gửi yêu cầu cùng ca.
-            ->where('status', 'confirmed')
+            ->where(function ($query) use ($holdCutoff) {
+                $query->whereIn('status', ['confirmed', 'completed'])
+                    ->orWhere(function ($pendingQuery) use ($holdCutoff) {
+                        $pendingQuery->where('status', 'pending')
+                            ->where('created_at', '>=', $holdCutoff);
+                    });
+            })
             ->get();
 
         $packageSessions = $this->activePackageSessionsForDate($court, $date);
@@ -64,12 +72,21 @@ class AvailabilityService
 
     private function activePackageSessionsForDate(Court $court, Carbon $date): Collection
     {
+        $holdMinutes = max(1, (int) Setting::get('booking_hold_time', 15));
+        $holdCutoff = now()->subMinutes($holdMinutes);
+
         return BookingPackageSession::query()
             ->with(['timeSlot', 'slots.timeSlot'])
             ->where('court_id', $court->id)
             ->where('weekday', $date->dayOfWeek)
-            ->whereHas('bookingPackage', function ($query) use ($date) {
-                $query->where('status', 'active')
+            ->whereHas('bookingPackage', function ($query) use ($date, $holdCutoff) {
+                $query->where(function ($statusQuery) use ($holdCutoff) {
+                        $statusQuery->where('status', 'active')
+                            ->orWhere(function ($pendingQuery) use ($holdCutoff) {
+                                $pendingQuery->where('status', 'pending_payment')
+                                    ->where('created_at', '>=', $holdCutoff);
+                            });
+                    })
                     ->whereDate('start_date', '<=', $date->toDateString())
                     ->whereDate('end_date', '>=', $date->toDateString());
             })
