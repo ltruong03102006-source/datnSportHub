@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\Setting;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,8 +13,24 @@ use Illuminate\Support\Facades\Log;
 
 class VnPayController extends Controller
 {
+    private function pendingPaymentExpired(Booking $booking): bool
+    {
+        if ($booking->status !== 'pending' || $booking->payment_status !== 'unpaid') {
+            return false;
+        }
+
+        $holdMinutes = max(1, (int) Setting::get('booking_hold_time', 15));
+
+        return $booking->created_at && $booking->created_at->lte(now()->subMinutes($holdMinutes));
+    }
+
     public function createPayment(Request $request, Booking $booking)
     {
+        if ($this->pendingPaymentExpired($booking)) {
+            return redirect()->route('account.bookings.index')
+                ->with('error', 'Thời gian giữ chỗ thanh toán đã hết. Vui lòng đặt lại ca mới.');
+        }
+
         // Get all bookings in the same group (same court, date, created_at)
         $bookingGroup = Booking::where('user_id', Auth::id())
             ->where('court_id', $booking->court_id)
@@ -129,6 +146,11 @@ class VnPayController extends Controller
                 // Payment Success
                 try {
                     $booking = Booking::findOrFail($bookingId);
+
+                    if ($this->pendingPaymentExpired($booking)) {
+                        return redirect()->route('account.bookings.index')
+                            ->with('error', 'Thời gian giữ chỗ thanh toán đã hết. Ca đã được trả lại để người khác có thể đặt.');
+                    }
                     
                     $groupBookings = Booking::where('user_id', $booking->user_id)
                         ->where('court_id', $booking->court_id)

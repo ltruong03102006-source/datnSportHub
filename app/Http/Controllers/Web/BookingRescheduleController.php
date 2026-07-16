@@ -32,7 +32,7 @@ class BookingRescheduleController extends Controller
     public function store(Request $request, Booking $booking): RedirectResponse
     {
         if ($message = $this->eligibilityError($booking)) {
-            return redirect()->route('account.bookings.index')->with('error', $message);
+            return back()->withInput()->withErrors(['booking' => $message])->with('error', $message);
         }
         $data = $request->validate(['new_slot_date' => ['required','date','after_or_equal:today'], 'new_time_slot_ids' => ['required','array','min:1'], 'new_time_slot_ids.*'=>['integer','distinct'], 'reason' => ['nullable','string','max:1000']]);
         $sourceBookings=$this->sourceBookings($booking);
@@ -60,8 +60,16 @@ class BookingRescheduleController extends Controller
             abort(403);
         }
 
-        if ($booking->status !== 'confirmed' || ! Carbon::parse($booking->slot_date->toDateString().' '.$booking->start_time, 'Asia/Ho_Chi_Minh')->isFuture()) {
+        $firstBooking = $this->sourceBookings($booking)->first() ?: $booking;
+        $playStart = Carbon::parse($firstBooking->slot_date->toDateString().' '.$firstBooking->start_time, 'Asia/Ho_Chi_Minh');
+        $now = now('Asia/Ho_Chi_Minh');
+
+        if ($booking->status !== 'confirmed' || ! $playStart->isFuture()) {
             return 'Chỉ booking đã xác nhận và chưa tới giờ mới có thể yêu cầu đổi lịch.';
+        }
+
+        if ($playStart->lt($now->copy()->addHours(2))) {
+            return 'Không thể đổi lịch khi còn dưới 2 giờ trước giờ chơi.';
         }
 
         if ($booking->rescheduleRequests()->where('status', 'pending')->exists()) {

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Carbon\Carbon;
+use App\Models\Setting;
 
 class BookingPackage extends Model
 {
@@ -162,17 +164,124 @@ class BookingPackage extends Model
 
     public function remainingSessions(): int
     {
-        return max(0, (int) $this->total_sessions - (int) $this->used_sessions);
+        return max(0, (int) $this->total_sessions - $this->usedSessionsCount());
+    }
+
+    public function usedSessionsCount(): int
+    {
+        $now = now('Asia/Ho_Chi_Minh');
+
+        $isUsed = function (Booking $booking) use ($now): bool {
+            if ($booking->status === 'completed') {
+                return true;
+            }
+
+            if (in_array($booking->status, ['cancelled'], true)) {
+                return false;
+            }
+
+            if (! $booking->slot_date || ! $booking->end_time) {
+                return false;
+            }
+
+            return Carbon::parse($booking->slot_date->toDateString().' '.$booking->end_time, 'Asia/Ho_Chi_Minh')->lt($now);
+        };
+
+        if ($this->relationLoaded('bookings')) {
+            if ($this->bookings->isNotEmpty()) {
+                return $this->bookings->filter($isUsed)->count();
+            }
+
+            return $this->estimatedUsedSessionsCount($now);
+        }
+
+        $bookings = $this->bookings()->get();
+
+        if ($bookings->isNotEmpty()) {
+            return $bookings->filter($isUsed)->count();
+        }
+
+        return $this->estimatedUsedSessionsCount($now);
+    }
+
+    private function estimatedUsedSessionsCount(Carbon $now): int
+    {
+        if (! in_array($this->status, ['active', 'paused', 'completed'], true)) {
+            return 0;
+        }
+
+        if (! $this->start_date || ! $this->end_date) {
+            return 0;
+        }
+
+        $this->loadMissing(['sessions.timeSlot', 'sessions.slots.timeSlot']);
+
+        $startDate = Carbon::parse($this->start_date)->startOfDay();
+        $endDate = Carbon::parse($this->end_date)->startOfDay();
+        $used = 0;
+
+        foreach ($this->sessions as $session) {
+            $sessionSlots = $session->slots->isNotEmpty()
+                ? $session->slots->sortBy('slot_order')->values()
+                : collect([(object) ['timeSlot' => $session->timeSlot]]);
+
+            $lastSlot = $sessionSlots->last()?->timeSlot;
+
+            if (! $lastSlot?->end_time) {
+                continue;
+            }
+
+            $cursor = $startDate->dayOfWeek === (int) $session->weekday
+                ? $startDate->copy()
+                : $startDate->copy()->next((int) $session->weekday);
+
+            while ($cursor->lte($endDate)) {
+                $sessionEnd = Carbon::parse($cursor->toDateString().' '.$lastSlot->end_time, 'Asia/Ho_Chi_Minh');
+
+                if ($sessionEnd->lt($now)) {
+                    $used++;
+                }
+
+                $cursor->addWeek();
+            }
+        }
+
+        return min($used, (int) $this->total_sessions);
     }
 
     public function progressLabel(): string
     {
-        return "{$this->used_sessions}/{$this->total_sessions} buổi";
+        return "{$this->usedSessionsCount()}/{$this->total_sessions} buổi";
+    }
+
+    public function paymentHoldExpiresAt(): ?Carbon
+    {
+        if (! $this->created_at) {
+            return null;
+        }
+
+        $holdMinutes = max(1, (int) Setting::get('booking_hold_time', 15));
+
+        return Carbon::parse($this->created_at)->addMinutes($holdMinutes);
+    }
+
+    public function paymentHoldExpired(): bool
+    {
+        $expiresAt = $this->paymentHoldExpiresAt();
+
+        return $this->status === 'pending_payment'
+            && $expiresAt
+            && $expiresAt->lte(now());
+    }
+
+    public function displayStatus(): string
+    {
+        return $this->paymentHoldExpired() ? 'cancelled' : (string) $this->status;
     }
 
     public function statusLabel(): string
     {
-        return match ($this->status) {
+        return match ($this->displayStatus()) {
             'pending_payment' => 'Chờ thanh toán',
             'active' => 'Đang hoạt động',
             'paused' => 'Tạm dừng',

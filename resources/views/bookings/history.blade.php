@@ -580,7 +580,9 @@
                                             ? 'Gói tháng'
                                             : 'Gói tuần';
 
-                                        $packageStatus = $bookingPackage->status ?? 'pending_payment';
+                                        $packageStatus = method_exists($bookingPackage, 'displayStatus')
+                                            ? $bookingPackage->displayStatus()
+                                            : ($bookingPackage->status ?? 'pending_payment');
 
                                         $packageStatusLabel = $packageStatusLabels[$packageStatus] ?? $packageStatus;
 
@@ -592,7 +594,9 @@
                                             ?? 0;
 
                                         $totalSessions = (int) ($bookingPackage->total_sessions ?: $bookingPackage->bookings->count());
-                                        $usedSessions = (int) ($bookingPackage->used_sessions ?? 0);
+                                        $usedSessions = method_exists($bookingPackage, 'usedSessionsCount')
+                                            ? $bookingPackage->usedSessionsCount()
+                                            : (int) ($bookingPackage->used_sessions ?? 0);
                                         $progressPercent = $totalSessions > 0
                                             ? min(100, round(($usedSessions / $totalSessions) * 100))
                                             : 0;
@@ -676,7 +680,9 @@
                                     ? 'Gói tháng'
                                     : 'Gói tuần';
 
-                                $packageStatus = $bookingPackage->status ?? 'pending_payment';
+                                $packageStatus = method_exists($bookingPackage, 'displayStatus')
+                                    ? $bookingPackage->displayStatus()
+                                    : ($bookingPackage->status ?? 'pending_payment');
 
                                 $packageStatusLabel = $packageStatusLabels[$packageStatus] ?? $packageStatus;
 
@@ -688,7 +694,9 @@
                                     ?? 0;
 
                                 $totalSessions = (int) ($bookingPackage->total_sessions ?: $bookingPackage->bookings->count());
-                                $usedSessions = (int) ($bookingPackage->used_sessions ?? 0);
+                                $usedSessions = method_exists($bookingPackage, 'usedSessionsCount')
+                                    ? $bookingPackage->usedSessionsCount()
+                                    : (int) ($bookingPackage->used_sessions ?? 0);
                                 $progressPercent = $totalSessions > 0
                                     ? min(100, round(($usedSessions / $totalSessions) * 100))
                                     : 0;
