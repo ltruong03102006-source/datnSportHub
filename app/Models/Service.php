@@ -16,8 +16,11 @@ class Service extends Model
     protected $fillable = [
         'venue_id',
         'name',
+        'category',      // Thêm mới
+        'pricing_type',  // Thêm mới
         'description',
         'price',
+        'stock',         // Thêm mới
         'unit',
         'image',
         'is_active',
@@ -25,6 +28,7 @@ class Service extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
+        'stock' => 'integer', // Ép kiểu số nguyên
         'is_active' => 'boolean',
     ];
 
