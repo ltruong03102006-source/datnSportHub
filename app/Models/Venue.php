@@ -221,4 +221,8 @@ class Venue extends Model
 
         return $query->when($radiusKm, fn (Builder $q) => $q->whereRaw("{$haversine} <= ?", [$lat, $lng, $lat, $radiusKm]));
     }
+    public function services(): HasMany
+    {
+        return $this->hasMany(Service::class);
+    }
 }

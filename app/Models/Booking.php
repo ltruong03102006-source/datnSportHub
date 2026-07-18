@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Booking extends Model
 {
@@ -96,5 +97,12 @@ class Booking extends Model
         } else {
             return ['fee_percent' => 100, 'refund_percent' => 0, 'hours' => $hoursDiff];
         }
+    }
+    // Bổ sung: Một đơn đặt sân có thể bao gồm nhiều dịch vụ mua kèm
+    public function services(): BelongsToMany
+    {
+        return $this->belongsToMany(Service::class, 'booking_services')
+                    ->withPivot('quantity', 'price')
+                    ->withTimestamps();
     }
 }
