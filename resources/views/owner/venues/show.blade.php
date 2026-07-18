@@ -401,7 +401,14 @@
                                 @endif
                             </div>
                             <div>
-                                <h6 class="mb-1 fw-bold text-dark">{{ $service->name }}</h6>
+                                <h6 class="mb-1 fw-bold text-dark d-flex align-items-center gap-2">
+                                    {{ $service->name }}
+                                    @if($service->pricing_type === 'rental')
+                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle" style="font-size: 0.65rem; padding: 0.35em 0.5em;">Cho thuê</span>
+                                    @else
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle" style="font-size: 0.65rem; padding: 0.35em 0.5em;">Bán đứt</span>
+                                    @endif
+                                </h6>
                                 <div class="text-muted small">
                                     Giá: <strong class="text-success">{{ number_format($service->price, 0, ',', '.') }}đ</strong> / {{ $service->unit }}
 <span class="mx-2">|</span> 
@@ -655,7 +662,7 @@ Trạng thái: {!! $service->is_active ? '<span class="text-success">Đang bán<
                     <div class="row g-3 mb-3">
                         <div class="col-4">
                             <label class="form-label fw-semibold">Đơn giá <span class="text-danger">*</span></label>
-                            <input type="number" name="price" class="form-control" placeholder="10000" min="0" required>
+                            <input type="number" name="price" class="form-control" placeholder="10000" min="0" onkeydown="return ['e', 'E', '+', '-', '.'].includes(event.key) ? false : true" required>
                         </div>
                         <div class="col-4">
                             <label class="form-label fw-semibold">Đơn vị <span class="text-danger">*</span></label>
@@ -719,7 +726,7 @@ Trạng thái: {!! $service->is_active ? '<span class="text-success">Đang bán<
                     <div class="row g-3 mb-3">
                         <div class="col-4">
                             <label class="form-label fw-semibold">Đơn giá <span class="text-danger">*</span></label>
-                            <input type="number" name="price" id="edit_service_price" class="form-control" min="0" required>
+                            <input type="number" name="price" id="edit_service_price" class="form-control" min="0" onkeydown="return ['e', 'E', '+', '-', '.'].includes(event.key) ? false : true" required>
                         </div>
                         <div class="col-4">
                             <label class="form-label fw-semibold">Đơn vị <span class="text-danger">*</span></label>

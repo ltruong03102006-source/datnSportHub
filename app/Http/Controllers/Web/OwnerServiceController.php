@@ -37,7 +37,8 @@ class OwnerServiceController extends Controller
             // Sửa lại dòng này: Việt hóa từ khóa và bỏ support
             'category' => 'required|string|in:do_uong,do_an,dung_cu,combo',
             'pricing_type' => 'required|string|in:retail,rental',
-            'price' => 'required|numeric|min:0',
+            // Ở CẢ HÀM store() VÀ update() BẠN ĐỀU SỬA THÀNH:
+'price' => 'required|integer|min:0|max:100000000', // Chỉ nhận số nguyên, tối đa 100 triệu
             'stock' => 'nullable|integer|min:0',
             'unit' => 'required|string|max:50',
             'description' => 'nullable|string',
@@ -71,7 +72,8 @@ class OwnerServiceController extends Controller
             'name' => 'required|string|max:255',
             'category' => 'required|string|in:do_uong,do_an,dung_cu,combo', // Đã cập nhật chuẩn tiếng Việt
             'pricing_type' => 'required|string|in:retail,rental',
-            'price' => 'required|numeric|min:0',
+            // Ở CẢ HÀM store() VÀ update() BẠN ĐỀU SỬA THÀNH:
+'price' => 'required|integer|min:0|max:100000000', // Chỉ nhận số nguyên, tối đa 100 triệu
             'stock' => 'nullable|integer|min:0',
             'unit' => 'required|string|max:50',
             'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
