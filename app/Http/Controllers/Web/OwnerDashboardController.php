@@ -10,6 +10,7 @@ use App\Models\Court;
 use App\Models\Booking;
 use App\Models\TimeSlot;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class OwnerDashboardController extends Controller
@@ -77,8 +78,12 @@ class OwnerDashboardController extends Controller
             ->get();
 
         // 2. Revenue calculation
+        // Doanh thu thực tế: booking đã được xác nhận hoặc đã hoàn thành.
+        // Booking COD sau khi chủ sân xác nhận vẫn có thể có payment_status = unpaid.
+        $revenueStatuses = ['confirmed', 'completed'];
+        $revenueBookings = $bookings->whereIn('status', $revenueStatuses);
         $completedBookings = $bookings->where('status', 'completed');
-        $totalRevenue = $completedBookings->sum('total_price');
+        $totalRevenue = $revenueBookings->sum('total_price');
         
         // 3. Booking Stats
         $totalBookings = $bookings->count();
@@ -89,13 +94,57 @@ class OwnerDashboardController extends Controller
             'cancelled' => $bookings->where('status', 'cancelled')->count(),
         ];
 
-        // 4. Revenue by Day for Line Chart
-        $revenueByDay = $completedBookings->groupBy(function($b) {
-            return Carbon::parse($b->slot_date)->format('Y-m-d');
-        })->map(function ($row) {
-            return $row->sum('total_price');
-        });
-        $revenueByDay = $revenueByDay->sortKeys();
+        // 4. Revenue data for Line Chart
+        // Tạo đủ mốc thời gian trong khoảng lọc để biểu đồ không bị nối thiếu điểm.
+        $revenueQuery = Booking::query()
+            ->whereHas('court', function ($query) use ($venueIds) {
+                $query->whereIn('venue_id', $venueIds);
+            })
+            ->whereIn('status', $revenueStatuses)
+            ->whereBetween('slot_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
+
+        if ($period === 'today') {
+            $rawRevenue = (clone $revenueQuery)
+                ->select(DB::raw('HOUR(start_time) as bucket'), DB::raw('SUM(total_price) as total'))
+                ->groupBy('bucket')
+                ->pluck('total', 'bucket');
+
+            $revenueLabels = [];
+            $revenueValues = [];
+            for ($hour = 0; $hour <= 23; $hour++) {
+                $revenueLabels[] = str_pad((string) $hour, 2, '0', STR_PAD_LEFT) . ':00';
+                $revenueValues[] = (float) ($rawRevenue[$hour] ?? 0);
+            }
+        } elseif ($period === 'year') {
+            $rawRevenue = (clone $revenueQuery)
+                ->select(DB::raw('MONTH(slot_date) as bucket'), DB::raw('SUM(total_price) as total'))
+                ->groupBy('bucket')
+                ->pluck('total', 'bucket');
+
+            $revenueLabels = [];
+            $revenueValues = [];
+            for ($month = 1; $month <= 12; $month++) {
+                $revenueLabels[] = 'Tháng ' . $month;
+                $revenueValues[] = (float) ($rawRevenue[$month] ?? 0);
+            }
+        } else {
+            $rawRevenue = (clone $revenueQuery)
+                ->select('slot_date', DB::raw('SUM(total_price) as total'))
+                ->groupBy('slot_date')
+                ->orderBy('slot_date')
+                ->pluck('total', 'slot_date');
+
+            $revenueLabels = [];
+            $revenueValues = [];
+            $cursor = $startDate->copy()->startOfDay();
+            $lastDate = $endDate->copy()->startOfDay();
+            while ($cursor->lte($lastDate)) {
+                $key = $cursor->format('Y-m-d');
+                $revenueLabels[] = $cursor->format('d/m');
+                $revenueValues[] = (float) ($rawRevenue[$key] ?? 0);
+                $cursor->addDay();
+            }
+        }
 
         // 5. Peak Hours (Khung giờ cao điểm)
         $peakHours = $bookings->groupBy(function($b) {
@@ -137,7 +186,7 @@ class OwnerDashboardController extends Controller
         $prevRevenue = Booking::whereHas('court', function ($query) use ($venueIds) {
                 $query->whereIn('venue_id', $venueIds);
             })
-            ->where('status', 'completed')
+            ->whereIn('status', $revenueStatuses)
             ->whereBetween('slot_date', [$prevStartDate->format('Y-m-d'), $prevEndDate->format('Y-m-d')])
             ->sum('total_price');
 
@@ -149,7 +198,7 @@ class OwnerDashboardController extends Controller
         }
 
         // 9. Top Venues
-        $topVenues = $completedBookings->groupBy(function($b) {
+        $topVenues = $revenueBookings->groupBy(function($b) {
             return $b->court->venue->id;
         })->map(function($venueBookings) {
             $venue = $venueBookings->first()->court->venue;
@@ -161,7 +210,7 @@ class OwnerDashboardController extends Controller
         })->sortByDesc('revenue')->take(5)->values();
 
         // 10. Top Customers
-        $topCustomers = $completedBookings->groupBy('user_id')->map(function($userBookings) {
+        $topCustomers = $revenueBookings->groupBy('user_id')->map(function($userBookings) {
             $user = $userBookings->first()->user;
             return [
                 'name' => $user->name ?? 'Unknown',
@@ -173,8 +222,8 @@ class OwnerDashboardController extends Controller
 
 
         $chartData = [
-            'revenueDates' => $revenueByDay->keys()->toArray(),
-            'revenueValues' => $revenueByDay->values()->toArray(),
+            'revenueDates' => $revenueLabels,
+            'revenueValues' => $revenueValues,
             'statusLabels' => ['Hoàn tất', 'Đã xác nhận', 'Chờ xử lý', 'Đã hủy'],
             'statusValues' => array_values($bookingStatuses),
             'peakHourLabels' => $peakHours->keys()->toArray(),

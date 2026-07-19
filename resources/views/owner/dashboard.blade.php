@@ -478,14 +478,35 @@
                         pointRadius: 4,
                         pointHoverRadius: 6,
                         fill: true,
-                        tension: 0.4 
+                        tension: 0.25
                     }]
                 },
                 options: {
-                    responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Doanh thu: ' + Number(context.parsed.y || 0).toLocaleString('vi-VN') + ' đ';
+                                }
+                            }
+                        }
+                    },
                     scales: {
                         x: { grid: { display: false, drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b' } },
-                        y: { grid: { color: '#f1f5f9', drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b', callback: function(value) { return value >= 1000 ? (value/1000) + 'k' : value; } } }
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#f1f5f9', drawBorder: false },
+                            ticks: {
+                                font: { family: 'Inter' },
+                                color: '#64748b',
+                                callback: function(value) {
+                                    return Number(value || 0).toLocaleString('vi-VN') + ' đ';
+                                }
+                            }
+                        }
                     }
                 }
             });
