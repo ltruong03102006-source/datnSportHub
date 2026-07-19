@@ -102,9 +102,15 @@ class OwnerBookingCalendarController extends Controller
 
         $start = Carbon::parse($validated['start'])->startOfDay();
         $end = Carbon::parse($validated['end'])->startOfDay();
+        $statusFilter = $validated['status'] ?? null;
+
+        if (in_array($statusFilter, ['cancelled', 'rejected'], true)) {
+            return response()->json([]);
+        }
 
         $bookings = Booking::query()
             ->whereHas('court.venue', fn ($query) => $query->where('owner_id', $request->user()->id))
+            ->whereNotIn('status', ['cancelled', 'rejected'])
             ->when(
                 $validated['venue_id'] ?? null,
                 fn ($query, $venueId) => $query->whereHas(
@@ -117,7 +123,7 @@ class OwnerBookingCalendarController extends Controller
                 fn ($query, $courtId) => $query->where('court_id', $courtId)
             )
             ->when(
-                $validated['status'] ?? null,
+                $statusFilter,
                 fn ($query, $status) => $query->where('status', $status)
             )
             ->whereDate('slot_date', '>=', $start->toDateString())
@@ -317,7 +323,7 @@ class OwnerBookingCalendarController extends Controller
 
         // Nếu DB đang là "Đã xác nhận" nhưng giờ đã qua -> Khoác áo "Đã hoàn thành"
         if ($booking->status === 'confirmed' && $isPast) {
-            $status = ['label' => 'Đã đá xong', 'color' => '#2563eb']; // Đổi màu xanh dương
+            $status = ['label' => 'Đã hoàn thành', 'color' => '#2563eb']; // Đổi màu xanh dương
         }
         
         // Trạng thái giả lập gửi xuống Frontend để giấu nút "Hủy sân"

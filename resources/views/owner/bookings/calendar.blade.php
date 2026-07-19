@@ -731,7 +731,6 @@
                     <option value="">Tất cả trạng thái</option>
                     <option value="confirmed">Đã xác nhận</option>
                     <option value="completed">Đã hoàn thành</option>
-                    <option value="cancelled">Đã hủy</option>
                 </select>
             </div>
             <div>
@@ -743,7 +742,6 @@
         <div class="legend-strip" aria-label="Chú thích trạng thái">
             <span class="legend-item"><i class="legend-dot" style="background:#047857"></i> Đã xác nhận</span>
             <span class="legend-item"><i class="legend-dot" style="background:#2563eb"></i> Đã hoàn thành</span>
-            <span class="legend-item"><i class="legend-dot" style="background:#64748b"></i> Đã hủy</span>
         </div>
     </section>
 
