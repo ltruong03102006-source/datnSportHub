@@ -155,6 +155,81 @@
                     </div>
                 </div>
             </div>
+            <!-- BẮT ĐẦU: KHỐI CHỌN DỊCH VỤ MUA KÈM (Đã chuyển sang cột phải - Dàn ngang) -->
+                @if(isset($services) && $services->count() > 0)
+                <div class="mt-6 rounded-2xl border border-stone-200 bg-white p-5 sm:p-6 shadow-sm" x-data="{ lightboxOpen: false, lightboxImg: '' }">
+                    <h3 class="text-lg font-bold text-zinc-900 mb-4">Dịch vụ & Tiện ích mua kèm</h3>
+                    
+                    <!-- Thay đổi lớn: Dùng Grid để dàn ngang thành 2 hoặc 3 cột tùy màn hình -->
+                    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                        @foreach($services as $service)
+                        @php 
+                            $isOutOfStock = $service->stock !== null && $service->stock <= 0; 
+                        @endphp
+                        
+                        <div class="flex flex-col justify-between rounded-xl border border-stone-100 bg-stone-50 p-3 transition-all {{ $isOutOfStock ? 'opacity-60 grayscale cursor-not-allowed' : 'hover:border-emerald-300 shadow-sm hover:shadow' }}">
+                            
+                            <div class="flex items-start gap-3 mb-3">
+                                <!-- Nút bấm xem ảnh (Lightbox) -->
+                                <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-white border border-stone-200 overflow-hidden {{ !$isOutOfStock ? 'cursor-pointer hover:scale-105 transition-transform' : '' }}"
+                                     @if(!$isOutOfStock) @click="lightboxOpen = true; lightboxImg = '{{ asset('storage/' . $service->image) }}'" @endif>
+                                    @if($service->image)
+                                        <img src="{{ asset('storage/' . $service->image) }}" class="h-full w-full object-cover">
+                                    @else
+                                        <svg class="h-6 w-6 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                                    @endif
+                                </div>
+                                
+                                <div class="flex-1">
+                                    <h6 class="text-sm font-bold text-zinc-900 line-clamp-2 leading-tight">{{ $service->name }}</h6>
+                                    <p class="text-xs font-bold text-emerald-600 mt-1.5">
+                                        {{ number_format($service->price, 0, ',', '.') }}đ/{{ $service->unit }}
+                                        @if($service->pricing_type === 'rental') <span class="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded ml-1 text-[10px] uppercase">Thuê</span> @endif
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between border-t border-stone-200/60 pt-3 mt-1">
+                                <span class="text-[11px] text-stone-500 font-medium">@if($service->stock !== null) Còn {{ $service->stock }} @else Vô hạn @endif</span>
+                                
+                                @if($isOutOfStock)
+                                    <span class="text-xs font-bold text-rose-600 bg-rose-100 px-2 py-1 rounded">Tạm hết</span>
+                                @else
+                                    <div class="flex items-center gap-3 bg-white border border-stone-200 rounded-lg p-1 shadow-sm">
+                                        <button type="button" onclick="updateService({{ $service->id }}, {{ $service->price }}, '{{ $service->pricing_type }}', -1, {{ $service->stock ?? 'null' }})" class="flex h-6 w-6 items-center justify-center rounded bg-stone-100 text-stone-600 hover:bg-rose-100 hover:text-rose-600 transition font-bold">-</button>
+                                        <span id="qty-{{ $service->id }}" class="text-xs font-bold text-zinc-900 w-4 text-center">0</span>
+                                        <button type="button" onclick="updateService({{ $service->id }}, {{ $service->price }}, '{{ $service->pricing_type }}', 1, {{ $service->stock ?? 'null' }})" class="flex h-6 w-6 items-center justify-center rounded bg-emerald-50 text-emerald-600 hover:bg-emerald-200 transition font-bold">+</button>
+                                    </div>
+                                @endif
+                                
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+
+                    <!-- BẮT ĐẦU: Overlay Lightbox để xem ảnh lớn -->
+                    <div x-show="lightboxOpen" 
+                         x-cloak 
+                         style="display: none;"
+                         class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+                         @click="lightboxOpen = false" 
+                         @keydown.escape.window="lightboxOpen = false">
+                        
+                        <button class="absolute top-6 right-6 text-white/70 hover:text-white transition-colors">
+                            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                        
+                        <img :src="lightboxImg" 
+                             class="max-h-[90vh] max-w-[90vw] rounded-lg object-contain shadow-2xl transform transition-transform duration-300" 
+                             x-transition:enter="ease-out duration-300"
+                             x-transition:enter-start="opacity-0 scale-90"
+                             x-transition:enter-end="opacity-100 scale-100"
+                             @click.stop>
+                    </div>
+                    <!-- KẾT THÚC: Overlay Lightbox -->
+                </div>
+                @endif
+                <!-- KẾT THÚC: KHỐI CHỌN DỊCH VỤ MUA KÈM -->
         </div>
     </div>
 
@@ -474,6 +549,29 @@
         updateSummaryUI();
     }
 
+    // BIẾN LƯU TRỮ DỊCH VỤ KHÁCH CHỌN
+    let selectedServices = {};
+
+    function updateService(id, price, type, change, maxStock) {
+        let currentQty = selectedServices[id]?.quantity || 0;
+        let newQty = currentQty + change;
+        
+        if (newQty < 0) newQty = 0;
+        if (maxStock !== null && newQty > maxStock) {
+            showToast('Đã đạt giới hạn số lượng trong kho!');
+            newQty = maxStock;
+        }
+
+        if (newQty > 0) {
+            selectedServices[id] = { id, price, type, quantity: newQty };
+        } else {
+            delete selectedServices[id];
+        }
+
+        document.getElementById(`qty-${id}`).innerText = newQty;
+        updateSummaryUI(); // Gọi hàm tính lại tiền
+    }
+
     function updateSummaryUI() {
         const summaryDiv = document.getElementById('bookingSummary');
         const submitBtn = document.getElementById('btnSubmitBooking');
@@ -481,7 +579,6 @@
         const summaryPrice = document.getElementById('summaryPrice');
 
         document.querySelectorAll('.slot-card').forEach(card => {
-            // VÁ LỖI CRASH: Nếu thẻ này là thẻ bị khóa/đã qua (không có checkbox) thì bỏ qua ngay!
             const checkbox = card.querySelector('.slot-checkbox');
             if (!checkbox) return; 
 
@@ -489,32 +586,39 @@
             const isSelected = selectedSlots.some(s => s.slot_id === id);
 
             if (isSelected) {
-                card.style.borderColor = '#10b981';
-                card.style.backgroundColor = '#ecfdf5';
-                card.style.transform = 'translateY(-2px)';
-                card.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
-                
-                checkbox.style.borderColor = '#10b981';
+                card.style.borderColor = '#10b981'; card.style.backgroundColor = '#ecfdf5';
                 checkbox.style.backgroundColor = '#10b981';
                 checkbox.innerHTML = `<svg class="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>`;
             } else {
-                card.style.borderColor = '';
-                card.style.backgroundColor = '';
-                card.style.transform = '';
-                card.style.boxShadow = '';
-                
-                checkbox.style.borderColor = '';
-                checkbox.style.backgroundColor = '';
-                checkbox.innerHTML = '';
+                card.style.borderColor = ''; card.style.backgroundColor = '';
+                checkbox.style.backgroundColor = ''; checkbox.innerHTML = '';
             }
         });
 
         if (selectedSlots.length > 0) {
             summaryDiv.style.display = 'block';
             const totalMins = selectedSlots.reduce((sum, s) => sum + parseInt(s.duration_minutes), 0);
-            const totalPrice = selectedSlots.reduce((sum, s) => sum + parseInt(s.price), 0);
+            const totalHours = totalMins / 60;
+            let totalPrice = selectedSlots.reduce((sum, s) => sum + parseInt(s.price), 0);
 
-            summaryText.innerHTML = `<span class="text-emerald-600">${totalMins} phút</span> <span class="text-stone-400 font-medium ml-1">(${selectedSlots.length} ca)</span>`;
+            // LOGIC TÍNH TIỀN DỊCH VỤ
+            let serviceCount = 0;
+            let serviceTotal = 0;
+            Object.values(selectedServices).forEach(svc => {
+                serviceCount += svc.quantity;
+                if (svc.type === 'rental') {
+                    serviceTotal += svc.price * svc.quantity * totalHours; // Thuê -> Nhân với số giờ đặt sân
+                } else {
+                    serviceTotal += svc.price * svc.quantity; // Bán đứt
+                }
+            });
+
+            totalPrice += serviceTotal;
+
+            let textHtml = `<span class="text-emerald-600">${totalMins} phút</span> <span class="text-stone-400 font-medium ml-1">(${selectedSlots.length} ca)</span>`;
+            if(serviceCount > 0) textHtml += ` <span class="text-indigo-600 ml-2 text-sm">+${serviceCount} D.Vụ</span>`;
+            
+            summaryText.innerHTML = textHtml;
             summaryPrice.textContent = totalPrice.toLocaleString('vi-VN') + '₫';
             submitBtn.disabled = false;
         } else {
@@ -562,6 +666,7 @@
                         start_time: slot.start_time,
                         end_time: slot.end_time,
                     })),
+                    services: Object.values(selectedServices) // Gửi mảng dịch vụ về Backend
                 }),
             });
 
