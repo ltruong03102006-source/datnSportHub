@@ -256,7 +256,8 @@ class UserBookingController extends Controller
 
         try {
             DB::transaction(function () use ($booking, $reason): void {
-                $groupBookings = Booking::where('user_id', Auth::id())
+                // SỬA: Thêm with('services') để load dữ liệu dịch vụ từ bảng trung gian
+                $groupBookings = Booking::with('services')->where('user_id', Auth::id())
                     ->where('court_id', $booking->court_id)->where('slot_date', $booking->slot_date)
                     ->where('created_at', $booking->created_at)
                     ->whereIn('status', self::CANCELLABLE_STATUSES)->lockForUpdate()->get();
@@ -266,7 +267,7 @@ class UserBookingController extends Controller
                 $firstBooking = $groupBookings->sortBy('start_time')->first();
                 $this->ensureCanCancel($firstBooking);
                 
-                // --- SỬA TẠI ĐÂY: GỌI THUẬT TOÁN TÍNH PHẠT ĐỘNG ---
+                // GỌI THUẬT TOÁN TÍNH PHẠT ĐỘNG
                 $feePercent = $this->determineCancellationFeePercent($firstBooking);
 
                 $user = Auth::user();
@@ -277,8 +278,12 @@ class UserBookingController extends Controller
                     $refundStatus = 'none';
 
                     if ($b->payment_status === 'paid') {
-                        $fee = ($b->total_price * $feePercent) / 100;
-                        $refund = $b->total_price - $fee;
+                        // SỬA: BÓC TÁCH TIỀN DỊCH VỤ KHỎI PHÍ PHẠT
+                        $bServicesTotal = $b->services->sum('pivot.price');
+                        $bCourtPrice = max(0, $b->total_price - $bServicesTotal); // Lấy ra tiền thuê sân gốc
+                        
+                        $fee = ($bCourtPrice * $feePercent) / 100; // Chỉ tính phạt trên tiền sân
+                        $refund = $b->total_price - $fee; // Tiền hoàn lại = Tổng đơn - Phạt (Tự động hoàn 100% DV)
                         
                         if ($refund > 0) {
                             $refundStatus = 'refunded';
@@ -310,7 +315,6 @@ class UserBookingController extends Controller
                         'changed_by' => Auth::id(),
                         'old_status' => $oldStatus,
                         'new_status' => 'cancelled',
-                        // --- SỬA TẠI ĐÂY: DÙNG BIẾN $feePercent TRONG GHI CHÚ ---
                         'note' => "Khách hủy. Phạt {$feePercent}%. Lý do: {$reason}",
                     ]);
                 }
@@ -363,7 +367,8 @@ class UserBookingController extends Controller
     {
         $this->ensureOwner($booking);
         
-        $groupBookings = Booking::where('user_id', Auth::id())
+        // SỬA: Thêm with('services') để load dữ liệu dịch vụ
+        $groupBookings = Booking::with('services')->where('user_id', Auth::id())
             ->where('court_id', $booking->court_id)->where('slot_date', $booking->slot_date)
             ->where('created_at', $booking->created_at)->whereIn('status', self::CANCELLABLE_STATUSES)->get();
 
@@ -384,9 +389,16 @@ class UserBookingController extends Controller
         $feePercent = $this->determineCancellationFeePercent($firstBooking);
         
         $totalPrice = $groupBookings->sum('total_price');
+        
+        // SỬA: BÓC TÁCH TIỀN DỊCH VỤ TRÊN GIAO DIỆN HIỂN THỊ
+        $servicesTotal = $groupBookings->flatMap->services->sum('pivot.price');
+        $courtPrice = max(0, $totalPrice - $servicesTotal);
+        
         $isPaid = $firstBooking->payment_status === 'paid';
         
-        $fee = $isPaid ? ($totalPrice * $feePercent) / 100 : 0;
+        // Phạt trên tiền sân
+        $fee = $isPaid ? ($courtPrice * $feePercent) / 100 : 0;
+        // Hoàn lại tổng tiền đơn (gồm cả tiền dịch vụ nguyên vẹn)
         $refund = $isPaid ? ($totalPrice - $fee) : 0;
 
         return response()->json([

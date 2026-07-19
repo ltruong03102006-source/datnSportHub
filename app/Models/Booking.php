@@ -105,4 +105,27 @@ class Booking extends Model
                     ->withPivot('quantity', 'price')
                     ->withTimestamps();
     }
+    // --- BẮT ĐẦU: LOGIC TỰ ĐỘNG HOÀN KHO KHI HỦY ĐƠN ---
+    protected static function booted()
+    {
+        static::updated(function ($booking) {
+            // FIX QUAN TRỌNG: Dùng wasChanged() thay vì isDirty() trong sự kiện updated
+            if ($booking->wasChanged('status') && in_array($booking->status, ['cancelled', 'rejected'])) {
+                
+                // Lấy các dịch vụ có trong đơn này
+                $services = $booking->services;
+                
+                if ($services->count() > 0) {
+                    foreach ($services as $service) {
+                        // Nếu mặt hàng này có quản lý tồn kho (stock !== null)
+                        if ($service->stock !== null) {
+                            // CỘNG TRẢ LẠI SỐ LƯỢNG VÀO KHO
+                            $service->increment('stock', $service->pivot->quantity);
+                        }
+                    }
+                }
+            }
+        });
+    }
+    // --- KẾT THÚC: LOGIC TỰ ĐỘNG HOÀN KHO ---
 }
