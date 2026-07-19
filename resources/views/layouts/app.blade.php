@@ -177,6 +177,15 @@
 
             @auth
             <div class="relative hidden items-center md:flex items-center gap-4">
+                @if (Auth::user()->role === 'owner')
+                    <a href="{{ route('owner.dashboard') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 hover:shadow focus:outline-none focus:ring-2 focus:ring-emerald-500/30">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15l-.75 18H5.25L4.5 3Zm4.5 4.5h6m-6 4h6m-6 4h3" />
+                        </svg>
+                        Quản lý sân
+                    </a>
+                @endif
+
                 <div x-data="{ open: false }" class="relative">
                     <button @click="open = !open" @click.away="open = false" id="notification-button" class="relative grid h-10 w-10 place-items-center rounded-lg text-zinc-700 transition hover:bg-stone-100">
                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
