@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -9,18 +9,141 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        :root {
+            --owner-ink: #172033;
+            --owner-muted: #64748b;
+            --owner-panel: rgba(255, 255, 255, 0.82);
+            --owner-line: rgba(255, 255, 255, 0.56);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background:
+                linear-gradient(115deg, rgba(16, 185, 129, 0.16) 0%, transparent 28%),
+                linear-gradient(245deg, rgba(59, 130, 246, 0.14) 0%, transparent 34%),
+                linear-gradient(135deg, #f7fee7 0%, #ecfeff 36%, #fdf2f8 72%, #fff7ed 100%);
+            color: var(--owner-ink);
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.42) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.36) 1px, transparent 1px);
+            background-size: 42px 42px;
+            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.78), transparent 82%);
+        }
+
+        .owner-topbar {
+            background: linear-gradient(120deg, rgba(15, 23, 42, 0.92), rgba(5, 150, 105, 0.88), rgba(37, 99, 235, 0.86));
+            border-bottom: 1px solid rgba(255, 255, 255, 0.24);
+            box-shadow: 0 18px 50px rgba(15, 23, 42, 0.22);
+        }
+
+        .owner-topbar h1,
+        .owner-topbar a {
+            color: #fff !important;
+        }
+
+        .owner-topbar a {
+            position: relative;
+            border-radius: 999px;
+            padding: 0.55rem 0.9rem;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .owner-topbar a:hover {
+            background: rgba(255, 255, 255, 0.24);
+            transform: translateY(-1px);
+        }
+
+        .owner-page {
+            position: relative;
+            z-index: 1;
+        }
+
+        .owner-alert {
+            background: linear-gradient(120deg, rgba(254, 243, 199, 0.96), rgba(255, 237, 213, 0.92));
+            border: 1px solid rgba(245, 158, 11, 0.28);
+            border-left: 6px solid #f59e0b;
+            box-shadow: 0 16px 42px rgba(180, 83, 9, 0.16);
+        }
+
+        .filter-shell {
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(240, 253, 250, 0.82)),
+                linear-gradient(120deg, rgba(16, 185, 129, 0.16), rgba(59, 130, 246, 0.12));
+            border: 1px solid rgba(255, 255, 255, 0.72);
+            box-shadow: 0 18px 55px rgba(15, 23, 42, 0.13);
+        }
+
         .glass-card {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            position: relative;
+            background: var(--owner-panel);
+            backdrop-filter: blur(18px) saturate(145%);
+            -webkit-backdrop-filter: blur(18px) saturate(145%);
+            border: 1px solid var(--owner-line);
+            box-shadow: 0 20px 55px rgba(15, 23, 42, 0.12);
             transition: all 0.3s ease;
         }
-        .glass-card:hover {
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+        .glass-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.46), rgba(59, 130, 246, 0.36), rgba(244, 114, 182, 0.34));
+            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
         }
+
+        .glass-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 28px 68px rgba(15, 23, 42, 0.18);
+        }
+
+        .metric-card:nth-child(1) {
+            background: linear-gradient(145deg, rgba(236, 253, 245, 0.92), rgba(255, 255, 255, 0.84));
+        }
+
+        .metric-card:nth-child(2) {
+            background: linear-gradient(145deg, rgba(239, 246, 255, 0.94), rgba(255, 255, 255, 0.84));
+        }
+
+        .metric-card:nth-child(3) {
+            background: linear-gradient(145deg, rgba(238, 242, 255, 0.94), rgba(255, 255, 255, 0.84));
+        }
+
+        .metric-card:nth-child(4) {
+            background: linear-gradient(145deg, rgba(255, 247, 237, 0.94), rgba(255, 255, 255, 0.84));
+        }
+
+        .spark-title {
+            color: var(--owner-ink);
+        }
+
+        select,
+        input[type="date"] {
+            background-color: rgba(255, 255, 255, 0.9) !important;
+            border-color: rgba(148, 163, 184, 0.5) !important;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        }
+
+        table thead {
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.11), rgba(59, 130, 246, 0.11), rgba(244, 114, 182, 0.1)) !important;
+        }
+
+        tbody tr:hover {
+            background: rgba(240, 253, 250, 0.72) !important;
+        }
+
         input[type="date"]::-webkit-calendar-picker-indicator {
             cursor: pointer;
             opacity: 0.6;
@@ -34,10 +157,10 @@
 <body class="text-slate-800 antialiased min-h-screen flex flex-col">
 
     <!-- Top Navigation -->
-    <nav class="bg-white shadow-sm border-b border-slate-200 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+    <nav class="owner-topbar px-6 py-4 flex justify-between items-center sticky top-0 z-50">
         <div class="flex items-center gap-4">
-            <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-teal-500">
-                Tổng Quan Kinh Doanh
+            <h1 class="text-2xl font-semibold">
+                Tổng Quan Kinh Doanh
             </h1>
         </div>
         <div class="flex items-center gap-4">
@@ -48,10 +171,10 @@
         </div>
     </nav>
 
-    <div class="flex-1 p-6 lg:p-10 max-w-7xl mx-auto w-full" x-data="{ filterType: '{{ $period == "custom" ? "custom" : "quick" }}' }">
+    <div class="owner-page flex-1 p-6 lg:p-10 max-w-7xl mx-auto w-full" x-data="{ filterType: '{{ $period == "custom" ? "custom" : "quick" }}' }">
         
         @if(!Auth::user()->bank_name || !Auth::user()->bank_account_no)
-        <div class="mb-6 flex items-center justify-between rounded-lg border-l-4 border-amber-500 bg-amber-50 p-4 shadow-sm">
+        <div class="owner-alert mb-6 flex items-center justify-between rounded-2xl p-4">
             <div class="flex items-center gap-3">
                 <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -69,10 +192,10 @@
 
         <!-- Header & Filters Form -->
         <form method="GET" action="{{ route('owner.dashboard') }}" class="mb-8">
-            <div class="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <div class="filter-shell flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6 p-6 rounded-3xl">
                 
                 <div>
-                    <h2 class="text-2xl font-bold text-slate-800 mb-1">Hi, {{ Auth::user()->name ?? 'Chủ sân' }} 👋</h2>
+                    <h2 class="spark-title text-3xl font-semibold tracking-tight mb-1">Hi, {{ Auth::user()->name ?? 'Chủ sân' }}</h2>
                     <p class="text-sm text-slate-500">Tùy chỉnh bộ lọc để xem thống kê chi tiết.</p>
                 </div>
                 
@@ -94,10 +217,10 @@
                         <div class="flex rounded-lg border border-slate-300 p-0.5 bg-slate-50 shadow-sm">
                             <button type="button" @click="filterType = 'quick'; $nextTick(() => { document.getElementById('periodSelect').value = 'month'; document.getElementById('filterFormBtn').click() })" 
                                     :class="filterType === 'quick' ? 'bg-white shadow text-emerald-700 font-medium' : 'text-slate-500 hover:text-slate-700'" 
-                                    class="px-4 py-1.5 text-sm rounded-md transition-all">Lọc Nhanh</button>
+                                    class="px-4 py-1.5 text-sm rounded-md transition-all">Lọc nhanh</button>
                             <button type="button" @click="filterType = 'custom'" 
                                     :class="filterType === 'custom' ? 'bg-white shadow text-emerald-700 font-medium' : 'text-slate-500 hover:text-slate-700'" 
-                                    class="px-4 py-1.5 text-sm rounded-md transition-all">Tùy Chọn</button>
+                                    class="px-4 py-1.5 text-sm rounded-md transition-all">Tùy chọn</button>
                         </div>
                     </div>
 
@@ -127,7 +250,7 @@
                     </div>
 
                     <!-- Submit Button -->
-                    <button type="submit" id="filterFormBtn" class="px-5 py-2.2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-colors h-[38px] flex items-center justify-center min-w-[80px]">
+                    <button type="submit" id="filterFormBtn" class="px-5 py-2.2 text-sm font-bold text-white bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500 hover:from-emerald-600 hover:to-blue-600 rounded-xl shadow-lg shadow-emerald-500/25 transition h-[38px] flex items-center justify-center min-w-[80px]">
                         Lọc
                     </button>
                 </div>
@@ -137,11 +260,11 @@
         <!-- Summary Cards -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <!-- Revenue Card -->
-            <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
+            <div class="metric-card glass-card rounded-3xl p-6 relative overflow-hidden group">
                 <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                     <svg class="w-16 h-16 text-emerald-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
                 </div>
-                <p class="text-sm font-medium text-slate-500 mb-1">Tổng Doanh Thu</p>
+                <p class="text-sm font-medium text-slate-500 mb-1">Tổng doanh thu</p>
                 <h3 class="text-3xl font-bold text-slate-800">{{ number_format($totalRevenue, 0, ',', '.') }} <span class="text-lg text-slate-500 font-normal">VNĐ</span></h3>
                 
                 <div class="mt-2 flex items-center">
@@ -163,11 +286,11 @@
             </div>
 
             <!-- Total Bookings Card -->
-            <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
+            <div class="metric-card glass-card rounded-3xl p-6 relative overflow-hidden group">
                 <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                     <svg class="w-16 h-16 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10z"/></svg>
                 </div>
-                <p class="text-sm font-medium text-slate-500 mb-1">Tổng Lượt Đặt</p>
+                <p class="text-sm font-medium text-slate-500 mb-1">Tổng lượt đặt</p>
                 <h3 class="text-3xl font-bold text-slate-800">{{ $totalBookings }}</h3>
                 <p class="text-xs text-blue-600 mt-2 font-medium bg-blue-50 inline-block px-2 py-1 rounded-md">
                     {{ $bookingStatuses['completed'] ?? 0 }} lượt hoàn tất
@@ -175,13 +298,13 @@
             </div>
 
             <!-- Occupancy & Hours Card -->
-            <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
+            <div class="metric-card glass-card rounded-3xl p-6 relative overflow-hidden group">
                 <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                     <svg class="w-16 h-16 text-indigo-600" fill="currentColor" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
                 </div>
                 <div class="flex justify-between items-start">
                     <div>
-                        <p class="text-sm font-medium text-slate-500 mb-1">Tỷ Lệ Lấp Đầy</p>
+                        <p class="text-sm font-medium text-slate-500 mb-1">Tỷ lệ lấp đầy</p>
                         <h3 class="text-3xl font-bold text-slate-800">{{ number_format($occupancyRate, 1) }}<span class="text-lg text-slate-500 font-normal">%</span></h3>
                     </div>
                 </div>
@@ -189,11 +312,11 @@
             </div>
 
             <!-- Unique Customers Card -->
-            <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
+            <div class="metric-card glass-card rounded-3xl p-6 relative overflow-hidden group">
                 <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                     <svg class="w-16 h-16 text-orange-600" fill="currentColor" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
                 </div>
-                <p class="text-sm font-medium text-slate-500 mb-1">Khách Hàng Mới</p>
+                <p class="text-sm font-medium text-slate-500 mb-1">Khách hàng mới</p>
                 <h3 class="text-3xl font-bold text-slate-800">{{ $uniqueCustomers }}</h3>
                 <p class="text-xs text-orange-600 mt-2 font-medium bg-orange-50 inline-block px-2 py-1 rounded-md">Khách hàng riêng biệt</p>
             </div>
@@ -202,16 +325,16 @@
         <!-- Charts & Peak Hours Section -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <!-- Revenue Line Chart -->
-            <div class="glass-card rounded-2xl p-6 lg:col-span-2">
-                <h3 class="text-lg font-bold text-slate-800 mb-4">Biểu Đồ Doanh Thu</h3>
+            <div class="glass-card rounded-3xl p-6 lg:col-span-2">
+                <h3 class="text-lg font-bold text-slate-800 mb-4">Biểu đồ doanh thu</h3>
                 <div class="relative h-72 w-full">
                     <canvas id="revenueChart"></canvas>
                 </div>
             </div>
 
             <!-- Peak Hours Ranking -->
-            <div class="glass-card rounded-2xl p-6 flex flex-col">
-                <h3 class="text-lg font-bold text-slate-800 mb-4">Top Khung Giờ "Hot"</h3>
+            <div class="glass-card rounded-3xl p-6 flex flex-col">
+                <h3 class="text-lg font-bold text-slate-800 mb-4">Top khung giờ hot</h3>
                 <p class="text-xs text-slate-500 mb-4">Các khung giờ được đặt nhiều nhất.</p>
                 
                 <div class="flex-1 overflow-y-auto pr-2" style="max-height: 280px;">
@@ -222,7 +345,7 @@
                                     {{ $time }}
                                 </div>
                                 <div>
-                                    <p class="text-sm font-bold text-slate-800">Giờ Vàng</p>
+                                    <p class="text-sm font-bold text-slate-800">Giờ vàng</p>
                                 </div>
                             </div>
                             <div class="text-right">
@@ -237,16 +360,16 @@
             </div>
             
             <!-- Booking Status Chart -->
-            <div class="glass-card rounded-2xl p-6">
-                <h3 class="text-lg font-bold text-slate-800 mb-4">Tỷ Lệ Trạng Thái</h3>
+            <div class="glass-card rounded-3xl p-6">
+                <h3 class="text-lg font-bold text-slate-800 mb-4">Tỷ lệ trạng thái</h3>
                 <div class="relative h-64 w-full flex justify-center">
                     <canvas id="statusChart"></canvas>
                 </div>
             </div>
 
             <!-- Peak Hours Bar Chart -->
-            <div class="glass-card rounded-2xl p-6 lg:col-span-2">
-                <h3 class="text-lg font-bold text-slate-800 mb-4">Mật Độ Khung Giờ Đặt Sân</h3>
+            <div class="glass-card rounded-3xl p-6 lg:col-span-2">
+                <h3 class="text-lg font-bold text-slate-800 mb-4">Mật độ khung giờ đặt sân</h3>
                 <div class="relative h-64 w-full">
                     <canvas id="peakChart"></canvas>
                 </div>
@@ -257,16 +380,16 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
             <!-- Top Venues Table -->
-            <div class="glass-card rounded-2xl p-6">
+            <div class="glass-card rounded-3xl p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-bold text-slate-800">Cơ Sở Hiệu Quả Nhất</h3>
+                    <h3 class="text-lg font-bold text-slate-800">Cơ sở hiệu quả nhất</h3>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm text-left">
                         <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
                             <tr>
-                                <th class="px-4 py-3 rounded-tl-lg">Tên Cơ Sở</th>
-                                <th class="px-4 py-3 text-center">Lượt Đặt</th>
+                                <th class="px-4 py-3 rounded-tl-lg">Tên cơ sở</th>
+                                <th class="px-4 py-3 text-center">Lượt đặt</th>
                                 <th class="px-4 py-3 text-right rounded-tr-lg">Doanh Thu</th>
                             </tr>
                         </thead>
@@ -290,17 +413,17 @@
             </div>
 
             <!-- Top Customers Table -->
-            <div class="glass-card rounded-2xl p-6">
+            <div class="glass-card rounded-3xl p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-bold text-slate-800">Khách Hàng VIP</h3>
+                    <h3 class="text-lg font-bold text-slate-800">Khách hàng VIP</h3>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm text-left">
                         <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
                             <tr>
-                                <th class="px-4 py-3 rounded-tl-lg">Khách Hàng</th>
-                                <th class="px-4 py-3 text-center">Lượt Đặt</th>
-                                <th class="px-4 py-3 text-right rounded-tr-lg">Đã Chi</th>
+                                <th class="px-4 py-3 rounded-tl-lg">Khách hàng</th>
+                                <th class="px-4 py-3 text-center">Lượt đặt</th>
+                                <th class="px-4 py-3 text-right rounded-tr-lg">Đã chi</th>
                             </tr>
                         </thead>
                         <tbody>
