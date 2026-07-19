@@ -30,7 +30,7 @@
                         </button>
                     </div>
                     <div class="flex flex-1 flex-col p-4">
-                        <h3 class="text-base font-bold text-zinc-900 line-clamp-1"><a href="{{ route('venues.show', $venue->id) }}" class="focus:outline-none"><span class="absolute inset-0" aria-hidden="true"></span>{{ $venue->name }}</a></h3>
+                        <h3 class="text-base font-bold text-zinc-900 line-clamp-1"><a href="{{ url('/venues/' . $venue->id) }}" class="focus:outline-none"><span class="absolute inset-0" aria-hidden="true"></span>{{ $venue->name }}</a></h3>
                         <p class="mt-1 text-xs text-stone-500 line-clamp-1">{{ $venue->address }}</p>
                         <div class="mt-4 flex items-center justify-between">
                             <span class="inline-flex items-center gap-1.5 rounded bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">Đến đặt lịch</span>

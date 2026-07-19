@@ -32,7 +32,7 @@
         @else
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($featured as $index => $venue)
-                    <a href="{{ route('venues.show', $venue['venue_id']) }}" class="group overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-lg">
+                    <a href="{{ url('/venues/' . $venue['venue_id']) }}" class="group overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-lg">
                         <div class="relative h-40 bg-stone-100">
                             <img src="{{ $venue['thumbnail'] ?: 'https://placehold.co/600x400/e5e7eb/334155?text=SportHub' }}" alt="{{ $venue['name'] }}" class="h-full w-full object-cover transition duration-300 group-hover:scale-105">
                             <span class="absolute left-3 top-3 grid h-9 w-9 place-items-center rounded-full text-sm font-extrabold shadow {{ $index < 3 ? 'bg-amber-500 text-white' : 'bg-zinc-900 text-white' }}">{{ $index + 1 }}</span>
@@ -57,7 +57,7 @@
             <h2 class="mb-4 text-lg font-extrabold text-zinc-900">Đặt nhiều nhất</h2>
             <div class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
                 @forelse ($most_booked as $index => $venue)
-                    <a href="{{ route('venues.show', $venue['venue_id']) }}" class="flex items-center gap-3 border-b border-stone-100 px-4 py-3 transition last:border-b-0 hover:bg-stone-50">
+                    <a href="{{ url('/venues/' . $venue['venue_id']) }}" class="flex items-center gap-3 border-b border-stone-100 px-4 py-3 transition last:border-b-0 hover:bg-stone-50">
                         <span class="grid h-7 w-7 place-items-center rounded-full bg-zinc-100 text-xs font-extrabold text-zinc-700">{{ $index + 1 }}</span>
                         <div class="min-w-0 flex-1">
                             <p class="truncate text-sm font-bold text-zinc-900">{{ $venue['name'] }}</p>
@@ -75,7 +75,7 @@
             <h2 class="mb-4 text-lg font-extrabold text-zinc-900">Đánh giá cao nhất</h2>
             <div class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
                 @forelse ($top_rated as $index => $venue)
-                    <a href="{{ route('venues.show', $venue['venue_id']) }}" class="flex items-center gap-3 border-b border-stone-100 px-4 py-3 transition last:border-b-0 hover:bg-stone-50">
+                    <a href="{{ url('/venues/' . $venue['venue_id']) }}" class="flex items-center gap-3 border-b border-stone-100 px-4 py-3 transition last:border-b-0 hover:bg-stone-50">
                         <span class="grid h-7 w-7 place-items-center rounded-full bg-zinc-100 text-xs font-extrabold text-zinc-700">{{ $index + 1 }}</span>
                         <div class="min-w-0 flex-1">
                             <p class="truncate text-sm font-bold text-zinc-900">{{ $venue['name'] }}</p>

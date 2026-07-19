@@ -90,7 +90,7 @@
 @endphp
 
 <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-    <a href="{{ route('venues.show', $venue->id) }}"
+    <a href="{{ url('/venues/' . $venue->id) }}"
        class="mb-5 inline-flex text-sm font-bold text-emerald-700 hover:text-emerald-800">
         ← Quay lại cơ sở
     </a>

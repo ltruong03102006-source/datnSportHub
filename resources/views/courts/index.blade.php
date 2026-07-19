@@ -166,7 +166,42 @@
 
         {{-- Cơ sở nổi bật... (GIỮ NGUYÊN) --}}
         {{-- Cơ sở nổi bật — tự ẩn khi đang tìm kiếm hoặc lọc theo môn --}}
+        {{-- Cơ sở nổi bật - tự ẩn khi đang tìm kiếm hoặc lọc theo môn --}}
         @if (!empty($featured) && count($featured))
+            <section x-show="sport === 'all' && query.trim() === '' && !hasActiveFilters" x-cloak class="mb-10">
+                <div class="mb-4 flex items-end justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-extrabold text-zinc-900">Cơ sở nổi bật</h2>
+                        <p class="text-sm text-stone-500">Đánh giá cao và được đặt nhiều nhất.</p>
+                    </div>
+                    <a href="{{ route('rankings') }}" class="shrink-0 text-sm font-semibold text-emerald-700 hover:text-emerald-800">Xem tất cả →</a>
+                </div>
+                <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                    @foreach ($featured as $venue)
+                        <a href="{{ url('/venues/' . $venue['venue_id']) }}"
+                            class="group overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md">
+                            <div class="relative h-28 bg-gradient-to-br from-emerald-600 to-emerald-800">
+                                @if ($venue['thumbnail'])
+                                    <img src="{{ $venue['thumbnail'] }}" alt="{{ $venue['name'] }}" class="h-full w-full object-cover">
+                                @else
+                                    <img src="https://placehold.co/600x400/047857/ffffff?text=SportHub" alt="{{ $venue['name'] }}" class="h-full w-full object-cover">
+                                @endif
+                                <span class="absolute left-2 top-2 rounded-full bg-amber-500 px-2 py-0.5 text-xs font-bold text-white shadow">
+                                    {{ $venue['avg_rating'] > 0 ? '★ ' . number_format($venue['avg_rating'], 1) : 'Mới' }}
+                                </span>
+                            </div>
+                            <div class="p-3">
+                                <h3 class="truncate text-sm font-bold text-zinc-900 group-hover:text-emerald-700">{{ $venue['name'] }}</h3>
+                                <p class="truncate text-xs text-stone-500">{{ $venue['sport_name'] ?? 'Đang cập nhật' }}</p>
+                                <p class="mt-1 text-xs text-stone-400">{{ $venue['bookings_count'] }} lượt đặt</p>
+                            </div>
+                        </a>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
+        @if (false && !empty($featured) && count($featured))
             <section x-show="sport === 'all' && query.trim() === '' && !hasActiveFilters" x-cloak class="mb-10">
                 <div class="mb-4 flex items-end justify-between gap-4">
                     <div>
