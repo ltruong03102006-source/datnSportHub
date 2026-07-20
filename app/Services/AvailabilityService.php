@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\BookingPackageSession;
+use App\Models\Booking;
+use App\Models\BookingItem;
 use App\Models\Court;
 use App\Models\Setting;
 use Illuminate\Support\Carbon;
@@ -21,8 +23,24 @@ class AvailabilityService
         $holdMinutes = max(1, (int) Setting::get('booking_hold_time', 15));
         $holdCutoff = now()->subMinutes($holdMinutes);
 
-        $bookedSlots = $court->bookings()
-            ->whereDate('slot_date', $date->format('Y-m-d'))
+        $bookedItems = BookingItem::query()
+            ->whereDate('slot_date', $date->toDateString())
+            ->whereIn('status', ['booked', 'reschedule_pending'])
+            ->whereHas('booking', function ($query) use ($court, $holdCutoff) {
+                $query->where('court_id', $court->id)
+                    ->where(function ($statusQuery) use ($holdCutoff) {
+                        $statusQuery->whereIn('status', ['confirmed', 'completed'])
+                            ->orWhere(function ($pendingQuery) use ($holdCutoff) {
+                                $pendingQuery->where('status', 'pending')
+                                    ->where('created_at', '>=', $holdCutoff);
+                            });
+                    });
+            })
+            ->get();
+
+        $legacyBookedSlots = $court->bookings()
+            ->whereDate('slot_date', $date->toDateString())
+            ->whereDoesntHave('items')
             ->where(function ($query) use ($holdCutoff) {
                 $query->whereIn('status', ['confirmed', 'completed'])
                     ->orWhere(function ($pendingQuery) use ($holdCutoff) {
@@ -34,10 +52,12 @@ class AvailabilityService
 
         $packageSessions = $this->activePackageSessionsForDate($court, $date);
 
-        return $slots->map(function($slot) use ($bookedSlots, $packageSessions, $date) {
-            $isBooked = $bookedSlots->contains(function ($booking) use ($slot) {
-                return $booking->start_time < $slot->end_time
-                    && $booking->end_time > $slot->start_time;
+        return $slots->map(function($slot) use ($bookedItems, $legacyBookedSlots, $packageSessions, $date) {
+            $isBooked = $bookedItems->contains(function (BookingItem $item) use ($slot) {
+                return ((int) $item->time_slot_id === (int) $slot->id)
+                    || ($item->start_time < $slot->end_time && $item->end_time > $slot->start_time);
+            }) || $legacyBookedSlots->contains(function (Booking $booking) use ($slot) {
+                return $booking->start_time < $slot->end_time && $booking->end_time > $slot->start_time;
             }) || $this->packageSessionsOverlap($packageSessions, $slot->start_time, $slot->end_time);
 
             $isPast = Carbon::parse($date->format('Y-m-d') . ' ' . $slot->start_time)->isPast();

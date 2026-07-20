@@ -38,7 +38,17 @@ class UserBookingController extends Controller
         }
 
         $bookingGroup = $query->orderBy('start_time')->get();
-        $totalGroupPrice = $bookingGroup->sum('total_price');
+
+        $booking->load(['court.venue.sport', 'court.venue.ownerRegistration', 'items']);
+        if ($booking->items->isNotEmpty()) {
+            $bookingGroup = $booking->items->sortBy('start_time')->values()->each(function ($item) use ($booking) {
+                $item->setRelation('court', $booking->court);
+            });
+        }
+
+        $totalGroupPrice = $booking->items->isNotEmpty()
+            ? $booking->items->sum('price')
+            : $bookingGroup->sum('total_price');
 
         $totalMinutes = 0;
         foreach ($bookingGroup as $b) {
@@ -166,7 +176,16 @@ class UserBookingController extends Controller
 
     private function loadHistorySlotGroups($bookings)
     {
-        return Booking::where('user_id', Auth::id())
+        $bookingIds = $bookings->pluck('id')->filter()->values();
+        $itemGroups = \App\Models\BookingItem::query()
+            ->with('booking')
+            ->whereIn('booking_id', $bookingIds)
+            ->orderBy('slot_date')
+            ->orderBy('start_time')
+            ->get()
+            ->groupBy(fn (\App\Models\BookingItem $item): string => $this->historyGroupKey($item->booking));
+
+        $legacyGroups = Booking::where('user_id', Auth::id())
             ->where(function ($query) use ($bookings): void {
                 foreach ($bookings as $booking) {
                     $query->orWhere(function ($groupQuery) use ($booking): void {
@@ -184,9 +203,12 @@ class UserBookingController extends Controller
                     });
                 }
             })
+            ->whereDoesntHave('items')
             ->orderBy('start_time')
             ->get()
             ->groupBy(fn (Booking $slot): string => $this->historyGroupKey($slot));
+
+        return $legacyGroups->toBase()->merge($itemGroups->toBase());
     }
 
     private function mergedTimeStrings($actualSlots, string $courtName): array
@@ -398,7 +420,7 @@ class UserBookingController extends Controller
         ]);
     }
 
-    private function slotStartsAt(Booking $booking): Carbon
+    private function slotStartsAt($booking): Carbon
     {
         $slotDate = $booking->slot_date instanceof Carbon
             ? $booking->slot_date->format('Y-m-d')
