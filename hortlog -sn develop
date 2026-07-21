@@ -1,0 +1,97 @@
+[33mefe99c7[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdevelop[m[33m, [m[1;31morigin/develop[m[33m)[m Merge pull request #66 from ltruong03102006-source/dichvu
+[33m78b7b0d[m[33m ([m[1;31morigin/dichvu[m[33m, [m[1;32mdichvu[m[33m)[m feat: hoan thien task 6 - chi tiet hoa don va xu ly huy don
+[33meb0e128[m feat(booking): hoan thien task 5 - tich hop gio hang dich vu, tinh tien tu dong theo gio thue va xu ly tru ton kho
+[33m25497bd[m feat: hoan thanh task 3 & 4 - crud dich vu chu san, tich hop fomo ton kho va geocoding ban do
+[33mc2a3b19[m feat(models): thiet lap relation cho model Venue, Booking va tao model Service
+[33m34ac64e[m feat(database): tạo bảng services và booking_services
+[33m7dd005d[m Fix lỗi
+[33m0fff1fa[m Remove holdCutoff parameter from transaction
+[33m454b456[m Merge pull request #65 from ltruong03102006-source/feature/Fix_Loi
+[33m781ce4d[m Update booking UI
+[33m5282625[m Merge pull request #62 from ltruong03102006-source/feature/social-login
+[33m79aed75[m Merge pull request #63 from ltruong03102006-source/feature/Fix_Loi
+[33m1e62ca5[m Update Đặt gói sân
+[33me5745ab[m Them dang nhap bang Google va Facebook
+[33m660d096[m Merge pull request #61 from ltruong03102006-source/chedosangtoi
+[33mb3de879[m Add dark mode toggle
+[33m7f07b48[m Merge pull request #60 from ltruong03102006-source/feature/hoantien
+[33m208e994[m Hoan tien booking va cap nhat giao dien
+[33ma92eee8[m Thêm chức năng hoàn tiền
+[33md7a1f2d[m fix routes
+[33maa1720e[m Merge pull request #58 from ltruong03102006-source/xephangcosotheodanhgiavasodatsotheodanhsan
+[33m2526c64[m Merge pull request #57 from ltruong03102006-source/feature/DatSanTheoGoi
+[33m3bc150b[m Update luồng lịch sử thanh toán
+[33mc30ba07[m Xếp hạng cơ sở theo đánh giá & số lượt đặt sân
+[33m03db641[m Merge pull request #56 from ltruong03102006-source/feature/DatSanTheoGoi
+[33m8a01198[m Update Đặt sân theo gói tuần / tháng — giá ưu đãi hơn đặt lẻ
+[33m37c060f[m Merge pull request #54 from ltruong03102006-source/feature/DatSanTheoGoi
+[33me1451eb[m Merge branch 'develop' into feature/DatSanTheoGoi
+[33m178abcf[m Merge pull request #53 from ltruong03102006-source/lichsutimkiem-timdoibatcap
+[33maf48010[m Đặt sân theo gói tuần / tháng — giá ưu đãi hơn đặt lẻ
+[33m45e511e[m lich su tim kiem va tim doi, bat cap
+[33m5486b29[m Merge pull request #51 from ltruong03102006-source/feature/LichSuGiaoDichThanhToan
+[33m55cf166[m Lịch sử giao dịch thanh toán — bảng transactions
+[33mc377fff[m Merge pull request #50 from ltruong03102006-source/feature/thanh-toan-khi-dat-san
+[33mfad17b0[m Merge branch 'develop' into feature/thanh-toan-khi-dat-san
+[33me3fb8b8[m Thêm tích hợp VNPay, thông tin ngân hàng và xác nhận giao dịch & cập nhật booking
+[33m8a36836[m Merge pull request #47 from ltruong03102006-source/feature/venue-filters
+[33mf3a5aee[m Merge pull request #48 from ltruong03102006-source/feature/Fix_Loi
+[33m0737f82[m Update thông báo
+[33mca50e83[m Them loc co so theo tinh/phuong, gia, rating, khoang cach va xep hang co so
+[33m24b1191[m Merge pull request #45 from ltruong03102006-source/feature/yeucaudoibooking
+[33mccb703d[m Update Validate
+[33m3517a0f[m Merge pull request #44 from ltruong03102006-source/feature/ThongBaoTrongKhiBookingMoi
+[33m875c25c[m Merge pull request #43 from ltruong03102006-source/feature/timsanganday
+[33m48740ee[m update chuc nang tim san gan day
+[33m8d185a4[m Merge pull request #41 from ltruong03102006-source/feature/user-profile
+[33md8b8876[m feat: trang cá nhân (thông tin, bảo mật, avatar)
+[33m411164b[m Merge pull request #40 from ltruong03102006-source/feature/yeucaudoibooking
+[33m2a51ddc[m Merge pull request #39 from ltruong03102006-source/tudongvietdanhgiakhibookinghoanthanh
+[33mcad8543[m Update giao diện
+[33m5cc0c93[m tự hiện đánh giá khi hoàn thành booking
+[33mc087033[m Notification bell — thông báo trong app khi có booking mới
+[33mc703155[m Merge pull request #38 from ltruong03102006-source/feature/yeucaudoibooking
+[33ma0f8165[m Người dùng yêu cầu đổi lịch booking
+[33m3fefeef[m Merge pull request #37 from ltruong03102006-source/chusancauhinhchinhsachhuy
+[33m2ce06e3[m Merge branch 'develop' into chusancauhinhchinhsachhuy
+[33mce08ca7[m Merge pull request #36 from ltruong03102006-source/feature/AdminDuyetTuChoiChuSan
+[33md1f4abb[m Update chủ sân tạo tài khoản
+[33m3defa99[m Merge pull request #35 from ltruong03102006-source/feature/AdminDuyetTuChoiChuSan
+[33m03e8d3c[m Merge branch 'develop' into feature/AdminDuyetTuChoiChuSan
+[33m0306532[m Update Admin duyệt cho chu sân tạo sân
+[33m619e58c[m[33m ([m[1;31morigin/chusancauhinhchinhsachhuy[m[33m, [m[1;32mchusancauhinhchinhsachhuy[m[33m)[m Chủ sân cấu hình chính sách hủy
+[33m6ad5ff4[m Merge pull request #34 from ltruong03102006-source/NguoiDungHuyBookingVaTrangYeuThich
+[33m20ec86a[m nguoidunghuybookingvatrangyeuthich
+[33m5e85bc1[m[33m ([m[1;32mNguoiDungHuyBooking[m[33m)[m Merge pull request #33 from ltruong03102006-source/chusanphanhoidanhgiavakhoasancolido
+[33mf6b339c[m[33m ([m[1;31morigin/chusanphanhoidanhgiavakhoasancolido[m[33m, [m[1;32mchusanphanhoidanhgiavakhoasancolido[m[33m)[m chusanphaihoidanhgiavakhoasancolido
+[33m52e584d[m Merge pull request #32 from ltruong03102006-source/adminXemBooking
+[33mf40cfb5[m Merge branch 'develop' into adminXemBooking
+[33ma67c1a2[m Merge pull request #31 from ltruong03102006-source/feature/AdminDuyetTuChoiChuSan
+[33m37ef50f[m Update chủ sân duyệt tài khoản
+[33mf15d48e[m Merge pull request #30 from ltruong03102006-source/nguoidungbaocaosan-chiasesan
+[33m0372724[m Merge pull request #29 from ltruong03102006-source/feature/court-owner-dashboard
+[33m8ca65be[m nguoidungbaocaosan-chiasesan
+[33m994530f[m admin xem bộ booking
+[33me049ded[m[33m ([m[1;32mnguoidungbaocao-chiasesan[m[33m, [m[1;32mChusanthemsancon-cauhinhslot[m[33m)[m Merge pull request #28 from ltruong03102006-source/feature/AdminQuanLiDanhSachSan
+[33m547b2a4[m Admin quản lý danh sách sân (kích hoạt / ẩn)
+[33m332c38b[m Merge pull request #27 from ltruong03102006-source/feature/AdminDuyetTuChoiChuSan
+[33m485f550[m Merge pull request #26 from ltruong03102006-source/feature/AdminDuyetTuChoiChuSan
+[33mbf4a925[m Admin quản lý danh sách sân (kích hoạt / ẩn)
+[33m51408f3[m Merge pull request #25 from ltruong03102006-source/feature/admin-xem-dashbroad-tong-quan
+[33m8483015[m Merge pull request #24 from ltruong03102006-source/feature/admin-xem-dashbroad-tong-quan
+[33m4c2d73c[m Merge pull request #23 from ltruong03102006-source/feature/court-owner-dashboard
+[33m6119e02[m Admin xem dashboard tổng quan: tổng user, tổng sân, tổng booking toàn hệ thống , Admin quản lý danh sách sân
+[33mcb080ed[m Xây dựng Dashboard cho chủ sân: hiển thị doanh thu, tỷ lệ lấp đầy, giờ cao điểm và top khung giờ được đặt nhiều.
+[33m6bc2786[m Merge pull request #22 from ltruong03102006-source/feature/owner-cancel-booking
+[33m3d3ae89[m feat: chủ sân hủy booking kèm lý do hủy
+[33m3270e59[m Merge pull request #21 from ltruong03102006-source/feature/API_TaoBooking
+[33mc59aec3[m Update Booking
+[33m465de76[m Merge pull request #20 from ltruong03102006-source/chusanxemlichdat
+[33mbaf8fbb[m chủ sân xem lịch đặt ngày/tuần/tháng
+[33m9a13852[m Merge pull request #19 from ltruong03102006-source/Chusanthietlapgiatheokhunggio
+[33m4160ef1[m Hình ảnh-Chủ sân thiết lập giá theo khung giờ
+[33md13c883[m Merge pull request #18 from ltruong03102006-source/Chusanthemsancon-cauhinhslot
+[33mc753f30[m[33m ([m[1;31morigin/Chusanthemsancon-cauhinhslot[m[33m)[m Chusanthemsancon-Cauhinhslot
+[33m2653323[m Merge pull request #17 from ltruong03102006-source/feature/ChuSanTaoDiemSan
+[33m5c94a65[m Update Chủ sân tạo điểm sân
+[33m589a9e7[m Merge pull request #16 from ltruong0310200
