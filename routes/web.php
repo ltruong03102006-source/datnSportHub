@@ -150,6 +150,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Cấu hình hệ thống
         Route::get('/settings', [\App\Http\Controllers\Web\AdminSettingController::class, 'index'])->name('settings.index');
         Route::post('/settings', [\App\Http\Controllers\Web\AdminSettingController::class, 'store'])->name('settings.store');
+
+        // Financial Settings
+Route::get('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingController::class, 'index'])->name('admin.financial-settings.index');
+Route::post('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingController::class, 'update'])->name('admin.financial-settings.update');
     });
 });
 
