@@ -151,13 +151,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/settings', [\App\Http\Controllers\Web\AdminSettingController::class, 'index'])->name('settings.index');
         Route::post('/settings', [\App\Http\Controllers\Web\AdminSettingController::class, 'store'])->name('settings.store');
 
-        // Financial Settings
-Route::get('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingController::class, 'index'])->name('admin.financial-settings.index');
-Route::post('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingController::class, 'update'])->name('admin.financial-settings.update');
-    });
-});
+Route::get('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingController::class, 'index'])->name('financial-settings.index');
+        Route::post('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingController::class, 'update'])->name('financial-settings.update');
+        Route::put('/venues/{venue}/commission', [\App\Http\Controllers\Admin\VenueCommissionController::class, 'update'])->name('venues.commission.update');
+    }); // <-- Đóng của middleware(['admin'])
 
-// --- KHU VỰC QUẢN LÝ CỦA CHỦ SÂN (OWNER) ---
+}); // <====== DÒNG NÀY BỊ THIẾU! (Đóng của prefix('admin'))
+
+// --- KHU VỰC QUẢN LÝ CỦA CHỦ SÂN (OWNER) ---  
 Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group(function () {
     // Cài đặt ngân hàng trong Owner Portal
     Route::get('/settings/bank', [\App\Http\Controllers\Web\OwnerDashboardController::class, 'bankSettings'])->name('settings.bank');
