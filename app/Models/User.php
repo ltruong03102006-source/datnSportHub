@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens; // 1. Import class HasApiTokens
+use \App\Traits\HasWallet;
 
 // 2. Thêm 'role' và 'status' vào danh sách cho phép fill
 #[Fillable(['name', 'email', 'phone', 'avatar', 'password', 'role', 'status', 'provider', 'provider_id', 'bank_name', 'bank_account_no', 'bank_account_name', 'balance'])]
