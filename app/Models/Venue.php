@@ -38,6 +38,7 @@ class Venue extends Model
         'close_hours',
         'google_maps_address',
         'allow_package_booking',
+        'commission_rate',
     ];
 
     // Ép kiểu (Casts) tọa độ sang số thực để tránh lỗi hiển thị bản đồ
@@ -45,6 +46,7 @@ class Venue extends Model
         'lat' => 'float',
         'lng' => 'float',
         'allow_package_booking' => 'boolean',
+        'commission_rate' => 'decimal:2',
     ];
 
     public function owner(): BelongsTo

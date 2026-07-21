@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Setting; // Import Model Setting
 use Database\Seeders\VietnamUnitsSeeder;
 use Database\Seeders\UsersTableSeeder;
 use Database\Seeders\SportsTableSeeder;
@@ -22,6 +23,22 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // 1. Nạp các Settings mặc định cho mô hình Marketplace
+        $financialSettings = [
+            ['key' => 'default_commission_rate', 'value' => '10'], // 10%
+            ['key' => 'owner_credit_limit', 'value' => '-1000000'], // Cho nợ tối đa 1 triệu
+            ['key' => 'minimum_withdraw', 'value' => '200000'],     // Rút tối thiểu 200k
+            ['key' => 'minimum_topup', 'value' => '50000'],         // Nạp tối thiểu 50k
+        ];
+
+        foreach ($financialSettings as $setting) {
+            Setting::updateOrCreate(
+                ['key' => $setting['key']],
+                ['value' => $setting['value']]
+            );
+        }
+
+        // 2. Gọi các Seeder hiện có
         $this->call([
             VietnamUnitsSeeder::class,
             UsersTableSeeder::class,
