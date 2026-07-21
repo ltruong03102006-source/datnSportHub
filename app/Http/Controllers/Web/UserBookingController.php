@@ -39,7 +39,7 @@ class UserBookingController extends Controller
 
         $bookingGroup = $query->orderBy('start_time')->get();
 
-        $booking->load(['court.venue.sport', 'court.venue.ownerRegistration', 'items']);
+        $booking->load(['court.venue.sport', 'court.venue.ownerRegistration', 'items.rescheduleRequests']);
         if ($booking->items->isNotEmpty()) {
             $bookingGroup = $booking->items->sortBy('start_time')->values()->each(function ($item) use ($booking) {
                 $item->setRelation('court', $booking->court);
@@ -168,6 +168,7 @@ class UserBookingController extends Controller
 
             $booking->setAttribute('slot_date_label', $booking->slot_date?->format('d/m/Y') ?? '');
             $booking->setAttribute('merged_time_strings', $this->mergedTimeStrings($actualSlots, $booking->court?->name ?? 'Sân'));
+            $booking->setAttribute('history_schedule_groups', $this->historyScheduleGroups($actualSlots, $booking->court?->name ?? 'Sân'));
             $booking->setAttribute('owner_phone', $this->ownerPhoneForBooking($booking));
             $booking->setAttribute('is_eligible_status', $isEligibleStatus);
             $booking->setAttribute('is_past_start_time', $firstSlot ? $now->greaterThanOrEqualTo($this->slotStartsAt($firstSlot)) : false);
@@ -178,7 +179,7 @@ class UserBookingController extends Controller
     {
         $bookingIds = $bookings->pluck('id')->filter()->values();
         $itemGroups = \App\Models\BookingItem::query()
-            ->with('booking')
+            ->with(['booking', 'rescheduleRequests'])
             ->whereIn('booking_id', $bookingIds)
             ->orderBy('slot_date')
             ->orderBy('start_time')
@@ -239,6 +240,88 @@ class UserBookingController extends Controller
         $merged[] = "- Sân {$courtName}: {$currentStart} - {$currentEnd}";
 
         return $merged;
+    }
+
+    private function historyScheduleGroups($actualSlots, string $courtName): array
+    {
+        return $actualSlots
+            ->sortBy(fn ($slot) => $this->slotDateString($slot).' '.(string) $slot->start_time)
+            ->groupBy(fn ($slot) => $this->slotDateString($slot))
+            ->map(function ($slots, string $dateValue) use ($courtName): array {
+                return [
+                    'date' => Carbon::parse($dateValue)->format('d/m/Y'),
+                    'slots' => $slots->sortBy('start_time')->values()->map(function ($slot) use ($courtName): array {
+                        $approvedChange = null;
+                        $pendingChange = null;
+
+                        if (method_exists($slot, 'relationLoaded') && $slot->relationLoaded('rescheduleRequests')) {
+                            $approvedChange = $slot->rescheduleRequests
+                                ->where('status', 'approved')
+                                ->sortByDesc('approved_at')
+                                ->first();
+
+                            $pendingChange = $slot->rescheduleRequests
+                                ->where('status', 'pending')
+                                ->sortByDesc('created_at')
+                                ->first();
+                        }
+
+                        $start = substr((string) $slot->start_time, 0, 5);
+                        $end = substr((string) $slot->end_time, 0, 5);
+                        $tooltip = null;
+                        $badgeLabel = null;
+                        $badgeClass = null;
+                        $textClass = 'text-slate-700';
+
+                        if ($approvedChange) {
+                            $newDate = $approvedChange->new_slot_date?->format('d/m/Y') ?? $this->slotDateString($slot);
+                            $newStart = substr((string) ($approvedChange->new_start_time ?? $slot->start_time), 0, 5);
+                            $newEnd = substr((string) ($approvedChange->new_end_time ?? $slot->end_time), 0, 5);
+                            $oldDate = $approvedChange->old_slot_date?->format('d/m/Y') ?? '';
+                            $oldStart = substr((string) $approvedChange->old_start_time, 0, 5);
+                            $oldEnd = substr((string) $approvedChange->old_end_time, 0, 5);
+                            $tooltip = "Ca mới đã đổi: {$newDate} {$newStart} - {$newEnd}. Từ ca cũ: {$oldDate} {$oldStart} - {$oldEnd}.";
+                            $badgeLabel = 'Đã đổi';
+                            $badgeClass = 'bg-emerald-100 text-emerald-700 ring-emerald-200';
+                            $textClass = 'text-emerald-700';
+                        } elseif ($pendingChange || ($slot->status ?? null) === 'reschedule_pending') {
+                            if ($pendingChange) {
+                                $newDate = $pendingChange->new_slot_date?->format('d/m/Y') ?? $this->slotDateString($slot);
+                                $newStart = substr((string) ($pendingChange->new_start_time ?? $slot->start_time), 0, 5);
+                                $newEnd = substr((string) ($pendingChange->new_end_time ?? $slot->end_time), 0, 5);
+                                $tooltip = "Đang chờ chủ sân duyệt đổi sang: {$newDate} {$newStart} - {$newEnd}.";
+                            } else {
+                                $tooltip = 'Ca này đang có yêu cầu đổi lịch và chờ chủ sân duyệt.';
+                            }
+
+                            $badgeLabel = 'Đang đổi lịch';
+                            $badgeClass = 'bg-amber-100 text-amber-700 ring-amber-200';
+                            $textClass = 'text-amber-700';
+                        }
+
+                        return [
+                            'text' => "- Sân {$courtName}: {$start} - {$end}",
+                            'is_rescheduled' => (bool) $approvedChange,
+                            'is_reschedule_pending' => ! $approvedChange && (bool) $pendingChange,
+                            'badge_label' => $badgeLabel,
+                            'badge_class' => $badgeClass,
+                            'text_class' => $textClass,
+                            'tooltip' => $tooltip,
+                        ];
+                    })->all(),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function slotDateString($slot): string
+    {
+        $date = $slot->slot_date ?? now('Asia/Ho_Chi_Minh');
+
+        return $date instanceof Carbon
+            ? $date->format('Y-m-d')
+            : Carbon::parse($date)->format('Y-m-d');
     }
 
     private function ownerPhoneForBooking(Booking $booking): ?string

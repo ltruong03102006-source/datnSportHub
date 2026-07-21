@@ -27,26 +27,26 @@
     <form method="POST" action="{{ route('customer.booking.reschedule.store', $booking) }}" id="reschedule-form" class="mt-6 grid gap-6 lg:grid-cols-12">
         @csrf
 
-        <div class="space-y-6 lg:col-span-4">
-            <section class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-                <h2 class="text-lg font-black text-zinc-900">Chọn ca cũ muốn đổi</h2>
-                <p class="mt-1 text-sm font-semibold text-slate-500">Tick 1 hoặc nhiều ca trong booking này.</p>
+        <div class="space-y-4 lg:col-span-4">
+            <section class="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
+                <h2 class="text-base font-black text-zinc-900">Chọn ca cũ muốn đổi</h2>
+                <p class="mt-1 text-xs font-semibold text-slate-500">Tick 1 hoặc nhiều ca trong booking này.</p>
 
-                <div class="mt-4 space-y-3">
+                <div class="mt-3 space-y-2.5">
                     @forelse($bookingItems as $item)
-                        <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 transition hover:border-emerald-300">
+                        <label class="flex cursor-pointer items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 transition hover:border-emerald-300">
                             <input type="checkbox"
                                    name="booking_item_ids[]"
                                    value="{{ $item->id }}"
-                                   class="old-slot-checkbox mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                                   class="old-slot-checkbox mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
                             <span>
-                                <span class="block font-black text-zinc-900">
+                                <span class="block text-sm font-black text-zinc-900">
                                     {{ $item->slot_date->format('d/m/Y') }}
                                 </span>
-                                <span class="mt-1 block text-sm font-bold text-slate-600">
+                                <span class="mt-0.5 block text-sm font-bold text-slate-600">
                                     {{ substr($item->start_time, 0, 5) }} - {{ substr($item->end_time, 0, 5) }}
                                 </span>
-                                <span class="mt-1 block text-sm font-black text-emerald-700">
+                                <span class="mt-0.5 block text-sm font-black text-emerald-700">
                                     {{ number_format((float) $item->price, 0, ',', '.') }}đ
                                 </span>
                             </span>
@@ -59,21 +59,21 @@
                 </div>
             </section>
 
-            <section class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-                <label for="new-slot-date" class="block text-lg font-black text-zinc-900">Chọn ngày mới</label>
+            <section class="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
+                <label for="new-slot-date" class="block text-base font-black text-zinc-900">Chọn ngày mới</label>
                 <input id="new-slot-date"
                        name="new_slot_date"
                        type="date"
                        min="{{ now()->toDateString() }}"
                        value="{{ old('new_slot_date') }}"
-                       class="mt-4 w-full rounded-xl border border-stone-300 bg-stone-50 px-4 py-3 font-bold outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10"
+                       class="mt-3 w-full rounded-xl border border-stone-300 bg-stone-50 px-3.5 py-2.5 text-sm font-bold outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10"
                        required>
             </section>
 
-            <section class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
+            <section class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
                 <p class="text-xs font-black uppercase tracking-wider text-emerald-700">Trạng thái</p>
-                <p id="selected-count-display" class="mt-2 text-2xl font-black text-emerald-900">0 ca cũ · 0 ca mới</p>
-                <p id="slot-message" class="mt-2 text-sm font-bold text-emerald-700">Chọn ca cũ và ngày mới để xem ca trống.</p>
+                <p id="selected-count-display" class="mt-1.5 text-xl font-black text-emerald-900">0 ca cũ · 0 ca mới</p>
+                <p id="slot-message" class="mt-1.5 text-xs font-bold text-emerald-700">Chọn ca cũ và ngày mới để xem ca trống.</p>
             </section>
         </div>
 

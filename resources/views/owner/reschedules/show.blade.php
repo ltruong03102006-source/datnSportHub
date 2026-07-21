@@ -4,6 +4,12 @@
 
 @section('content')
 @php($code = $rescheduleRequest->request_code ?: (string) $rescheduleRequest->id)
+@php($statusLabel = [
+    'pending' => 'Chờ duyệt',
+    'approved' => 'Đã duyệt',
+    'rejected' => 'Đã từ chối',
+    'cancelled' => 'Đã hủy',
+][$rescheduleRequest->status] ?? ucfirst($rescheduleRequest->status))
 
 <div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
     <a href="{{ route('owner.web.reschedule.index') }}" class="text-sm font-bold text-emerald-700 hover:text-emerald-800">
@@ -20,7 +26,7 @@
         </div>
 
         <span class="rounded-full px-4 py-2 text-sm font-black {{ $rescheduleRequest->status === 'pending' ? 'bg-amber-100 text-amber-800' : ($rescheduleRequest->status === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800') }}">
-            {{ $rescheduleRequest->status }}
+            {{ $statusLabel }}
         </span>
     </div>
 
@@ -79,23 +85,42 @@
     </div>
 
     @if($rescheduleRequest->status === 'pending')
-        <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 class="text-lg font-black text-zinc-900">Xử lý yêu cầu</h2>
-            <div class="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start">
-                <form method="POST" action="{{ route('owner.web.reschedule.approve', $code) }}">
+        <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="flex flex-col gap-1 border-b border-slate-100 pb-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <h2 class="text-lg font-black text-zinc-900">Xử lý yêu cầu</h2>
+                    <p class="mt-1 text-sm font-semibold text-slate-500">
+                        Duyệt để cập nhật lịch mới, hoặc nhập lý do nếu từ chối.
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-5">
+                <form method="POST" action="{{ route('owner.web.reschedule.reject', $code) }}" id="reject-reschedule-form">
                     @csrf
-                    <button class="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white hover:bg-emerald-700">
-                        Duyệt yêu cầu
-                    </button>
+                    <label class="mb-2 block text-sm font-black text-slate-700">
+                        Lý do từ chối
+                        <span class="font-semibold text-slate-400">(không bắt buộc)</span>
+                    </label>
+                    <textarea name="owner_note"
+                              rows="3"
+                              class="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm outline-none transition focus:border-red-400 focus:bg-white focus:ring-4 focus:ring-red-500/10"
+                              placeholder="Ví dụ: Khung giờ mới đã có lịch nội bộ, sân cần bảo trì..."></textarea>
                 </form>
 
-                <form method="POST" action="{{ route('owner.web.reschedule.reject', $code) }}" class="flex-1">
-                    @csrf
-                    <textarea name="owner_note" rows="3" class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10" placeholder="Lý do từ chối nếu có"></textarea>
-                    <button class="mt-3 rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white hover:bg-red-700">
+                <div class="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                    <button form="reject-reschedule-form"
+                            class="inline-flex items-center justify-center rounded-xl border border-red-200 bg-red-50 px-5 py-3 text-sm font-black text-red-700 transition hover:border-red-300 hover:bg-red-100">
                         Từ chối yêu cầu
                     </button>
-                </form>
+
+                    <form method="POST" action="{{ route('owner.web.reschedule.approve', $code) }}">
+                        @csrf
+                        <button class="inline-flex w-full items-center justify-center rounded-xl bg-emerald-600 px-6 py-3 text-sm font-black text-white shadow-sm shadow-emerald-600/20 transition hover:bg-emerald-700 sm:w-auto">
+                            Duyệt yêu cầu
+                        </button>
+                    </form>
+                </div>
             </div>
         </section>
     @endif

@@ -37,6 +37,12 @@
                 @forelse($requests as $item)
                     @php($group = $item->getRelation('groupedRequests') ?? collect([$item]))
                     @php($code = $item->request_code ?: (string) $item->id)
+                    @php($statusLabel = [
+                        'pending' => 'Chờ duyệt',
+                        'approved' => 'Đã duyệt',
+                        'rejected' => 'Đã từ chối',
+                        'cancelled' => 'Đã hủy',
+                    ][$item->status] ?? ucfirst($item->status))
                     <tr class="hover:bg-slate-50">
                         <td class="px-5 py-4 font-black text-zinc-900">{{ $code }}</td>
                         <td class="px-5 py-4 font-semibold text-slate-700">{{ $item->user?->name }}</td>
@@ -44,7 +50,7 @@
                         <td class="px-5 py-4 font-bold text-slate-700">{{ $group->count() }} ca</td>
                         <td class="px-5 py-4">
                             <span class="rounded-full px-3 py-1 text-xs font-black {{ $item->status === 'pending' ? 'bg-amber-100 text-amber-800' : ($item->status === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800') }}">
-                                {{ $item->status }}
+                                {{ $statusLabel }}
                             </span>
                         </td>
                         <td class="px-5 py-4 text-sm font-semibold text-slate-500">{{ $item->created_at?->format('d/m/Y H:i') }}</td>
