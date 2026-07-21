@@ -16,7 +16,21 @@ class ProcessBookingSettlement implements ShouldQueue // Chạy ngầm (Queue) �
     {
         $booking = $event->booking;
         
-        // Gọi hàm chia tiền
-        $this->settlementService->process($booking);
+        \Log::channel('settlement')->info("Bắt đầu đối soát Booking #{$booking->id}");
+
+        try {
+            $this->settlementService->process($booking);
+            \Log::channel('settlement')->info("✅ Đối soát thành công Booking #{$booking->id}");
+            
+        } catch (\Exception $e) {
+            // Đánh dấu lỗi vào Database để Admin biết
+            $booking->update(['settlement_status' => \App\Enums\SettlementStatus::FAILED]);
+            
+            // Ghi Log lỗi chi tiết
+            \Log::channel('settlement')->error("❌ Lỗi đối soát Booking #{$booking->id}: " . $e->getMessage());
+            
+            // Ném lỗi ra lại để Queue xử lý (thử lại sau)
+            throw $e;
+        }
     }
 }
