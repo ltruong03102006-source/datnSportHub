@@ -60,6 +60,8 @@ Route::get('/auth/{provider}/callback', [\App\Http\Controllers\Web\SocialAuthCon
 
 // VNPay Callback Route
 Route::get('/vnpay/callback', [VnPayController::class, 'vnpayReturn'])->name('vnpay.callback');
+Route::get('/owner/wallet/topup/vnpay/callback', [OwnerWalletTopupController::class, 'callback'])
+    ->name('owner.wallet.topup.callback');
 
 Route::get('/', [CourtPageController::class, 'index'])->name('home');
 // API lưu lịch sử tìm kiếm Session

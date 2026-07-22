@@ -157,7 +157,7 @@
                         </p>
 
                         <p class="mt-1">
-                            Giao dịch nạp tiền sẽ được thanh toán qua VNPay. Sau khi thanh toán thành công, số dư ví sẽ được cập nhật tự động.
+                            Sau khi bấm thanh toán, bạn sẽ được chuyển sang cổng VNPay. Số dư ví chỉ được cập nhật sau khi giao dịch thành công.
                         </p>
                     </div>
 
@@ -169,7 +169,7 @@
 
                         <button type="submit"
                                 class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-emerald-700">
-                            Tiếp tục thanh toán
+                            Thanh toán qua VNPay
                         </button>
                     </div>
                 </form>

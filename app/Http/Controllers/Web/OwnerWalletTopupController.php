@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\TopupTransaction;
+use App\Services\VnpayService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +22,7 @@ class OwnerWalletTopupController extends Controller
         return view('owner.wallet.topup', compact('wallet', 'debtAmount'));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, VnpayService $vnpayService): RedirectResponse
     {
         $data = $request->validate([
             'amount' => ['required', 'numeric', 'min:10000', 'max:50000000'],
@@ -36,8 +37,8 @@ class OwnerWalletTopupController extends Controller
         $owner = auth()->user();
         $wallet = $owner->getOrCreateWallet();
 
-        DB::transaction(function () use ($owner, $wallet, $data): void {
-            TopupTransaction::create([
+        $topup = DB::transaction(function () use ($owner, $wallet, $data): TopupTransaction {
+            $topup = TopupTransaction::create([
                 'owner_id' => $owner->id,
                 'wallet_id' => $wallet->id,
                 'code' => 'TOPUP-' . now()->format('YmdHis') . '-' . $owner->id . '-' . Str::upper(Str::random(4)),
@@ -45,10 +46,34 @@ class OwnerWalletTopupController extends Controller
                 'payment_method' => $data['payment_method'] ?? 'vnpay',
                 'status' => 'pending',
             ]);
+
+            $topup->update([
+                'vnpay_txn_ref' => $topup->code,
+            ]);
+
+            return $topup->fresh();
         });
 
+        try {
+            $paymentUrl = $vnpayService->createTopupUrl($topup);
+        } catch (\Throwable $exception) {
+            $topup->update([
+                'status' => 'failed',
+            ]);
+
+            return redirect()
+                ->route('owner.web.wallet.topup.create')
+                ->withInput()
+                ->with('error', $exception->getMessage());
+        }
+
+        return redirect()->away($paymentUrl);
+    }
+
+    public function callback(Request $request): RedirectResponse
+    {
         return redirect()
             ->route('owner.web.wallet.topup.create')
-            ->with('success', 'Đã ghi nhận yêu cầu nạp tiền. Thanh toán VNPay sẽ được xử lý ở bước tiếp theo.');
+            ->with('error', 'Callback VNPay sẽ được xử lý ở bước tiếp theo. Giao dịch chưa được cộng vào ví.');
     }
 }
