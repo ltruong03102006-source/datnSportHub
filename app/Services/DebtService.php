@@ -12,6 +12,7 @@ class DebtService
 {
     public const DEFAULT_DEBT_LIMIT = 500000;
     public const WARNING_THRESHOLD_PERCENT = 80;
+    public const WARNING_COOLDOWN_HOURS = 24;
 
     public function getWalletForOwner(int $ownerId): ?Wallet
     {
@@ -329,6 +330,7 @@ class DebtService
                 'action' => 'suspended',
                 'updated_venues' => $updated,
                 'summary' => $summary,
+                'warning' => $this->syncDebtWarningStatus($ownerId),
             ];
         }
 
@@ -338,7 +340,120 @@ class DebtService
             'action' => 'reactivated',
             'updated_venues' => $updated,
             'summary' => $summary,
+            'warning' => $this->syncDebtWarningStatus($ownerId),
         ];
+    }
+
+    public function shouldWarnOwner(int $ownerId): bool
+    {
+        $wallet = $this->getWalletForOwner($ownerId);
+
+        if (! $wallet) {
+            return false;
+        }
+
+        $summary = $this->getOwnerDebtSummary($ownerId);
+
+        if (! (bool) ($summary['is_near_limit'] ?? false)) {
+            return false;
+        }
+
+        if (($summary['debt_amount'] ?? 0) <= 0 || ($summary['debt_limit'] ?? 0) <= 0) {
+            return false;
+        }
+
+        if (! $wallet->debt_warning_sent_at) {
+            return true;
+        }
+
+        return $wallet->debt_warning_sent_at
+            ->copy()
+            ->addHours(self::WARNING_COOLDOWN_HOURS)
+            ->isPast();
+    }
+
+    public function warnOwnerIfNeeded(int $ownerId): bool
+    {
+        if (! $this->shouldWarnOwner($ownerId)) {
+            return false;
+        }
+
+        $wallet = $this->getWalletForOwner($ownerId);
+
+        if (! $wallet) {
+            return false;
+        }
+
+        $summary = $this->getOwnerDebtSummary($ownerId);
+
+        $this->sendDebtWarningNotification($ownerId, $summary);
+
+        $wallet->update([
+            'debt_warning_sent_at' => now(),
+            'debt_warning_level' => $summary['usage_percent'] ?? null,
+        ]);
+
+        return true;
+    }
+
+    public function resetDebtWarningIfSafe(int $ownerId): bool
+    {
+        $wallet = $this->getWalletForOwner($ownerId);
+
+        if (! $wallet) {
+            return false;
+        }
+
+        $summary = $this->getOwnerDebtSummary($ownerId);
+
+        if ((bool) ($summary['is_near_limit'] ?? false)) {
+            return false;
+        }
+
+        if (! $wallet->debt_warning_sent_at && ! $wallet->debt_warning_level) {
+            return false;
+        }
+
+        $wallet->update([
+            'debt_warning_sent_at' => null,
+            'debt_warning_level' => null,
+        ]);
+
+        return true;
+    }
+
+    public function syncDebtWarningStatus(int $ownerId): array
+    {
+        $summary = $this->getOwnerDebtSummary($ownerId);
+
+        if ((bool) ($summary['is_near_limit'] ?? false)) {
+            $warned = $this->warnOwnerIfNeeded($ownerId);
+
+            return [
+                'action' => $warned ? 'warned' : 'skipped',
+                'summary' => $summary,
+            ];
+        }
+
+        $reset = $this->resetDebtWarningIfSafe($ownerId);
+
+        return [
+            'action' => $reset ? 'reset' : 'skipped',
+            'summary' => $summary,
+        ];
+    }
+
+    protected function sendDebtWarningNotification(int $ownerId, array $summary): void
+    {
+        if (! class_exists(NotificationService::class)) {
+            return;
+        }
+
+        try {
+            app(NotificationService::class)->notifyOwnerDebtWarning($ownerId, $summary);
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
     }
 
     private function getPositiveColumnValue(object $model, array $columns): float

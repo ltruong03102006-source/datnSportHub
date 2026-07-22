@@ -10,7 +10,8 @@ class Wallet extends Model
 {
     protected $fillable = [
         'owner_id', 'balance', 'available_balance', 
-        'pending_balance', 'credit_limit', 'currency', 'status'
+        'pending_balance', 'credit_limit', 'debt_warning_sent_at',
+        'debt_warning_level', 'currency', 'status'
     ];
 
     protected $casts = [
@@ -18,6 +19,8 @@ class Wallet extends Model
         'available_balance' => 'decimal:0',
         'pending_balance' => 'decimal:0',
         'credit_limit' => 'decimal:0',
+        'debt_warning_sent_at' => 'datetime',
+        'debt_warning_level' => 'decimal:2',
     ];
 
     public function owner(): BelongsTo

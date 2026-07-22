@@ -72,6 +72,10 @@ class WalletService
                 app(DebtService::class)->reactivateOwnerVenuesIfDebtRepaid((int) $lockedWallet->owner_id);
             }
 
+            if (class_exists(DebtService::class)) {
+                app(DebtService::class)->syncDebtWarningStatus((int) $lockedWallet->owner_id);
+            }
+
             return $transaction;
         });
     }
