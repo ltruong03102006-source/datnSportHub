@@ -20,14 +20,15 @@ class WalletService
         string $description,
         ?int $bookingId = null,
         ?int $withdrawalRequestId = null,
-        ?array $metadata = null
+        ?array $metadata = null,
+        ?string $reference = null
     ): WalletTransaction {
         // Đảm bảo amount truyền vào luôn là số dương. Việc cộng hay trừ do Type quyết định.
         if ($amount <= 0) {
             throw new \InvalidArgumentException('Số tiền giao dịch phải lớn hơn 0.');
         }
 
-        return DB::transaction(function () use ($wallet, $type, $amount, $description, $bookingId, $withdrawalRequestId, $metadata) {
+        return DB::transaction(function () use ($wallet, $type, $amount, $description, $bookingId, $withdrawalRequestId, $metadata, $reference) {
             // 1. LOCK ROW: Khóa dòng dữ liệu ví này lại, các request khác chạm vào ví này phải xếp hàng chờ
             $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
 
@@ -55,7 +56,7 @@ class WalletService
                 'wallet_id' => $lockedWallet->id,
                 'booking_id' => $bookingId,
                 'withdrawal_request_id' => $withdrawalRequestId,
-                'reference' => $this->generateReferenceNumber(),
+                'reference' => $reference ?: $this->generateReferenceNumber(),
                 'type' => $type,
                 'amount' => $amount,
                 'balance_before' => $balanceBefore,

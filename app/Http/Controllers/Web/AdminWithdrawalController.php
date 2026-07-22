@@ -2,10 +2,15 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Enums\TransactionType;
 use App\Http\Controllers\Controller;
+use App\Models\Wallet;
 use App\Models\WithdrawalRequest;
+use App\Services\WalletService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AdminWithdrawalController extends Controller
@@ -70,13 +75,60 @@ class AdminWithdrawalController extends Controller
         return view('admin.withdrawals.show', compact('withdrawal'));
     }
 
-    public function approve(WithdrawalRequest $withdrawal): RedirectResponse
+    public function approve(WithdrawalRequest $withdrawal, WalletService $walletService): RedirectResponse
     {
-        if ($this->statusValue($withdrawal) !== 'pending') {
-            return back()->with('error', 'Yêu cầu này đã được xử lý.');
-        }
+        DB::transaction(function () use ($withdrawal, $walletService): void {
+            $lockedWithdrawal = WithdrawalRequest::query()
+                ->whereKey($withdrawal->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        return back()->with('error', 'Chức năng duyệt rút tiền và trừ ví sẽ được xử lý ở commit tiếp theo.');
+            if ($this->statusValue($lockedWithdrawal) !== 'pending') {
+                throw ValidationException::withMessages([
+                    'withdrawal' => 'Yêu cầu rút tiền này đã được xử lý.',
+                ]);
+            }
+
+            $wallet = Wallet::query()
+                ->whereKey($lockedWithdrawal->wallet_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ((float) $wallet->balance < (float) $lockedWithdrawal->amount) {
+                throw ValidationException::withMessages([
+                    'amount' => 'Số dư ví không đủ để duyệt yêu cầu rút tiền.',
+                ]);
+            }
+
+            $walletService->processTransaction(
+                wallet: $wallet,
+                type: TransactionType::WITHDRAWAL_DEBIT,
+                amount: (float) $lockedWithdrawal->amount,
+                description: 'Admin duyệt yêu cầu rút tiền: ' . $lockedWithdrawal->code,
+                withdrawalRequestId: $lockedWithdrawal->id,
+                metadata: [
+                    'reference_type' => 'withdrawal_request',
+                    'reference_id' => $lockedWithdrawal->id,
+                    'withdrawal_code' => $lockedWithdrawal->code,
+                    'approved_by' => auth()->id(),
+                ],
+                reference: $lockedWithdrawal->code
+            );
+
+            $lockedWithdrawal->update([
+                'status' => 'approved',
+                'approved_by' => auth()->id(),
+                'approved_at' => now(),
+            ]);
+
+            if (class_exists(\App\Services\DebtService::class)) {
+                app(\App\Services\DebtService::class)->syncOwnerDebtStatus((int) $lockedWithdrawal->owner_id);
+            }
+        });
+
+        return redirect()
+            ->route('admin.withdrawals.show', $withdrawal)
+            ->with('success', 'Đã duyệt yêu cầu rút tiền và trừ số dư ví chủ sân.');
     }
 
     public function reject(Request $request, WithdrawalRequest $withdrawal): RedirectResponse

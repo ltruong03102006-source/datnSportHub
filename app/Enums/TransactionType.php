@@ -11,6 +11,7 @@ enum TransactionType: string
     case TOPUP = 'topup';
     case TOPUP_CREDIT = 'topup_credit';
     case WITHDRAW = 'withdraw';
+    case WITHDRAWAL_DEBIT = 'withdrawal_debit';
     case REFUND = 'refund';
     case ADJUSTMENT = 'adjustment';
 }
