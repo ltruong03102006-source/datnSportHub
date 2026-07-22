@@ -66,6 +66,11 @@ class User extends Authenticatable
         return $this->hasMany(TopupTransaction::class, 'owner_id');
     }
 
+    public function withdrawalRequests(): HasMany
+    {
+        return $this->hasMany(WithdrawalRequest::class, 'owner_id');
+    }
+
     public function wallet(): HasOne
     {
         return $this->hasOne(Wallet::class, 'owner_id');
