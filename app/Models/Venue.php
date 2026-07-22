@@ -34,6 +34,7 @@ class Venue extends Model
         'status',
         'debt_suspended_at',
         'suspended_reason',
+        'status_before_debt_suspension',
         'auto_suspend_enabled',
         'phone',
         'email',

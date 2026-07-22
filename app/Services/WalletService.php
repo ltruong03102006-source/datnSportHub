@@ -68,6 +68,10 @@ class WalletService
                 app(DebtService::class)->suspendOwnerIfDebtLimitExceeded((int) $lockedWallet->owner_id);
             }
 
+            if ($isAddition && class_exists(DebtService::class)) {
+                app(DebtService::class)->reactivateOwnerVenuesIfDebtRepaid((int) $lockedWallet->owner_id);
+            }
+
             return $transaction;
         });
     }
