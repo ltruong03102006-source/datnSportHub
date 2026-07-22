@@ -59,4 +59,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(BookingPackage::class);
     }
+
+    public function topupTransactions(): HasMany
+    {
+        return $this->hasMany(TopupTransaction::class, 'owner_id');
+    }
 }

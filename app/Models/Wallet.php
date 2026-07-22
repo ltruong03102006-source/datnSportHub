@@ -34,4 +34,9 @@ class Wallet extends Model
     {
         return $this->hasMany(WithdrawalRequest::class);
     }
+
+    public function topupTransactions(): HasMany
+    {
+        return $this->hasMany(TopupTransaction::class);
+    }
 }
