@@ -26,6 +26,7 @@ use App\Http\Controllers\Web\BookingRescheduleController;
 use App\Http\Controllers\Web\OwnerBookingRescheduleController;
 use App\Http\Controllers\Web\VnPayController;
 use App\Http\Controllers\Web\OwnerVenuePackageController;
+use App\Http\Controllers\Web\OwnerWalletTopupController;
 use App\Http\Controllers\Web\PackageBookingController;
 use App\Http\Controllers\Web\AdminPackageController;
 use App\Http\Controllers\Web\TransactionController;
@@ -162,6 +163,8 @@ Route::get('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingC
 Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group(function () {
     // Cài đặt ngân hàng trong Owner Portal
     Route::get('/settings/bank', [\App\Http\Controllers\Web\OwnerDashboardController::class, 'bankSettings'])->name('settings.bank');
+    Route::get('/wallet/topup', [OwnerWalletTopupController::class, 'create'])->name('wallet.topup.create');
+    Route::post('/wallet/topup', [OwnerWalletTopupController::class, 'store'])->name('wallet.topup.store');
 
     Route::get('/reschedule-requests', [OwnerBookingRescheduleController::class, 'index'])->name('reschedule.index');
     Route::get('/reschedule-requests/{rescheduleRequest}', [OwnerBookingRescheduleController::class, 'show'])->name('reschedule.show');
