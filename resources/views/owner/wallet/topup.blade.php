@@ -45,6 +45,18 @@
             </p>
         </div>
 
+        <div class="mb-6 flex flex-wrap gap-3">
+            <a href="{{ route('owner.web.withdrawals.index') }}"
+               class="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
+                Danh sách rút tiền
+            </a>
+
+            <a href="{{ route('owner.web.withdrawals.create') }}"
+               class="inline-flex items-center justify-center rounded-xl border border-emerald-600 bg-white px-4 py-2 text-sm font-bold text-emerald-700 hover:bg-emerald-50">
+                Rút tiền
+            </a>
+        </div>
+
         @if(session('success'))
             <div class="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-700">
                 {{ session('success') }}
