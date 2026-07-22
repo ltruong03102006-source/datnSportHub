@@ -32,6 +32,9 @@ class Venue extends Model
         'rules',
         'banner', 
         'status',
+        'debt_suspended_at',
+        'suspended_reason',
+        'auto_suspend_enabled',
         'phone',
         'email',
         'open_hours',
@@ -46,6 +49,8 @@ class Venue extends Model
         'lat' => 'float',
         'lng' => 'float',
         'allow_package_booking' => 'boolean',
+        'auto_suspend_enabled' => 'boolean',
+        'debt_suspended_at' => 'datetime',
         'commission_rate' => 'decimal:2',
     ];
 

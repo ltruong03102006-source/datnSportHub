@@ -51,7 +51,7 @@ class WalletService
             $lockedWallet->save();
 
             // 4. Lưu lại lịch sử giao dịch (Audit Trail)
-            return WalletTransaction::create([
+            $transaction = WalletTransaction::create([
                 'wallet_id' => $lockedWallet->id,
                 'booking_id' => $bookingId,
                 'withdrawal_request_id' => $withdrawalRequestId,
@@ -63,6 +63,12 @@ class WalletService
                 'description' => $description,
                 'metadata' => $metadata,
             ]);
+
+            if (! $isAddition && class_exists(DebtService::class)) {
+                app(DebtService::class)->suspendOwnerIfDebtLimitExceeded((int) $lockedWallet->owner_id);
+            }
+
+            return $transaction;
         });
     }
 

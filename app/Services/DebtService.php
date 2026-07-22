@@ -167,6 +167,59 @@ class DebtService
         return $this->getOwnerDebtSummary($ownerId);
     }
 
+    public function shouldSuspendOwner(int $ownerId): bool
+    {
+        $summary = $this->getOwnerDebtSummary($ownerId);
+
+        return (bool) ($summary['is_over_limit'] ?? false);
+    }
+
+    public function suspendOwnerIfDebtLimitExceeded(int $ownerId): bool
+    {
+        if (! $this->shouldSuspendOwner($ownerId)) {
+            return false;
+        }
+
+        $this->suspendOwnerVenues($ownerId, 'debt_limit_exceeded');
+
+        return true;
+    }
+
+    public function suspendOwnerVenues(int $ownerId, ?string $reason = null): int
+    {
+        if (! Schema::hasColumn('venues', 'owner_id') || ! Schema::hasColumn('venues', 'status')) {
+            return 0;
+        }
+
+        $query = Venue::query()
+            ->where('owner_id', $ownerId)
+            ->where('status', '!=', 'suspended');
+
+        if (Schema::hasColumn('venues', 'auto_suspend_enabled')) {
+            $query->where('auto_suspend_enabled', true);
+        }
+
+        $updates = [
+            'status' => 'suspended',
+        ];
+
+        if (Schema::hasColumn('venues', 'is_bookable_online')) {
+            $updates['is_bookable_online'] = false;
+        }
+
+        if (Schema::hasColumn('venues', 'debt_suspended_at')) {
+            $updates['debt_suspended_at'] = now();
+        }
+
+        if (Schema::hasColumn('venues', 'suspended_reason')) {
+            $updates['suspended_reason'] = $reason ?: 'debt_limit_exceeded';
+        } elseif (Schema::hasColumn('venues', 'suspension_reason')) {
+            $updates['suspension_reason'] = $reason ?: 'debt_limit_exceeded';
+        }
+
+        return $query->update($updates);
+    }
+
     private function getPositiveColumnValue(object $model, array $columns): float
     {
         $table = $model->getTable();
