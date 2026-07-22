@@ -149,7 +149,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Quản lý Yêu cầu rút tiền
         Route::get('/withdrawals', [\App\Http\Controllers\Web\AdminWithdrawalController::class, 'index'])->name('withdrawals.index');
-        Route::patch('/withdrawals/{withdrawal}/status', [\App\Http\Controllers\Web\AdminWithdrawalController::class, 'updateStatus'])->name('withdrawals.updateStatus');
+        Route::get('/withdrawals/{withdrawal}', [\App\Http\Controllers\Web\AdminWithdrawalController::class, 'show'])->name('withdrawals.show');
+        Route::post('/withdrawals/{withdrawal}/approve', [\App\Http\Controllers\Web\AdminWithdrawalController::class, 'approve'])->name('withdrawals.approve');
+        Route::post('/withdrawals/{withdrawal}/reject', [\App\Http\Controllers\Web\AdminWithdrawalController::class, 'reject'])->name('withdrawals.reject');
 
         // Cấu hình hệ thống
         Route::get('/settings', [\App\Http\Controllers\Web\AdminSettingController::class, 'index'])->name('settings.index');

@@ -3,80 +3,109 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\WithdrawalRequest;
-use App\Models\WalletTransaction;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class AdminWithdrawalController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): View
     {
-        $query = WithdrawalRequest::with('user')->orderBy('created_at', 'desc');
+        $status = $request->query('status');
+        $search = $request->query('search');
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->input('status'));
+        $query = WithdrawalRequest::query()
+            ->with(['owner', 'wallet'])
+            ->latest();
+
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        if ($search) {
+            $query->where(function ($query) use ($search): void {
+                $query->where('code', 'like', '%' . $search . '%')
+                    ->orWhereHas('owner', function ($ownerQuery) use ($search): void {
+                        $ownerQuery
+                            ->where('name', 'like', '%' . $search . '%')
+                            ->orWhere('email', 'like', '%' . $search . '%');
+                    });
+            });
         }
 
         $withdrawals = $query->paginate(15)->withQueryString();
 
-        return view('admin.withdrawals.index', compact('withdrawals'));
+        $totalPendingAmount = WithdrawalRequest::query()
+            ->where('status', 'pending')
+            ->sum('amount');
+
+        $pendingCount = WithdrawalRequest::query()
+            ->where('status', 'pending')
+            ->count();
+
+        $approvedCount = WithdrawalRequest::query()
+            ->where('status', 'approved')
+            ->count();
+
+        $rejectedCount = WithdrawalRequest::query()
+            ->where('status', 'rejected')
+            ->count();
+
+        return view('admin.withdrawals.index', compact(
+            'withdrawals',
+            'status',
+            'search',
+            'totalPendingAmount',
+            'pendingCount',
+            'approvedCount',
+            'rejectedCount'
+        ));
     }
 
-    public function updateStatus(Request $request, WithdrawalRequest $withdrawal)
+    public function show(WithdrawalRequest $withdrawal): View
     {
-        $request->validate([
-            'status' => 'required|in:approved,rejected',
-            'admin_note' => 'nullable|string|max:500'
+        $withdrawal->load(['owner', 'wallet', 'approver']);
+
+        return view('admin.withdrawals.show', compact('withdrawal'));
+    }
+
+    public function approve(WithdrawalRequest $withdrawal): RedirectResponse
+    {
+        if ($this->statusValue($withdrawal) !== 'pending') {
+            return back()->with('error', 'Yêu cầu này đã được xử lý.');
+        }
+
+        return back()->with('error', 'Chức năng duyệt rút tiền và trừ ví sẽ được xử lý ở commit tiếp theo.');
+    }
+
+    public function reject(Request $request, WithdrawalRequest $withdrawal): RedirectResponse
+    {
+        $data = $request->validate([
+            'admin_note' => ['nullable', 'string', 'max:1000'],
+        ], [
+            'admin_note.max' => 'Ghi chú admin không được vượt quá 1000 ký tự.',
         ]);
 
-        if ($withdrawal->status !== 'pending') {
-            return back()->with('error', 'Yêu cầu này đã được xử lý trước đó.');
+        if ($this->statusValue($withdrawal) !== 'pending') {
+            return back()->with('error', 'Yêu cầu này đã được xử lý.');
         }
 
-        $newStatus = $request->input('status');
-        $adminNote = $request->input('admin_note');
+        $withdrawal->update([
+            'status' => 'rejected',
+            'admin_note' => $data['admin_note'] ?? null,
+            'rejected_at' => now(),
+        ]);
 
-        try {
-            DB::transaction(function () use ($withdrawal, $newStatus, $adminNote) {
-                $withdrawal->status = $newStatus;
-                $withdrawal->admin_note = $adminNote;
-                $withdrawal->save();
+        return redirect()
+            ->route('admin.withdrawals.show', $withdrawal)
+            ->with('success', 'Đã từ chối yêu cầu rút tiền.');
+    }
 
-                if ($newStatus === 'rejected') {
-                    // Hoàn lại tiền cho user
-                    $user = $withdrawal->user;
-                    $user->balance += $withdrawal->amount;
-                    $user->save();
-
-                    // Log transaction
-                    WalletTransaction::create([
-                        'user_id' => $user->id,
-                        'type' => 'refund',
-                        'amount' => $withdrawal->amount,
-                        'balance_after' => $user->balance,
-                        'description' => 'Hoàn tiền do yêu cầu rút tiền bị từ chối. #' . $withdrawal->id,
-                    ]);
-                }
-            });
-
-            // Gửi thông báo cho user
-            $title = $newStatus === 'approved' ? 'Yêu cầu rút tiền thành công' : 'Yêu cầu rút tiền bị từ chối';
-            $message = $newStatus === 'approved' 
-                ? 'Yêu cầu rút ' . number_format($withdrawal->amount) . 'đ của bạn đã được chuyển khoản. Vui lòng kiểm tra tài khoản ngân hàng.' 
-                : 'Yêu cầu rút ' . number_format($withdrawal->amount) . 'đ bị từ chối. Số tiền đã được hoàn lại vào ví. Lý do: ' . $adminNote;
-
-            app(\App\Services\NotificationService::class)->create(
-                $withdrawal->user_id,
-                $title,
-                $message,
-                route('account.profile.show'), 
-                'withdrawal_update'
-            );
-
-            return back()->with('success', 'Đã cập nhật trạng thái yêu cầu rút tiền.');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
-        }
+    private function statusValue(WithdrawalRequest $withdrawal): string
+    {
+        return $withdrawal->status instanceof \BackedEnum
+            ? $withdrawal->status->value
+            : (string) $withdrawal->status;
     }
 }
