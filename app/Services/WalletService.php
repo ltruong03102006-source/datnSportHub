@@ -37,6 +37,7 @@ class WalletService
             $isAddition = in_array($type, [
                 TransactionType::BOOKING_INCOME, 
                 TransactionType::TOPUP, 
+                TransactionType::TOPUP_CREDIT,
                 TransactionType::REFUND
             ]);
 

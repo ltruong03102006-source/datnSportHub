@@ -7,6 +7,30 @@ use RuntimeException;
 
 class VnpayService
 {
+    public function verifyReturn(array $input): bool
+    {
+        $secureHash = $input['vnp_SecureHash'] ?? null;
+        $hashSecret = config('services.vnpay.hash_secret');
+
+        if (! $secureHash || ! $hashSecret) {
+            return false;
+        }
+
+        $params = [];
+        foreach ($input as $key => $value) {
+            if (str_starts_with((string) $key, 'vnp_')) {
+                $params[$key] = $value;
+            }
+        }
+
+        unset($params['vnp_SecureHash'], $params['vnp_SecureHashType']);
+
+        $hashData = $this->buildHashData($params);
+        $calculatedHash = hash_hmac('sha512', $hashData, $hashSecret);
+
+        return hash_equals($calculatedHash, $secureHash);
+    }
+
     public function createTopupUrl(TopupTransaction $topup): string
     {
         $vnpUrl = config('services.vnpay.url');
@@ -35,9 +59,18 @@ class VnpayService
             'vnp_TxnRef' => $txnRef,
         ];
 
+        $hashData = $this->buildHashData($params);
+        $query = $this->buildQuery($params);
+
+        $secureHash = hash_hmac('sha512', $hashData, $hashSecret);
+
+        return $vnpUrl . '?' . $query . 'vnp_SecureHash=' . $secureHash;
+    }
+
+    private function buildHashData(array $params): string
+    {
         ksort($params);
 
-        $query = '';
         $hashData = '';
         $index = 0;
 
@@ -48,12 +81,21 @@ class VnpayService
                 $hashData .= urlencode($key) . '=' . urlencode($value);
                 $index = 1;
             }
+        }
 
+        return $hashData;
+    }
+
+    private function buildQuery(array $params): string
+    {
+        ksort($params);
+
+        $query = '';
+
+        foreach ($params as $key => $value) {
             $query .= urlencode($key) . '=' . urlencode($value) . '&';
         }
 
-        $secureHash = hash_hmac('sha512', $hashData, $hashSecret);
-
-        return $vnpUrl . '?' . $query . 'vnp_SecureHash=' . $secureHash;
+        return $query;
     }
 }

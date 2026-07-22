@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Enums\TransactionType;
 use App\Http\Controllers\Controller;
 use App\Models\TopupTransaction;
 use App\Services\VnpayService;
+use App\Services\WalletService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -70,10 +72,106 @@ class OwnerWalletTopupController extends Controller
         return redirect()->away($paymentUrl);
     }
 
-    public function callback(Request $request): RedirectResponse
+    public function callback(Request $request, VnpayService $vnpayService, WalletService $walletService): RedirectResponse
     {
+        $txnRef = $request->input('vnp_TxnRef');
+
+        if (! $txnRef) {
+            return redirect()
+                ->route('owner.web.wallet.topup.create')
+                ->with('error', 'Thiếu mã giao dịch VNPay.');
+        }
+
+        $topup = TopupTransaction::query()
+            ->where('vnpay_txn_ref', $txnRef)
+            ->orWhere('code', $txnRef)
+            ->first();
+
+        if (! $topup) {
+            return redirect()
+                ->route('owner.web.wallet.topup.create')
+                ->with('error', 'Không tìm thấy giao dịch nạp tiền.');
+        }
+
+        if ($topup->status === 'success') {
+            return redirect()
+                ->route('owner.web.wallet.topup.create')
+                ->with('success', 'Giao dịch nạp tiền đã được xử lý trước đó.');
+        }
+
+        if (! $vnpayService->verifyReturn($request->all())) {
+            return redirect()
+                ->route('owner.web.wallet.topup.create')
+                ->with('error', 'Chữ ký VNPay không hợp lệ.');
+        }
+
+        $responseCode = $request->input('vnp_ResponseCode');
+        $transactionStatus = $request->input('vnp_TransactionStatus');
+
+        $isSuccess = $responseCode === '00'
+            && ($transactionStatus === null || $transactionStatus === '00');
+
+        if (! $isSuccess) {
+            if ($topup->status === 'pending') {
+                $topup->update([
+                    'status' => 'failed',
+                    'vnpay_response_code' => $responseCode,
+                    'vnpay_transaction_no' => $request->input('vnp_TransactionNo'),
+                ]);
+            }
+
+            return redirect()
+                ->route('owner.web.wallet.topup.create')
+                ->with('error', 'Nạp tiền thất bại hoặc giao dịch đã bị hủy.');
+        }
+
+        $vnpAmount = (int) $request->input('vnp_Amount');
+        $expectedAmount = (int) round((float) $topup->amount * 100);
+
+        if ($vnpAmount !== $expectedAmount) {
+            return redirect()
+                ->route('owner.web.wallet.topup.create')
+                ->with('error', 'Số tiền thanh toán không khớp với giao dịch nạp tiền.');
+        }
+
+        DB::transaction(function () use ($topup, $request, $walletService, $responseCode): void {
+            $lockedTopup = TopupTransaction::query()
+                ->whereKey($topup->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedTopup->status === 'success') {
+                return;
+            }
+
+            $lockedTopup->update([
+                'status' => 'success',
+                'paid_at' => now(),
+                'vnpay_response_code' => $responseCode,
+                'vnpay_transaction_no' => $request->input('vnp_TransactionNo'),
+            ]);
+
+            $walletService->processTransaction(
+                wallet: $lockedTopup->wallet,
+                type: TransactionType::TOPUP_CREDIT,
+                amount: (float) $lockedTopup->amount,
+                description: 'Nạp tiền vào ví qua VNPay: ' . $lockedTopup->code,
+                metadata: [
+                    'reference_type' => 'topup_transaction',
+                    'reference_id' => $lockedTopup->id,
+                    'topup_code' => $lockedTopup->code,
+                    'vnpay_txn_ref' => $lockedTopup->vnpay_txn_ref,
+                    'vnpay_transaction_no' => $request->input('vnp_TransactionNo'),
+                ],
+            );
+
+            if (class_exists(\App\Services\DebtService::class)) {
+                app(\App\Services\DebtService::class)->syncOwnerStatus($lockedTopup->owner_id);
+            }
+        });
+
         return redirect()
             ->route('owner.web.wallet.topup.create')
-            ->with('error', 'Callback VNPay sẽ được xử lý ở bước tiếp theo. Giao dịch chưa được cộng vào ví.');
+            ->with('success', 'Nạp tiền vào ví thành công.');
     }
 }
