@@ -49,6 +49,9 @@
                     <span class="input-group-text">%</span>
                 </div>
                 <small class="text-muted d-block mt-2">Áp dụng cho các sân không cấu hình hoa hồng riêng.</small>
+@error('default_commission_rate')
+    <small class="text-danger d-block mt-1 fw-bold">{{ $message }}</small>
+@enderror
             </div>
 
             <div class="col-md-6">
@@ -58,6 +61,9 @@
                     <span class="input-group-text">VNĐ</span>
                 </div>
                 <small class="text-danger d-block mt-2"><i class="fa-solid fa-triangle-exclamation"></i> Nhập số âm. VD: -1000000 (Chủ sân được nợ tối đa 1 triệu).</small>
+@error('owner_credit_limit')
+    <small class="text-danger d-block mt-1 fw-bold">{{ $message }}</small>
+@enderror
             </div>
 
             <div class="col-md-6">
@@ -66,6 +72,10 @@
                     <input type="number" class="form-control" name="minimum_withdraw" value="{{ $settings['minimum_withdraw'] ?? 200000 }}">
                     <span class="input-group-text">VNĐ</span>
                 </div>
+                <!-- SỬA minimum_topup THÀNH minimum_withdraw Ở ĐÂY -->
+                @error('minimum_withdraw')
+                    <small class="text-danger d-block mt-1 fw-bold">{{ $message }}</small>
+                @enderror
             </div>
 
             <div class="col-md-6">
@@ -74,6 +84,10 @@
                     <input type="number" class="form-control" name="minimum_topup" value="{{ $settings['minimum_topup'] ?? 50000 }}">
                     <span class="input-group-text">VNĐ</span>
                 </div>
+                <!-- Ở đây giữ nguyên minimum_topup là đúng rồi -->
+                @error('minimum_topup')
+                    <small class="text-danger d-block mt-1 fw-bold">{{ $message }}</small>
+                @enderror
             </div>
 
             <div class="col-12 mt-2">

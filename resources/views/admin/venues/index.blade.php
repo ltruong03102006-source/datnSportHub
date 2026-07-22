@@ -601,17 +601,31 @@
                         </div>
                         
                         <div class="mt-4">
-                            <label class="form-label" style="font-size: 13px; font-weight: 700; color: #495057; text-transform: uppercase;">Tỷ lệ hoa hồng (%)</label>
-                            <input type="number" step="0.01" class="form-control" name="commission_rate" 
-                                   value="{{ $venue->commission_rate }}" placeholder="VD: 15.5" 
-                                   style="border-radius: 8px; padding: 12px 16px; font-size: 16px; font-weight: 600; border: 2px solid #fde68a;">
-                            
-                            <div class="alert alert-warning mt-3 mb-0" style="background-color: #fffbeb; border-color: #fde68a; color: #92400e; font-size: 13px; padding: 12px; border-radius: 8px;">
-                                <i class="fa-solid fa-circle-info me-1"></i> <strong>Lưu ý:</strong><br>
-                                - Nhập số để áp dụng mức phí đặc biệt cho cơ sở này.<br>
-                                - <strong>Xóa trắng ô nhập</strong> nếu muốn cơ sở này sử dụng lại mức phí mặc định của hệ thống.
-                            </div>
+                        <label class="form-label" style="font-size: 13px; font-weight: 700; color: #495057; text-transform: uppercase;">Tỷ lệ hoa hồng (%)</label>
+                        
+                        <!-- TRƯỜNG ẨN ĐỂ NHẬN DIỆN ĐANG SỬA SÂN NÀO -->
+                        <input type="hidden" name="error_venue_id" value="{{ $venue->id }}">
+
+                        <input type="number" step="0.01" 
+                               class="form-control @if($errors->has('commission_rate') && old('error_venue_id') == $venue->id) is-invalid @endif" 
+                               name="commission_rate" 
+                               value="{{ old('error_venue_id') == $venue->id ? old('commission_rate') : $venue->commission_rate }}" 
+                               placeholder="VD: 15.5" 
+                               style="border-radius: 8px; padding: 12px 16px; font-size: 16px; font-weight: 600; border: 2px solid #fde68a;">
+                        
+                        <!-- HIỂN THỊ LỖI MÀU ĐỎ -->
+                        @if($errors->has('commission_rate') && old('error_venue_id') == $venue->id)
+                            <small class="text-danger d-block mt-2 fw-bold">
+                                <i class="fa-solid fa-circle-exclamation"></i> {{ $errors->first('commission_rate') }}
+                            </small>
+                        @endif
+                        
+                        <div class="alert alert-warning mt-3 mb-0" style="background-color: #fffbeb; border-color: #fde68a; color: #92400e; font-size: 13px; padding: 12px; border-radius: 8px;">
+                            <i class="fa-solid fa-circle-info me-1"></i> <strong>Lưu ý:</strong><br>
+                            - Nhập số để áp dụng mức phí đặc biệt cho cơ sở này.<br>
+                            - <strong>Xóa trắng ô nhập</strong> nếu muốn cơ sở này sử dụng lại mức phí mặc định của hệ thống.
                         </div>
+                    </div>
                     </div>
                     
                     <div class="modal-footer" style="border-top: 1px solid #f3f4f6; padding: 16px 24px;">
@@ -686,5 +700,16 @@
 
     return confirm('Bạn có chắc chắn muốn từ chối cơ sở sân này không?');
 }
+@if($errors->any() && old('error_venue_id'))
+        document.addEventListener('DOMContentLoaded', function () {
+            // Tự động tìm đúng ID của Modal vừa bị lỗi và bật nó lên lại
+            var modalId = 'commissionModal{{ old("error_venue_id") }}';
+            var modalElement = document.getElementById(modalId);
+            if(modalElement) {
+                var myModal = new bootstrap.Modal(modalElement);
+                myModal.show();
+            }
+        });
+    @endif
 </script>
 @endpush

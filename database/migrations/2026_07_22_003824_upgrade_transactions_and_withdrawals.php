@@ -23,6 +23,10 @@ return new class extends Migration
             $table->foreignId('booking_id')->nullable()->after('wallet_id')->constrained('bookings')->nullOnDelete();
             $table->foreignId('withdrawal_request_id')->nullable()->after('booking_id')->constrained('withdrawal_requests')->nullOnDelete();
             $table->string('reference')->unique()->after('withdrawal_request_id');
+            
+            // ---> FIX LỖI Ở ĐÂY: Mở rộng cột type thành chuỗi 50 ký tự <---
+            $table->string('type', 50)->change();
+            
             $table->decimal('amount', 15, 0)->change();
             $table->decimal('balance_before', 15, 0)->after('amount')->default(0);
             $table->decimal('balance_after', 15, 0)->change();

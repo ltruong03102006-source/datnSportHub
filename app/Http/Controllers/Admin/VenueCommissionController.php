@@ -12,6 +12,11 @@ class VenueCommissionController extends Controller
     {
         $request->validate([
             'commission_rate' => 'nullable|numeric|min:0|max:100',
+        ], [
+            // Thêm các dòng thông báo lỗi tiếng Việt này
+            'commission_rate.numeric' => 'Tỷ lệ hoa hồng phải là một số.',
+            'commission_rate.min'     => 'Tỷ lệ hoa hồng không được là số âm.',
+            'commission_rate.max'     => 'Tỷ lệ hoa hồng tối đa là 100%.',
         ]);
 
         $venue->update([
