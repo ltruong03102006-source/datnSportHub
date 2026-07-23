@@ -21,6 +21,16 @@ class OwnerVenueTransferController extends Controller
             abort(403, 'Bạn không có quyền truy cập cơ sở này.');
         }
 
+        // KIỂM TRA: Nếu đang có yêu cầu chờ duyệt thì chặn luôn không cho vào form
+        $hasPending = \App\Models\VenueTransferRequest::where('venue_id', $venue->id)
+            ->where('status', 'pending')
+            ->exists();
+
+        if ($hasPending) {
+            return redirect()->route('owner.web.venues.index')
+                ->with('error', 'Cơ sở này đang có yêu cầu chuyển nhượng chờ Admin duyệt. Bạn không thể tạo thêm!');
+        }
+
         return view('owner.venues.transfer', compact('venue'));
     }
 
