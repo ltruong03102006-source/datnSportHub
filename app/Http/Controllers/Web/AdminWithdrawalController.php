@@ -6,6 +6,7 @@ use App\Enums\TransactionType;
 use App\Http\Controllers\Controller;
 use App\Models\Wallet;
 use App\Models\WithdrawalRequest;
+use App\Services\PlatformWalletService;
 use App\Services\WalletService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -75,9 +76,13 @@ class AdminWithdrawalController extends Controller
         return view('admin.withdrawals.show', compact('withdrawal'));
     }
 
-    public function approve(WithdrawalRequest $withdrawal, WalletService $walletService): RedirectResponse
+    public function approve(
+        WithdrawalRequest $withdrawal,
+        WalletService $walletService,
+        PlatformWalletService $platformWalletService
+    ): RedirectResponse
     {
-        DB::transaction(function () use ($withdrawal, $walletService): void {
+        DB::transaction(function () use ($withdrawal, $walletService, $platformWalletService): void {
             $lockedWithdrawal = WithdrawalRequest::query()
                 ->whereKey($withdrawal->id)
                 ->lockForUpdate()
@@ -113,6 +118,23 @@ class AdminWithdrawalController extends Controller
                     'approved_by' => auth()->id(),
                 ],
                 reference: $lockedWithdrawal->code
+            );
+
+            $platformWalletService->debit(
+                amount: (float) $lockedWithdrawal->amount,
+                type: 'owner_withdrawal_out',
+                description: 'Admin duyệt rút tiền cho owner: ' . $lockedWithdrawal->code,
+                referenceType: 'withdrawal_request',
+                referenceId: $lockedWithdrawal->id,
+                reference: $lockedWithdrawal->code,
+                performedBy: auth()->id(),
+                metadata: [
+                    'owner_id' => $lockedWithdrawal->owner_id,
+                    'wallet_id' => $lockedWithdrawal->wallet_id,
+                    'bank_name' => $lockedWithdrawal->bank_name,
+                    'bank_account_number' => $lockedWithdrawal->bank_account_number ?? $lockedWithdrawal->bank_account_no,
+                    'bank_account_holder' => $lockedWithdrawal->bank_account_holder ?? $lockedWithdrawal->bank_account_name,
+                ]
             );
 
             $lockedWithdrawal->update([

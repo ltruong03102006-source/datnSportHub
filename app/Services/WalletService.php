@@ -40,6 +40,17 @@ class WalletService
                 }
             }
 
+            if ($withdrawalRequestId) {
+                $existing = WalletTransaction::query()
+                    ->where('withdrawal_request_id', $withdrawalRequestId)
+                    ->where('type', $type->value)
+                    ->first();
+
+                if ($existing) {
+                    return $existing;
+                }
+            }
+
             // 1. LOCK ROW: Khóa dòng dữ liệu ví này lại, các request khác chạm vào ví này phải xếp hàng chờ
             $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
 

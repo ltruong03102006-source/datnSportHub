@@ -169,7 +169,7 @@
                 <div class="card-title">Xử lý yêu cầu</div>
 
                 <div class="warning-box">
-                    Khi duyệt, hệ thống sẽ trừ số tiền này khỏi ví chủ sân và ghi lịch sử giao dịch ví.
+                    Khi duyệt, hệ thống sẽ trừ số tiền này khỏi ví chủ sân và ghi nhận tiền ra khỏi ví nền tảng SportHub.
                 </div>
 
                 @if($walletBalance < $withdrawAmount)
@@ -180,7 +180,7 @@
 
                 <form method="POST" action="{{ route('admin.withdrawals.approve', $withdrawal) }}">
                     @csrf
-                    <button class="btn-approve" type="submit">Duyệt và trừ ví</button>
+                    <button class="btn-approve" type="submit">Duyệt, trừ ví chủ sân và ví nền tảng</button>
                 </form>
 
                 <form method="POST" action="{{ route('admin.withdrawals.reject', $withdrawal) }}" style="margin-top: 18px;">
