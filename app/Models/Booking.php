@@ -27,6 +27,8 @@ class Booking extends Model
         'status',
         'payment_method',
         'payment_status',
+        'vnpay_tran_id',
+        'paid_at',
         'review_reminder_sent_at',
         'note',
         'cancel_reason',
@@ -43,6 +45,7 @@ class Booking extends Model
     protected $casts = [
         'total_price' => 'decimal:2',
         'slot_date' => 'date',
+        'paid_at' => 'datetime',
         'review_reminder_sent_at' => 'datetime',
         'platform_fee' => 'decimal:0',
         'owner_earnings' => 'decimal:0',
