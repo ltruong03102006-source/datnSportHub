@@ -31,6 +31,7 @@ use App\Http\Controllers\Web\OwnerWalletTopupController;
 use App\Http\Controllers\Web\OwnerWithdrawalController;
 use App\Http\Controllers\Web\PackageBookingController;
 use App\Http\Controllers\Web\AdminPackageController;
+use App\Http\Controllers\Web\AdminDebtController;
 use App\Http\Controllers\Web\TransactionController;
 use App\Http\Controllers\Web\AdminTransactionController;
 
@@ -146,6 +147,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('/transactions', [AdminTransactionController::class, 'index'])->name('transactions.index');
         Route::get('/transactions/{transaction}', [AdminTransactionController::class, 'show'])->name('transactions.show');
+        Route::get('/debts', [AdminDebtController::class, 'index'])->name('debts.index');
         Route::get('/packages', [AdminPackageController::class, 'index'])->name('packages.index');
 
         // Quản lý Yêu cầu rút tiền

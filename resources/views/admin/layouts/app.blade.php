@@ -300,6 +300,9 @@
             <a href="{{ route('admin.transactions.index') }}" class="nav-item {{ request()->routeIs('admin.transactions.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-wallet"></i> Lịch sử giao dịch
             </a>
+            <a href="{{ route('admin.debts.index') }}" class="nav-item {{ request()->routeIs('admin.debts.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-scale-balanced"></i> Quản lý công nợ
+            </a>
             <a href="{{ route('admin.withdrawals.index') }}" class="nav-item {{ request()->routeIs('admin.withdrawals.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-money-bill-transfer"></i> Yêu cầu rút tiền
             </a>

@@ -393,7 +393,7 @@
     <form action="{{ route('admin.venues.index') }}" method="GET" style="display: flex; width: 100%; gap: 24px; align-items: center;">
         <div class="search-box">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" name="search" placeholder="Tìm kiếm theo tên sân hoặc chủ sân..." value="{{ request('search') }}">
+            <input type="text" name="search" placeholder="Tìm theo tên sân, địa chỉ, tên/email chủ sân..." value="{{ request('search') }}">
         </div>
         
 
@@ -441,6 +441,9 @@
                 </td>
                 <td>
                     <div class="owner-name">{{ $venue->owner ? $venue->owner->name : 'Không có' }}</div>
+                    @if($venue->owner?->email)
+                        <div class="text-muted small">{{ $venue->owner->email }}</div>
+                    @endif
                 </td>
                 <td title="{{ $venue->address }}">
                     <div class="address-text">{{ $venue->address }}</div>
@@ -547,7 +550,7 @@
     
     <div class="pagination-wrapper">
         <div class="pagination-info">
-            Hiển thị {{ $venues->firstItem() ?? 0 }}-{{ $venues->lastItem() ?? 0 }} trên tổng số {{ $totalVenues }} sân
+            Hiển thị {{ $venues->firstItem() ?? 0 }}-{{ $venues->lastItem() ?? 0 }} trên tổng số {{ $venues->total() }} sân
         </div>
         <div class="pagination-links">
             {{ $venues->links('vendor.pagination.admin') }}
