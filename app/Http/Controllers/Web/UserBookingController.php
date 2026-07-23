@@ -94,6 +94,8 @@ class UserBookingController extends Controller
             Booking::whereIn('id', $idsToComplete)->update(['status' => 'completed']);
         }
 
+        $completionService->settleCompletedBookings(userId: Auth::id());
+
         $bookings = Booking::select(
                 'court_id', 'slot_date', 'created_at', 'status', 'cancel_reason',
                 DB::raw('MIN(id) as id'), 

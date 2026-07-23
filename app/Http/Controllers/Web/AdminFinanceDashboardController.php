@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\PlatformWallet;
 use App\Models\PlatformWalletTransaction;
 use App\Models\TopupTransaction;
+use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Models\WithdrawalRequest;
@@ -23,7 +24,20 @@ class AdminFinanceDashboardController extends Controller
     {
         $dateFrom = $request->query('date_from');
         $dateTo = $request->query('date_to');
-        $commissionChart = $this->buildCommissionRevenueChart($dateFrom, $dateTo);
+        $ownerId = $request->filled('owner_id') ? (int) $request->query('owner_id') : null;
+        $ownerSearch = trim((string) $request->query('owner_search', ''));
+        $ownerStatus = (string) $request->query('owner_status', 'all');
+        $ownerSort = (string) $request->query('owner_sort', 'debt_desc');
+        $commissionChart = $this->buildCommissionRevenueChart($dateFrom, $dateTo, $ownerId);
+
+        $ownerOptions = User::query()
+            ->where('role', 'owner')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
+
+        $selectedOwner = $ownerId
+            ? $ownerOptions->firstWhere('id', $ownerId)
+            : null;
 
         $bookingQuery = Booking::query();
 
@@ -32,6 +46,7 @@ class AdminFinanceDashboardController extends Controller
             : 'created_at';
 
         $this->applyDateRange($bookingQuery, $bookingDateColumn, $dateFrom, $dateTo);
+        $this->applyOwnerFilterToBookingQuery($bookingQuery, $ownerId);
 
         if (Schema::hasColumn('bookings', 'settlement_status')) {
             $bookingQuery->where('settlement_status', 'settled');
@@ -56,6 +71,10 @@ class AdminFinanceDashboardController extends Controller
         $walletTransactionQuery = WalletTransaction::query();
         $this->applyDateRange($walletTransactionQuery, 'created_at', $dateFrom, $dateTo);
 
+        if ($ownerId) {
+            $walletTransactionQuery->whereHas('wallet', fn ($query) => $query->where('owner_id', $ownerId));
+        }
+
         $commissionColumn = Schema::hasColumn('bookings', 'platform_fee')
             ? 'platform_fee'
             : (Schema::hasColumn('bookings', 'commission_amount') ? 'commission_amount' : null);
@@ -78,6 +97,8 @@ class AdminFinanceDashboardController extends Controller
 
         $wallets = Wallet::query()
             ->with('owner')
+            ->whereHas('owner', fn ($query) => $query->where('role', 'owner'))
+            ->when($ownerId, fn ($query) => $query->where('owner_id', $ownerId))
             ->get();
 
         $totalWalletBalance = $wallets
@@ -103,8 +124,67 @@ class AdminFinanceDashboardController extends Controller
             ])
             ->values();
 
+        $ownerWalletQuery = Wallet::query()
+            ->with('owner')
+            ->whereHas('owner', function ($query) use ($ownerSearch, $ownerId) {
+                $query->where('role', 'owner');
+
+                if ($ownerId) {
+                    $query->whereKey($ownerId);
+                }
+
+                if ($ownerSearch !== '') {
+                    $query->where(function ($searchQuery) use ($ownerSearch) {
+                        $searchQuery->where('name', 'like', '%' . $ownerSearch . '%')
+                            ->orWhere('email', 'like', '%' . $ownerSearch . '%')
+                            ->orWhere('phone', 'like', '%' . $ownerSearch . '%');
+                    });
+                }
+            });
+
+        $debtLimitExpression = 'COALESCE(NULLIF(wallets.credit_limit, 0), ' . DebtService::DEFAULT_DEBT_LIMIT . ')';
+
+        match ($ownerStatus) {
+            'good' => $ownerWalletQuery->where('wallets.balance', '>=', 0),
+            'in_debt' => $ownerWalletQuery->where('wallets.balance', '<', 0)
+                ->whereRaw('(ABS(wallets.balance) / ' . $debtLimitExpression . ') * 100 < ?', [DebtService::WARNING_THRESHOLD_PERCENT]),
+            'warning' => $ownerWalletQuery->where('wallets.balance', '<', 0)
+                ->whereRaw('(ABS(wallets.balance) / ' . $debtLimitExpression . ') * 100 >= ?', [DebtService::WARNING_THRESHOLD_PERCENT])
+                ->whereRaw('ABS(wallets.balance) < ' . $debtLimitExpression),
+            'over_limit' => $ownerWalletQuery->where('wallets.balance', '<', 0)
+                ->whereRaw('ABS(wallets.balance) >= ' . $debtLimitExpression),
+            default => null,
+        };
+
+        match ($ownerSort) {
+            'balance_asc' => $ownerWalletQuery->orderBy('wallets.balance'),
+            'balance_desc' => $ownerWalletQuery->orderByDesc('wallets.balance'),
+            'newest' => $ownerWalletQuery->orderByDesc('wallets.created_at'),
+            'owner_name' => $ownerWalletQuery
+                ->join('users as wallet_owners', 'wallet_owners.id', '=', 'wallets.owner_id')
+                ->select('wallets.*')
+                ->orderBy('wallet_owners.name'),
+            default => $ownerWalletQuery->orderBy('wallets.balance'),
+        };
+
+        $ownerWalletRows = $ownerWalletQuery
+            ->paginate(10, ['*'], 'owner_wallets_page')
+            ->withQueryString();
+
+        $ownerWalletRows->setCollection(
+            $ownerWalletRows->getCollection()
+                ->map(fn (Wallet $wallet): array => [
+                    'wallet' => $wallet,
+                    'owner' => $wallet->owner,
+                    'summary' => $wallet->owner
+                        ? $debtService->getOwnerDebtSummary($wallet->owner->id)
+                        : null,
+                ])
+        );
+
         $pendingWithdrawals = WithdrawalRequest::query()
             ->where('status', 'pending')
+            ->when($ownerId, fn ($query) => $query->where('owner_id', $ownerId))
             ->sum('amount');
 
         $withdrawalDateColumn = Schema::hasColumn('withdrawal_requests', 'approved_at')
@@ -113,6 +193,7 @@ class AdminFinanceDashboardController extends Controller
 
         $approvedWithdrawalsQuery = WithdrawalRequest::query()
             ->where('status', 'approved');
+        $approvedWithdrawalsQuery->when($ownerId, fn ($query) => $query->where('owner_id', $ownerId));
         $this->applyDateRange($approvedWithdrawalsQuery, $withdrawalDateColumn, $dateFrom, $dateTo);
         $approvedWithdrawals = $approvedWithdrawalsQuery->sum('amount');
 
@@ -122,6 +203,7 @@ class AdminFinanceDashboardController extends Controller
 
         $topupQuery = TopupTransaction::query()
             ->where('status', 'success');
+        $topupQuery->when($ownerId, fn ($query) => $query->where('owner_id', $ownerId));
         $this->applyDateRange($topupQuery, $topupDateColumn, $dateFrom, $dateTo);
         $successfulTopups = $topupQuery->sum('amount');
 
@@ -147,6 +229,7 @@ class AdminFinanceDashboardController extends Controller
 
         if ($platformTransactionQuery) {
             $this->applyDateRange($platformTransactionQuery, 'created_at', $dateFrom, $dateTo);
+            $this->applyOwnerFilterToPlatformTransactionQuery($platformTransactionQuery, $ownerId);
         }
 
         $platformCashIn = $platformTransactionQuery
@@ -171,16 +254,22 @@ class AdminFinanceDashboardController extends Controller
             ? abs((float) (clone $platformTransactionQuery)->where('type', 'owner_withdrawal_out')->sum('amount'))
             : 0;
 
-        $latestPlatformTransactions = Schema::hasTable('platform_wallet_transactions')
-            ? PlatformWalletTransaction::query()
-                ->with(['platformWallet', 'performer'])
+        if (Schema::hasTable('platform_wallet_transactions')) {
+            $latestPlatformTransactionQuery = PlatformWalletTransaction::query()
+                ->with(['platformWallet', 'performer']);
+            $this->applyOwnerFilterToPlatformTransactionQuery($latestPlatformTransactionQuery, $ownerId);
+
+            $latestPlatformTransactions = $latestPlatformTransactionQuery
                 ->latest()
                 ->limit(10)
-                ->get()
-            : collect();
+                ->get();
+        } else {
+            $latestPlatformTransactions = collect();
+        }
 
         $latestTransactions = WalletTransaction::query()
             ->with(['wallet.owner'])
+            ->when($ownerId, fn ($query) => $query->whereHas('wallet', fn ($walletQuery) => $walletQuery->where('owner_id', $ownerId)))
             ->latest()
             ->limit(10)
             ->get();
@@ -188,6 +277,9 @@ class AdminFinanceDashboardController extends Controller
         return view('admin.finance.index', compact(
             'dateFrom',
             'dateTo',
+            'ownerId',
+            'ownerOptions',
+            'selectedOwner',
             'gmv',
             'platformRevenue',
             'ownerPayout',
@@ -209,6 +301,10 @@ class AdminFinanceDashboardController extends Controller
             'ownerTopupIn',
             'ownerWithdrawalOut',
             'latestPlatformTransactions',
+            'ownerWalletRows',
+            'ownerSearch',
+            'ownerStatus',
+            'ownerSort',
             'topDebtOwners',
             'latestTransactions'
         ), [
@@ -231,7 +327,51 @@ class AdminFinanceDashboardController extends Controller
         }
     }
 
-    private function buildCommissionRevenueChart(?string $dateFrom, ?string $dateTo): array
+    private function applyOwnerFilterToBookingQuery($query, ?int $ownerId): void
+    {
+        if (! $ownerId) {
+            return;
+        }
+
+        $query->whereHas('court.venue', fn ($venueQuery) => $venueQuery->where('owner_id', $ownerId));
+    }
+
+    private function applyOwnerFilterToPlatformTransactionQuery($query, ?int $ownerId): void
+    {
+        if (! $ownerId) {
+            return;
+        }
+
+        $bookingIds = Booking::query()
+            ->whereHas('court.venue', fn ($venueQuery) => $venueQuery->where('owner_id', $ownerId))
+            ->pluck('id');
+
+        $topupIds = TopupTransaction::query()
+            ->where('owner_id', $ownerId)
+            ->pluck('id');
+
+        $withdrawalIds = WithdrawalRequest::query()
+            ->where('owner_id', $ownerId)
+            ->pluck('id');
+
+        $query->where(function ($referenceQuery) use ($bookingIds, $topupIds, $withdrawalIds) {
+            $referenceQuery
+                ->where(function ($bookingQuery) use ($bookingIds) {
+                    $bookingQuery->where('reference_type', 'booking')
+                        ->whereIn('reference_id', $bookingIds);
+                })
+                ->orWhere(function ($topupQuery) use ($topupIds) {
+                    $topupQuery->where('reference_type', 'topup_transaction')
+                        ->whereIn('reference_id', $topupIds);
+                })
+                ->orWhere(function ($withdrawalQuery) use ($withdrawalIds) {
+                    $withdrawalQuery->where('reference_type', 'withdrawal_request')
+                        ->whereIn('reference_id', $withdrawalIds);
+                });
+        });
+    }
+
+    private function buildCommissionRevenueChart(?string $dateFrom, ?string $dateTo, ?int $ownerId = null): array
     {
         $start = $dateFrom
             ? Carbon::parse($dateFrom)->startOfMonth()
@@ -273,6 +413,8 @@ class AdminFinanceDashboardController extends Controller
                 ->whereDate($dateColumn, '>=', $start)
                 ->whereDate($dateColumn, '<=', $end);
 
+            $this->applyOwnerFilterToBookingQuery($query, $ownerId);
+
             if (Schema::hasColumn('bookings', 'settlement_status')) {
                 $query->where('settlement_status', 'settled');
             } elseif (Schema::hasColumn('bookings', 'status')) {
@@ -312,6 +454,7 @@ class AdminFinanceDashboardController extends Controller
             $transactions = WalletTransaction::query()
                 ->whereDate('created_at', '>=', $start)
                 ->whereDate('created_at', '<=', $end)
+                ->when($ownerId, fn ($query) => $query->whereHas('wallet', fn ($walletQuery) => $walletQuery->where('owner_id', $ownerId)))
                 ->where(function ($query) {
                     $query->where('type', 'commission_cod_debit')
                         ->orWhere('type', 'commission_fee')

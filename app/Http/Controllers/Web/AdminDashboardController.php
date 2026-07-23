@@ -3,88 +3,113 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
-use App\Models\Venue;
 use App\Models\Booking;
 use App\Models\Review;
+use App\Models\User;
+use App\Models\Venue;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class AdminDashboardController extends Controller
 {
-    /**
-     * Hiển thị trang Dashboard tổng quan với dữ liệu thật
-     */
     public function index(): View
     {
         $today = Carbon::today();
-        $currentYear = date('Y');
+        $currentYear = (int) date('Y');
+        $validBookingStatuses = ['pending', 'confirmed', 'completed'];
 
-        // 1. Thống kê cơ bản (Row 1 & 2)
         $totalUsers = User::count();
         $totalVenues = Venue::count();
-        $totalBookings = Booking::count();
-        
-        // Doanh thu (Chỉ tính các booking có trạng thái hoàn thành hoặc đã thanh toán)
-        $totalRevenue = Booking::whereIn('status', ['completed', 'confirmed'])->sum('total_price') ?? 0;
-        
-        $bookingsToday = Booking::whereDate('created_at', $today)->count();
+        $totalBookings = Booking::query()
+            ->whereIn('status', $validBookingStatuses)
+            ->count();
+
+        $settledBookingQuery = Booking::query();
+
+        if (Schema::hasColumn('bookings', 'settlement_status')) {
+            $settledBookingQuery->where('settlement_status', 'settled');
+        } else {
+            $settledBookingQuery->where('status', 'completed');
+        }
+
+        $platformFeeColumn = Schema::hasColumn('bookings', 'platform_fee')
+            ? 'platform_fee'
+            : (Schema::hasColumn('bookings', 'commission_amount') ? 'commission_amount' : null);
+
+        $totalRevenue = $platformFeeColumn
+            ? (clone $settledBookingQuery)->sum($platformFeeColumn)
+            : 0;
+
+        $gmv = (clone $settledBookingQuery)->sum('total_price') ?? 0;
+
+        $bookingsToday = Booking::query()
+            ->whereIn('status', $validBookingStatuses)
+            ->whereDate('created_at', $today)
+            ->count();
+
         $usersToday = User::whereDate('created_at', $today)->count();
         $venuesToday = Venue::whereDate('created_at', $today)->count();
-        
-        // Tính rating trung bình
         $avgRating = Review::avg('rating') ?? 0;
 
-        // 2. Biểu đồ Đặt sân theo tháng (12 tháng của năm hiện tại)
-        $monthlyBookings = Booking::select(
+        $monthlyBookings = Booking::query()
+            ->select(
                 DB::raw('MONTH(created_at) as month'),
                 DB::raw('COUNT(*) as count')
             )
             ->whereYear('created_at', $currentYear)
+            ->whereIn('status', $validBookingStatuses)
             ->groupBy('month')
-            ->pluck('count', 'month')->toArray();
-        
+            ->pluck('count', 'month')
+            ->toArray();
+
         $chartBookingsMonthly = [];
-        for ($i = 1; $i <= 12; $i++) {
-            $chartBookingsMonthly[] = $monthlyBookings[$i] ?? 0;
+        for ($month = 1; $month <= 12; $month++) {
+            $chartBookingsMonthly[] = $monthlyBookings[$month] ?? 0;
         }
-        
-        // Biểu đồ: Thống kê môn thể thao
+
         $sportsStats = DB::table('bookings')
             ->join('courts', 'bookings.court_id', '=', 'courts.id')
             ->join('venues', 'courts.venue_id', '=', 'venues.id')
             ->join('sports', 'venues.sport_id', '=', 'sports.id')
             ->select('sports.name', DB::raw('COUNT(bookings.id) as count'))
+            ->whereIn('bookings.status', $validBookingStatuses)
             ->groupBy('sports.name')
-            ->pluck('count', 'name')->toArray();
+            ->pluck('count', 'name')
+            ->toArray();
 
-        // Đảm bảo có dữ liệu mẫu nếu DB trống
-        if (empty($sportsStats)) {
-            $chartSports = ['Bóng đá' => 0, 'Cầu lông' => 0, 'Tennis' => 0, 'Bóng rổ' => 0];
+        $chartSports = empty($sportsStats)
+            ? ['Bóng đá' => 0, 'Cầu lông' => 0, 'Tennis' => 0, 'Bóng rổ' => 0]
+            : $sportsStats;
+
+        if ($platformFeeColumn) {
+            $monthlyRevenueQuery = Booking::query()
+                ->select(
+                    DB::raw('MONTH(created_at) as month'),
+                    DB::raw("SUM({$platformFeeColumn}) as total")
+                )
+                ->whereYear('created_at', $currentYear);
+
+            if (Schema::hasColumn('bookings', 'settlement_status')) {
+                $monthlyRevenueQuery->where('settlement_status', 'settled');
+            } else {
+                $monthlyRevenueQuery->where('status', 'completed');
+            }
+
+            $monthlyRevenue = $monthlyRevenueQuery
+                ->groupBy('month')
+                ->pluck('total', 'month')
+                ->toArray();
         } else {
-            // Tính phần trăm nếu cần, ở đây trả về số lượng, js tự tính tỉ lệ
-            $chartSports = $sportsStats;
+            $monthlyRevenue = [];
         }
-
-        // Biểu đồ: Xu hướng doanh thu theo tháng
-        $monthlyRevenue = Booking::select(
-                DB::raw('MONTH(created_at) as month'),
-                DB::raw('SUM(total_price) as total')
-            )
-            ->whereIn('status', ['completed', 'confirmed'])
-            ->whereYear('created_at', $currentYear)
-            ->groupBy('month')
-            ->pluck('total', 'month')->toArray();
 
         $chartRevenueTrend = [];
-        for ($i = 1; $i <= 12; $i++) {
-            // Chuyển đổi sang triệu VNĐ (giả định) để biểu đồ không quá to, hoặc giữ nguyên
-            $chartRevenueTrend[] = isset($monthlyRevenue[$i]) ? $monthlyRevenue[$i] : 0;
+        for ($month = 1; $month <= 12; $month++) {
+            $chartRevenueTrend[] = $monthlyRevenue[$month] ?? 0;
         }
 
-        // 3. Top Sân Thể Thao (Tính bằng số lượt đặt)
         $topVenuesRaw = DB::table('venues')
             ->join('courts', 'venues.id', '=', 'courts.venue_id')
             ->join('bookings', 'courts.id', '=', 'bookings.court_id')
@@ -96,6 +121,7 @@ class AdminDashboardController extends Controller
                 DB::raw('COUNT(bookings.id) as booking_count'),
                 DB::raw('SUM(bookings.total_price) as total_revenue')
             )
+            ->whereIn('bookings.status', $validBookingStatuses)
             ->groupBy('venues.id', 'venues.name', 'sports.name')
             ->orderByDesc('booking_count')
             ->take(5)
@@ -103,27 +129,29 @@ class AdminDashboardController extends Controller
 
         $topVenues = [];
         $rank = 1;
-        foreach ($topVenuesRaw as $v) {
-            // Tính rating cho từng sân
-            $rating = Review::whereHas('court', function($q) use ($v) {
-                $q->where('venue_id', $v->id);
+
+        foreach ($topVenuesRaw as $venue) {
+            $rating = Review::whereHas('court', function ($query) use ($venue) {
+                $query->where('venue_id', $venue->id);
             })->avg('rating') ?? 0;
 
-            $topVenues[] = (object)[
+            $topVenues[] = (object) [
                 'rank' => $rank++,
-                'name' => $v->name,
-                'type' => $v->sport_name,
-                'bookings' => $v->booking_count,
-                'revenue' => number_format($v->total_revenue) . 'đ',
-                'rating' => number_format($rating, 1)
+                'name' => $venue->name,
+                'type' => $venue->sport_name,
+                'bookings' => $venue->booking_count,
+                'revenue' => number_format($venue->total_revenue ?? 0) . 'đ',
+                'rating' => number_format($rating, 1),
             ];
         }
 
-        // Danh sách Top Chủ sân tiêu biểu
         $topOwnersRaw = DB::table('users')
             ->join('venues', 'users.id', '=', 'venues.owner_id')
             ->leftJoin('courts', 'venues.id', '=', 'courts.venue_id')
-            ->leftJoin('bookings', 'courts.id', '=', 'bookings.court_id')
+            ->leftJoin('bookings', function ($join) use ($validBookingStatuses) {
+                $join->on('courts.id', '=', 'bookings.court_id')
+                    ->whereIn('bookings.status', $validBookingStatuses);
+            })
             ->select(
                 'users.id',
                 'users.name',
@@ -138,44 +166,60 @@ class AdminDashboardController extends Controller
             ->get();
 
         $topOwners = [];
-        foreach ($topOwnersRaw as $o) {
-            $topOwners[] = (object)[
-                'name' => $o->name,
-                'avatar' => 'https://ui-avatars.com/api/?name='.urlencode($o->name).'&background=random',
-                'stats' => $o->venue_count . ' sân • ' . $o->booking_count . ' booking',
-                'revenue' => number_format($o->total_revenue ?? 0) . 'đ'
+
+        foreach ($topOwnersRaw as $owner) {
+            $topOwners[] = (object) [
+                'name' => $owner->name,
+                'avatar' => 'https://ui-avatars.com/api/?name=' . urlencode($owner->name) . '&background=random',
+                'stats' => $owner->venue_count . ' sân • ' . $owner->booking_count . ' booking hợp lệ',
+                'revenue' => number_format($owner->total_revenue ?? 0) . 'đ',
             ];
         }
 
-        // 4. Danh sách tất cả booking cho admin xem ngay trên dashboard
         $allBookings = Booking::with(['user', 'court.venue'])
             ->orderBy('created_at', 'desc')
             ->paginate(10, ['*'], 'bookings_page')
             ->withQueryString();
 
-        // 5. Mật độ sân khu vực
-        $hanoi = Venue::where('address', 'like', '%Hà Nội%')->count();
-        $hcm = Venue::where('address', 'like', '%Hồ Chí Minh%')->orWhere('address', 'like', '%HCM%')->count();
-        $danang = Venue::where('address', 'like', '%Đà Nẵng%')->count();
-        $haiphong = Venue::where('address', 'like', '%Hải Phòng%')->count();
-        $cantho = Venue::where('address', 'like', '%Cần Thơ%')->count();
-
         $regionDensity = [
-            'Hà Nội' => $hanoi,
-            'TP HCM' => $hcm,
-            'Đà Nẵng' => $danang,
-            'Hải Phòng' => $haiphong,
-            'Cần Thơ' => $cantho,
+            'Hà Nội' => Venue::where('address', 'like', '%Hà Nội%')
+                ->orWhere('address', 'like', '%Ha Noi%')
+                ->count(),
+            'TP HCM' => Venue::where('address', 'like', '%Hồ Chí Minh%')
+                ->orWhere('address', 'like', '%TP.HCM%')
+                ->orWhere('address', 'like', '%HCM%')
+                ->count(),
+            'Đà Nẵng' => Venue::where('address', 'like', '%Đà Nẵng%')
+                ->orWhere('address', 'like', '%Da Nang%')
+                ->count(),
+            'Hải Phòng' => Venue::where('address', 'like', '%Hải Phòng%')
+                ->orWhere('address', 'like', '%Hai Phong%')
+                ->count(),
+            'Cần Thơ' => Venue::where('address', 'like', '%Cần Thơ%')
+                ->orWhere('address', 'like', '%Can Tho%')
+                ->count(),
         ];
-        
-        // Sắp xếp giảm dần
+
         arsort($regionDensity);
 
         return view('admin.dashboard', compact(
-            'totalUsers', 'totalVenues', 'totalBookings', 'totalRevenue',
-            'bookingsToday', 'usersToday', 'venuesToday', 'avgRating',
-            'chartBookingsMonthly', 'chartSports', 'chartRevenueTrend',
-            'topVenues', 'topOwners', 'allBookings', 'regionDensity'
+            'currentYear',
+            'totalUsers',
+            'totalVenues',
+            'totalBookings',
+            'totalRevenue',
+            'gmv',
+            'bookingsToday',
+            'usersToday',
+            'venuesToday',
+            'avgRating',
+            'chartBookingsMonthly',
+            'chartSports',
+            'chartRevenueTrend',
+            'topVenues',
+            'topOwners',
+            'allBookings',
+            'regionDensity'
         ));
     }
 }

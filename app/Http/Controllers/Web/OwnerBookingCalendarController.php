@@ -51,6 +51,9 @@ class OwnerBookingCalendarController extends Controller
         if (!empty($idsToComplete)) {
             Booking::whereIn('id', $idsToComplete)->update(['status' => 'completed']);
         }
+
+        $completionService->settleCompletedBookings(ownerId: Auth::id());
+
         $venues = Venue::query()
             ->where('owner_id', Auth::id())
             ->with(['courts' => fn ($query) => $query->orderBy('name')])

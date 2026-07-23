@@ -37,6 +37,37 @@ class BookingCompletionService
         return $completed;
     }
 
+    public function settleCompletedBookings(?int $ownerId = null, ?int $userId = null): int
+    {
+        $query = Booking::query()
+            ->where('status', 'completed')
+            ->where(function ($query) {
+                $query->whereNull('settlement_status')
+                    ->orWhereIn('settlement_status', ['pending', 'processing', 'failed']);
+            })
+            ->when($ownerId, fn ($query) => $query->whereHas(
+                'court.venue',
+                fn ($venueQuery) => $venueQuery->where('owner_id', $ownerId)
+            ))
+            ->when($userId, fn ($query) => $query->where('user_id', $userId))
+            ->orderBy('id');
+
+        $settled = 0;
+
+        foreach ($query->get() as $booking) {
+            try {
+                $this->settlementService->settleBooking($booking);
+                $settled++;
+            } catch (\Throwable $e) {
+                \Log::channel('settlement')->error("Lỗi đối soát Booking #{$booking->id}: " . $e->getMessage());
+
+                $booking->update(['settlement_status' => \App\Enums\SettlementStatus::FAILED]);
+            }
+        }
+
+        return $settled;
+    }
+
     private function completeGroup(Collection $group, Carbon $now): int
     {
         $ids = $group->pluck('id')->all();

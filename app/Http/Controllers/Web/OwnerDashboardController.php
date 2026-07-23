@@ -20,6 +20,7 @@ class OwnerDashboardController extends Controller
         $ownerId = Auth::id();
 
         $completionService->completeExpiredBookings(ownerId: $ownerId);
+        $completionService->settleCompletedBookings(ownerId: $ownerId);
         
         // Retrieve all venues owned by the user
         $allVenues = Venue::where('owner_id', $ownerId)->get();
