@@ -42,7 +42,7 @@ class TransferService
         // KHỐI 2: XỬ LÝ GIAO DỊCH (COMMIT 1 & 2)
         // ==========================================
         DB::transaction(function () use ($transfer, $venue) {
-            // 1. Bảo mật: Xóa hồ sơ pháp lý của Chủ cũ
+            // 1. Xóa hồ sơ pháp lý của Chủ cũ
             if ($venue->legalDocument) {
                 $venue->legalDocument()->delete();
             }
@@ -55,6 +55,14 @@ class TransferService
             // 3. Hoàn tất yêu cầu
             $transfer->update([
                 'status' => 'approved'
+            ]);
+
+            // 4. AUDIT LOG: Ghi lại lịch sử chuyển nhượng vào VenueLog
+            $venue->logs()->create([
+                // Bạn điều chỉnh tên cột ('action', 'description'...) cho khớp với database của bạn nhé
+                'action' => 'transfer_ownership',
+                'description' => "Cơ sở được chuyển nhượng từ tài khoản ID: {$transfer->from_owner_id} sang ID: {$transfer->to_owner_id}",
+                'user_id' => auth()->id() // ID của Admin thực hiện thao tác
             ]);
         });
         // 3. BẮN THÔNG BÁO VÀO QUẢ CHUÔNG CHO 2 CHỦ SÂN
