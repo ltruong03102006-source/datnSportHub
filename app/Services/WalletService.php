@@ -51,6 +51,18 @@ class WalletService
                 }
             }
 
+            if (($metadata['reference_type'] ?? null) && ($metadata['reference_id'] ?? null)) {
+                $existing = WalletTransaction::query()
+                    ->where('type', $type->value)
+                    ->where('metadata->reference_type', $metadata['reference_type'])
+                    ->where('metadata->reference_id', $metadata['reference_id'])
+                    ->first();
+
+                if ($existing) {
+                    return $existing;
+                }
+            }
+
             // 1. LOCK ROW: Khóa dòng dữ liệu ví này lại, các request khác chạm vào ví này phải xếp hàng chờ
             $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
 

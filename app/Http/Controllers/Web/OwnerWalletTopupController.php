@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Web;
 
 use App\Enums\TransactionType;
 use App\Http\Controllers\Controller;
+use App\Models\PlatformWalletTransaction;
 use App\Models\TopupTransaction;
+use App\Services\PlatformWalletService;
 use App\Services\VnpayService;
 use App\Services\WalletService;
 use Illuminate\Http\RedirectResponse;
@@ -72,8 +74,12 @@ class OwnerWalletTopupController extends Controller
         return redirect()->away($paymentUrl);
     }
 
-    public function callback(Request $request, VnpayService $vnpayService, WalletService $walletService): RedirectResponse
-    {
+    public function callback(
+        Request $request,
+        VnpayService $vnpayService,
+        WalletService $walletService,
+        PlatformWalletService $platformWalletService
+    ): RedirectResponse {
         $txnRef = $request->input('vnp_TxnRef');
 
         if (! $txnRef) {
@@ -94,6 +100,8 @@ class OwnerWalletTopupController extends Controller
         }
 
         if ($topup->status === 'success') {
+            $this->recordPlatformTopup($topup, $request, $platformWalletService);
+
             return redirect()
                 ->route('owner.web.wallet.topup.create')
                 ->with('success', 'Giao dịch nạp tiền đã được xử lý trước đó.');
@@ -134,13 +142,15 @@ class OwnerWalletTopupController extends Controller
                 ->with('error', 'Số tiền thanh toán không khớp với giao dịch nạp tiền.');
         }
 
-        DB::transaction(function () use ($topup, $request, $walletService, $responseCode): void {
+        DB::transaction(function () use ($topup, $request, $walletService, $platformWalletService, $responseCode): void {
             $lockedTopup = TopupTransaction::query()
                 ->whereKey($topup->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
             if ($lockedTopup->status === 'success') {
+                $this->recordPlatformTopup($lockedTopup, $request, $platformWalletService);
+
                 return;
             }
 
@@ -165,6 +175,8 @@ class OwnerWalletTopupController extends Controller
                 ],
             );
 
+            $this->recordPlatformTopup($lockedTopup, $request, $platformWalletService);
+
             if (class_exists(\App\Services\DebtService::class)) {
                 app(\App\Services\DebtService::class)->syncOwnerStatus($lockedTopup->owner_id);
             }
@@ -173,5 +185,28 @@ class OwnerWalletTopupController extends Controller
         return redirect()
             ->route('owner.web.wallet.topup.create')
             ->with('success', 'Nạp tiền vào ví thành công.');
+    }
+
+    private function recordPlatformTopup(
+        TopupTransaction $topup,
+        Request $request,
+        PlatformWalletService $platformWalletService
+    ): void {
+        $platformWalletService->credit(
+            amount: (float) $topup->amount,
+            type: PlatformWalletTransaction::TYPE_OWNER_TOPUP_IN,
+            description: 'Owner nạp tiền vào ví qua VNPay: ' . $topup->code,
+            referenceType: 'topup_transaction',
+            referenceId: $topup->id,
+            reference: $topup->code,
+            metadata: [
+                'owner_id' => $topup->owner_id,
+                'wallet_id' => $topup->wallet_id,
+                'vnp_TxnRef' => $request->input('vnp_TxnRef'),
+                'vnp_TransactionNo' => $request->input('vnp_TransactionNo'),
+                'vnp_BankCode' => $request->input('vnp_BankCode'),
+                'vnp_PayDate' => $request->input('vnp_PayDate'),
+            ]
+        );
     }
 }
