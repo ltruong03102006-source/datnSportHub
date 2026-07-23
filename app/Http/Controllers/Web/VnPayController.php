@@ -19,7 +19,7 @@ class VnPayController extends Controller
 {
     private function pendingPaymentExpired(Booking $booking): bool
     {
-        if ($booking->status !== 'pending' || $booking->payment_status !== 'unpaid') {
+        if ($booking->status !== 'pending' || ! in_array($booking->payment_status, ['unpaid', 'pending'], true)) {
             return false;
         }
 
@@ -30,25 +30,95 @@ class VnPayController extends Controller
 
     public function createPayment(Request $request, Booking $booking)
     {
+        return redirect()->route('bookings.payment.vnpay_qr', $booking);
+    }
+
+    public function showVnpayQr(Request $request, Booking $booking)
+    {
+        $this->authorizeBookingPayment($booking);
+
+        if ($booking->payment_status === 'paid') {
+            return redirect()->route('web.bookings.success', ['booking' => $booking->id])
+                ->with('success', 'Booking này đã được thanh toán.');
+        }
+
+        if (in_array($booking->status, ['cancelled', 'rejected'], true)) {
+            return redirect()->route('web.bookings.success', ['booking' => $booking->id])
+                ->with('error', 'Booking này đã bị hủy hoặc từ chối nên không thể thanh toán.');
+        }
+
         if ($this->pendingPaymentExpired($booking)) {
             return redirect()->route('account.bookings.index')
                 ->with('error', 'Thời gian giữ chỗ thanh toán đã hết. Vui lòng đặt lại ca mới.');
         }
 
+        try {
+            $paymentUrl = $this->createBookingPaymentUrl($request, $booking);
+        } catch (\Throwable $e) {
+            return redirect()->route('web.bookings.success', ['booking' => $booking->id])
+                ->with('error', $e->getMessage());
+        }
+
+        $bookingGroup = $this->bookingPaymentGroup($booking)->get();
+        $totalAmount = $bookingGroup->sum('total_price');
+
+        return view('bookings.payment.vnpay-qr', compact('booking', 'bookingGroup', 'paymentUrl', 'totalAmount'));
+    }
+
+    public function startVnpay(Request $request, Booking $booking)
+    {
+        $this->authorizeBookingPayment($booking);
+
+        if ($booking->payment_status === 'paid') {
+            return redirect()->route('web.bookings.success', ['booking' => $booking->id])
+                ->with('success', 'Booking này đã được thanh toán.');
+        }
+
+        if (in_array($booking->status, ['cancelled', 'rejected'], true)) {
+            return redirect()->route('web.bookings.success', ['booking' => $booking->id])
+                ->with('error', 'Booking này đã bị hủy hoặc từ chối nên không thể thanh toán.');
+        }
+
+        if ($this->pendingPaymentExpired($booking)) {
+            return redirect()->route('account.bookings.index')
+                ->with('error', 'Thời gian giữ chỗ thanh toán đã hết. Vui lòng đặt lại ca mới.');
+        }
+
+        try {
+            return redirect()->away($this->createBookingPaymentUrl($request, $booking));
+        } catch (\Throwable $e) {
+            return redirect()->route('web.bookings.success', ['booking' => $booking->id])
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    private function createBookingPaymentUrl(Request $request, Booking $booking): string
+    {
+        if ($this->pendingPaymentExpired($booking)) {
+            throw new \RuntimeException('Thời gian giữ chỗ thanh toán đã hết. Vui lòng đặt lại ca mới.');
+        }
+
         // Get all bookings in the same group (same court, date, created_at)
-        $bookingGroup = Booking::where('user_id', Auth::id())
-            ->where('court_id', $booking->court_id)
-            ->where('slot_date', $booking->slot_date)
-            ->where('created_at', $booking->created_at)
-            ->where('status', $booking->status)
-            ->whereNull('cancel_reason')
-            ->get();
+        $bookingGroup = $this->bookingPaymentGroup($booking)->get();
 
         if ($bookingGroup->isEmpty()) {
-            return redirect()->back()->with('error', 'Đơn hàng không tồn tại hoặc đã bị hủy.');
+            throw new \RuntimeException('Đơn hàng không tồn tại hoặc đã bị hủy.');
         }
 
         $totalPrice = $bookingGroup->sum('total_price');
+
+        if ($totalPrice <= 0) {
+            throw new \RuntimeException('Số tiền thanh toán không hợp lệ.');
+        }
+
+        $bookingGroup->each(function (Booking $item): void {
+            if ($item->payment_status !== 'paid') {
+                $item->update([
+                    'payment_method' => 'vnpay',
+                    'payment_status' => 'pending',
+                ]);
+            }
+        });
 
         Transaction::updateOrCreate(
             ['booking_id' => $booking->id],
@@ -111,7 +181,7 @@ class VnPayController extends Controller
             $vnp_Url .= 'vnp_SecureHash=' . $vnpSecureHash;
         }
 
-        return redirect($vnp_Url);
+        return $vnp_Url;
     }
 
     public function vnpayReturn(Request $request, PlatformWalletService $platformWalletService)
@@ -308,5 +378,22 @@ class VnPayController extends Controller
         }
 
         return 0.0;
+    }
+
+    private function bookingPaymentGroup(Booking $booking)
+    {
+        return Booking::query()
+            ->where('user_id', $booking->user_id)
+            ->where('court_id', $booking->court_id)
+            ->where('slot_date', $booking->slot_date)
+            ->where('created_at', $booking->created_at)
+            ->whereNull('cancel_reason');
+    }
+
+    private function authorizeBookingPayment(Booking $booking): void
+    {
+        if (! Auth::check() || (int) $booking->user_id !== (int) Auth::id()) {
+            abort(403);
+        }
     }
 }

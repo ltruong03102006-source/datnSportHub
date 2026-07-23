@@ -268,6 +268,10 @@ Route::middleware('auth')->group(function () {
         ->name('web.bookings.success');
 
     // Thanh toÃ¡n VNPay
+    Route::get('/bookings/{booking}/payment/vnpay-qr', [\App\Http\Controllers\Web\VnPayController::class, 'showVnpayQr'])
+        ->name('bookings.payment.vnpay_qr');
+    Route::get('/bookings/{booking}/payment/vnpay/start', [\App\Http\Controllers\Web\VnPayController::class, 'startVnpay'])
+        ->name('bookings.payment.vnpay_start');
     Route::get('/vnpay/payment/{booking}', [\App\Http\Controllers\Web\VnPayController::class, 'createPayment'])
         ->name('vnpay.payment');
 

@@ -254,12 +254,12 @@
                         <!-- VNPay Section -->
                         <div class="flex flex-col justify-center items-center h-full w-full max-w-xs">
                             <p class="text-sm font-medium text-stone-500 mb-4">Hoặc thanh toán qua cổng</p>
-                            <a href="{{ route('vnpay.payment', $booking->id) }}" class="flex items-center justify-center gap-2 w-full rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-black text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 active:scale-[0.98]">
+                            <a href="{{ route('bookings.payment.vnpay_qr', $booking->id) }}" class="flex items-center justify-center gap-2 w-full rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-black text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 active:scale-[0.98]">
                                 <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M4 10V14C4 18.4183 7.58172 22 12 22C16.4183 22 20 18.4183 20 14V10C20 5.58172 16.4183 2 12 2C7.58172 2 4 5.58172 4 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                     <path d="M12 6V11L15 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
-                                Thanh toán VNPay
+                                Tiếp tục thanh toán VNPay
                             </a>
                             <p class="text-center text-xs text-stone-400 mt-3">Hỗ trợ quét mã VNPay, thẻ ATM nội địa, thẻ quốc tế.</p>
                         </div>
