@@ -39,10 +39,24 @@
     .progress-warning { background:#f59e0b; }
     .progress-over { background:#ef4444; }
     .tx-badge { display:inline-flex; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:900; background:#f1f5f9; color:#475569; }
+    .chart-card { background:#fff; border:1px solid var(--border-color); border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,.02); padding:20px; margin-top:18px; }
+    .chart-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:16px; }
+    .chart-title { margin:0; color:var(--text-dark); font-size:18px; font-weight:900; }
+    .chart-desc { margin:6px 0 0; color:var(--text-muted); font-size:13px; line-height:1.5; }
+    .chart-range { display:inline-flex; align-items:center; padding:8px 12px; border-radius:999px; background:#f8fafc; color:var(--text-muted); font-size:12px; font-weight:900; white-space:nowrap; }
+    .chart-canvas-wrap { position:relative; height:320px; }
+    .chart-empty { margin:14px 0 0; padding:12px 14px; border:1px solid #fde68a; border-radius:12px; background:#fffbeb; color:#92400e; font-size:13px; font-weight:800; }
+    .commission-table-wrap { margin-top:18px; overflow-x:auto; border:1px solid var(--border-color); border-radius:12px; }
+    .commission-table { width:100%; min-width:640px; border-collapse:collapse; }
+    .commission-table th { padding:13px 16px; background:#f8fafc; color:var(--text-muted); border-bottom:1px solid var(--border-color); font-size:11px; font-weight:900; letter-spacing:.04em; text-align:left; text-transform:uppercase; }
+    .commission-table td { padding:14px 16px; border-bottom:1px solid var(--border-color); color:var(--text-dark); font-size:13px; }
+    .commission-table tr:last-child td { border-bottom:0; }
     @media (max-width:1100px) {
         .page-head, .filter-form { display:block; }
         .page-head > * + *, .filter-form > * + * { margin-top:10px; }
         .metrics-grid { grid-template-columns:repeat(2, minmax(0,1fr)); }
+        .chart-head { display:block; }
+        .chart-range { margin-top:10px; }
     }
 </style>
 @endpush
@@ -78,6 +92,7 @@
         'refund' => 'Hoàn tiền',
     ];
     $typeValue = fn ($transaction) => $transaction->type instanceof \BackedEnum ? $transaction->type->value : (string) $transaction->type;
+    $commissionHasData = collect($commissionChartRows ?? [])->contains(fn ($row) => (float) ($row['total_commission'] ?? 0) > 0);
 @endphp
 
 <div class="page-head">
@@ -126,6 +141,58 @@
         <div class="metric-label">Settled Bookings</div>
         <div class="metric-value">{{ number_format($settledBookingCount, 0, ',', '.') }}</div>
         <div class="metric-note">Số booking trong phạm vi lọc.</div>
+    </div>
+</div>
+
+<div class="chart-card">
+    <div class="chart-head">
+        <div>
+            <h3 class="chart-title">Biểu đồ doanh thu hoa hồng</h3>
+            <p class="chart-desc">Theo dõi hoa hồng nền tảng theo từng tháng, tách theo online và COD.</p>
+        </div>
+        <div class="chart-range">
+            {{ $dateFrom ? \Carbon\Carbon::parse($dateFrom)->format('d/m/Y') : '6 tháng gần nhất' }}
+            @if($dateTo)
+                - {{ \Carbon\Carbon::parse($dateTo)->format('d/m/Y') }}
+            @endif
+        </div>
+    </div>
+
+    <div class="chart-canvas-wrap">
+        <canvas id="commissionRevenueChart"></canvas>
+    </div>
+
+    @unless($commissionHasData)
+        <div class="chart-empty">Chưa có dữ liệu hoa hồng trong khoảng thời gian này.</div>
+    @endunless
+
+    <div class="commission-table-wrap">
+        <table class="commission-table">
+            <thead>
+                <tr>
+                    <th>Tháng</th>
+                    <th>Hoa hồng online</th>
+                    <th>Hoa hồng COD</th>
+                    <th>Tổng hoa hồng</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($commissionChartRows as $row)
+                    <tr>
+                        <td><strong>{{ $row['label'] }}</strong></td>
+                        <td class="green"><strong>{{ $money($row['online_commission']) }}</strong></td>
+                        <td class="amber"><strong>{{ $money($row['cod_commission']) }}</strong></td>
+                        <td><strong>{{ $money($row['total_commission']) }}</strong></td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="4" style="padding:28px; text-align:center;">
+                            <strong>Chưa có dữ liệu hoa hồng trong khoảng thời gian này.</strong>
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
 </div>
 
@@ -311,3 +378,90 @@
     </table>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const canvas = document.getElementById('commissionRevenueChart');
+
+    if (!canvas || typeof Chart === 'undefined') {
+        return;
+    }
+
+    const labels = @json($commissionChartLabels ?? []);
+    const onlineData = @json($commissionChartOnlineData ?? []);
+    const codData = @json($commissionChartCodData ?? []);
+    const totalData = @json($commissionChartTotalData ?? []);
+    const moneyFormatter = new Intl.NumberFormat('vi-VN');
+
+    new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Tổng hoa hồng',
+                    data: totalData,
+                    borderColor: '#059669',
+                    backgroundColor: 'rgba(5, 150, 105, 0.12)',
+                    tension: 0.35,
+                    borderWidth: 3,
+                    pointRadius: 4,
+                    fill: true
+                },
+                {
+                    label: 'Hoa hồng online',
+                    data: onlineData,
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                    tension: 0.35,
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    fill: false
+                },
+                {
+                    label: 'Hoa hồng COD',
+                    data: codData,
+                    borderColor: '#d97706',
+                    backgroundColor: 'rgba(217, 119, 6, 0.08)',
+                    tension: 0.35,
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            return context.dataset.label + ': ' + moneyFormatter.format(Number(context.raw || 0)) + 'đ';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function (value) {
+                            return moneyFormatter.format(Number(value || 0)) + 'đ';
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+@endpush

@@ -9,6 +9,8 @@ use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Models\WithdrawalRequest;
 use App\Services\DebtService;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
@@ -19,6 +21,7 @@ class AdminFinanceDashboardController extends Controller
     {
         $dateFrom = $request->query('date_from');
         $dateTo = $request->query('date_to');
+        $commissionChart = $this->buildCommissionRevenueChart($dateFrom, $dateTo);
 
         $bookingQuery = Booking::query();
 
@@ -143,7 +146,13 @@ class AdminFinanceDashboardController extends Controller
             'onlineBookingCredit',
             'topDebtOwners',
             'latestTransactions'
-        ));
+        ), [
+            'commissionChartLabels' => $commissionChart['labels'],
+            'commissionChartOnlineData' => $commissionChart['online'],
+            'commissionChartCodData' => $commissionChart['cod'],
+            'commissionChartTotalData' => $commissionChart['total'],
+            'commissionChartRows' => $commissionChart['rows'],
+        ]);
     }
 
     private function applyDateRange($query, string $column, ?string $dateFrom, ?string $dateTo): void
@@ -155,5 +164,134 @@ class AdminFinanceDashboardController extends Controller
         if ($dateTo) {
             $query->whereDate($column, '<=', $dateTo);
         }
+    }
+
+    private function buildCommissionRevenueChart(?string $dateFrom, ?string $dateTo): array
+    {
+        $start = $dateFrom
+            ? Carbon::parse($dateFrom)->startOfMonth()
+            : now()->subMonths(5)->startOfMonth();
+
+        $end = $dateTo
+            ? Carbon::parse($dateTo)->endOfMonth()
+            : now()->endOfMonth();
+
+        if ($end->lt($start)) {
+            [$start, $end] = [$end->copy()->startOfMonth(), $start->copy()->endOfMonth()];
+        }
+
+        $months = [];
+
+        foreach (CarbonPeriod::create($start, '1 month', $end) as $month) {
+            $months[$month->format('Y-m')] = [
+                'label' => $month->format('m/Y'),
+                'online_commission' => 0,
+                'cod_commission' => 0,
+                'total_commission' => 0,
+            ];
+        }
+
+        if (
+            Schema::hasTable('bookings')
+            && (Schema::hasColumn('bookings', 'commission_amount') || Schema::hasColumn('bookings', 'platform_fee'))
+        ) {
+            $commissionColumn = Schema::hasColumn('bookings', 'commission_amount')
+                ? 'commission_amount'
+                : 'platform_fee';
+
+            $dateColumn = Schema::hasColumn('bookings', 'settled_at')
+                ? 'settled_at'
+                : 'created_at';
+
+            $query = Booking::query()
+                ->whereNotNull($commissionColumn)
+                ->whereDate($dateColumn, '>=', $start)
+                ->whereDate($dateColumn, '<=', $end);
+
+            if (Schema::hasColumn('bookings', 'settlement_status')) {
+                $query->where('settlement_status', 'settled');
+            } elseif (Schema::hasColumn('bookings', 'status')) {
+                $query->whereIn('status', ['completed', 'confirmed']);
+            }
+
+            if (Schema::hasColumn('bookings', 'payment_status')) {
+                $query->whereIn('payment_status', ['paid', 'completed']);
+            }
+
+            foreach ($query->get() as $booking) {
+                $date = $booking->{$dateColumn};
+
+                if (! $date) {
+                    continue;
+                }
+
+                $key = Carbon::parse($date)->format('Y-m');
+
+                if (! isset($months[$key])) {
+                    continue;
+                }
+
+                $commission = (float) $booking->{$commissionColumn};
+                $paymentMethod = strtolower((string) ($booking->payment_method ?? ''));
+
+                if (in_array($paymentMethod, ['cod', 'cash', 'offline'], true)) {
+                    $months[$key]['cod_commission'] += $commission;
+                } else {
+                    $months[$key]['online_commission'] += $commission;
+                }
+
+                $months[$key]['total_commission'] =
+                    $months[$key]['online_commission'] + $months[$key]['cod_commission'];
+            }
+        } elseif (Schema::hasTable('wallet_transactions')) {
+            $transactions = WalletTransaction::query()
+                ->whereDate('created_at', '>=', $start)
+                ->whereDate('created_at', '<=', $end)
+                ->where(function ($query) {
+                    $query->where('type', 'commission_cod_debit')
+                        ->orWhere('type', 'commission_fee')
+                        ->orWhere('type', 'like', '%commission%');
+                })
+                ->get();
+
+            foreach ($transactions as $transaction) {
+                $key = Carbon::parse($transaction->created_at)->format('Y-m');
+
+                if (! isset($months[$key])) {
+                    continue;
+                }
+
+                $amount = abs((float) $transaction->amount);
+                $type = $transaction->type instanceof \BackedEnum
+                    ? $transaction->type->value
+                    : (string) $transaction->type;
+
+                if (in_array($type, ['commission_cod_debit', 'commission_fee'], true)) {
+                    $months[$key]['cod_commission'] += $amount;
+                } else {
+                    $months[$key]['online_commission'] += $amount;
+                }
+
+                $months[$key]['total_commission'] =
+                    $months[$key]['online_commission'] + $months[$key]['cod_commission'];
+            }
+        }
+
+        $rows = collect($months)->map(function (array $row): array {
+            return [
+                'label' => $row['label'],
+                'online_commission' => round((float) $row['online_commission'], 2),
+                'cod_commission' => round((float) $row['cod_commission'], 2),
+                'total_commission' => round((float) $row['total_commission'], 2),
+            ];
+        })->values();
+
+        return [
+            'labels' => $rows->pluck('label')->values(),
+            'online' => $rows->pluck('online_commission')->values(),
+            'cod' => $rows->pluck('cod_commission')->values(),
+            'total' => $rows->pluck('total_commission')->values(),
+            'rows' => $rows,
+        ];
     }
 }
