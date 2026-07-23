@@ -65,6 +65,11 @@
                     class="whitespace-nowrap border-b-2 pb-3 text-sm font-bold transition-all outline-none">
                     Hình ảnh
                 </button>
+                <button @click="activeTab = 'services'" 
+                    :class="activeTab === 'services' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-stone-500 hover:text-stone-800 hover:border-stone-300'"
+                    class="whitespace-nowrap border-b-2 pb-3 text-sm font-bold transition-all outline-none">
+                    Dịch vụ
+                </button>
                 <button @click="activeTab = 'rules'" 
                     :class="activeTab === 'rules' ? 'border-emerald-500 text-emerald-700' : 'border-transparent text-stone-500 hover:text-stone-800 hover:border-stone-300'"
                     class="whitespace-nowrap border-b-2 pb-3 text-sm font-bold transition-all outline-none">
@@ -170,6 +175,80 @@
                      x-transition:enter-start="opacity-0 scale-90"
                      x-transition:enter-end="opacity-100 scale-100"
                      @click.stop>
+            </div>
+            <!-- Tab: Dịch vụ -->
+            <div x-show="activeTab === 'services'" x-cloak class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+                <div class="mb-6">
+                    <h4 class="text-lg font-extrabold text-zinc-900">Dịch vụ & Tiện ích bán kèm</h4>
+                    <p class="text-sm text-stone-500 mt-1">Danh sách các đồ uống, đồ ăn và tiện ích có sẵn tại sân.</p>
+                </div>
+
+                @php
+                    // Lọc ra các dịch vụ đang mở bán và nhóm lại theo danh mục
+                    $activeServices = $venue->services ? $venue->services->where('is_active', true) : collect();
+                    $groupedServices = $activeServices->groupBy('category');
+                    $categoryNames = [
+                        'do_uong' => '🍹 Đồ uống',
+                        'do_an' => '🍔 Đồ ăn',
+                        'dung_cu' => '🎾 Dụng cụ',
+                        'combo' => '🎁 Combo'
+                    ];
+                @endphp
+
+                @if($activeServices->count() > 0)
+                    <div class="space-y-8">
+                        @foreach(['do_uong', 'do_an', 'dung_cu', 'combo'] as $catKey)
+                            @if(isset($groupedServices[$catKey]) && $groupedServices[$catKey]->count() > 0)
+                                <div>
+                                    <h5 class="text-sm font-bold text-zinc-900 border-b border-stone-100 pb-2 mb-4">{{ $categoryNames[$catKey] }}</h5>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        @foreach($groupedServices[$catKey] as $service)
+                                            <div class="flex items-center gap-4 rounded-xl border border-stone-100 bg-stone-50 p-3 hover:border-emerald-200 transition-colors">
+                                                <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-white border border-stone-200 overflow-hidden">
+                                                    @if($service->image)
+                                                        <!-- BẮT ĐẦU: ĐÃ SỬA THẺ IMG -->
+                                                        <img src="{{ asset('storage/' . $service->image) }}" 
+                                                             class="h-full w-full object-cover cursor-pointer hover:scale-110 transition-transform duration-300" 
+                                                             alt="{{ $service->name }}"
+                                                             @click="lightboxOpen = true; lightboxImg = '{{ asset('storage/' . $service->image) }}'">
+                                                        <!-- KẾT THÚC: ĐÃ SỬA THẺ IMG -->
+                                                    @else
+                                                        <svg class="h-6 w-6 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                                                    @endif
+                                                </div>
+                                                <div class="flex-1 min-w-0">
+                                                    <h6 class="truncate text-sm font-bold text-zinc-900">{{ $service->name }}</h6>
+                                                    <p class="text-xs text-stone-500 mt-1 flex flex-wrap items-center gap-1.5">
+                                                        <span class="font-bold text-emerald-600">{{ number_format($service->price, 0, ',', '.') }}đ</span> 
+                                                        <span>/ {{ $service->unit }}</span>
+                                                        
+                                                        <!-- Label Thuê -->
+                                                        @if($service->pricing_type === 'rental')
+                                                            <span class="inline-flex items-center rounded-md bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-600/20">Thuê</span>
+                                                        @endif
+
+                                                        <!-- BẮT ĐẦU: LOGIC TỒN KHO THÔNG MINH -->
+                                                        @if($service->stock !== null)
+                                                            @if($service->stock == 0)
+                                                                <span class="inline-flex items-center rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700 ring-1 ring-inset ring-rose-600/20">Hết hàng</span>
+
+                                                            @endif
+                                                        @endif
+                                                        <!-- KẾT THÚC: LOGIC TỒN KHO -->
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
+                @else
+                    <div class="rounded-xl bg-stone-50 p-8 text-center border border-dashed border-stone-200">
+                        <p class="text-sm font-medium text-stone-500">Cơ sở này hiện chưa cập nhật danh sách dịch vụ.</p>
+                    </div>
+                @endif
             </div>
             <div x-show="activeTab === 'rules'" x-cloak class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8 space-y-8">
                 

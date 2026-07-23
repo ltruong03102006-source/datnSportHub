@@ -33,15 +33,37 @@ class CourtBookingController extends Controller
         if (!$court->is_bookable_online) {
             abort(403, 'Sân này không cho phép đặt trực tuyến. Vui lòng liên hệ quản lý.');
         }
+        // =========================================================================
+        // BẮT ĐẦU: LAZY CRON - TỰ ĐỘNG DỌN DẸP ĐƠN QUÁ HẠN & HOÀN KHO
+        // =========================================================================
+        $holdTimeMinutes = Setting::get('booking_hold_time', 15);
+        
+        $expiredBookings = Booking::where('status', 'pending')
+            ->where('created_at', '<', now()->subMinutes($holdTimeMinutes))
+            ->get();
 
+        foreach ($expiredBookings as $expiredBooking) {
+            // Lệnh update này sẽ TỰ ĐỘNG KÍCH HOẠT hàm booted() trong Model Booking 
+            // để nhả số lượng chai nước/cái vợt về lại kho.
+            $expiredBooking->update([
+                'status' => 'cancelled',
+                'cancel_reason' => 'Hệ thống tự động hủy do hết hạn thanh toán giữ chỗ'
+            ]);
+        }
+        // =========================================================================
+        // KẾT THÚC LAZY CRON
+        // =========================================================================
         $court->load([
             'venue' => fn($query) => $query->select('id', 'name', 'address', 'sport_id', 'banner'),
             'venue.sport' => fn($query) => $query->select('id', 'name'),
             'timeSlots' => fn($query) => $query->select('id', 'court_id', 'start_time', 'end_time', 'duration_minutes'),
+            // THÊM DÒNG DƯỚI ĐÂY: Chỉ lấy dịch vụ Đang bán & Còn hàng
+            'venue.services' => fn($query) => $query->where('is_active', true) // Bỏ check stock ở đây
         ]);
 
         return view('courts.booking', [
             'court' => $court,
+            'services' => $court->venue->services ?? collect(), // Truyền dịch vụ ra View
             'bannerUrl' => $court->venue?->banner ?? '/images/default-court.jpg',
         ]);
     }

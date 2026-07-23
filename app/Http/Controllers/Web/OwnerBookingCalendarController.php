@@ -122,7 +122,7 @@ class OwnerBookingCalendarController extends Controller
             )
             ->whereDate('slot_date', '>=', $start->toDateString())
             ->whereDate('slot_date', '<', $end->toDateString())
-            ->with(['court.venue', 'user'])
+            ->with(['court.venue', 'user', 'services']) // <--- Đã thêm services
             ->orderBy('slot_date')
             ->orderBy('start_time')
             ->get();
@@ -332,7 +332,7 @@ class OwnerBookingCalendarController extends Controller
             'backgroundColor' => $status['color'],
             'borderColor' => $status['color'],
             'textColor' => '#ffffff',
-            'extendedProps' => [
+           'extendedProps' => [
                 'booking_id' => $booking->id,
                 'venue_name' => $booking->court->venue->name,
                 'court_name' => $booking->court->name,
@@ -340,14 +340,17 @@ class OwnerBookingCalendarController extends Controller
                 'customer_email' => $booking->user->email,
                 'customer_phone' => $booking->user->phone ?? 'Chưa cập nhật SĐT', 
                 
-                'status' => $displayStatus, // Gửi status đã ghi đè
-                'status_label' => $status['label'], // Gửi nhãn tên đã ghi đè
+                'status' => $displayStatus, 
+                'status_label' => $status['label'], 
                 
                 'total_price' => number_format((float) $booking->total_price, 0, ',', '.').' đ',
                 'note' => $booking->note,
                 'cancel_reason' => $booking->cancel_reason,
                 'date_label' => $booking->slot_date->format('d/m/Y'),
                 'time_label' => substr($booking->start_time, 0, 5).' - '.substr($booking->end_time, 0, 5),
+                
+                // BỔ SUNG DÒNG NÀY ĐỂ TRUYỀN DATA DỊCH VỤ SANG JAVASCRIPT
+                'services' => $booking->services, 
             ],
         ];
     }

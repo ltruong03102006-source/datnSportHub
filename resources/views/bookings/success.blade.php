@@ -116,10 +116,31 @@
                     <p class="text-sm font-bold text-zinc-900">{{ $totalDurationStr }}</p>
                 </div>
                 
+                <!-- BẮT ĐẦU: BÓC TÁCH HÓA ĐƠN -->
+                @php
+                    // Tính toán bóc tách tiền sân và tiền dịch vụ
+                    $purchasedServices = collect($bookingGroup ?? [$booking])->flatMap->services;
+                    $servicesTotal = $purchasedServices->sum('pivot.price');
+                    $courtPrice = max(0, $totalGroupPrice - $servicesTotal);
+                @endphp
+
+                <div class="flex items-start gap-x-4 mt-3">
+                    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Tiền thuê sân:</p>
+                    <p class="text-sm font-bold text-zinc-900">{{ number_format($courtPrice, 0, ',', '.') }} đ</p>
+                </div>
+
+                @if($servicesTotal > 0)
                 <div class="flex items-start gap-x-4 mt-2">
-                    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Tổng tiền:</p>
+                    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Tiền dịch vụ:</p>
+                    <p class="text-sm font-bold text-zinc-900">{{ number_format($servicesTotal, 0, ',', '.') }} đ</p>
+                </div>
+                @endif
+                
+                <div class="flex items-start gap-x-4 mt-3 pt-3 border-t border-stone-100 border-dashed">
+                    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Tổng thanh toán:</p>
                     <p class="text-base font-black text-emerald-600">{{ $totalPriceStr }}</p>
                 </div>
+                <!-- KẾT THÚC: BÓC TÁCH HÓA ĐƠN -->
 
                 <div class="flex items-start gap-x-4 pt-2">
                     <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Trạng thái TT:</p>
@@ -139,6 +160,38 @@
                         @endif
                     </div>
                 </div>
+                <!-- BẮT ĐẦU: CHI TIẾT DỊCH VỤ MUA KÈM -->
+                @php
+                    // Lấy ra tất cả dịch vụ mua kèm trong cụm booking này (vì Task 5 ta lưu vào booking đầu tiên)
+                    $purchasedServices = collect($bookingGroup ?? [$booking])->flatMap->services;
+                @endphp
+
+                @if($purchasedServices->count() > 0)
+                    <div class="mt-4 pt-4 border-t border-stone-100 border-dashed">
+                        <p class="w-full text-xs font-bold text-stone-500 uppercase tracking-wider mb-3">Dịch vụ & Tiện ích đã chọn</p>
+                        <div class="space-y-3 pl-0 sm:pl-4">
+                            @foreach($purchasedServices as $service)
+                                <div class="flex items-start justify-between text-sm bg-stone-50/50 p-2.5 rounded-lg border border-stone-100">
+                                    <div class="flex-1 pr-4">
+                                        <span class="font-bold text-zinc-800">{{ $service->name }}</span>
+                                        <div class="text-xs text-stone-500 mt-1 flex items-center gap-1.5">
+                                            @if($service->pricing_type === 'rental')
+                                                <span class="bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-semibold border border-indigo-100">Thuê</span>
+                                            @else
+                                                <span class="bg-stone-200 text-stone-600 px-1.5 py-0.5 rounded font-semibold">Mua</span>
+                                            @endif
+                                            <span>Số lượng: <strong class="text-zinc-700">{{ $service->pivot->quantity }}</strong> {{ $service->unit }}</span>
+                                        </div>
+                                    </div>
+                                    <span class="font-black text-emerald-600 shrink-0">
+                                        {{ number_format($service->pivot->price, 0, ',', '.') }} đ
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+                <!-- KẾT THÚC: CHI TIẾT DỊCH VỤ -->
             </div>
 
             @if(($booking->payment_status ?? 'unpaid') !== 'paid' && $booking->status !== 'cancelled' && $booking->status !== 'rejected')

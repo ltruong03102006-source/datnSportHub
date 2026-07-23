@@ -485,7 +485,47 @@ L.tileLayer(
         }
     }
 
-    provinceTS.on('change', (value) => loadWards(value));
+    // --- 1. Hàm tự động tìm tọa độ (Geocoding API) ---
+    async function geocodeAndCenterMap(address) {
+        try {
+            // Gọi API miễn phí của OpenStreetMap để tìm tọa độ
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address + ', Việt Nam')}&limit=1`);
+            const data = await res.json();
+            
+            if (data && data.length > 0) {
+                const lat = parseFloat(data[0].lat);
+                const lng = parseFloat(data[0].lon);
+                
+                // Di chuyển bản đồ mượt mà (flyTo) và ghim Marker
+                map.flyTo([lat, lng], 13);
+                marker.setLatLng([lat, lng]);
+                updateInputs(lat, lng);
+            }
+        } catch (error) {
+            console.error("Lỗi tìm tọa độ:", error);
+        }
+    }
+
+    // --- 2. Lắng nghe khi chọn Tỉnh/Thành phố ---
+    provinceTS.on('change', (value) => {
+        loadWards(value);
+        if (value) {
+            // Lấy ra tên Tỉnh (VD: "Thành phố Cần Thơ")
+            const provinceName = provinceTS.options[value].text;
+            geocodeAndCenterMap(provinceName); 
+        }
+    });
+
+    // --- 3. Lắng nghe khi chọn Phường/Xã (Zoom tận ngõ) ---
+    wardTS.on('change', (value) => {
+        if (value && provinceEl.value) {
+            // Lấy tên Phường + Tên Tỉnh (VD: "Phường An Bình, Thành phố Cần Thơ")
+            const provinceName = provinceTS.options[provinceEl.value].text;
+            const wardName = wardTS.options[value].text;
+            
+            geocodeAndCenterMap(`${wardName}, ${provinceName}`);
+        }
+    });
 
     // Repopulate wards after a validation error (old input)
     if (provinceEl.value) {

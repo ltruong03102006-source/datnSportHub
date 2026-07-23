@@ -55,6 +55,8 @@ class BookingController extends Controller
             $booking = DB::transaction(function () use ($request, $slots, $dayOfWeek, $now, $court, $holdCutoff) {
                 $items = collect();
 
+                // 1. TÍNH TỔNG SỐ GIỜ KHÁCH ĐẶT ĐỂ TÍNH TIỀN CHO THUÊ
+                $totalMinutes = 0;
                 foreach ($slots as $slot) {
                     $conflict = BookingItem::whereDate('slot_date', $request->slot_date)
                         ->where(function ($q) use ($slot) {
@@ -95,15 +97,12 @@ class BookingController extends Controller
                     if ($conflict || $legacyConflict) {
                         throw new HttpException(409, 'This time slot has already been booked');
                     }
+                }
 
-                    if (app(\App\Services\AvailabilityService::class)->hasActivePackageBooking(
-                        $court,
-                        $request->slot_date,
-                        $slot['start_time'],
-                        $slot['end_time']
-                    )) {
-                        throw new HttpException(409, 'This time slot has already been booked by an active package');
-                    }
+                $isFirstBooking = true; // Cờ đánh dấu
+
+                foreach ($slots as $slot) {
+                    // ... (Đoạn check conflict giữ nguyên) ...
 
                     $timeSlot = TimeSlot::where('court_id', $request->court_id)
                         ->where('start_time', $slot['start_time'])

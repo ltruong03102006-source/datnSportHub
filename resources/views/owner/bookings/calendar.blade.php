@@ -804,6 +804,11 @@
                     <dt>Tổng tiền</dt>
                     <dd id="detail-price"></dd>
                
+                    <!-- BẮT ĐẦU THÊM MỚI -->
+                    <dt id="detail-services-label" class="d-none mt-2">Dịch vụ kèm</dt>
+                    <dd id="detail-services-list" class="d-none mt-2"></dd>
+                    <!-- KẾT THÚC THÊM MỚI -->
+
                     <dt class="d-none" id="detail-cancel-label">Lý do hủy</dt>
                     <dd class="d-none text-danger" id="detail-cancel-reason"></dd>
                 </dl>
@@ -1033,6 +1038,41 @@
             }
 
             detailModal.show();
+            // --- BẮT ĐẦU: RENDER DỊCH VỤ TRÊN MODAL CHỦ SÂN ---
+            const svcs = booking.services || []; // Lấy mảng services từ JSON
+            const svcLabel = document.getElementById('detail-services-label');
+            const svcList = document.getElementById('detail-services-list');
+            
+            if (svcs.length > 0) {
+                svcLabel.classList.remove('d-none');
+                svcList.classList.remove('d-none');
+                
+                // Dùng Vanilla JS để sinh mã HTML danh sách món đồ
+                svcList.innerHTML = svcs.map(s => {
+                    const isRental = s.pricing_type === 'rental' 
+                        ? '<span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle ms-1" style="font-size: 0.6rem;">Thuê</span>' 
+                        : '<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle ms-1" style="font-size: 0.6rem;">Mua</span>';
+                    
+                    const priceFmt = new Intl.NumberFormat('vi-VN').format(s.pivot.price) + 'đ';
+                    
+                    return `
+                        <div class="mb-2 pb-2 border-bottom border-light text-sm">
+                            <div class="fw-bold text-dark d-flex align-items-center mb-1">
+                                <span class="text-truncate">${s.name}</span> ${isRental}
+                            </div>
+                            <div class="d-flex justify-content-between text-secondary" style="font-size: 0.85rem;">
+                                <span>SL: <strong class="text-dark">${s.pivot.quantity}</strong> ${s.unit}</span>
+                                <strong class="text-success">${priceFmt}</strong>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                svcLabel.classList.add('d-none');
+                svcList.classList.add('d-none');
+                svcList.innerHTML = '';
+            }
+            // --- KẾT THÚC: RENDER DỊCH VỤ ---
         }
 
         async function updateBookingStatus(status) {
