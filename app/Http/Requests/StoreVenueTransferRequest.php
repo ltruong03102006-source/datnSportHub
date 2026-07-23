@@ -53,10 +53,10 @@ class StoreVenueTransferRequest extends FormRequest
             }
 
             // 2. Kiểm tra công nợ của Chủ A
-            $wallet = auth()->user()->wallet;
-            if ($wallet && $wallet->debt > 0) {
-                $validator->errors()->add('debt', 'Hệ thống từ chối: Ví của bạn đang ghi nhận khoản nợ ' . number_format($wallet->debt, 0, ',', '.') . 'đ. Vui lòng thanh toán công nợ trước khi chuyển nhượng.');
-            }
+            // $wallet = auth()->user()->wallet;
+            // if ($wallet && $wallet->debt > 0) {
+            //     $validator->errors()->add('debt', 'Hệ thống từ chối: Ví của bạn đang ghi nhận khoản nợ ' . number_format($wallet->debt, 0, ',', '.') . 'đ. Vui lòng thanh toán công nợ trước khi chuyển nhượng.');
+            // }
         });
     }
 }

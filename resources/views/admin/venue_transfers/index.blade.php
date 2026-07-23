@@ -1,80 +1,70 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Yêu cầu chuyển nhượng cơ sở')
-
 @section('content')
-<div class="container-fluid p-6">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-slate-800">Quản lý Chuyển nhượng Cơ sở</h1>
+<div style="padding: 20px;">
+    <!-- Tiêu đề -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h2 style="margin: 0; color: #2c3e50; font-weight: 700;">Quản lý Yêu cầu Chuyển nhượng</h2>
     </div>
 
+    <!-- Thông báo -->
     @if(session('success'))
-        <div class="mb-4 p-4 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700">
+        <div style="background-color: #d4edda; color: #155724; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #c3e6cb;">
             {{ session('success') }}
         </div>
     @endif
 
-    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-slate-50 border-b border-slate-200 text-sm font-medium text-slate-500 uppercase tracking-wider">
-                        <th class="p-4">ID</th>
-                        <th class="p-4">Cơ sở (Venue)</th>
-                        <th class="p-4">Người bán (Chủ cũ)</th>
-                        <th class="p-4">Người mua (Chủ mới)</th>
-                        <th class="p-4">Thời gian tạo</th>
-                        <th class="p-4">Trạng thái</th>
-                        <th class="p-4 text-center">Thao tác</th>
+    <!-- Bảng Dữ liệu -->
+    <div class="card-custom" style="padding: 0; overflow: hidden;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+                <tr style="background-color: #f8f9fa; border-bottom: 2px solid #ecf0f1;">
+                    <th style="padding: 16px; color: #7f8c8d; font-weight: 600; font-size: 13px;">Mã YC</th>
+                    <th style="padding: 16px; color: #7f8c8d; font-weight: 600; font-size: 13px;">Cơ sở (Venue)</th>
+                    <th style="padding: 16px; color: #7f8c8d; font-weight: 600; font-size: 13px;">Bên Bán (Chủ cũ)</th>
+                    <th style="padding: 16px; color: #7f8c8d; font-weight: 600; font-size: 13px;">Bên Mua (Chủ mới)</th>
+                    <th style="padding: 16px; color: #7f8c8d; font-weight: 600; font-size: 13px;">Thời gian</th>
+                    <th style="padding: 16px; color: #7f8c8d; font-weight: 600; font-size: 13px; text-align: center;">Trạng thái</th>
+                    <th style="padding: 16px; color: #7f8c8d; font-weight: 600; font-size: 13px; text-align: center;">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($transfers as $transfer)
+                    <tr style="border-bottom: 1px solid #ecf0f1; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#f8f9fa'" onmouseout="this.style.backgroundColor='transparent'">
+                        <td style="padding: 16px; font-weight: 600; color: #2c3e50;">#{{ $transfer->id }}</td>
+                        <td style="padding: 16px; color: #2ecc71; font-weight: 600;">{{ $transfer->venue->name ?? 'N/A' }}</td>
+                        <td style="padding: 16px;">
+                            <div style="font-weight: 600; color: #2c3e50; margin-bottom: 4px;">{{ $transfer->fromOwner->name ?? $transfer->fromOwner->full_name ?? 'N/A' }}</div>
+                            <div style="font-size: 12px; color: #7f8c8d;">{{ $transfer->fromOwner->email ?? '' }}</div>
+                        </td>
+                        <td style="padding: 16px;">
+                            <div style="font-weight: 600; color: #2c3e50; margin-bottom: 4px;">{{ $transfer->toOwner->name ?? $transfer->toOwner->full_name ?? 'N/A' }}</div>
+                            <div style="font-size: 12px; color: #7f8c8d;">{{ $transfer->toOwner->email ?? '' }}</div>
+                        </td>
+                        <td style="padding: 16px; color: #7f8c8d; font-size: 14px;">{{ $transfer->created_at->format('d/m/Y H:i') }}</td>
+                        <td style="padding: 16px; text-align: center;">
+                            @if($transfer->status === 'pending')
+                                <span style="background-color: #fff3cd; color: #856404; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Chờ duyệt</span>
+                            @elseif($transfer->status === 'approved')
+                                <span style="background-color: #d4edda; color: #155724; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Đã duyệt</span>
+                            @elseif($transfer->status === 'rejected')
+                                <span style="background-color: #f8d7da; color: #721c24; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Từ chối</span>
+                            @endif
+                        </td>
+                        <td style="padding: 16px; text-align: center;">
+                            <a href="{{ route('admin.venue-transfers.show', $transfer->id) }}" style="display: inline-block; background-color: #eafaf1; color: #2ecc71; text-decoration: none; padding: 6px 16px; border-radius: 6px; font-weight: 600; font-size: 13px; border: 1px solid #2ecc71;">Xem chi tiết</a>
+                        </td>
                     </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-200">
-                    @forelse($transfers as $transfer)
-                        <tr class="hover:bg-slate-50 transition-colors">
-                            <td class="p-4 text-sm text-slate-600">#{{ $transfer->id }}</td>
-                            <td class="p-4">
-                                <span class="text-sm font-semibold text-slate-800">{{ $transfer->venue->name ?? 'N/A' }}</span>
-                            </td>
-                            <td class="p-4">
-                                <div class="text-sm text-slate-800">{{ $transfer->fromOwner->name ?? $transfer->fromOwner->full_name ?? 'N/A' }}</div>
-                                <div class="text-xs text-slate-500">{{ $transfer->fromOwner->email ?? '' }}</div>
-                            </td>
-                            <td class="p-4">
-                                <div class="text-sm text-slate-800">{{ $transfer->toOwner->name ?? $transfer->toOwner->full_name ?? 'N/A' }}</div>
-                                <div class="text-xs text-slate-500">{{ $transfer->toOwner->email ?? '' }}</div>
-                            </td>
-                            <td class="p-4 text-sm text-slate-600">
-                                {{ $transfer->created_at->format('d/m/Y H:i') }}
-                            </td>
-                            <td class="p-4">
-                                @if($transfer->status === 'pending')
-                                    <span class="px-2.5 py-1 text-xs font-medium bg-amber-100 text-amber-700 rounded-full">Chờ duyệt</span>
-                                @elseif($transfer->status === 'approved')
-                                    <span class="px-2.5 py-1 text-xs font-medium bg-emerald-100 text-emerald-700 rounded-full">Đã duyệt</span>
-                                @elseif($transfer->status === 'rejected')
-                                    <span class="px-2.5 py-1 text-xs font-medium bg-red-100 text-red-700 rounded-full">Từ chối</span>
-                                @endif
-                            </td>
-                            <td class="p-4 text-center">
-                                <a href="{{ route('admin.venue-transfers.show', $transfer->id) }}" class="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors">
-                                    Chi tiết
-                                </a>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="p-8 text-center text-slate-500 text-sm">
-                                Chưa có yêu cầu chuyển nhượng nào.
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                @empty
+                    <tr>
+                        <td colspan="7" style="padding: 30px; text-align: center; color: #7f8c8d;">Chưa có yêu cầu chuyển nhượng nào.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
         
-        <!-- Phân trang -->
         @if($transfers->hasPages())
-            <div class="p-4 border-t border-slate-200">
+            <div style="padding: 16px; border-top: 1px solid #ecf0f1;">
                 {{ $transfers->links() }}
             </div>
         @endif

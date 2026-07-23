@@ -20,4 +20,11 @@ class AdminVenueTransferController extends Controller
 
         return view('admin.venue_transfers.index', compact('transfers'));
     }
+    public function show(VenueTransferRequest $transfer)
+    {
+        // Đã tạm ẩn load ví: 'fromOwner.wallet'
+        $transfer->load(['venue', 'fromOwner', 'toOwner']);
+
+        return view('admin.venue_transfers.show', compact('transfer'));
+    }
 }
