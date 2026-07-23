@@ -9,6 +9,10 @@ use Illuminate\Support\Facades\DB;
 
 class BookingCompletionService
 {
+    public function __construct(
+        private SettlementService $settlementService
+    ) {}
+
     public function completeExpiredBookings(?int $ownerId = null, ?int $userId = null): int
     {
         $now = now('Asia/Ho_Chi_Minh');
@@ -58,6 +62,14 @@ class BookingCompletionService
                     'Scheduler completed expired booking',
                     $now
                 );
+
+                try {
+                    $this->settlementService->settleBooking($booking->fresh());
+                } catch (\Throwable $e) {
+                    \Log::channel('settlement')->error("Lỗi đối soát Booking #{$booking->id}: " . $e->getMessage());
+
+                    $booking->update(['settlement_status' => \App\Enums\SettlementStatus::FAILED]);
+                }
             }
 
             $representativeBooking = $confirmedBookings->sortBy('id')->first();

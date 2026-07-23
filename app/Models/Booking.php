@@ -145,4 +145,14 @@ class Booking extends Model
     {
         return $this->hasMany(WalletTransaction::class);
     }
+
+    public function getCommissionAmountAttribute(): float
+    {
+        return (float) ($this->platform_fee ?? 0);
+    }
+
+    public function getOwnerAmountAttribute(): float
+    {
+        return (float) ($this->owner_earnings ?? 0);
+    }
 }

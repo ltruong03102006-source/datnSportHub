@@ -29,6 +29,17 @@ class WalletService
         }
 
         return DB::transaction(function () use ($wallet, $type, $amount, $description, $bookingId, $withdrawalRequestId, $metadata, $reference) {
+            if ($bookingId) {
+                $existing = WalletTransaction::query()
+                    ->where('booking_id', $bookingId)
+                    ->where('type', $type->value)
+                    ->first();
+
+                if ($existing) {
+                    return $existing;
+                }
+            }
+
             // 1. LOCK ROW: Khóa dòng dữ liệu ví này lại, các request khác chạm vào ví này phải xếp hàng chờ
             $lockedWallet = Wallet::where('id', $wallet->id)->lockForUpdate()->first();
 
@@ -37,6 +48,7 @@ class WalletService
             // 2. Xác định là giao dịch TĂNG hay GIẢM tiền
             $isAddition = in_array($type, [
                 TransactionType::BOOKING_INCOME, 
+                TransactionType::BOOKING_ONLINE_CREDIT,
                 TransactionType::TOPUP, 
                 TransactionType::TOPUP_CREDIT,
                 TransactionType::REFUND
