@@ -104,6 +104,8 @@
             </div>
         @endif
 
+        @include('owner.partials.debt-warning')
+
         <section class="grid gap-5 lg:grid-cols-3">
             <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-1">
                 <p class="text-xs font-black uppercase tracking-wider text-slate-400">Số dư ví hiện tại</p>

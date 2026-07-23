@@ -67,6 +67,9 @@
         </div>
         @endif
 
+        @include('owner.partials.debt-warning')
+        @include('owner.partials.wallet-summary')
+
         <!-- Header & Filters Form -->
         <form method="GET" action="{{ route('owner.dashboard') }}" class="mb-8">
             <div class="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
