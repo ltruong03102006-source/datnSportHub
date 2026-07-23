@@ -150,6 +150,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Cấu hình hệ thống
         Route::get('/settings', [\App\Http\Controllers\Web\AdminSettingController::class, 'index'])->name('settings.index');
         Route::post('/settings', [\App\Http\Controllers\Web\AdminSettingController::class, 'store'])->name('settings.store');
+
+        // Quản lý Yêu cầu chuyển nhượng cơ sở
+        Route::get('/venue-transfers', [\App\Http\Controllers\Web\AdminVenueTransferController::class, 'index'])->name('venue-transfers.index');
+        Route::get('/venue-transfers/{transfer}', [\App\Http\Controllers\Web\AdminVenueTransferController::class, 'show'])->name('venue-transfers.show');
+        Route::post('/venue-transfers/{transfer}/approve', [\App\Http\Controllers\Web\AdminVenueTransferController::class, 'approve'])->name('venue-transfers.approve');
+        Route::post('/venue-transfers/{transfer}/reject', [\App\Http\Controllers\Web\AdminVenueTransferController::class, 'reject'])->name('venue-transfers.reject');
     });
 });
 
