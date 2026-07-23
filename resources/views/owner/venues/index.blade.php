@@ -175,7 +175,16 @@
        class="col-span-2 inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
         Chi tiết & Quản lý sân con
     </a>
-
+    <!-- Nút chuyển nhượng: Chỉ hiện khi sân đã duyệt hoặc đang tạm ngừng -->
+@if(in_array($venue->status, ['approved', 'inactive']))
+    <div class="mt-2">
+        <a href="{{ route('owner.web.venues.transfer.create', $venue->id) }}"
+           class="w-full inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors shadow-sm">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+            Chuyển nhượng cơ sở
+        </a>
+    </div>
+@endif
     <a href="{{ route('owner.web.venues.edit', $venue->id) }}"
        class="inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
         Sửa
