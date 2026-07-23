@@ -43,4 +43,30 @@ class OwnerVenueTransferController extends Controller
         return redirect()->route('owner.web.venues.index')
             ->with('success', 'Đã gửi yêu cầu chuyển nhượng thành công! Vui lòng chờ Admin phê duyệt.');
     }
+    public function checkEmail(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $receiver = User::where('email', $request->email)->where('role', 'owner')->first();
+
+        if (!$receiver) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không tìm thấy tài khoản Chủ sân nào trùng khớp.'
+            ]);
+        }
+
+        if ($receiver->id === auth()->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bạn không thể chuyển nhượng cho chính mình.'
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            // Thay 'name' bằng cột lưu tên trong bảng users của bạn (VD: full_name, name...)
+            'name' => $receiver->name ?? $receiver->full_name ?? 'Chủ sân ẩn danh' 
+        ]);
+    }
 }

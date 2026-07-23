@@ -215,6 +215,8 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
     Route::patch('/services/{service}/toggle', [\App\Http\Controllers\Web\OwnerServiceController::class, 'toggleActive'])->name('services.toggle');
     Route::delete('/services/{service}', [\App\Http\Controllers\Web\OwnerServiceController::class, 'destroy'])->name('services.destroy');
 
+    // API Check Email (Phải đặt trước route có tham số {venue})
+    Route::post('/venues/transfer/check-email', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'checkEmail'])->name('venues.transfer.check-email');
     // Chuyển nhượng cơ sở
     Route::get('/venues/{venue}/transfer', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'create'])->name('venues.transfer.create');
     Route::post('/venues/{venue}/transfer', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'store'])->name('venues.transfer.store');
