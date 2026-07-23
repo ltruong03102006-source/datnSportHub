@@ -220,6 +220,7 @@
                 <td style="font-size: 12px; color: var(--text-muted);">{{ $user->created_at ? $user->created_at->format('d/m/Y') : 'N/A' }}</td>
                 <td style="padding-right: 24px; text-align: right;">
                     <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                        <a href="{{ route('admin.users.show', $user->id) }}" class="btn-action" title="Xem chi tiết"><i class="fa-regular fa-eye"></i></a>
                         <button class="btn-action" title="Chỉnh sửa"><i class="fa-regular fa-pen-to-square"></i></button>
                         <button class="btn-action btn-delete" title="Khóa/Xóa"><i class="fa-solid fa-lock"></i></button>
                     </div>

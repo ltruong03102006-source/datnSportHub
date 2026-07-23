@@ -31,6 +31,7 @@ class DatabaseSeeder extends Seeder
             CourtsTableSeeder::class,
             TimeSlotTableSeeder::class,
             SlotPriceTableSeeder::class,
+            AdminSeeder::class,
         ]);
     }
 }

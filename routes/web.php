@@ -112,6 +112,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Quản lý Users
         Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+        Route::get('/users/{user}', [AdminUserController::class, 'show'])->name('users.show');
 
         // Quản lý Cơ sở sân
         Route::get('/venues', [AdminVenueController::class, 'index'])->name('venues.index');
