@@ -29,4 +29,21 @@ class AdminUserController extends Controller
 
         return view('admin.users.index', compact('users'));
     }
+
+    /**
+     * Xóa người dùng (API / Web Delete)
+     */
+    public function destroy($id)
+    {
+        $user = User::findOrFail($id);
+        
+        // Không cho phép admin tự xóa chính mình
+        if (auth()->id() == $user->id) {
+            return redirect()->route('admin.users.index')->with('error', 'Bạn không thể tự xóa tài khoản của chính mình!');
+        }
+
+        $user->delete();
+
+        return redirect()->route('admin.users.index')->with('success', 'Đã xóa người dùng thành công!');
+    }
 }
