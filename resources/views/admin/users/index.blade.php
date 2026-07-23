@@ -170,6 +170,7 @@
             </select>
             <button type="submit" class="btn-action" style="padding: 10px 16px; background: var(--primary); color: white; border: none; font-weight: 600;">Lọc</button>
         </form>
+        <a href="{{ route('admin.users.create') }}" class="btn-action" style="padding: 10px 16px; background: #2ecc71; color: white; border: none; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 6px;"><i class="fa-solid fa-plus"></i> Thêm mới</a>
     </div>
 </div>
 
@@ -220,6 +221,7 @@
                 <td style="font-size: 12px; color: var(--text-muted);">{{ $user->created_at ? $user->created_at->format('d/m/Y') : 'N/A' }}</td>
                 <td style="padding-right: 24px; text-align: right;">
                     <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                        <a href="{{ route('admin.users.show', $user->id) }}" class="btn-action" title="Xem chi tiết"><i class="fa-regular fa-eye"></i></a>
                         <button class="btn-action" title="Chỉnh sửa"><i class="fa-regular fa-pen-to-square"></i></button>
                         <button class="btn-action btn-delete" title="Khóa/Xóa"><i class="fa-solid fa-lock"></i></button>
                     </div>
