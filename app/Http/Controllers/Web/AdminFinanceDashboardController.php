@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\PlatformWallet;
+use App\Models\PlatformWalletTransaction;
 use App\Models\TopupTransaction;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
@@ -54,15 +56,23 @@ class AdminFinanceDashboardController extends Controller
         $walletTransactionQuery = WalletTransaction::query();
         $this->applyDateRange($walletTransactionQuery, 'created_at', $dateFrom, $dateTo);
 
-        $platformRevenue = Schema::hasColumn('bookings', 'commission_amount')
-            ? (clone $bookingQuery)->sum('commission_amount')
-            : (clone $walletTransactionQuery)->whereIn('type', ['commission_fee', 'commission_cod_debit'])->sum('amount');
+        $commissionColumn = Schema::hasColumn('bookings', 'platform_fee')
+            ? 'platform_fee'
+            : (Schema::hasColumn('bookings', 'commission_amount') ? 'commission_amount' : null);
 
-        $ownerPayout = Schema::hasColumn('bookings', 'owner_amount')
-            ? (clone $bookingQuery)->sum('owner_amount')
+        $ownerEarningsColumn = Schema::hasColumn('bookings', 'owner_earnings')
+            ? 'owner_earnings'
+            : (Schema::hasColumn('bookings', 'owner_amount') ? 'owner_amount' : null);
+
+        $platformRevenue = $commissionColumn
+            ? (clone $bookingQuery)->sum($commissionColumn)
+            : abs((float) (clone $walletTransactionQuery)->whereIn('type', ['commission_fee', 'commission_cod_debit'])->sum('amount'));
+
+        $ownerPayout = $ownerEarningsColumn
+            ? (clone $bookingQuery)->sum($ownerEarningsColumn)
             : (clone $walletTransactionQuery)->whereIn('type', ['booking_income', 'booking_online_credit'])->sum('amount');
 
-        if (! Schema::hasColumn('bookings', 'owner_amount') && (float) $ownerPayout <= 0 && (float) $gmv > 0) {
+        if (! $ownerEarningsColumn && (float) $ownerPayout <= 0 && (float) $gmv > 0) {
             $ownerPayout = max(0, (float) $gmv - (float) $platformRevenue);
         }
 
@@ -123,6 +133,52 @@ class AdminFinanceDashboardController extends Controller
             ->whereIn('type', ['booking_income', 'booking_online_credit'])
             ->sum('amount');
 
+        $platformWallet = Schema::hasTable('platform_wallets')
+            ? PlatformWallet::query()->where('code', 'main')->first()
+            : null;
+
+        $platformWalletBalance = $platformWallet
+            ? (float) $platformWallet->balance
+            : 0;
+
+        $platformTransactionQuery = Schema::hasTable('platform_wallet_transactions')
+            ? PlatformWalletTransaction::query()
+            : null;
+
+        if ($platformTransactionQuery) {
+            $this->applyDateRange($platformTransactionQuery, 'created_at', $dateFrom, $dateTo);
+        }
+
+        $platformCashIn = $platformTransactionQuery
+            ? (float) (clone $platformTransactionQuery)->where('amount', '>', 0)->sum('amount')
+            : 0;
+
+        $platformCashOut = $platformTransactionQuery
+            ? abs((float) (clone $platformTransactionQuery)->where('amount', '<', 0)->sum('amount'))
+            : 0;
+
+        $platformNetCashFlow = $platformCashIn - $platformCashOut;
+
+        $customerOnlinePaymentIn = $platformTransactionQuery
+            ? (float) (clone $platformTransactionQuery)->where('type', 'customer_online_payment_in')->sum('amount')
+            : 0;
+
+        $ownerTopupIn = $platformTransactionQuery
+            ? (float) (clone $platformTransactionQuery)->where('type', 'owner_topup_in')->sum('amount')
+            : 0;
+
+        $ownerWithdrawalOut = $platformTransactionQuery
+            ? abs((float) (clone $platformTransactionQuery)->where('type', 'owner_withdrawal_out')->sum('amount'))
+            : 0;
+
+        $latestPlatformTransactions = Schema::hasTable('platform_wallet_transactions')
+            ? PlatformWalletTransaction::query()
+                ->with(['platformWallet', 'performer'])
+                ->latest()
+                ->limit(10)
+                ->get()
+            : collect();
+
         $latestTransactions = WalletTransaction::query()
             ->with(['wallet.owner'])
             ->latest()
@@ -144,6 +200,15 @@ class AdminFinanceDashboardController extends Controller
             'successfulTopups',
             'codCommissionDebt',
             'onlineBookingCredit',
+            'platformWallet',
+            'platformWalletBalance',
+            'platformCashIn',
+            'platformCashOut',
+            'platformNetCashFlow',
+            'customerOnlinePaymentIn',
+            'ownerTopupIn',
+            'ownerWithdrawalOut',
+            'latestPlatformTransactions',
             'topDebtOwners',
             'latestTransactions'
         ), [

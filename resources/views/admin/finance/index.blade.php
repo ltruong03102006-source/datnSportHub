@@ -91,6 +91,14 @@
         'refund_debit' => 'Hoàn tiền',
         'refund' => 'Hoàn tiền',
     ];
+    $platformTransactionTypeLabels = [
+        'customer_online_payment_in' => 'Khách thanh toán booking online',
+        'owner_topup_in' => 'Owner nạp tiền',
+        'owner_withdrawal_out' => 'Chi tiền owner rút',
+        'customer_refund_out' => 'Hoàn tiền khách',
+        'manual_credit' => 'Cộng thủ công',
+        'manual_debit' => 'Trừ thủ công',
+    ];
     $typeValue = fn ($transaction) => $transaction->type instanceof \BackedEnum ? $transaction->type->value : (string) $transaction->type;
     $commissionHasData = collect($commissionChartRows ?? [])->contains(fn ($row) => (float) ($row['total_commission'] ?? 0) > 0);
 @endphp
@@ -234,6 +242,114 @@
         <div class="metric-label">Online Booking Credit</div>
         <div class="metric-value green">{{ $money($onlineBookingCredit) }}</div>
     </div>
+</div>
+
+<div class="section-title">Ví nền tảng SportHub</div>
+<p class="page-subtitle" style="margin-top:-8px; margin-bottom:14px;">
+    Theo dõi số tiền thật SportHub đang giữ, tiền vào từ khách/owner và tiền chi ra cho chủ sân.
+</p>
+<div class="metrics-grid">
+    <div class="metric-card">
+        <div class="metric-label">Platform Wallet Balance</div>
+        <div class="metric-value green">{{ $money($platformWalletBalance ?? 0) }}</div>
+        <div class="metric-note">Số tiền thật nền tảng đang giữ.</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-label">Platform Cash In</div>
+        <div class="metric-value green">{{ $money($platformCashIn ?? 0) }}</div>
+        <div class="metric-note">Tổng tiền vào trong khoảng lọc.</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-label">Customer Online Payments</div>
+        <div class="metric-value green">{{ $money($customerOnlinePaymentIn ?? 0) }}</div>
+        <div class="metric-note">VNPay booking thành công.</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-label">Owner Topups</div>
+        <div class="metric-value green">{{ $money($ownerTopupIn ?? 0) }}</div>
+        <div class="metric-note">Owner nạp tiền vào ví.</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-label">Platform Cash Out</div>
+        <div class="metric-value red">{{ $money($platformCashOut ?? 0) }}</div>
+        <div class="metric-note">Tổng tiền ra trong khoảng lọc.</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-label">Owner Withdrawals</div>
+        <div class="metric-value red">{{ $money($ownerWithdrawalOut ?? 0) }}</div>
+        <div class="metric-note">Tiền đã duyệt rút cho owner.</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-label">Net Platform Cash Flow</div>
+        <div class="metric-value {{ ($platformNetCashFlow ?? 0) < 0 ? 'red' : 'green' }}">
+            {{ $money($platformNetCashFlow ?? 0) }}
+        </div>
+        <div class="metric-note">Cash In - Cash Out.</div>
+    </div>
+</div>
+
+<div class="section-title">Giao dịch ví nền tảng mới nhất</div>
+<div class="table-card">
+    <table class="data-table" style="min-width:1120px;">
+        <thead>
+            <tr>
+                <th>Thời gian</th>
+                <th>Loại giao dịch</th>
+                <th>Số tiền</th>
+                <th>Số dư trước</th>
+                <th>Số dư sau</th>
+                <th>Mô tả</th>
+                <th>Tham chiếu</th>
+                <th>Người thực hiện</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($latestPlatformTransactions ?? collect() as $transaction)
+                @php
+                    $platformType = $typeValue($transaction);
+                    $platformAmount = (float) $transaction->amount;
+                    $platformIsDebit = $platformAmount < 0;
+                @endphp
+                <tr>
+                    <td>
+                        <strong>{{ $transaction->created_at?->format('d/m/Y') }}</strong>
+                        <div class="muted">{{ $transaction->created_at?->format('H:i') }}</div>
+                    </td>
+                    <td>
+                        <span class="tx-badge">{{ $platformTransactionTypeLabels[$platformType] ?? $platformType }}</span>
+                    </td>
+                    <td class="{{ $platformIsDebit ? 'red' : 'green' }}">
+                        <strong>{{ $platformIsDebit ? '-' : '+' }}{{ $money(abs($platformAmount)) }}</strong>
+                    </td>
+                    <td><strong>{{ $money($transaction->balance_before) }}</strong></td>
+                    <td><strong>{{ $money($transaction->balance_after) }}</strong></td>
+                    <td class="muted">{{ $transaction->description ?: 'Không có mô tả' }}</td>
+                    <td>
+                        @if($transaction->reference)
+                            <strong>{{ $transaction->reference }}</strong>
+                            @if($transaction->reference_type || $transaction->reference_id)
+                                <div class="muted">{{ $transaction->reference_type }} #{{ $transaction->reference_id }}</div>
+                            @endif
+                        @else
+                            <span class="muted">Không có</span>
+                        @endif
+                    </td>
+                    <td>
+                        <strong>{{ $transaction->performer?->name ?? 'Hệ thống' }}</strong>
+                        @if($transaction->performer?->email)
+                            <div class="muted">{{ $transaction->performer->email }}</div>
+                        @endif
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="8" style="padding:36px; text-align:center;">
+                        <strong>Chưa có giao dịch ví nền tảng.</strong>
+                    </td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
 </div>
 
 <div class="section-title">Tóm tắt dòng tiền</div>
