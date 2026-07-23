@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\VenueTransferRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use App\Notifications\VenueTransferToNewOwnerNotification;
+use App\Notifications\VenueTransferResultToOldOwnerNotification;
 use Exception;
 
 class TransferService
@@ -55,7 +57,15 @@ class TransferService
                 'status' => 'approved'
             ]);
         });
+        // 3. BẮN THÔNG BÁO VÀO QUẢ CHUÔNG CHO 2 CHỦ SÂN
+        try {
+            $transfer->toOwner->notify(new VenueTransferToNewOwnerNotification($transfer));
+            $transfer->fromOwner->notify(new VenueTransferResultToOldOwnerNotification($transfer));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Lỗi gửi thông báo chuyển nhượng: ' . $e->getMessage());
+        }
     }
+
 
     /**
      * Xử lý từ chối chuyển nhượng
@@ -70,5 +80,11 @@ class TransferService
             'status' => 'rejected',
             'admin_note' => $adminNote
         ]);
+        // BẮN THÔNG BÁO TỪ CHỐI VÀO QUẢ CHUÔNG CHO CHỦ CŨ
+        try {
+            $transfer->fromOwner->notify(new VenueTransferResultToOldOwnerNotification($transfer));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Lỗi gửi thông báo từ chối: ' . $e->getMessage());
+        }
     }
 }
