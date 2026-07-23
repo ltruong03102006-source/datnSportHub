@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\VenueTransferRequest;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
@@ -13,22 +14,43 @@ class TransferService
      */
     public function approve(VenueTransferRequest $transfer)
     {
-        // DB::transaction đảm bảo nếu lỗi ở bất kỳ dòng nào, toàn bộ dữ liệu sẽ được rollback lại như cũ
-        DB::transaction(function () use ($transfer) {
-            $venue = $transfer->venue;
+        // ==========================================
+        // KHỐI 1: KIỂM TRA ĐIỀU KIỆN (COMMIT 3)
+        // ==========================================
+        
+        // 1. Kiểm tra trạng thái yêu cầu có đang "Chờ duyệt" không?
+        if ($transfer->status !== 'pending') {
+            throw new Exception('Yêu cầu này đã được xử lý hoặc không hợp lệ.');
+        }
 
-            // 1. BẢO MẬT: Xóa hồ sơ pháp lý (CCCD, Bank, Giấy phép) của Chủ cũ
+        $venue = $transfer->venue;
+
+        // 2. Kiểm tra xem cơ sở có tồn tại và chủ cũ có bị thay đổi không?
+        if (!$venue || $venue->owner_id !== $transfer->from_owner_id) {
+            throw new Exception('Cơ sở này đã bị đổi chủ hoặc không tồn tại, không thể duyệt chuyển nhượng.');
+        }
+
+        // 3. Kiểm tra tính hợp lệ của Chủ mới
+        $newOwner = User::find($transfer->to_owner_id);
+        if (!$newOwner || $newOwner->role !== 'owner') {
+            throw new Exception('Tài khoản nhận chuyển nhượng không tồn tại hoặc không đủ quyền Chủ sân.');
+        }
+
+        // ==========================================
+        // KHỐI 2: XỬ LÝ GIAO DỊCH (COMMIT 1 & 2)
+        // ==========================================
+        DB::transaction(function () use ($transfer, $venue) {
+            // 1. Bảo mật: Xóa hồ sơ pháp lý của Chủ cũ
             if ($venue->legalDocument) {
-                // Tùy chọn nâng cao: Xóa file vật lý trong Storage nếu cần
                 $venue->legalDocument()->delete();
             }
 
-            // 2. ĐỔI CHỦ: Cập nhật owner_id sang Chủ mới
+            // 2. Đổi quyền sở hữu
             $venue->update([
                 'owner_id' => $transfer->to_owner_id
             ]);
 
-            // 3. HOÀN TẤT: Cập nhật trạng thái yêu cầu
+            // 3. Hoàn tất yêu cầu
             $transfer->update([
                 'status' => 'approved'
             ]);
@@ -40,6 +62,10 @@ class TransferService
      */
     public function reject(VenueTransferRequest $transfer, string $adminNote)
     {
+        if ($transfer->status !== 'pending') {
+            throw new Exception('Yêu cầu này đã được xử lý trước đó.');
+        }
+
         $transfer->update([
             'status' => 'rejected',
             'admin_note' => $adminNote
