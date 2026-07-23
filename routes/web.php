@@ -118,6 +118,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/users/{user}/edit', [AdminUserController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
         Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('users.destroy');
+        Route::patch('/users/{user}/restore', [AdminUserController::class, 'restore'])->name('users.restore');
 
         // Quản lý Cơ sở sân
         Route::get('/venues', [AdminVenueController::class, 'index'])->name('venues.index');

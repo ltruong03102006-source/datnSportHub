@@ -164,9 +164,13 @@
             <!-- Role filter placeholder (Chưa xử lý query, chỉ làm UI) -->
             <select class="filter-select" name="role">
                 <option value="">Tất cả vai trò</option>
-                <option value="user">Người dùng (User)</option>
-                <option value="owner">Chủ sân (Owner)</option>
-                <option value="admin">Quản trị (Admin)</option>
+                <option value="user" {{ request('role') == 'user' ? 'selected' : '' }}>Người dùng (User)</option>
+                <option value="owner" {{ request('role') == 'owner' ? 'selected' : '' }}>Chủ sân (Owner)</option>
+                <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Quản trị (Admin)</option>
+            </select>
+            <select class="filter-select" name="trashed">
+                <option value="">Không bao gồm đã xóa</option>
+                <option value="1" {{ request('trashed') == '1' ? 'selected' : '' }}>Bao gồm người dùng đã xóa</option>
             </select>
             <button type="submit" class="btn-action" style="padding: 10px 16px; background: var(--primary); color: white; border: none; font-weight: 600;">Lọc</button>
         </form>
@@ -212,7 +216,9 @@
                     <span class="badge-role {{ $roleClass }}">{{ ucfirst($user->role) }}</span>
                 </td>
                 <td>
-                    @if($user->status === 'active')
+                    @if($user->trashed())
+                        <div class="status-locked" style="font-size: 12px; font-weight: 500; color: #e74c3c;"><span class="status-dot" style="background:#e74c3c;"></span>Đã xóa</div>
+                    @elseif($user->status === 'active')
                         <div class="status-active" style="font-size: 12px; font-weight: 500; color: var(--text-dark);"><span class="status-dot"></span>Hoạt động</div>
                     @else
                         <div class="status-locked" style="font-size: 12px; font-weight: 500; color: var(--text-muted);"><span class="status-dot"></span>Bị khóa</div>
@@ -221,13 +227,21 @@
                 <td style="font-size: 12px; color: var(--text-muted);">{{ $user->created_at ? $user->created_at->format('d/m/Y') : 'N/A' }}</td>
                 <td style="padding-right: 24px; text-align: right;">
                     <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+                        @if($user->trashed())
+                        <form action="{{ route('admin.users.restore', $user->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn khôi phục người dùng này?');" style="margin:0;">
+                            @csrf
+                            @method('PATCH')
+                            <button type="submit" class="btn-action" title="Khôi phục người dùng" style="color: #27ae60; border-color: #a9dfbf;"><i class="fa-solid fa-rotate-left"></i> Khôi phục</button>
+                        </form>
+                        @else
                         <a href="{{ route('admin.users.show', $user->id) }}" class="btn-action" title="Xem chi tiết"><i class="fa-regular fa-eye"></i></a>
                         <a href="{{ route('admin.users.edit', $user->id) }}" class="btn-action" title="Chỉnh sửa"><i class="fa-regular fa-pen-to-square"></i></a>
-                        <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa người dùng này? Thao tác không thể hoàn tác!');" style="margin:0;">
+                        <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa người dùng này? (Soft Delete)');" style="margin:0;">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="btn-action btn-delete" title="Xóa người dùng"><i class="fa-solid fa-trash"></i></button>
                         </form>
+                        @endif
                     </div>
                 </td>
             </tr>
