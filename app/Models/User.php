@@ -71,6 +71,11 @@ class User extends Authenticatable
         return $this->hasMany(WithdrawalRequest::class, 'owner_id');
     }
 
+    public function performedPlatformWalletTransactions(): HasMany
+    {
+        return $this->hasMany(PlatformWalletTransaction::class, 'performed_by');
+    }
+
     public function wallet(): HasOne
     {
         return $this->hasOne(Wallet::class, 'owner_id');

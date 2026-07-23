@@ -22,12 +22,9 @@
         || filled($bookingPackage->paid_at)
         || $isPaidTransaction;
 
-    $owner = $bookingPackage->venue?->owner;
-    $legalDoc = $bookingPackage->venue?->legalDocument;
-
-    $bankName = $owner?->bank_name ?? $legalDoc?->bank_name;
-    $bankAccountNo = $owner?->bank_account_no ?? $legalDoc?->bank_account_number;
-    $bankAccountName = $owner?->bank_account_name ?? $legalDoc?->bank_account_holder ?? 'CHU SAN';
+    $bankName = \App\Models\Setting::get('payment_qr_bank_name');
+    $bankAccountNo = \App\Models\Setting::get('payment_qr_account_no');
+    $bankAccountName = \App\Models\Setting::get('payment_qr_account_name') ?: 'SPORTHUB';
 
     $hasBankInfo = $bankName && $bankAccountNo;
 

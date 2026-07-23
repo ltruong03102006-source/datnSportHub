@@ -201,8 +201,4 @@ class OwnerDashboardController extends Controller
         ));
     }
 
-    public function bankSettings(): View
-    {
-        return view('owner.bank');
-    }
 }

@@ -223,25 +223,19 @@
                         <div class="flex flex-col items-center p-4 bg-white rounded-xl shadow-sm border border-stone-100 w-full max-w-xs">
                             <p class="text-xs font-bold text-stone-500 mb-2 uppercase">Quét mã QR (VietQR)</p>
                             @php
-                                $owner = $booking->court?->venue?->owner;
-                                $legalDoc = $booking->court?->venue?->legalDocument;
-                                
-                                // Ưu tiên cấu hình bank ở User Profile, sau đó mới đến LegalDocument
-                                $bankName = $owner->bank_name ?? $legalDoc?->bank_name;
-                                $bankAccountNo = $owner->bank_account_no ?? $legalDoc?->bank_account_number;
-                                $bankAccountName = $owner->bank_account_name ?? $legalDoc?->bank_account_holder ?? 'CHU SAN';
-                                
+                                $bankName = \App\Models\Setting::get('payment_qr_bank_name');
+                                $bankAccountNo = \App\Models\Setting::get('payment_qr_account_no');
+                                $bankAccountName = \App\Models\Setting::get('payment_qr_account_name') ?: 'SPORTHUB';
+
                                 $hasBankInfo = $bankName && $bankAccountNo;
-                                
+
                                 if ($hasBankInfo) {
-                                    $bankId = trim($bankName); 
+                                    $bankId = trim($bankName);
                                     $accountNo = trim($bankAccountNo);
                                     $accountName = trim($bankAccountName);
-                                    
-                                    // Tạo chuỗi nội dung chuyển khoản không dấu
                                     $userName = strtoupper(\Illuminate\Support\Str::slug(Auth::user()->name, ' '));
                                     $addInfo = 'THANH TOAN SAN ' . $booking->id . ' KH ' . $userName;
-                                    
+
                                     $qrUrl = "https://img.vietqr.io/image/{$bankId}-{$accountNo}-compact2.png?amount={$totalGroupPrice}&addInfo=" . urlencode($addInfo) . "&accountName=" . urlencode($accountName);
                                 }
                             @endphp
@@ -251,7 +245,7 @@
                                 <p class="text-center text-xs text-stone-500">Sử dụng App ngân hàng để quét mã.<br>Số tiền: <strong class="text-emerald-600">{{ number_format($totalGroupPrice, 0, ',', '.') }} đ</strong></p>
                             @else
                                 <div class="flex h-48 w-48 items-center justify-center rounded-lg border-2 border-dashed border-stone-200 bg-stone-50 mb-3">
-                                    <p class="text-center text-xs text-stone-400 px-4">Chủ sân chưa cấu hình tài khoản ngân hàng</p>
+                                    <p class="text-center text-xs text-stone-400 px-4">Admin chưa cấu hình tài khoản QR thanh toán</p>
                                 </div>
                                 <p class="text-center text-xs text-stone-500">Vui lòng sử dụng VNPay hoặc thanh toán tại sân.</p>
                             @endif
