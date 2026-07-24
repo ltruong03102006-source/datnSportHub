@@ -553,6 +553,9 @@
     $ownerFilterLabel = $selectedOwner
         ? ('Chủ sân: ' . $selectedOwner->name)
         : 'Tất cả chủ sân';
+    $walletCardValue = $ownerId
+        ? ((float) $totalWalletBalance - (float) $totalDebt)
+        : (float) ($platformWalletBalance ?? 0);
 @endphp
 
 <div class="finance-page">
@@ -613,11 +616,13 @@
 
         <div class="kpi-card">
             <div class="kpi-top">
-                <div class="kpi-label">Ví nền tảng</div>
+                <div class="kpi-label">{{ $ownerId ? 'Số dư ví chủ sân' : 'Ví nền tảng' }}</div>
                 <div class="kpi-icon bg-green">V</div>
             </div>
-            <div class="kpi-value tone-green">{{ $money($platformWalletBalance ?? 0) }}</div>
-            <div class="kpi-note">Số tiền thật SportHub đang giữ hiện tại.</div>
+            <div class="kpi-value {{ $walletCardValue < 0 ? 'tone-red' : 'tone-green' }}">{{ $money($walletCardValue) }}</div>
+            <div class="kpi-note">
+                {{ $ownerId ? 'Số dư ví hiện tại của chủ sân đã chọn.' : 'Số tiền thật SportHub đang giữ hiện tại.' }}
+            </div>
         </div>
 
         <div class="kpi-card">

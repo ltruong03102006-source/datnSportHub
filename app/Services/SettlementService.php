@@ -29,7 +29,14 @@ class SettlementService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($lockedBooking->settlement_status === SettlementStatus::SETTLED) {
+            if (
+                $lockedBooking->settlement_status === SettlementStatus::SETTLED
+                && $lockedBooking->settled_at
+                && (
+                    (float) ($lockedBooking->platform_fee ?? 0) > 0
+                    || (float) ($lockedBooking->owner_earnings ?? 0) > 0
+                )
+            ) {
                 return $lockedBooking;
             }
 

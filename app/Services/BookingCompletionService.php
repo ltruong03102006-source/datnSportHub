@@ -43,7 +43,17 @@ class BookingCompletionService
             ->where('status', 'completed')
             ->where(function ($query) {
                 $query->whereNull('settlement_status')
-                    ->orWhereIn('settlement_status', ['pending', 'processing', 'failed']);
+                    ->orWhereIn('settlement_status', ['pending', 'processing', 'failed'])
+                    ->orWhere(function ($settledQuery) {
+                        $settledQuery->where('settlement_status', 'settled')
+                            ->where(function ($invalidSettledQuery) {
+                                $invalidSettledQuery->whereNull('settled_at')
+                                    ->orWhere(function ($amountQuery) {
+                                        $amountQuery->where('platform_fee', '<=', 0)
+                                            ->where('owner_earnings', '<=', 0);
+                                    });
+                            });
+                    });
             })
             ->when($ownerId, fn ($query) => $query->whereHas(
                 'court.venue',
