@@ -64,22 +64,43 @@
             </div>
         </div>
 
-        <!-- Alerts -->
-        @if (session('success') || request('created') == '1' || request('updated') == '1')
+        <!-- Alerts Thông báo -->
+        @if (session('success') || request('created') == '1' || request('updated') == 'basic')
+            {{-- CHỈ SỬA CƠ BẢN (MÀU XANH LÁ) --}}
             <div class="mb-6 p-4 rounded-lg bg-emerald-50 border border-emerald-200 flex items-start" x-data="{ show: true }" x-show="show">
                 <svg class="w-5 h-5 text-emerald-500 mt-0.5 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 <div class="flex-1">
                     <h3 class="text-sm font-medium text-emerald-800">Thành công</h3>
                     <p class="text-sm text-emerald-700 mt-1">
-                        {{ session('success') ?? (request('created') == '1' ? 'Đã tạo điểm sân thành công.' : 'Đã cập nhật thông tin điểm sân thành công.') }}
+                        {{ session('success') ?? (request('created') == '1' ? 'Đã tạo điểm sân thành công.' : 'Đã cập nhật thông tin điểm sân thành công!') }}
                     </p>
                 </div>
-                <button @click="show = false" class="text-emerald-500 hover:text-emerald-700">
-                    <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
-                </button>
+            </div>
+
+        @elseif (request('updated') == 'pending_legal')
+            {{-- CHỈ SỬA PHÁP LÝ (MÀU XANH DƯƠNG) --}}
+            <div class="mb-6 p-4 rounded-lg bg-blue-50 border border-blue-200 flex items-start" x-data="{ show: true }" x-show="show">
+                <svg class="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div class="flex-1">
+                    <h3 class="text-sm font-medium text-blue-800">Gửi yêu cầu pháp lý thành công</h3>
+                    <p class="text-sm text-blue-700 mt-1">
+                        Những thay đổi liên quan đến <strong>Hồ sơ pháp lý</strong> đã được gửi lên hệ thống và đang chờ Admin phê duyệt.
+                    </p>
+                </div>
+            </div>
+
+        @elseif (request('updated') == 'both')
+            {{-- SỬA CẢ 2 (MÀU VÀNG) --}}
+            <div class="mb-6 p-4 rounded-lg bg-amber-50 border border-amber-200 flex items-start" x-data="{ show: true }" x-show="show">
+                <svg class="w-5 h-5 text-amber-500 mt-0.5 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div class="flex-1">
+                    <h3 class="text-sm font-medium text-amber-800">Cập nhật thành công</h3>
+                    <p class="text-sm text-amber-700 mt-1">
+                        Các thông tin cơ bản đã được áp dụng. Riêng các thay đổi về <strong>Hồ sơ pháp lý</strong> đang được tạm khóa để chờ Admin phê duyệt.
+                    </p>
+                </div>
             </div>
         @endif
-
         @if (session('error'))
             <div class="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 flex items-start" x-data="{ show: true }" x-show="show">
                 <svg class="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
