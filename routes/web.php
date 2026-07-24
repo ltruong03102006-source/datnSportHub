@@ -156,6 +156,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/venue-transfers/{transfer}', [\App\Http\Controllers\Web\AdminVenueTransferController::class, 'show'])->name('venue-transfers.show');
         Route::post('/venue-transfers/{transfer}/approve', [\App\Http\Controllers\Web\AdminVenueTransferController::class, 'approve'])->name('venue-transfers.approve');
         Route::post('/venue-transfers/{transfer}/reject', [\App\Http\Controllers\Web\AdminVenueTransferController::class, 'reject'])->name('venue-transfers.reject');
+        // 👇 THÊM 2 DÒNG NÀY VÀO ĐỂ XỬ LÝ YÊU CẦU THAY ĐỔI THÔNG TIN (BẢN NHÁP) 👇
+        Route::post('/venues/update-requests/{updateRequest}/approve', [AdminVenueController::class, 'approveUpdateReq'])->name('venues.update-requests.approve');
+        Route::post('/venues/update-requests/{updateRequest}/reject', [AdminVenueController::class, 'rejectUpdateReq'])->name('venues.update-requests.reject');
     });
 });
 

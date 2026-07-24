@@ -446,10 +446,14 @@
                     <div class="address-text">{{ $venue->address }}</div>
                 </td>
                 <td>
-                    @if(in_array($venue->status, ['approved']))
+                    @if($venue->status === 'approved')
                         <span class="badge bg-success-subtle text-success">Hoạt động</span>
+                    @elseif($venue->status === 'pending')
+                        <span class="badge bg-warning-subtle text-warning">Chờ duyệt</span>
+                    @elseif($venue->status === 'rejected')
+                        <span class="badge bg-danger-subtle text-danger">Từ chối</span>
                     @elseif($venue->status === 'inactive')
-                        <span class="badge bg-danger-subtle text-danger">Ngừng HĐ</span>
+                        <span class="badge bg-secondary-subtle text-secondary">Ngừng HĐ</span>
                     @else
                         <span class="badge bg-secondary-subtle text-secondary">{{ ucfirst($venue->status) }}</span>
                     @endif
@@ -459,10 +463,22 @@
                 </td>
                 <td style="text-align: right; white-space: nowrap;">
                     <div class="venue-actions">
-                    <a href="{{ route('admin.venues.documents', $venue->id) }}"
-                    class="venue-action-btn venue-action-docs">
-                        <i class="fa-regular fa-folder-open"></i> Hồ sơ
-                    </a>
+                        
+                        {{-- THÊM MỚI: NÚT BÁO HIỆU CHỦ SÂN VỪA CẬP NHẬT THÔNG TIN --}}
+                        @if($venue->pendingUpdateRequest)
+                            <a href="{{ route('admin.venues.documents', $venue->id) }}" 
+                               class="venue-action-btn" 
+                               style="background-color: #f59e0b; color: white; border: none; box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);">
+                                <i class="fa-solid fa-bell fa-shake"></i> Có thay đổi mới
+                            </a>
+                        @endif
+
+                        <a href="{{ route('admin.venues.documents', $venue->id) }}"
+                           class="venue-action-btn venue-action-docs">
+                            <i class="fa-regular fa-folder-open"></i> Hồ sơ
+                        </a>
+                        
+                        {{-- (Các nút form Duyệt/Từ chối của bạn ở dưới giữ nguyên) --}}
                     @if($venue->status === 'pending')
     <form action="{{ route('admin.venues.approve', $venue->id) }}" method="POST">
         @csrf

@@ -225,4 +225,11 @@ class Venue extends Model
     {
         return $this->hasMany(Service::class);
     }
+    /** 
+     * Lấy yêu cầu thay đổi thông tin (bản nháp) mới nhất đang chờ Admin duyệt 
+     */
+    public function pendingUpdateRequest(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(VenueUpdateRequest::class)->where('status', 'pending')->latestOfMany();
+    }
 }
