@@ -79,4 +79,20 @@ class OwnerVenueTransferController extends Controller
             'name' => $receiver->name ?? $receiver->full_name ?? 'Chủ sân ẩn danh' 
         ]);
     }
+    /**
+     * Hiển thị lịch sử chuyển nhượng của Chủ sân
+     */
+    public function history()
+    {
+        $userId = auth()->id();
+        
+        // Lấy tất cả yêu cầu mà user này là người gửi (Bán) hoặc người nhận (Mua)
+        $transfers = \App\Models\VenueTransferRequest::with(['venue', 'fromOwner', 'toOwner'])
+            ->where('from_owner_id', $userId)
+            ->orWhere('to_owner_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+
+        return view('owner.venues.transfers.history', compact('transfers'));
+    }
 }

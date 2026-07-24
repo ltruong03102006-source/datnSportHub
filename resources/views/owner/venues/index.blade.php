@@ -52,6 +52,11 @@
                 <p class="text-slate-500">Quản lý các điểm sân hiện tại hoặc thêm mới cơ sở kinh doanh.</p>
             </div>
             <div class="flex gap-3">
+                <!-- NÚT XEM LỊCH SỬ CHUYỂN NHƯỢNG VỪA THÊM -->
+                <a href="{{ route('owner.web.venues.transfers.history') }}" class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg shadow-sm transition-colors">
+                    <svg class="w-5 h-5 mr-2 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Lịch sử chuyển nhượng
+                </a>
                 <a href="{{ route('owner.web.venues.create') }}" class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-colors">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                     Thêm cơ sở mới

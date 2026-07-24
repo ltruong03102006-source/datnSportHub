@@ -226,6 +226,7 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
     // Chuyển nhượng cơ sở
     Route::get('/venues/{venue}/transfer', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'create'])->name('venues.transfer.create');
     Route::post('/venues/{venue}/transfer', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'store'])->name('venues.transfer.store');
+    Route::get('/venues/transfers/history', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'history'])->name('venues.transfers.history');
 });
 
 Route::middleware('auth')->group(function () {
