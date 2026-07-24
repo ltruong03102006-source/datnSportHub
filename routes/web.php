@@ -249,6 +249,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/package-bookings/{bookingPackage}/payment-success', [PackageBookingController::class, 'paymentSuccess'])
         ->name('package-bookings.payment-success');
 
+    Route::get('/package-bookings/{bookingPackage}/payment/vnpay', [PackageBookingController::class, 'showVnpay'])
+        ->name('package-bookings.payment.vnpay');
+
+    Route::get('/package-bookings/{bookingPackage}/payment/vnpay/start', [PackageBookingController::class, 'startVnpay'])
+        ->name('package-bookings.payment.vnpay_start');
+
     Route::patch('/package-bookings/{bookingPackage}/pause', [PackageBookingController::class, 'pause'])
         ->name('package-bookings.pause');
 

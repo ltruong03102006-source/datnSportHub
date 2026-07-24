@@ -602,7 +602,7 @@
                 <div class="kpi-icon bg-blue">₫</div>
             </div>
             <div class="kpi-value tone-blue">{{ $money($gmv) }}</div>
-            <div class="kpi-note">Tổng giá trị booking đã đối soát trong khoảng lọc.</div>
+            <div class="kpi-note">Tổng giá trị booking.</div>
         </div>
 
         <div class="kpi-card">

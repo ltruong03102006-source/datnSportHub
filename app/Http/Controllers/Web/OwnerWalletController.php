@@ -7,13 +7,14 @@ use App\Models\WalletTransaction;
 use App\Models\WithdrawalRequest;
 use App\Services\DebtService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class OwnerWalletController extends Controller
 {
     public function index(Request $request, DebtService $debtService): View
     {
-        $owner = auth()->user();
+        $owner = Auth::user();
         $wallet = method_exists($owner, 'getOrCreateWallet')
             ? $owner->getOrCreateWallet()
             : $owner->wallet;

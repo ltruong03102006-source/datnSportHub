@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\BookingPackage;
 use App\Models\BookingLog;
+use App\Models\User;
+use App\Models\WalletTransaction;
 use App\Services\BookingCompletionService;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
@@ -272,6 +274,7 @@ class UserBookingController extends Controller
                 // GỌI THUẬT TOÁN TÍNH PHẠT ĐỘNG
                 $feePercent = $this->determineCancellationFeePercent($firstBooking);
 
+                /** @var User $user */
                 $user = Auth::user();
 
                 foreach ($groupBookings as $b) {
@@ -293,7 +296,7 @@ class UserBookingController extends Controller
                             $user->balance += $refund;
                             $user->save();
 
-                            \App\Models\WalletTransaction::create([
+                            WalletTransaction::create([
                                 'user_id' => $user->id,
                                 'type' => 'refund',
                                 'amount' => $refund,
