@@ -80,7 +80,9 @@
                             <td class="p-4 text-slate-500">{{ $transfer->created_at->format('d/m/Y H:i') }}</td>
                             <td class="p-4">
                                 @if($transfer->status === 'pending')
-                                    <span class="text-amber-600 font-medium">Chờ duyệt</span>
+                                    <span class="text-amber-600 font-medium">Chờ chủ mới điền form</span>
+                                @elseif($transfer->status === 'pending_admin')
+                                    <span class="text-blue-600 font-medium">Chờ Admin duyệt</span>
                                 @elseif($transfer->status === 'approved')
                                     <span class="text-green-600 font-medium">Đã duyệt</span>
                                 @else

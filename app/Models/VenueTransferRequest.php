@@ -10,12 +10,19 @@ class VenueTransferRequest extends Model
 {
     use HasFactory;
 
+    // THÊM receiver_data VÀO ĐÂY ĐỂ LARAVEL CHO PHÉP LƯU DỮ LIỆU
     protected $fillable = [
         'venue_id',
         'from_owner_id',
         'to_owner_id',
         'status',
         'admin_note',
+        'receiver_data', 
+    ];
+
+    // THÊM ĐOẠN NÀY ĐỂ LARAVEL TỰ ĐỘNG CHUYỂN ĐỔI JSON THÀNH MẢNG (ARRAY) KHI LẤY RA
+    protected $casts = [
+        'receiver_data' => 'array',
     ];
 
     /**

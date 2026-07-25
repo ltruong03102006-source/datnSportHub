@@ -58,11 +58,20 @@ class TransferService
             ]);
 
             // 4. AUDIT LOG: Ghi lại lịch sử chuyển nhượng vào VenueLog
+            // 4. AUDIT LOG: Ghi lại lịch sử chuyển nhượng vào VenueLog
             $venue->logs()->create([
-                // Bạn điều chỉnh tên cột ('action', 'description'...) cho khớp với database của bạn nhé
-                'action' => 'transfer_ownership',
-                'description' => "Cơ sở được chuyển nhượng từ tài khoản ID: {$transfer->from_owner_id} sang ID: {$transfer->to_owner_id}",
-                'user_id' => auth()->id() // ID của Admin thực hiện thao tác
+                // 1. Dùng từ khóa hợp lệ theo đúng ENUM của Database
+                'action' => 'activated', 
+                
+                // 2. Bắt buộc truyền trạng thái (Giữ nguyên trạng thái cũ vì chỉ đổi chủ)
+                'old_status' => $venue->status,
+                'new_status' => $venue->status,
+                
+                // 3. Ghi chú rõ ràng đây là hành động chuyển nhượng
+                'reason' => 'Chuyển nhượng quyền sở hữu cơ sở',
+                'notes' => "Cơ sở được chuyển nhượng từ tài khoản ID: {$transfer->from_owner_id} sang ID: {$transfer->to_owner_id}",
+                
+                'admin_id' => auth()->id() 
             ]);
         });
         // 3. BẮN THÔNG BÁO VÀO QUẢ CHUÔNG CHO 2 CHỦ SÂN

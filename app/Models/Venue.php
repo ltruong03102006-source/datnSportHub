@@ -232,4 +232,13 @@ class Venue extends Model
     {
         return $this->hasOne(VenueUpdateRequest::class)->where('status', 'pending')->latestOfMany();
     }
+
+    // BẠN THÊM ĐOẠN NÀY VÀO ĐÂY NHÉ:
+    /**
+     * Lấy tất cả các yêu cầu thay đổi thông tin của cơ sở này
+     */
+    public function updateRequests(): HasMany
+    {
+        return $this->hasMany(VenueUpdateRequest::class);
+    }
 }

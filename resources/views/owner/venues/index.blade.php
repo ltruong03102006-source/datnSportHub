@@ -45,6 +45,37 @@
     </nav>
 
     <div class="flex-1 p-6 lg:p-10 max-w-7xl mx-auto w-full">
+        <!-- QUÉT VÀ HIỂN THỊ LỜI MỜI CHUYỂN NHƯỢNG ĐANG CHỜ CHỦ MỚI -->
+        @php
+            $pendingTransfers = \App\Models\VenueTransferRequest::with('venue')
+                ->where('to_owner_id', auth()->id())
+                ->where('status', 'pending')
+                ->get();
+        @endphp
+
+        @if($pendingTransfers->isNotEmpty())
+            @foreach($pendingTransfers as $pendingTransfer)
+                <div class="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-300 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-start">
+                        <div class="p-2 bg-amber-100 rounded-lg text-amber-600 mr-4">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-amber-900">Bạn có lời mời tiếp quản cơ sở mới!</h3>
+                            <p class="text-sm text-amber-800 mt-1">
+                                Chủ sân hiện tại đang muốn chuyển nhượng cơ sở <strong>"{{ optional($pendingTransfer->venue)->name }}"</strong> cho bạn. Vui lòng hoàn tất hồ sơ để nhận sân.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <a href="{{ route('owner.web.venues.transfers.accept', $pendingTransfer->id) }}" 
+                       class="shrink-0 inline-flex items-center justify-center px-4 py-2 text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg shadow-sm transition-colors w-full sm:w-auto">
+                        Điền hồ sơ nhận sân
+                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </a>
+                </div>
+            @endforeach
+        @endif
         <!-- Header -->
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div>

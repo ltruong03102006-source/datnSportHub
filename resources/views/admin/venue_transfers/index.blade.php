@@ -44,7 +44,9 @@
                         <td style="padding: 16px; color: #7f8c8d; font-size: 14px;">{{ $transfer->created_at->format('d/m/Y H:i') }}</td>
                         <td style="padding: 16px; text-align: center;">
                             @if($transfer->status === 'pending')
-                                <span style="background-color: #fff3cd; color: #856404; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Chờ duyệt</span>
+                                <span style="background-color: #fff3cd; color: #856404; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Chờ chủ mới nhận</span>
+                            @elseif($transfer->status === 'pending_admin')
+                                <span style="background-color: #cce5ff; color: #004085; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Chờ Admin duyệt</span>
                             @elseif($transfer->status === 'approved')
                                 <span style="background-color: #d4edda; color: #155724; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Đã duyệt</span>
                             @elseif($transfer->status === 'rejected')

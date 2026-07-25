@@ -20,8 +20,11 @@ return new class extends Migration
             // Chủ mới (người nhận qua Email)
             $table->foreignId('to_owner_id')->constrained('users')->cascadeOnDelete();
             
-            // Trạng thái: pending (Chờ duyệt), approved (Đã duyệt), rejected (Từ chối)
-            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
+            // ĐÃ CẬP NHẬT: Thêm 'pending_admin' vào ENUM
+            $table->enum('status', ['pending', 'pending_admin', 'approved', 'rejected'])->default('pending');
+            
+            // ĐÃ THÊM: Cột JSON để lưu toàn bộ Form pháp lý Chủ mới vừa điền chờ Admin duyệt
+            $table->json('receiver_data')->nullable(); 
             
             // Ghi chú của Admin nếu từ chối
             $table->text('admin_note')->nullable(); 
