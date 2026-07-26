@@ -510,25 +510,10 @@
 @php
     $money = fn ($amount) => ((float) $amount < 0 ? '-' : '') . number_format(abs((float) $amount), 0, ',', '.') . 'đ';
     $signedMoney = fn ($amount) => ((float) $amount < 0 ? '-' : '+') . number_format(abs((float) $amount), 0, ',', '.') . 'đ';
-    $statusLabels = [
-        'good' => 'An toàn',
-        'in_debt' => 'Đang nợ',
-        'warning' => 'Gần hạn mức',
-        'over_limit' => 'Vượt hạn mức',
-    ];
-    $statusClasses = [
-        'good' => 'status-good',
-        'in_debt' => 'status-in_debt',
-        'warning' => 'status-warning',
-        'over_limit' => 'status-over_limit',
-    ];
+    // Đã loại bỏ các Status liên quan đến công nợ
     $transactionTypeLabels = [
         'booking_income' => 'Nhận tiền booking online',
         'booking_online_credit' => 'Nhận tiền booking online',
-        'commission_fee' => 'Trừ hoa hồng COD',
-        'commission_cod_debit' => 'Trừ hoa hồng COD',
-        'topup' => 'Nạp tiền vào ví',
-        'topup_credit' => 'Nạp tiền vào ví',
         'withdraw' => 'Rút tiền',
         'withdrawal_debit' => 'Rút tiền',
         'withdrawal_rejected_refund' => 'Hoàn lại yêu cầu rút',
@@ -539,7 +524,6 @@
     ];
     $platformTransactionTypeLabels = [
         'customer_online_payment_in' => 'Khách thanh toán booking online',
-        'owner_topup_in' => 'Owner nạp tiền',
         'owner_withdrawal_out' => 'Chi tiền owner rút',
         'customer_refund_out' => 'Hoàn tiền khách',
         'manual_credit' => 'Cộng thủ công',
@@ -553,9 +537,6 @@
     $ownerFilterLabel = $selectedOwner
         ? ('Chủ sân: ' . $selectedOwner->name)
         : 'Tất cả chủ sân';
-    $walletCardValue = $ownerId
-        ? ((float) $totalWalletBalance - (float) $totalDebt)
-        : (float) ($platformWalletBalance ?? 0);
 @endphp
 
 <div class="finance-page">
@@ -563,19 +544,21 @@
         <div>
             <div class="eyebrow">Admin Finance</div>
             <h2 class="page-title">Tổng quan tài chính</h2>
-            <p class="page-subtitle">Theo dõi GMV, hoa hồng, dòng tiền ví nền tảng, ví chủ sân và công nợ.</p>
+            <p class="page-subtitle">Theo dõi GMV, hoa hồng, dòng tiền ví nền tảng và ví chủ sân.</p>
         </div>
 
         <div class="actions">
-            @if(Route::has('admin.debts.index'))
+            {{-- ĐÃ ẨN: Nút Công nợ Owner --}}
+            {{-- @if(Route::has('admin.debts.index'))
                 <a class="btn-soft" href="{{ route('admin.debts.index') }}">Công nợ owner</a>
-            @endif
+            @endif --}}
             @if(Route::has('admin.withdrawals.index'))
                 <a class="btn-soft" href="{{ route('admin.withdrawals.index') }}">Yêu cầu rút tiền</a>
             @endif
         </div>
     </div>
 
+    <!-- Toolbar bộ lọc giữ nguyên -->
     <div class="finance-toolbar">
         <form class="filter-form" method="GET" action="{{ route('admin.finance.index') }}">
             <input class="form-control-soft" type="date" name="date_from" value="{{ $dateFrom }}">
@@ -591,11 +574,11 @@
             <button class="btn-primary-soft" type="submit">Lọc dữ liệu</button>
             <a class="btn-soft" href="{{ route('admin.finance.index') }}">Xóa lọc</a>
         </form>
-
         <div class="range-pill">{{ $filterLabel }} · {{ $ownerFilterLabel }}</div>
     </div>
 
-    <div class="kpi-grid">
+    <!-- ĐÃ ĐỔI: Lưới 4 cột thành 3 cột vì bỏ cột Công Nợ -->
+    <div class="kpi-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
         <div class="kpi-card">
             <div class="kpi-top">
                 <div class="kpi-label">GMV</div>
@@ -623,20 +606,7 @@
             <div class="kpi-note">Số tiền thật SportHub đang giữ hiện tại.</div>
         </div>
 
-        <div class="kpi-card">
-            <div class="kpi-top">
-                <div class="kpi-label">Công nợ owner</div>
-                <div class="kpi-icon bg-red">!</div>
-            </div>
-            <div class="kpi-value {{ (float) $totalDebt > 0 ? 'tone-red' : 'tone-green' }}">{{ $money($totalDebt) }}</div>
-            <div class="kpi-note">
-                @if($ownerId)
-                    {{ (float) $totalDebt > 0 ? 'Chủ sân này đang nợ.' : 'Chủ sân này không nợ.' }}
-                @else
-                    {{ number_format($ownersInDebt, 0, ',', '.') }} owner đang có số dư âm.
-                @endif
-            </div>
-        </div>
+        {{-- ĐÃ ẨN: Thẻ KPI Công nợ owner --}}
     </div>
 
     <div class="main-grid">
@@ -644,7 +614,7 @@
             <div class="panel-head">
                 <div>
                     <h3 class="panel-title">Hoa hồng theo tháng</h3>
-                    <p class="panel-desc">Tách hoa hồng online và hoa hồng COD để dễ kiểm soát dòng thu.</p>
+                    <p class="panel-desc">Biểu đồ tổng doanh thu hoa hồng từ thanh toán online.</p>
                 </div>
                 <div class="range-pill">{{ $dateFrom || $dateTo ? $filterLabel : '6 tháng gần nhất' }}</div>
             </div>
@@ -652,7 +622,6 @@
                 <div class="chart-canvas-wrap">
                     <canvas id="commissionRevenueChart"></canvas>
                 </div>
-
                 @unless($commissionHasData)
                     <div class="chart-empty">Chưa có dữ liệu hoa hồng trong khoảng thời gian này.</div>
                 @endunless
@@ -670,36 +639,34 @@
                 <div class="cash-stack">
                     <div class="cash-row">
                         <div>
-                            <strong>Tiền vào</strong>
-                            <span>Khách online + owner nạp ví</span>
-                        </div>
-                        <div class="cash-value tone-green">{{ $money($platformCashIn ?? 0) }}</div>
-                    </div>
-                    <div class="cash-row">
-                        <div>
-                            <strong>Khách thanh toán online</strong>
+                            <strong>Tiền vào (Khách thanh toán)</strong>
                             <span>Booking VNPay thành công</span>
                         </div>
                         <div class="cash-value tone-green">{{ $money($customerOnlinePaymentIn ?? 0) }}</div>
                     </div>
+                    
+                    <!-- DÒNG MỚI ĐƯỢC TÁCH RA: HOÀN TIỀN KHÁCH -->
                     <div class="cash-row">
                         <div>
-                            <strong>Owner nạp tiền</strong>
-                            <span>Nạp ví qua VNPay</span>
+                            <strong>Tiền ra (Hoàn tiền khách)</strong>
+                            <span>Khách hủy đơn hợp lệ</span>
                         </div>
-                        <div class="cash-value tone-green">{{ $money($ownerTopupIn ?? 0) }}</div>
+                        <div class="cash-value tone-red">{{ $money(abs((float) ($platformCashOut ?? 0) - (float) ($ownerWithdrawalOut ?? 0))) }}</div>
                     </div>
+
+                    <!-- DÒNG CŨ: CHỈ HIỂN THỊ TIỀN OWNER RÚT THẬT SỰ -->
                     <div class="cash-row">
                         <div>
-                            <strong>Tiền ra</strong>
-                            <span>Admin duyệt rút cho owner</span>
+                            <strong>Tiền ra (Admin duyệt rút)</strong>
+                            <span>Chuyển khoản cho owner</span>
                         </div>
-                        <div class="cash-value tone-red">{{ $money($platformCashOut ?? 0) }}</div>
+                        <div class="cash-value tone-red">{{ $money($ownerWithdrawalOut ?? 0) }}</div>
                     </div>
-                    <div class="cash-row">
+
+                    <div class="cash-row" style="border-top: 2px dashed #e2e8f0; margin-top: 8px;">
                         <div>
                             <strong>Dòng tiền ròng</strong>
-                            <span>Cash in - cash out</span>
+                            <span>Tiền vào - Tiền ra</span>
                         </div>
                         <div class="cash-value {{ ($platformNetCashFlow ?? 0) < 0 ? 'tone-red' : 'tone-green' }}">
                             {{ $money($platformNetCashFlow ?? 0) }}
@@ -715,34 +682,27 @@
             <div class="panel-head">
                 <div>
                     <h3 class="panel-title">Ví chủ sân</h3>
-                    <p class="panel-desc">Số dư owner, tiền nạp, tiền rút và hoa hồng COD.</p>
+                    <p class="panel-desc">Trạng thái số dư và lệnh rút của các chủ sân.</p>
                 </div>
             </div>
             <div class="panel-body">
-                <div class="mini-grid">
+                <!-- ĐÃ ĐỔI: Lưới 2 cột thành 1 khối gọn gàng vì bỏ đi 2 ô Nạp tiền + Hoa hồng COD -->
+                <div class="mini-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
                     <div class="mini-stat">
-                        <div class="mini-label">Tổng số dư dương</div>
+                        <div class="mini-label">Tổng số dư khả dụng</div>
                         <div class="mini-value tone-green">{{ $money($totalWalletBalance) }}</div>
                     </div>
                     <div class="mini-stat">
-                        <div class="mini-label">Chờ rút tiền</div>
+                        <div class="mini-label">Tiền online về ví</div>
+                        <div class="mini-value tone-green">{{ $money($onlineBookingCredit) }}</div>
+                    </div>
+                    <div class="mini-stat">
+                        <div class="mini-label">Đang chờ rút tiền</div>
                         <div class="mini-value tone-amber">{{ $money($pendingWithdrawals) }}</div>
                     </div>
                     <div class="mini-stat">
                         <div class="mini-label">Đã duyệt rút</div>
                         <div class="mini-value tone-red">{{ $money($approvedWithdrawals) }}</div>
-                    </div>
-                    <div class="mini-stat">
-                        <div class="mini-label">Owner nạp thành công</div>
-                        <div class="mini-value tone-green">{{ $money($successfulTopups) }}</div>
-                    </div>
-                    <div class="mini-stat">
-                        <div class="mini-label">Hoa hồng COD đã trừ</div>
-                        <div class="mini-value tone-amber">{{ $money($codCommissionDebt) }}</div>
-                    </div>
-                    <div class="mini-stat">
-                        <div class="mini-label">Tiền online về owner</div>
-                        <div class="mini-value tone-green">{{ $money($onlineBookingCredit) }}</div>
                     </div>
                 </div>
             </div>
@@ -752,7 +712,7 @@
             <div class="panel-head">
                 <div>
                     <h3 class="panel-title">Tóm tắt đối soát</h3>
-                    <p class="panel-desc">Các chỉ số quan trọng để kiểm tra nhanh dòng tiền.</p>
+                    <p class="panel-desc">Các chỉ số quan trọng để kiểm tra dòng tiền.</p>
                 </div>
             </div>
             <div class="panel-body">
@@ -774,215 +734,23 @@
                     <div class="cash-row">
                         <div>
                             <strong>Tiền ra khỏi ví owner</strong>
-                            <span>Rút tiền + hoa hồng COD đã trừ</span>
+                            <span>Tổng số tiền Admin đã duyệt rút</span>
                         </div>
-                        <div class="cash-value tone-red">{{ $money((float) $approvedWithdrawals + (float) $codCommissionDebt) }}</div>
+                        <!-- Sửa lại công thức bỏ tiền COD -->
+                        <div class="cash-value tone-red">{{ $money($approvedWithdrawals) }}</div>
                     </div>
-                    <div class="cash-row">
-                        <div>
-                            <strong>Công nợ hiện tại</strong>
-                            <span>Tổng phần âm của ví chủ sân</span>
-                        </div>
-                        <div class="cash-value tone-red">{{ $money($totalDebt) }}</div>
-                    </div>
+                    {{-- ĐÃ ẨN: Công nợ hiện tại --}}
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="finance-section">
-        <div>
-            <h3>Sức khỏe ví chủ sân</h3>
-            <p>Theo dõi số dư, công nợ và những owner cần ưu tiên xử lý.</p>
-        </div>
-    </div>
+    <!-- ĐÃ ẨN: Toàn bộ thẻ <div class="owner-health-grid"> chứa 2 bảng: 
+         - Bảng "Tổng quan ví chủ sân" (có các cột Công nợ, Hạn mức)
+         - Bảng "Top owner công nợ cao" 
+         Vì mô hình 100% VNPay không bao giờ có nợ, nên 2 bảng này thành ra vô tác dụng. -->
 
-    <div class="owner-health-grid">
-    <div class="panel table-card">
-        <div class="panel-head">
-            <div>
-                <h3 class="panel-title">Tổng quan ví chủ sân</h3>
-                <p class="panel-desc">Danh sách ví owner có phân trang, giúp theo dõi số dư, công nợ và hạn mức khi hệ thống có nhiều chủ sân.</p>
-            </div>
-            @if(Route::has('admin.debts.index'))
-                <a class="btn-soft" href="{{ route('admin.debts.index') }}">Xem quản lý công nợ</a>
-            @endif
-        </div>
-        <form class="owner-filter-bar" method="GET" action="{{ route('admin.finance.index') }}">
-            @if($dateFrom)
-                <input type="hidden" name="date_from" value="{{ $dateFrom }}">
-            @endif
-            @if($dateTo)
-                <input type="hidden" name="date_to" value="{{ $dateTo }}">
-            @endif
-            @if($ownerId)
-                <input type="hidden" name="owner_id" value="{{ $ownerId }}">
-            @endif
-
-            <input
-                class="form-control-soft owner-filter-search"
-                type="search"
-                name="owner_search"
-                value="{{ $ownerSearch }}"
-                placeholder="Tìm theo tên, email hoặc số điện thoại chủ sân..."
-            >
-
-            <select class="form-control-soft" name="owner_status">
-                <option value="all" @selected($ownerStatus === 'all')>Tất cả trạng thái</option>
-                <option value="good" @selected($ownerStatus === 'good')>An toàn</option>
-                <option value="in_debt" @selected($ownerStatus === 'in_debt')>Đang nợ</option>
-                <option value="warning" @selected($ownerStatus === 'warning')>Gần hạn mức</option>
-                <option value="over_limit" @selected($ownerStatus === 'over_limit')>Vượt hạn mức</option>
-            </select>
-
-            <select class="form-control-soft" name="owner_sort">
-                <option value="debt_desc" @selected($ownerSort === 'debt_desc')>Công nợ cao nhất</option>
-                <option value="balance_asc" @selected($ownerSort === 'balance_asc')>Số dư thấp nhất</option>
-                <option value="balance_desc" @selected($ownerSort === 'balance_desc')>Số dư cao nhất</option>
-                <option value="owner_name" @selected($ownerSort === 'owner_name')>Tên chủ sân A-Z</option>
-                <option value="newest" @selected($ownerSort === 'newest')>Ví mới nhất</option>
-            </select>
-
-            <button class="btn-primary-soft" type="submit">Lọc chủ sân</button>
-            <a class="btn-soft" href="{{ route('admin.finance.index', array_filter([
-                'date_from' => $dateFrom,
-                'date_to' => $dateTo,
-                'owner_id' => $ownerId,
-            ])) }}">Xóa lọc chủ sân</a>
-        </form>
-        <table class="data-table" style="min-width:980px;">
-            <thead>
-                <tr>
-                    <th>Chủ sân</th>
-                    <th>Số dư ví</th>
-                    <th>Công nợ</th>
-                    <th>Hạn mức</th>
-                    <th>Đã dùng hạn mức</th>
-                    <th>Trạng thái</th>
-                    <th>Hành động</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($ownerWalletRows as $row)
-                    @php
-                        $wallet = $row['wallet'];
-                        $owner = $row['owner'];
-                        $summary = $row['summary'] ?? [];
-                        $status = $summary['status'] ?? 'good';
-                        $usageText = (float) ($summary['usage_percent'] ?? 0);
-                        $usageBar = min(100, max(0, $usageText));
-                        $balance = (float) $wallet->balance;
-                    @endphp
-                    <tr>
-                        <td>
-                            <strong>{{ $owner?->name ?? 'Không rõ' }}</strong>
-                            <div class="muted">{{ $owner?->email }}</div>
-                        </td>
-                        <td class="{{ $balance < 0 ? 'tone-red' : 'tone-green' }}">
-                            <strong>{{ $money($balance) }}</strong>
-                        </td>
-                        <td class="{{ (float) ($summary['debt_amount'] ?? 0) > 0 ? 'tone-red' : '' }}">
-                            <strong>{{ $money($summary['debt_amount'] ?? 0) }}</strong>
-                        </td>
-                        <td>{{ $money($summary['debt_limit'] ?? 0) }}</td>
-                        <td class="progress-cell">
-                            <strong>{{ number_format($usageText, 0, ',', '.') }}%</strong>
-                            <div class="progress-track">
-                                <div class="progress-bar {{ $status === 'over_limit' ? 'progress-over' : (($status === 'warning') ? 'progress-warning' : '') }}"
-                                     style="width: {{ $usageBar }}%"></div>
-                            </div>
-                        </td>
-                        <td>
-                            <span class="badge-status {{ $statusClasses[$status] ?? 'status-good' }}">
-                                {{ $statusLabels[$status] ?? $status }}
-                            </span>
-                        </td>
-                        <td>
-                            @if(Route::has('admin.debts.index') && $owner)
-                                <a class="btn-soft" href="{{ route('admin.debts.index', ['search' => $owner->email]) }}">Xem chi tiết</a>
-                            @else
-                                <span class="muted">-</span>
-                            @endif
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="7" style="padding:36px; text-align:center;">
-                            <strong>Chưa có ví chủ sân nào.</strong>
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-
-        @if($ownerWalletRows->hasPages())
-            <div class="pagination-wrapper">
-                {{ $ownerWalletRows->links('vendor.pagination.admin') }}
-            </div>
-        @endif
-    </div>
-
-        @unless($ownerId)
-        <div class="panel table-card">
-            <div class="panel-head">
-                <div>
-                    <h3 class="panel-title">Top owner công nợ cao</h3>
-                    <p class="panel-desc">Ưu tiên xử lý các ví owner có số dư âm.</p>
-                </div>
-            </div>
-            <table class="data-table compact-table">
-                <thead>
-                    <tr>
-                        <th style="width: 38%;">Chủ sân</th>
-                        <th style="width: 20%;">Công nợ</th>
-                        <th style="width: 20%;">Hạn mức</th>
-                        <th style="width: 22%;">Tỷ lệ</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($topDebtOwners as $row)
-                        @php
-                            $wallet = $row['wallet'];
-                            $owner = $row['owner'];
-                            $summary = $row['summary'];
-                            $status = $summary['status'] ?? 'in_debt';
-                            $usageText = (float) ($summary['usage_percent'] ?? 0);
-                            $usageBar = min(100, max(0, $usageText));
-                        @endphp
-                        <tr>
-                            <td>
-                                <strong>{{ $owner->name }}</strong>
-                                <div class="muted">{{ $owner->email }}</div>
-                            </td>
-                            <td class="tone-red"><strong>{{ $money($summary['debt_amount'] ?? 0) }}</strong></td>
-                            <td>{{ $money($summary['debt_limit'] ?? 0) }}</td>
-                            <td class="progress-cell">
-                                <strong>{{ number_format($usageText, 0, ',', '.') }}%</strong>
-                                <div class="progress-track">
-                                    <div class="progress-bar {{ $status === 'over_limit' ? 'progress-over' : (($status === 'warning') ? 'progress-warning' : '') }}"
-                                         style="width: {{ $usageBar }}%"></div>
-                                </div>
-                                <div class="progress-status">
-                                    <span class="badge-status {{ $statusClasses[$status] ?? 'status-in_debt' }}">
-                                        {{ $statusLabels[$status] ?? $status }}
-                                    </span>
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="4" style="padding:28px; text-align:center;">
-                                <strong>Không có chủ sân đang nợ.</strong>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        @endunless
-    </div>
-
-    <div class="finance-section">
+    <div class="finance-section mt-8">
         <div>
             <h3>Nhật ký giao dịch</h3>
             <p>Kiểm tra các giao dịch mới nhất trên ví nền tảng và ví owner.</p>
@@ -990,10 +758,10 @@
     </div>
 
     <div class="panel table-card">
+        <!-- Bảng Nhật ký giao dịch ví nền tảng (Giữ nguyên) -->
         <div class="panel-head">
             <div>
                 <h3 class="panel-title">Giao dịch ví nền tảng mới nhất</h3>
-                <p class="panel-desc">Theo dõi tiền thật vào/ra ví nền tảng SportHub.</p>
             </div>
         </div>
         <table class="data-table" style="min-width:1120px;">
@@ -1011,6 +779,7 @@
             </thead>
             <tbody>
                 @forelse($latestPlatformTransactions ?? collect() as $transaction)
+                    <!-- Giữ nguyên vòng lặp foreach trong code gốc của bạn -->
                     @php
                         $platformType = $typeValue($transaction);
                         $platformAmount = (float) $transaction->amount;
@@ -1031,18 +800,12 @@
                         <td>
                             @if($transaction->reference)
                                 <strong>{{ $transaction->reference }}</strong>
-                                @if($transaction->reference_type || $transaction->reference_id)
-                                    <div class="muted">{{ $transaction->reference_type }} #{{ $transaction->reference_id }}</div>
-                                @endif
                             @else
                                 <span class="muted">Không có</span>
                             @endif
                         </td>
                         <td>
                             <strong>{{ $transaction->performer?->name ?? 'Hệ thống' }}</strong>
-                            @if($transaction->performer?->email)
-                                <div class="muted">{{ $transaction->performer->email }}</div>
-                            @endif
                         </td>
                     </tr>
                 @empty
@@ -1054,56 +817,6 @@
                 @endforelse
             </tbody>
         </table>
-    </div>
-
-    <div class="panel table-card">
-            <div class="panel-head">
-                <div>
-                    <h3 class="panel-title">Giao dịch ví owner mới nhất</h3>
-                    <p class="panel-desc">Các thay đổi số dư ví chủ sân gần nhất.</p>
-                </div>
-            </div>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Thời gian</th>
-                        <th>Owner</th>
-                        <th>Loại</th>
-                        <th>Số tiền</th>
-                        <th>Số dư sau</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($latestTransactions as $transaction)
-                        @php
-                            $currentType = $typeValue($transaction);
-                            $isDebit = in_array($currentType, ['commission_fee', 'commission_cod_debit', 'withdraw', 'withdrawal_debit', 'refund_debit', 'payment'], true);
-                            $signedAmount = $isDebit ? -abs((float) $transaction->amount) : abs((float) $transaction->amount);
-                        @endphp
-                        <tr>
-                            <td>
-                                <strong>{{ $transaction->created_at?->format('d/m/Y') }}</strong>
-                                <div class="muted">{{ $transaction->created_at?->format('H:i') }}</div>
-                            </td>
-                            <td>
-                                <strong>{{ $transaction->wallet?->owner?->name ?? 'Không rõ' }}</strong>
-                                <div class="muted">{{ $transaction->wallet?->owner?->email }}</div>
-                            </td>
-                            <td><span class="tx-badge">{{ $transactionTypeLabels[$currentType] ?? $currentType }}</span></td>
-                            <td class="{{ $isDebit ? 'tone-red' : 'tone-green' }}">
-                                <strong>{{ $signedMoney($signedAmount) }}</strong>
-                            </td>
-                            <td><strong>{{ $money($transaction->balance_after) }}</strong></td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="5" style="padding:36px; text-align:center;">
-                                <strong>Chưa có giao dịch ví owner.</strong>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
     </div>
 </div>
 @endsection
@@ -1118,8 +831,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     const labels = @json($commissionChartLabels ?? []);
-    const onlineData = @json($commissionChartOnlineData ?? []);
-    const codData = @json($commissionChartCodData ?? []);
+    // Đã bỏ onlineData và codData, gộp chung thành totalData
     const totalData = @json($commissionChartTotalData ?? []);
     const moneyFormatter = new Intl.NumberFormat('vi-VN');
 
@@ -1129,7 +841,7 @@ document.addEventListener('DOMContentLoaded', function () {
             labels: labels,
             datasets: [
                 {
-                    label: 'Tổng hoa hồng',
+                    label: 'Doanh thu hoa hồng',
                     data: totalData,
                     borderColor: '#059669',
                     backgroundColor: 'rgba(5, 150, 105, 0.12)',
@@ -1137,40 +849,15 @@ document.addEventListener('DOMContentLoaded', function () {
                     borderWidth: 3,
                     pointRadius: 4,
                     fill: true
-                },
-                {
-                    label: 'Hoa hồng online',
-                    data: onlineData,
-                    borderColor: '#2563eb',
-                    backgroundColor: 'rgba(37, 99, 235, 0.08)',
-                    tension: 0.35,
-                    borderWidth: 2,
-                    pointRadius: 3,
-                    fill: false
-                },
-                {
-                    label: 'Hoa hồng COD',
-                    data: codData,
-                    borderColor: '#d97706',
-                    backgroundColor: 'rgba(217, 119, 6, 0.08)',
-                    tension: 0.35,
-                    borderWidth: 2,
-                    pointRadius: 3,
-                    fill: false
                 }
+                // ĐÃ ẨN: 2 dataset vẽ đường Hoa hồng Online và Hoa hồng COD
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false
-            },
             plugins: {
-                legend: {
-                    position: 'bottom'
-                },
+                legend: { display: false }, // Đóng legend vì chỉ còn 1 đường
                 tooltip: {
                     callbacks: {
                         label: function (context) {
@@ -1180,21 +867,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             },
             scales: {
-                x: {
-                    grid: {
-                        display: false
-                    },
-                    ticks: {
-                        color: '#64748b'
-                    }
-                },
+                x: { grid: { display: false } },
                 y: {
                     beginAtZero: true,
-                    grid: {
-                        color: '#eef2f7'
-                    },
                     ticks: {
-                        color: '#64748b',
                         callback: function (value) {
                             return moneyFormatter.format(Number(value || 0)) + 'đ';
                         }

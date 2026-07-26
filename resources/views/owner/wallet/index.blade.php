@@ -17,11 +17,16 @@
         $transactionTypeLabels = [
             'booking_income' => 'Nhận tiền booking online',
             'booking_online_credit' => 'Nhận tiền booking online',
+            
+            // ĐÃ ẨN: Các nhãn giao dịch tiền mặt và nạp tiền
+            /*
             'commission_fee' => 'Trừ hoa hồng COD',
             'commission_cod_debit' => 'Trừ hoa hồng COD',
             'topup' => 'Nạp tiền vào ví',
             'topup_credit' => 'Nạp tiền vào ví',
             'deposit' => 'Nạp tiền vào ví',
+            */
+            
             'withdraw' => 'Rút tiền',
             'withdrawal_debit' => 'Rút tiền',
             'withdrawal_rejected_refund' => 'Hoàn lại yêu cầu rút',
@@ -30,20 +35,16 @@
             'refund' => 'Hoàn tiền',
             'refund_debit' => 'Hoàn tiền',
         ];
-        $debitTypes = ['commission_fee', 'commission_cod_debit', 'withdraw', 'withdrawal_debit', 'refund_debit', 'payment'];
+        
+        // ĐÃ ẨN: Phí COD trong mảng trừ tiền
+        $debitTypes = ['withdraw', 'withdrawal_debit', 'refund_debit', 'payment' /*, 'commission_fee', 'commission_cod_debit'*/];
+        
         $typeValue = fn ($transaction) => $transaction->type instanceof \BackedEnum ? $transaction->type->value : (string) $transaction->type;
         $displayAmount = fn ($transaction) => in_array($typeValue($transaction), $debitTypes, true)
             ? -abs((float) $transaction->amount)
             : (float) $transaction->amount;
-        $debtStatusMessages = [
-            'good' => 'Ví của bạn đang an toàn.',
-            'in_debt' => 'Bạn đang có công nợ nhưng chưa vượt hạn mức.',
-            'warning' => 'Công nợ đã đạt gần hạn mức. Vui lòng nạp tiền để tránh bị khóa cơ sở.',
-            'over_limit' => 'Công nợ đã vượt hạn mức. Cơ sở có thể bị tạm khóa cho đến khi bạn nạp tiền trả nợ.',
-        ];
-        $debtStatus = $debtSummary['status'] ?? 'good';
-        $usagePercent = min(100, (float) ($debtSummary['usage_percent'] ?? 0));
-        $isWarning = in_array($debtStatus, ['warning', 'over_limit'], true);
+            
+        // Các biến công nợ đã được bỏ qua không tính tới trên UI nữa
     @endphp
 
     <nav class="sticky top-0 z-50 flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4 shadow-sm">
@@ -72,17 +73,21 @@
                 </a>
                 <h1 class="mt-3 text-3xl font-black text-slate-900">Ví của tôi</h1>
                 <p class="mt-2 text-sm text-slate-500">
-                    Theo dõi số dư ví, công nợ và lịch sử giao dịch của bạn.
+                    Theo dõi số dư ví và lịch sử giao dịch của bạn.
                 </p>
             </div>
 
             <div class="flex flex-wrap gap-3">
+                {{-- ĐÃ ẨN: Nút Nạp tiền --}}
+                {{-- 
                 <a href="{{ route('owner.web.wallet.topup.create') }}"
                    class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-emerald-700">
                     Nạp tiền
-                </a>
+                </a> 
+                --}}
+                
                 <a href="{{ route('owner.web.withdrawals.create') }}"
-                   class="inline-flex items-center justify-center rounded-xl border border-emerald-600 bg-white px-5 py-3 text-sm font-extrabold text-emerald-700 transition hover:bg-emerald-50">
+                   class="inline-flex items-center justify-center rounded-xl border border-emerald-600 bg-emerald-600 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-emerald-700">
                     Rút tiền
                 </a>
                 <a href="{{ route('owner.web.withdrawals.index') }}"
@@ -104,45 +109,26 @@
             </div>
         @endif
 
-        @include('owner.partials.debt-warning')
+        {{-- ĐÃ ẨN: Cảnh báo công nợ --}}
+        {{-- @include('owner.partials.debt-warning') --}}
 
-        <section class="grid gap-5 lg:grid-cols-3">
+        <!-- ĐÃ ĐỔI: Chuyển từ lg:grid-cols-3 xuống lg:grid-cols-2 vì đã bỏ cột Công nợ -->
+        <section class="grid gap-5 lg:grid-cols-2">
             <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-1">
-                <p class="text-xs font-black uppercase tracking-wider text-slate-400">Số dư ví hiện tại</p>
-                <p class="mt-3 text-4xl font-black {{ $wallet->balance < 0 ? 'text-red-600' : 'text-emerald-700' }}">
-                    {{ $signedMoney($wallet->balance) }}
+                <p class="text-xs font-black uppercase tracking-wider text-slate-400">Số dư khả dụng</p>
+                <p class="mt-3 text-4xl font-black text-emerald-700">
+                    {{ $money($wallet->balance) }}
                 </p>
-                <div class="mt-4 inline-flex rounded-full px-3 py-1 text-xs font-black {{ $wallet->balance < 0 ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700' }}">
-                    {{ $wallet->balance < 0 ? 'Đang nợ nền tảng' : 'Đang hoạt động' }}
+                <div class="mt-4 inline-flex rounded-full px-3 py-1 text-xs font-black bg-emerald-50 text-emerald-700">
+                    Đang hoạt động
                 </div>
             </div>
 
+            {{-- ĐÃ ẨN: Khối hiển thị thông tin Công nợ 
             <div class="rounded-2xl border {{ $isWarning ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-white' }} p-6 shadow-sm lg:col-span-1">
-                <p class="text-xs font-black uppercase tracking-wider text-slate-400">Công nợ</p>
-                <div class="mt-3 grid grid-cols-2 gap-4">
-                    <div>
-                        <p class="text-xs font-bold text-slate-500">Hiện tại</p>
-                        <p class="mt-1 text-2xl font-black text-red-600">{{ $money($debtSummary['debt_amount'] ?? 0) }}</p>
-                    </div>
-                    <div>
-                        <p class="text-xs font-bold text-slate-500">Hạn mức</p>
-                        <p class="mt-1 text-2xl font-black text-slate-900">{{ $money($debtSummary['debt_limit'] ?? 0) }}</p>
-                    </div>
-                </div>
-                <div class="mt-5">
-                    <div class="mb-2 flex justify-between text-xs font-black text-slate-500">
-                        <span>Tỷ lệ sử dụng</span>
-                        <span>{{ number_format($debtSummary['usage_percent'] ?? 0, 0, ',', '.') }}%</span>
-                    </div>
-                    <div class="h-3 overflow-hidden rounded-full bg-slate-200">
-                        <div class="h-full rounded-full {{ ($debtSummary['is_over_limit'] ?? false) ? 'bg-red-500' : (($debtSummary['is_near_limit'] ?? false) ? 'bg-amber-500' : 'bg-emerald-500') }}"
-                             style="width: {{ $usagePercent }}%"></div>
-                    </div>
-                </div>
-                <p class="mt-4 text-sm font-bold {{ $debtStatus === 'over_limit' ? 'text-red-700' : ($debtStatus === 'warning' ? 'text-amber-700' : 'text-slate-600') }}">
-                    {{ $debtStatusMessages[$debtStatus] ?? $debtStatusMessages['good'] }}
-                </p>
+                ... (Code hiển thị công nợ cũ) ...
             </div>
+            --}}
 
             <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-1">
                 <p class="text-xs font-black uppercase tracking-wider text-slate-400">Đang chờ rút</p>
@@ -153,11 +139,16 @@
             </div>
         </section>
 
-        <section class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <!-- ĐÃ ĐỔI: Chuyển từ lg:grid-cols-5 xuống lg:grid-cols-3 vì đã ẩn "Đã nạp" và "Hoa hồng COD" -->
+        <section class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {{-- ĐÃ ẨN: Thống kê Tiền đã nạp --}}
+            {{-- 
             <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p class="text-xs font-black uppercase text-slate-400">Đã nạp</p>
                 <p class="mt-2 text-xl font-black text-emerald-700">{{ $money($totalTopup) }}</p>
-            </div>
+            </div> 
+            --}}
+            
             <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p class="text-xs font-black uppercase text-slate-400">Đã rút</p>
                 <p class="mt-2 text-xl font-black text-red-600">{{ $money($totalWithdrawal) }}</p>
@@ -166,10 +157,15 @@
                 <p class="text-xs font-black uppercase text-slate-400">Booking online</p>
                 <p class="mt-2 text-xl font-black text-emerald-700">{{ $money($totalBookingOnlineCredit) }}</p>
             </div>
+            
+            {{-- ĐÃ ẨN: Thống kê Hoa hồng COD --}}
+            {{-- 
             <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p class="text-xs font-black uppercase text-slate-400">Hoa hồng COD</p>
                 <p class="mt-2 text-xl font-black text-orange-600">{{ $money($totalCommissionCodDebit) }}</p>
-            </div>
+            </div> 
+            --}}
+            
             <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p class="text-xs font-black uppercase text-slate-400">Giao dịch</p>
                 <p class="mt-2 text-xl font-black text-slate-900">{{ number_format($totalTransactions, 0, ',', '.') }}</p>
@@ -182,9 +178,12 @@
                         class="rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
                     <option value="">Tất cả loại giao dịch</option>
                     @foreach($transactionTypes as $transactionType)
-                        <option value="{{ $transactionType }}" @selected($type === $transactionType)>
-                            {{ $transactionTypeLabels[$transactionType] ?? $transactionType }}
-                        </option>
+                        {{-- Ẩn các type liên quan đến Topup và COD khỏi filter dropdown --}}
+                        @if(!in_array($transactionType, ['commission_fee', 'commission_cod_debit', 'topup', 'topup_credit', 'deposit']))
+                            <option value="{{ $transactionType }}" @selected($type === $transactionType)>
+                                {{ $transactionTypeLabels[$transactionType] ?? $transactionType }}
+                            </option>
+                        @endif
                     @endforeach
                 </select>
 

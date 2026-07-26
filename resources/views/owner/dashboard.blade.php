@@ -50,7 +50,7 @@
     <div class="flex-1 p-6 lg:p-10 max-w-7xl mx-auto w-full" x-data="{ filterType: '{{ $period == "custom" ? "custom" : "quick" }}' }">
         
 
-        @include('owner.partials.debt-warning')
+        {{-- @include('owner.partials.debt-warning') --}}
         @include('owner.partials.wallet-summary')
 
         <!-- Header & Filters Form -->
