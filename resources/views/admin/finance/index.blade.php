@@ -552,6 +552,9 @@
             {{-- @if(Route::has('admin.debts.index'))
                 <a class="btn-soft" href="{{ route('admin.debts.index') }}">Công nợ owner</a>
             @endif --}}
+            <button type="button" class="btn-primary-soft" onclick="document.getElementById('withdrawModal').style.display='block'">
+                Rút doanh thu
+            </button>
             @if(Route::has('admin.withdrawals.index'))
                 <a class="btn-soft" href="{{ route('admin.withdrawals.index') }}">Yêu cầu rút tiền</a>
             @endif
@@ -819,6 +822,45 @@
         </table>
     </div>
 </div>
+<!-- Modal Rút Doanh Thu -->
+    <div id="withdrawModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+        <div style="background:#fff; width:100%; max-width:400px; padding:24px; border-radius:16px; margin: 10% auto;">
+            <h3 style="margin-top:0">Rút Doanh Thu Nền Tảng</h3>
+            
+            @php
+                $safeToWithdraw = ($platformWalletBalance ?? 0) - ($totalWalletBalance ?? 0);
+                $displaySafeAmount = $safeToWithdraw > 0 ? $safeToWithdraw : 0;
+            @endphp
+            
+            <p style="color:#64748b; font-size:13px;">
+                Số dư khả dụng: <strong class="{{ $safeToWithdraw > 0 ? 'tone-green' : 'tone-red' }}">{{ $money($displaySafeAmount) }}</strong>
+            </p>
+            
+            <form action="{{ route('admin.finance.withdraw') }}" method="POST">
+                @csrf
+                <div style="margin-bottom:16px;">
+                    <label style="display:block; font-size:12px; font-weight:700; margin-bottom:8px;">Số tiền muốn rút (VNĐ)</label>
+                    <input type="number" name="amount" class="form-control-soft" style="width:100%;" 
+                           min="10000" max="{{ $displaySafeAmount > 0 ? $displaySafeAmount : 0 }}" 
+                           @if($displaySafeAmount <= 0) 
+                               disabled placeholder="Không đủ số dư..." 
+                           @else 
+                               required 
+                           @endif>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end;">
+                    <button type="button" class="btn-soft" onclick="document.getElementById('withdrawModal').style.display='none'">Hủy</button>
+                    <!-- Khóa nút nếu không có tiền khả dụng -->
+                    <button type="submit" class="btn-primary-soft" 
+                            @if($displaySafeAmount <= 0) 
+                                disabled style="opacity: 0.5; cursor: not-allowed;" 
+                            @endif>
+                        Xác nhận rút
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
