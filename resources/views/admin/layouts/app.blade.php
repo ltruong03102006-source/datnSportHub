@@ -309,9 +309,10 @@
             <a href="{{ route('admin.withdrawals.index') }}" class="nav-item {{ request()->routeIs('admin.withdrawals.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-money-bill-transfer"></i> Yêu cầu rút tiền
             </a>
-            <!-- THÊM NÚT NÀY VÀO ĐÂY -->
-            <a href="{{ route('admin.financial-settings.index') }}" class="nav-item {{ request()->routeIs('admin.financial-settings.*') ? 'active' : '' }}">
-                <i class="fa-solid fa-money-bill-transfer"></i> Cấu hình tài chính
+            <!-- MENU MỚI: CHUYỂN NHƯỢNG CƠ SỞ -->
+            <a href="{{ route('admin.venue-transfers.index') }}" 
+               class="nav-item {{ request()->routeIs('admin.venue-transfers.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-right-left"></i> Chuyển nhượng cơ sở
             </a>
             <!-- Mock links matching the screenshot -->
             {{-- <a href="#" class="nav-item"><i class="fa-solid fa-wallet"></i> Thanh toán</a>

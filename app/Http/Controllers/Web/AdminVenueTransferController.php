@@ -1,0 +1,126 @@
+<?php
+
+namespace App\Http\Controllers\Web;
+
+use App\Http\Controllers\Controller;
+use App\Models\VenueTransferRequest;
+use App\Services\TransferService;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\Request;
+
+class AdminVenueTransferController extends Controller
+{
+    /**
+     * Hiển thị danh sách yêu cầu chuyển nhượng
+     */
+    public function index()
+    {
+        // Eager load các relations để tối ưu câu query, sắp xếp mới nhất lên đầu
+        $transfers = VenueTransferRequest::with(['venue', 'fromOwner', 'toOwner'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+
+        return view('admin.venue_transfers.index', compact('transfers'));
+    }
+
+    public function show(VenueTransferRequest $transfer)
+    {
+        // Đã tạm ẩn load ví: 'fromOwner.wallet'
+        $transfer->load(['venue', 'fromOwner', 'toOwner']);
+
+        return view('admin.venue_transfers.show', compact('transfer'));
+    }
+
+    public function approve(\App\Models\VenueTransferRequest $transfer)
+    {
+        if ($transfer->status !== 'pending_admin') {
+            return back()->with('error', 'Yêu cầu này không ở trạng thái chờ duyệt.');
+        }
+
+        DB::beginTransaction();
+        try {
+            $venue = $transfer->venue;
+            $newOwnerData = $transfer->receiver_data; // Lấy cục JSON chứa SĐT, Email và Pháp lý ra
+            
+            // 1. CẬP NHẬT THÔNG TIN CƠ BẢN CỦA SÂN
+            $venue->update([
+                'owner_id' => $transfer->to_owner_id, 
+                'phone' => $newOwnerData['phone'] ?? $venue->phone, // Đổi sang SĐT mới
+                'email' => $newOwnerData['email'] ?? $venue->email, // Đổi sang Email mới
+                'status' => 'approved' // Đảm bảo sân tiếp tục hoạt động
+            ]);
+
+            // 2. XÓA HỒ SƠ PHÁP LÝ CHỦ CŨ
+            if ($venue->legalDocument) {
+                // Xóa file vật lý của chủ cũ (Tuỳ chọn)
+                Storage::disk('public')->delete($venue->legalDocument->citizen_front_image);
+                // ... Xóa các file khác
+                $venue->legalDocument->delete();
+            }
+
+            // 3. TẠO HỒ SƠ PHÁP LÝ CHO CHỦ MỚI
+            $venue->legalDocument()->create([
+                'owner_name' => $newOwnerData['owner_name'],
+                'citizen_id' => $newOwnerData['citizen_id'],
+                
+                // ĐÃ SỬA: Lấy địa chỉ của cơ sở sân đắp vào để không bị lỗi thiếu cột address
+                'address' => $venue->address, 
+                
+                'business_license_number' => $newOwnerData['business_license_number'] ?? null,
+                'bank_name' => $newOwnerData['bank_name'],
+                'bank_account_number' => $newOwnerData['bank_account_number'],
+                'bank_account_holder' => $newOwnerData['bank_account_holder'],
+                'citizen_front_image' => $newOwnerData['citizen_front_image'],
+                'citizen_back_image' => $newOwnerData['citizen_back_image'],
+                'business_license_file' => $newOwnerData['business_license_file'] ?? null,
+                'rental_contract_file' => $newOwnerData['rental_contract_file'] ?? null,
+                'land_certificate_file' => $newOwnerData['land_certificate_file'] ?? null,
+                'status' => 'approved'
+            ]);
+
+            // 4. CẬP NHẬT TRẠNG THÁI YÊU CẦU
+            $transfer->update(['status' => 'approved']);
+
+            // 5. XÓA CÁC YÊU CẦU CẬP NHẬT PHÁP LÝ ĐANG TREO (NẾU CÓ)
+            $venue->updateRequests()->delete();
+
+            DB::commit();
+
+            return back()->with('success', 'Đã phê duyệt sang tên và cập nhật Hồ sơ pháp lý thành công!');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Lỗi hệ thống: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Admin từ chối yêu cầu chuyển nhượng
+     */
+    public function reject(Request $request, VenueTransferRequest $transfer)
+    {
+        // Chặn nếu không phải trạng thái chờ Admin
+        if ($transfer->status !== 'pending_admin') {
+            return back()->with('error', 'Yêu cầu này không ở trạng thái chờ duyệt.');
+        }
+
+        $request->validate([
+            'admin_note' => 'required|string|max:1000'
+        ], [
+            'admin_note.required' => 'Vui lòng nhập lý do từ chối để gửi cho chủ sân.'
+        ]);
+
+        try {
+            // Xử lý cập nhật trực tiếp tại Controller (Bỏ qua TransferService cũ)
+            $transfer->update([
+                'status' => 'rejected',
+                'admin_note' => $request->admin_note
+            ]);
+
+            return back()->with('success', 'Đã từ chối yêu cầu chuyển nhượng thành công.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Lỗi hệ thống: ' . $e->getMessage());
+        }
+    }
+}
