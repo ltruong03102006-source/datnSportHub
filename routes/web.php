@@ -150,6 +150,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/transactions/{transaction}', [AdminTransactionController::class, 'show'])->name('transactions.show');
         Route::get('/finance', [AdminFinanceDashboardController::class, 'index'])->name('finance.index');
         Route::post('/finance/withdraw', [AdminFinanceDashboardController::class, 'withdrawRevenue'])->name('finance.withdraw');
+        Route::get('/finance/withdraw-history', [AdminFinanceDashboardController::class, 'withdrawHistory'])->name('finance.withdraw_history');
         Route::get('/debts', [AdminDebtController::class, 'index'])->name('debts.index');
         Route::get('/packages', [AdminPackageController::class, 'index'])->name('packages.index');
 

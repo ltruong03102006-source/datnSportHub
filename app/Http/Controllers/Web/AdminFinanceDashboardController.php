@@ -257,7 +257,9 @@ class AdminFinanceDashboardController extends Controller
         $ownerWithdrawalOut = $platformTransactionQuery
             ? abs((float) (clone $platformTransactionQuery)->where('type', 'owner_withdrawal_out')->sum('amount'))
             : 0;
-
+        $adminRevenueWithdrawal = $platformTransactionQuery
+            ? abs((float) (clone $platformTransactionQuery)->where('type', 'admin_revenue_withdrawal')->sum('amount'))
+            : 0;
         if (Schema::hasTable('platform_wallet_transactions')) {
             $latestPlatformTransactionQuery = PlatformWalletTransaction::query()
                 ->with(['platformWallet', 'performer']);
@@ -310,7 +312,8 @@ class AdminFinanceDashboardController extends Controller
             'ownerStatus',
             'ownerSort',
             'topDebtOwners',
-            'latestTransactions'
+            'latestTransactions',
+            'adminRevenueWithdrawal'
         ), [
             'commissionChartLabels' => $commissionChart['labels'],
             'commissionChartOnlineData' => $commissionChart['online'],
@@ -518,24 +521,22 @@ class AdminFinanceDashboardController extends Controller
         $amount = (float) $request->amount;
 
         try {
-            DB::transaction(function () use ($amount, $walletService, $gateway) {
-                // 1. Tính tổng số dư khả dụng của tất cả Chủ sân (những ví có tiền > 0)
-                $totalOwnerBalance = Wallet::where('balance', '>', 0)->sum('balance');
-                
-                // Lấy ví nền tảng hiện tại
+            $referenceId = '';
+            $bankCode = 'VCB' . rand(100000, 999999); // Sinh mã ngân hàng ảo
+
+            DB::transaction(function () use ($amount, $walletService, $gateway, &$referenceId) {
+                $totalOwnerBalance = \App\Models\Wallet::where('balance', '>', 0)->sum('balance');
                 $platformWallet = $walletService->getDefaultWallet();
-                
-                // Tính số tiền an toàn (Tiền nền tảng đang có - Tiền đang nợ chủ sân)
                 $safeWithdrawableAmount = $platformWallet->balance - $totalOwnerBalance;
 
                 if ($amount > $safeWithdrawableAmount) {
                     throw new \Exception('Lỗi: Số tiền rút vượt quá lợi nhuận khả dụng thực tế!');
                 }
 
-                // 2. Tạo mã tham chiếu giao dịch đối soát (Settlement)
-                $referenceId = 'SETTLE-' . Str::upper(Str::random(8));
+                // 2. Tạo mã tham chiếu đúng chuẩn bạn yêu cầu (VD: WD-202607270001)
+                $referenceId = 'WD-' . now()->format('Ymd') . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
 
-                // 3. Trừ tiền Ví nền tảng (Hold tiền chờ ngân hàng xử lý)
+                // 3. Trừ tiền Ví nền tảng (Hold tiền)
                 $walletService->debit(
                     amount: $amount,
                     type: 'admin_revenue_withdrawal',
@@ -545,14 +546,37 @@ class AdminFinanceDashboardController extends Controller
                     performedBy: auth()->id()
                 );
 
-                // 4. Bàn giao lệnh chuyển tiền cho Gateway xử lý ngầm (bắn qua ngân hàng ảo)
+                // 4. Bàn giao Gateway
                 $gateway->processPayout($referenceId, $amount, []);
             });
+
+            // NẾU GIAO DIỆN GỌI BẰNG JAVASCRIPT (AJAX), TRẢ VỀ DỮ LIỆU JSON CHỨ KHÔNG RELOAD TRANG
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => 'success',
+                    'reference_id' => $referenceId,
+                    'bank_code' => $bankCode
+                ]);
+            }
 
             return back()->with('success', 'Đã tiếp nhận lệnh rút doanh thu. Hệ thống đối soát đang xử lý!');
             
         } catch (\Exception $e) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['error' => $e->getMessage()], 400);
+            }
             return back()->with('error', $e->getMessage());
         }
+    }
+    public function withdrawHistory()
+    {
+        // Lấy tất cả các giao dịch rút tiền và hoàn tiền của Admin
+        $transactions = PlatformWalletTransaction::query()
+            ->whereIn('type', ['admin_revenue_withdrawal', 'admin_revenue_refund'])
+            ->with('performer')
+            ->latest('created_at')
+            ->paginate(20); // Phân trang 20 dòng/trang
+
+        return view('admin.finance.withdraw_history', compact('transactions'));
     }
 }

@@ -244,8 +244,29 @@
                                     </span>
                                 </td>
                                 <td class="min-w-[260px] px-5 py-4 text-sm font-semibold text-slate-700">
-                                    {{ $transaction->description }}
-                                </td>
+    <div class="leading-relaxed">{{ $transaction->description }}</div>
+    
+    @if(in_array($currentType, ['booking_income', 'booking_online_credit']))
+        @php
+            $booking = null;
+            // Tự động bóc tách số ID từ chữ "BOOKING-6" để tìm đơn hàng gốc
+            if (!empty($transaction->reference) && str_starts_with($transaction->reference, 'BOOKING-')) {
+                $bookingId = str_replace('BOOKING-', '', $transaction->reference);
+                $booking = \App\Models\Booking::find($bookingId);
+            } 
+            // Phương án dự phòng nếu dùng reference_id
+            elseif (!empty($transaction->reference_id)) {
+                $booking = \App\Models\Booking::find($transaction->reference_id);
+            }
+        @endphp
+        
+        @if($booking)
+            <div class="mt-1 text-[12px] font-medium text-slate-500">
+                (Giá: {{ number_format($booking->total_price ?? $booking->gross_amount ?? 0, 0, ',', '.') }}đ - Phí sàn: {{ number_format($booking->platform_fee ?? $booking->commission_amount ?? 0, 0, ',', '.') }}đ)
+            </div>
+        @endif
+    @endif
+</td>
                                 <td class="whitespace-nowrap px-5 py-4 text-right text-sm font-black {{ $isCredit ? 'text-emerald-700' : 'text-red-600' }}">
                                     {{ $isCredit ? '+' : '-' }}{{ $money($shownAmount) }}
                                 </td>

@@ -503,6 +503,13 @@
             min-width: 0;
         }
     }
+    /* CSS cho thanh Loading và Animation Checkmark */
+        .sg-progress-bar { width: 100%; height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin: 15px 0; }
+        .sg-progress-fill { width: 0%; height: 100%; background: #10b981; border-radius: 999px; transition: width 2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sg-success-icon { font-size: 48px; color: #10b981; margin-bottom: 12px; animation: scaleIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes scaleIn { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .sg-detail-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dashed #e2e8f0; font-size: 13px; }
+        .sg-detail-row:last-child { border-bottom: none; }
 </style>
 @endpush
 
@@ -555,6 +562,7 @@
             <button type="button" class="btn-primary-soft" onclick="document.getElementById('withdrawModal').style.display='block'">
                 Rút doanh thu
             </button>
+            <a class="btn-soft" href="{{ route('admin.finance.withdraw_history') }}">Lịch sử rút tiền</a>
             @if(Route::has('admin.withdrawals.index'))
                 <a class="btn-soft" href="{{ route('admin.withdrawals.index') }}">Yêu cầu rút tiền</a>
             @endif
@@ -648,13 +656,22 @@
                         <div class="cash-value tone-green">{{ $money($customerOnlinePaymentIn ?? 0) }}</div>
                     </div>
                     
-                    <!-- DÒNG MỚI ĐƯỢC TÁCH RA: HOÀN TIỀN KHÁCH -->
+                    <!-- SỬA LẠI: Dòng Hoàn tiền khách (Phải trừ đi cả tiền Admin rút) -->
                     <div class="cash-row">
                         <div>
                             <strong>Tiền ra (Hoàn tiền khách)</strong>
                             <span>Khách hủy đơn hợp lệ</span>
                         </div>
-                        <div class="cash-value tone-red">{{ $money(abs((float) ($platformCashOut ?? 0) - (float) ($ownerWithdrawalOut ?? 0))) }}</div>
+                        <div class="cash-value tone-red">{{ $money(abs((float) ($platformCashOut ?? 0) - (float) ($ownerWithdrawalOut ?? 0) - (float) ($adminRevenueWithdrawal ?? 0))) }}</div>
+                    </div>
+
+                    <!-- THÊM MỚI: Dòng Admin rút doanh thu -->
+                    <div class="cash-row">
+                        <div>
+                            <strong>Tiền ra (Rút doanh thu)</strong>
+                            <span>Admin rút hoa hồng nền tảng</span>
+                        </div>
+                        <div class="cash-value tone-red">{{ $money($adminRevenueWithdrawal ?? 0) }}</div>
                     </div>
 
                     <!-- DÒNG CŨ: CHỈ HIỂN THỊ TIỀN OWNER RÚT THẬT SỰ -->
@@ -823,42 +840,71 @@
     </div>
 </div>
 <!-- Modal Rút Doanh Thu -->
-    <div id="withdrawModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
-        <div style="background:#fff; width:100%; max-width:400px; padding:24px; border-radius:16px; margin: 10% auto;">
-            <h3 style="margin-top:0">Rút Doanh Thu Nền Tảng</h3>
-            
-            @php
-                $safeToWithdraw = ($platformWalletBalance ?? 0) - ($totalWalletBalance ?? 0);
-                $displaySafeAmount = $safeToWithdraw > 0 ? $safeToWithdraw : 0;
-            @endphp
-            
-            <p style="color:#64748b; font-size:13px;">
-                Số dư khả dụng: <strong class="{{ $safeToWithdraw > 0 ? 'tone-green' : 'tone-red' }}">{{ $money($displaySafeAmount) }}</strong>
-            </p>
-            
-            <form action="{{ route('admin.finance.withdraw') }}" method="POST">
-                @csrf
-                <div style="margin-bottom:16px;">
-                    <label style="display:block; font-size:12px; font-weight:700; margin-bottom:8px;">Số tiền muốn rút (VNĐ)</label>
-                    <input type="number" name="amount" class="form-control-soft" style="width:100%;" 
-                           min="10000" max="{{ $displaySafeAmount > 0 ? $displaySafeAmount : 0 }}" 
-                           @if($displaySafeAmount <= 0) 
-                               disabled placeholder="Không đủ số dư..." 
-                           @else 
-                               required 
-                           @endif>
+    <div id="withdrawModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:9999; align-items:center; justify-content:center; backdrop-filter: blur(4px);">
+        <div style="background:#fff; width:100%; max-width:400px; padding:32px 24px; border-radius:20px; margin: 10% auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
+
+            <!-- BƯỚC 1: NHẬP SỐ TIỀN -->
+            <div id="wd-step-1">
+                <h3 style="margin:0 0 6px 0; font-size:18px; color:#0f172a;">Rút Doanh Thu Nền Tảng</h3>
+                @php
+                    $safeToWithdraw = ($platformWalletBalance ?? 0) - ($totalWalletBalance ?? 0);
+                    $displaySafeAmount = $safeToWithdraw > 0 ? $safeToWithdraw : 0;
+                @endphp
+                <p style="color:#64748b; font-size:13px; margin-bottom:24px;">
+                    Số dư khả dụng: <strong class="{{ $safeToWithdraw > 0 ? 'tone-green' : 'tone-red' }}">{{ $money($displaySafeAmount) }}</strong>
+                </p>
+
+                <form id="withdrawForm" action="{{ route('admin.finance.withdraw') }}" method="POST" onsubmit="handleWithdraw(event)">
+                    @csrf
+                    <div style="margin-bottom:24px;">
+                        <label style="display:block; font-size:12px; font-weight:700; margin-bottom:8px; color:#475569;">SỐ TIỀN MUỐN RÚT (VNĐ)</label>
+                        <input type="number" name="amount" id="wd-amount" class="form-control-soft" style="width:100%; font-size:16px; font-weight:700;"
+                               min="10000" max="{{ $displaySafeAmount > 0 ? $displaySafeAmount : 0 }}"
+                               @if($displaySafeAmount <= 0) disabled placeholder="Không đủ số dư..." @else required @endif>
+                    </div>
+                    <div style="display:flex; gap:12px; justify-content:flex-end;">
+                        <button type="button" class="btn-soft" onclick="document.getElementById('withdrawModal').style.display='none'">Hủy</button>
+                        <button type="submit" class="btn-primary-soft" @if($displaySafeAmount <= 0) disabled style="opacity: 0.5; cursor: not-allowed;" @endif>
+                            Xác nhận rút
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- BƯỚC 2: LOADING -->
+            <div id="wd-step-2" style="display:none; text-align:center; padding: 20px 0;">
+                <h4 style="margin:0; font-size:16px; color:#0f172a;">Đang chuyển tiền...</h4>
+                <div class="sg-progress-bar">
+                    <div class="sg-progress-fill" id="wd-progress"></div>
                 </div>
-                <div style="display:flex; gap:10px; justify-content:flex-end;">
-                    <button type="button" class="btn-soft" onclick="document.getElementById('withdrawModal').style.display='none'">Hủy</button>
-                    <!-- Khóa nút nếu không có tiền khả dụng -->
-                    <button type="submit" class="btn-primary-soft" 
-                            @if($displaySafeAmount <= 0) 
-                                disabled style="opacity: 0.5; cursor: not-allowed;" 
-                            @endif>
-                        Xác nhận rút
-                    </button>
+                <p style="margin:0; font-size:12px; color:#059669; font-weight:700; letter-spacing: 0.05em; text-transform: uppercase;">
+                    ⚡ Settlement Gateway...
+                </p>
+            </div>
+
+            <!-- BƯỚC 3: SUCCESS -->
+            <div id="wd-step-3" style="display:none; text-align:center;">
+                <div class="sg-success-icon">✔</div>
+                <h4 style="margin:0 0 20px 0; font-size:20px; color:#10b981; font-weight:900;">Giao dịch thành công</h4>
+
+                <div style="background: #f8fafc; border-radius: 14px; padding: 16px; margin-bottom: 24px; text-align: left; border: 1px solid #e2e8f0;">
+                    <div class="sg-detail-row">
+                        <span style="color:#64748b;">Số tiền</span>
+                        <strong class="tone-green" id="res-amount" style="font-size:15px;"></strong>
+                    </div>
+                    <div class="sg-detail-row">
+                        <span style="color:#64748b;">Mã GD</span>
+                        <strong style="color:#0f172a;" id="res-ref"></strong>
+                    </div>
+                    <div class="sg-detail-row">
+                        <span style="color:#64748b;">Ngân hàng</span>
+                        <strong class="tone-blue" id="res-bank"></strong>
+                    </div>
                 </div>
-            </form>
+
+                <button class="btn-primary-soft" style="width: 100%; height:46px; font-size:14px;" onclick="window.location.reload()">Đóng & Làm mới bảng</button>
+            </div>
+
         </div>
     </div>
 @endsection
@@ -922,5 +968,49 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
+async function handleWithdraw(e) {
+            e.preventDefault(); // Chặn hành động reload trang mặc định của form
+            
+            const form = e.target;
+            const amountInput = document.getElementById('wd-amount').value;
+            const formData = new FormData(form);
+
+            // 1. Ẩn Step 1, Hiện Step 2 (Loading)
+            document.getElementById('wd-step-1').style.display = 'none';
+            document.getElementById('wd-step-2').style.display = 'block';
+
+            // 2. Kích hoạt hiệu ứng thanh chạy 2 giây
+            setTimeout(() => { document.getElementById('wd-progress').style.width = '100%'; }, 50);
+
+            try {
+                // 3. Gọi API ngầm xuống Backend để trừ tiền thật
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+                });
+                const data = await response.json();
+
+                // 4. Ép thời gian đợi đủ 2 giây để thanh loading chạy hết mới sang Step 3
+                setTimeout(() => {
+                    if (response.ok) {
+                        document.getElementById('wd-step-2').style.display = 'none';
+                        document.getElementById('wd-step-3').style.display = 'block';
+
+                        // Đổ dữ liệu thật từ Backend ra màn hình
+                        document.getElementById('res-amount').innerText = new Intl.NumberFormat('vi-VN').format(amountInput) + 'đ';
+                        document.getElementById('res-ref').innerText = data.reference_id;
+                        document.getElementById('res-bank').innerText = data.bank_code;
+                    } else {
+                        alert(data.error || data.message || 'Có lỗi xảy ra!');
+                        window.location.reload();
+                    }
+                }, 2000); 
+
+            } catch (error) {
+                alert('Lỗi kết nối máy chủ!');
+                window.location.reload();
+            }
+        }
 </script>
 @endpush
