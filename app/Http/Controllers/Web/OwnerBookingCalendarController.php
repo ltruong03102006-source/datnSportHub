@@ -51,6 +51,9 @@ class OwnerBookingCalendarController extends Controller
         if (!empty($idsToComplete)) {
             Booking::whereIn('id', $idsToComplete)->update(['status' => 'completed']);
         }
+
+        $completionService->settleCompletedBookings(ownerId: Auth::id());
+
         $venues = Venue::query()
             ->where('owner_id', Auth::id())
             ->with(['courts' => fn ($query) => $query->orderBy('name')])
@@ -122,7 +125,7 @@ class OwnerBookingCalendarController extends Controller
             )
             ->whereDate('slot_date', '>=', $start->toDateString())
             ->whereDate('slot_date', '<', $end->toDateString())
-            ->with(['court.venue', 'user'])
+            ->with(['court.venue', 'user', 'services']) // <--- Đã thêm services
             ->orderBy('slot_date')
             ->orderBy('start_time')
             ->get();
@@ -265,16 +268,37 @@ class OwnerBookingCalendarController extends Controller
                 $updateData['refund_status'] = 'refunded';
                 
                 $user = $lockedBooking->user;
-                $user->balance += $lockedBooking->total_price;
-                $user->save();
+                // 1. Dùng Wallet chuẩn
+                $wallet = $user->getOrCreateWallet();
+                $balanceBefore = $wallet->balance;
+                
+                $wallet->balance += $lockedBooking->total_price;
+                $wallet->save();
 
+                // 2. Ghi log ví Khách (có wallet_id và reference)
                 \App\Models\WalletTransaction::create([
-                    'user_id' => $user->id,
+                    'wallet_id' => $wallet->id,
+                    'booking_id' => $lockedBooking->id,
+                    'reference' => 'REFUND-B' . $lockedBooking->id . '-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(5)),
                     'type' => 'refund',
                     'amount' => $lockedBooking->total_price,
-                    'balance_after' => $user->balance,
+                    'balance_before' => $balanceBefore,
+                    'balance_after' => $wallet->balance,
                     'description' => 'Hoàn tiền do chủ sân hủy đơn đặt #' . $lockedBooking->id,
                 ]);
+
+                // 3. Trừ tiền Ví nền tảng
+                if (class_exists(\App\Services\PlatformWalletService::class)) {
+                    app(\App\Services\PlatformWalletService::class)->debit(
+                        amount: $lockedBooking->total_price,
+                        type: 'customer_refund_out',
+                        description: 'Hoàn tiền do chủ sân hủy đơn #' . $lockedBooking->id,
+                        referenceType: 'booking',
+                        referenceId: $lockedBooking->id,
+                        reference: 'REFUND-' . $lockedBooking->id,
+                        performedBy: $request->user()->id
+                    );
+                }
             } else {
                 $updateData['refund_amount'] = 0;
                 $updateData['refund_status'] = 'none';
@@ -332,7 +356,7 @@ class OwnerBookingCalendarController extends Controller
             'backgroundColor' => $status['color'],
             'borderColor' => $status['color'],
             'textColor' => '#ffffff',
-            'extendedProps' => [
+           'extendedProps' => [
                 'booking_id' => $booking->id,
                 'venue_name' => $booking->court->venue->name,
                 'court_name' => $booking->court->name,
@@ -340,14 +364,17 @@ class OwnerBookingCalendarController extends Controller
                 'customer_email' => $booking->user->email,
                 'customer_phone' => $booking->user->phone ?? 'Chưa cập nhật SĐT', 
                 
-                'status' => $displayStatus, // Gửi status đã ghi đè
-                'status_label' => $status['label'], // Gửi nhãn tên đã ghi đè
+                'status' => $displayStatus, 
+                'status_label' => $status['label'], 
                 
                 'total_price' => number_format((float) $booking->total_price, 0, ',', '.').' đ',
                 'note' => $booking->note,
                 'cancel_reason' => $booking->cancel_reason,
                 'date_label' => $booking->slot_date->format('d/m/Y'),
                 'time_label' => substr($booking->start_time, 0, 5).' - '.substr($booking->end_time, 0, 5),
+                
+                // BỔ SUNG DÒNG NÀY ĐỂ TRUYỀN DATA DỊCH VỤ SANG JAVASCRIPT
+                'services' => $booking->services, 
             ],
         ];
     }

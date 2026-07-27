@@ -22,6 +22,19 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $financialSettings = [
+            ['key' => 'default_commission_rate', 'value' => '10'], 
+            ['key' => 'owner_credit_limit', 'value' => '-1000000'], 
+            ['key' => 'minimum_withdraw', 'value' => '200000'],     
+            ['key' => 'minimum_topup', 'value' => '50000'],         
+        ];
+
+        foreach ($financialSettings as $setting) {
+            \App\Models\Setting::updateOrCreate(
+                ['key' => $setting['key']],
+                ['value' => $setting['value']]
+            );
+        }
         $this->call([
             VietnamUnitsSeeder::class,
             UsersTableSeeder::class,

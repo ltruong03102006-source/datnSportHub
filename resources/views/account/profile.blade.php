@@ -375,8 +375,8 @@
                 }"
                 x-init="fetchBanks(); generatePreview(); $watch('selectedBank', () => generatePreview()); $watch('accountNo', () => generatePreview()); $watch('accountName', () => generatePreview())"
             >
-                <h2 class="text-base font-bold text-zinc-900">Cấu hình Ngân hàng (VietQR)</h2>
-                <p class="mt-1 text-sm text-stone-500">Thông tin này sẽ được dùng để tạo mã QR thanh toán trên tất cả các sân của bạn.</p>
+                <h2 class="text-base font-bold text-zinc-900">Thông tin ngân hàng cá nhân</h2>
+                <p class="mt-1 text-sm text-stone-500">Thông tin này dùng cho hồ sơ và các giao dịch rút tiền. QR thanh toán đặt sân hiện do admin cấu hình.</p>
 
                 <div class="mt-6 flex flex-col md:flex-row gap-8">
                     <form method="POST" action="{{ route('account.profile.bank') }}" class="flex-1 grid gap-4">

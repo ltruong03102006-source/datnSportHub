@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\BookingPackage;
 use App\Models\BookingLog;
+use App\Models\User;
+use App\Models\WalletTransaction;
 use App\Services\BookingCompletionService;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
@@ -38,7 +40,17 @@ class UserBookingController extends Controller
         }
 
         $bookingGroup = $query->orderBy('start_time')->get();
-        $totalGroupPrice = $bookingGroup->sum('total_price');
+
+        $booking->load(['court.venue.sport', 'court.venue.ownerRegistration', 'items.rescheduleRequests']);
+        if ($booking->items->isNotEmpty()) {
+            $bookingGroup = $booking->items->sortBy('start_time')->values()->each(function ($item) use ($booking) {
+                $item->setRelation('court', $booking->court);
+            });
+        }
+
+        $totalGroupPrice = $booking->items->isNotEmpty()
+            ? $booking->items->sum('price')
+            : $bookingGroup->sum('total_price');
 
         $totalMinutes = 0;
         foreach ($bookingGroup as $b) {
@@ -93,6 +105,8 @@ class UserBookingController extends Controller
         if (!empty($idsToComplete)) {
             Booking::whereIn('id', $idsToComplete)->update(['status' => 'completed']);
         }
+
+        $completionService->settleCompletedBookings(userId: Auth::id());
 
         $bookings = Booking::select(
                 'court_id', 'slot_date', 'created_at', 'status', 'cancel_reason',
@@ -158,6 +172,7 @@ class UserBookingController extends Controller
 
             $booking->setAttribute('slot_date_label', $booking->slot_date?->format('d/m/Y') ?? '');
             $booking->setAttribute('merged_time_strings', $this->mergedTimeStrings($actualSlots, $booking->court?->name ?? 'Sân'));
+            $booking->setAttribute('history_schedule_groups', $this->historyScheduleGroups($actualSlots, $booking->court?->name ?? 'Sân'));
             $booking->setAttribute('owner_phone', $this->ownerPhoneForBooking($booking));
             $booking->setAttribute('is_eligible_status', $isEligibleStatus);
             $booking->setAttribute('is_past_start_time', $firstSlot ? $now->greaterThanOrEqualTo($this->slotStartsAt($firstSlot)) : false);
@@ -166,7 +181,16 @@ class UserBookingController extends Controller
 
     private function loadHistorySlotGroups($bookings)
     {
-        return Booking::where('user_id', Auth::id())
+        $bookingIds = $bookings->pluck('id')->filter()->values();
+        $itemGroups = \App\Models\BookingItem::query()
+            ->with(['booking', 'rescheduleRequests'])
+            ->whereIn('booking_id', $bookingIds)
+            ->orderBy('slot_date')
+            ->orderBy('start_time')
+            ->get()
+            ->groupBy(fn (\App\Models\BookingItem $item): string => $this->historyGroupKey($item->booking));
+
+        $legacyGroups = Booking::where('user_id', Auth::id())
             ->where(function ($query) use ($bookings): void {
                 foreach ($bookings as $booking) {
                     $query->orWhere(function ($groupQuery) use ($booking): void {
@@ -184,9 +208,12 @@ class UserBookingController extends Controller
                     });
                 }
             })
+            ->whereDoesntHave('items')
             ->orderBy('start_time')
             ->get()
             ->groupBy(fn (Booking $slot): string => $this->historyGroupKey($slot));
+
+        return $legacyGroups->toBase()->merge($itemGroups->toBase());
     }
 
     private function mergedTimeStrings($actualSlots, string $courtName): array
@@ -217,6 +244,88 @@ class UserBookingController extends Controller
         $merged[] = "- Sân {$courtName}: {$currentStart} - {$currentEnd}";
 
         return $merged;
+    }
+
+    private function historyScheduleGroups($actualSlots, string $courtName): array
+    {
+        return $actualSlots
+            ->sortBy(fn ($slot) => $this->slotDateString($slot).' '.(string) $slot->start_time)
+            ->groupBy(fn ($slot) => $this->slotDateString($slot))
+            ->map(function ($slots, string $dateValue) use ($courtName): array {
+                return [
+                    'date' => Carbon::parse($dateValue)->format('d/m/Y'),
+                    'slots' => $slots->sortBy('start_time')->values()->map(function ($slot) use ($courtName): array {
+                        $approvedChange = null;
+                        $pendingChange = null;
+
+                        if (method_exists($slot, 'relationLoaded') && $slot->relationLoaded('rescheduleRequests')) {
+                            $approvedChange = $slot->rescheduleRequests
+                                ->where('status', 'approved')
+                                ->sortByDesc('approved_at')
+                                ->first();
+
+                            $pendingChange = $slot->rescheduleRequests
+                                ->where('status', 'pending')
+                                ->sortByDesc('created_at')
+                                ->first();
+                        }
+
+                        $start = substr((string) $slot->start_time, 0, 5);
+                        $end = substr((string) $slot->end_time, 0, 5);
+                        $tooltip = null;
+                        $badgeLabel = null;
+                        $badgeClass = null;
+                        $textClass = 'text-slate-700';
+
+                        if ($approvedChange) {
+                            $newDate = $approvedChange->new_slot_date?->format('d/m/Y') ?? $this->slotDateString($slot);
+                            $newStart = substr((string) ($approvedChange->new_start_time ?? $slot->start_time), 0, 5);
+                            $newEnd = substr((string) ($approvedChange->new_end_time ?? $slot->end_time), 0, 5);
+                            $oldDate = $approvedChange->old_slot_date?->format('d/m/Y') ?? '';
+                            $oldStart = substr((string) $approvedChange->old_start_time, 0, 5);
+                            $oldEnd = substr((string) $approvedChange->old_end_time, 0, 5);
+                            $tooltip = "Ca mới đã đổi: {$newDate} {$newStart} - {$newEnd}. Từ ca cũ: {$oldDate} {$oldStart} - {$oldEnd}.";
+                            $badgeLabel = 'Đã đổi';
+                            $badgeClass = 'bg-emerald-100 text-emerald-700 ring-emerald-200';
+                            $textClass = 'text-emerald-700';
+                        } elseif ($pendingChange || ($slot->status ?? null) === 'reschedule_pending') {
+                            if ($pendingChange) {
+                                $newDate = $pendingChange->new_slot_date?->format('d/m/Y') ?? $this->slotDateString($slot);
+                                $newStart = substr((string) ($pendingChange->new_start_time ?? $slot->start_time), 0, 5);
+                                $newEnd = substr((string) ($pendingChange->new_end_time ?? $slot->end_time), 0, 5);
+                                $tooltip = "Đang chờ chủ sân duyệt đổi sang: {$newDate} {$newStart} - {$newEnd}.";
+                            } else {
+                                $tooltip = 'Ca này đang có yêu cầu đổi lịch và chờ chủ sân duyệt.';
+                            }
+
+                            $badgeLabel = 'Đang đổi lịch';
+                            $badgeClass = 'bg-amber-100 text-amber-700 ring-amber-200';
+                            $textClass = 'text-amber-700';
+                        }
+
+                        return [
+                            'text' => "- Sân {$courtName}: {$start} - {$end}",
+                            'is_rescheduled' => (bool) $approvedChange,
+                            'is_reschedule_pending' => ! $approvedChange && (bool) $pendingChange,
+                            'badge_label' => $badgeLabel,
+                            'badge_class' => $badgeClass,
+                            'text_class' => $textClass,
+                            'tooltip' => $tooltip,
+                        ];
+                    })->all(),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function slotDateString($slot): string
+    {
+        $date = $slot->slot_date ?? now('Asia/Ho_Chi_Minh');
+
+        return $date instanceof Carbon
+            ? $date->format('Y-m-d')
+            : Carbon::parse($date)->format('Y-m-d');
     }
 
     private function ownerPhoneForBooking(Booking $booking): ?string
@@ -256,7 +365,8 @@ class UserBookingController extends Controller
 
         try {
             DB::transaction(function () use ($booking, $reason): void {
-                $groupBookings = Booking::where('user_id', Auth::id())
+                // SỬA: Thêm with('services') để load dữ liệu dịch vụ từ bảng trung gian
+                $groupBookings = Booking::with('services')->where('user_id', Auth::id())
                     ->where('court_id', $booking->court_id)->where('slot_date', $booking->slot_date)
                     ->where('created_at', $booking->created_at)
                     ->whereIn('status', self::CANCELLABLE_STATUSES)->lockForUpdate()->get();
@@ -266,9 +376,10 @@ class UserBookingController extends Controller
                 $firstBooking = $groupBookings->sortBy('start_time')->first();
                 $this->ensureCanCancel($firstBooking);
                 
-                // --- SỬA TẠI ĐÂY: GỌI THUẬT TOÁN TÍNH PHẠT ĐỘNG ---
+                // GỌI THUẬT TOÁN TÍNH PHẠT ĐỘNG
                 $feePercent = $this->determineCancellationFeePercent($firstBooking);
 
+                /** @var User $user */
                 $user = Auth::user();
 
                 foreach ($groupBookings as $b) {
@@ -277,23 +388,50 @@ class UserBookingController extends Controller
                     $refundStatus = 'none';
 
                     if ($b->payment_status === 'paid') {
-                        $fee = ($b->total_price * $feePercent) / 100;
-                        $refund = $b->total_price - $fee;
+                        // SỬA: BÓC TÁCH TIỀN DỊCH VỤ KHỎI PHÍ PHẠT
+                        $bServicesTotal = $b->services->sum('pivot.price');
+                        $bCourtPrice = max(0, $b->total_price - $bServicesTotal); // Lấy ra tiền thuê sân gốc
+                        
+                        $fee = ($bCourtPrice * $feePercent) / 100; // Chỉ tính phạt trên tiền sân
+                        $refund = $b->total_price - $fee; // Tiền hoàn lại = Tổng đơn - Phạt (Tự động hoàn 100% DV)
                         
                         if ($refund > 0) {
-                            $refundStatus = 'refunded';
-                            
-                            $user->balance += $refund;
-                            $user->save();
+    $refundStatus = 'refunded';
+    
+    // 1. Lấy hoặc tạo Ví điện tử cho Khách hàng
+    $wallet = $user->getOrCreateWallet();
+    $balanceBefore = $wallet->balance;
+    
+    // 2. Cộng tiền hoàn vào Ví của Khách
+    $wallet->balance += $refund;
+    $wallet->save();
 
-                            \App\Models\WalletTransaction::create([
-                                'user_id' => $user->id,
-                                'type' => 'refund',
-                                'amount' => $refund,
-                                'balance_after' => $user->balance,
-                                'description' => 'Hoàn tiền sau khi trừ phí hủy cho đơn đặt sân #' . $b->id,
-                            ]);
-                        }
+    // 3. Ghi Log giao dịch cho Khách (Sử dụng đúng wallet_id)
+    // 3. Ghi Log giao dịch cho Khách (Đã bổ sung reference)
+    WalletTransaction::create([
+        'wallet_id' => $wallet->id,
+        'booking_id' => $b->id,
+        'reference' => 'REFUND-B' . $b->id . '-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(5)), // Thêm dòng này
+        'type' => 'refund', 
+        'amount' => $refund,
+        'balance_before' => $balanceBefore,
+        'balance_after' => $wallet->balance,
+        'description' => 'Hoàn tiền sau khi trừ phí hủy cho đơn đặt sân #' . $b->id,
+    ]);
+
+    // 4. BẮT BUỘC: Trừ tiền từ Két sắt của Admin (Ví nền tảng)
+    if (class_exists(\App\Services\PlatformWalletService::class)) {
+        app(\App\Services\PlatformWalletService::class)->debit(
+            amount: $refund,
+            type: 'customer_refund_out',
+            description: 'Hoàn tiền cho khách hủy đơn #' . $b->id,
+            referenceType: 'booking',
+            referenceId: $b->id,
+            reference: 'REFUND-' . $b->id,
+            performedBy: Auth::id()
+        );
+    }
+}
                     }
 
                     $oldStatus = $b->status;
@@ -310,7 +448,6 @@ class UserBookingController extends Controller
                         'changed_by' => Auth::id(),
                         'old_status' => $oldStatus,
                         'new_status' => 'cancelled',
-                        // --- SỬA TẠI ĐÂY: DÙNG BIẾN $feePercent TRONG GHI CHÚ ---
                         'note' => "Khách hủy. Phạt {$feePercent}%. Lý do: {$reason}",
                     ]);
                 }
@@ -363,7 +500,8 @@ class UserBookingController extends Controller
     {
         $this->ensureOwner($booking);
         
-        $groupBookings = Booking::where('user_id', Auth::id())
+        // SỬA: Thêm with('services') để load dữ liệu dịch vụ
+        $groupBookings = Booking::with('services')->where('user_id', Auth::id())
             ->where('court_id', $booking->court_id)->where('slot_date', $booking->slot_date)
             ->where('created_at', $booking->created_at)->whereIn('status', self::CANCELLABLE_STATUSES)->get();
 
@@ -384,9 +522,16 @@ class UserBookingController extends Controller
         $feePercent = $this->determineCancellationFeePercent($firstBooking);
         
         $totalPrice = $groupBookings->sum('total_price');
+        
+        // SỬA: BÓC TÁCH TIỀN DỊCH VỤ TRÊN GIAO DIỆN HIỂN THỊ
+        $servicesTotal = $groupBookings->flatMap->services->sum('pivot.price');
+        $courtPrice = max(0, $totalPrice - $servicesTotal);
+        
         $isPaid = $firstBooking->payment_status === 'paid';
         
-        $fee = $isPaid ? ($totalPrice * $feePercent) / 100 : 0;
+        // Phạt trên tiền sân
+        $fee = $isPaid ? ($courtPrice * $feePercent) / 100 : 0;
+        // Hoàn lại tổng tiền đơn (gồm cả tiền dịch vụ nguyên vẹn)
         $refund = $isPaid ? ($totalPrice - $fee) : 0;
 
         return response()->json([
@@ -398,7 +543,7 @@ class UserBookingController extends Controller
         ]);
     }
 
-    private function slotStartsAt(Booking $booking): Carbon
+    private function slotStartsAt($booking): Carbon
     {
         $slotDate = $booking->slot_date instanceof Carbon
             ? $booking->slot_date->format('Y-m-d')

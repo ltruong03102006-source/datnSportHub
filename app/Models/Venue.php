@@ -32,12 +32,17 @@ class Venue extends Model
         'rules',
         'banner', 
         'status',
+        'debt_suspended_at',
+        'suspended_reason',
+        'status_before_debt_suspension',
+        'auto_suspend_enabled',
         'phone',
         'email',
         'open_hours',
         'close_hours',
         'google_maps_address',
         'allow_package_booking',
+        'commission_rate',
     ];
 
     // Ép kiểu (Casts) tọa độ sang số thực để tránh lỗi hiển thị bản đồ
@@ -45,6 +50,9 @@ class Venue extends Model
         'lat' => 'float',
         'lng' => 'float',
         'allow_package_booking' => 'boolean',
+        'auto_suspend_enabled' => 'boolean',
+        'debt_suspended_at' => 'datetime',
+        'commission_rate' => 'decimal:2',
     ];
 
     public function owner(): BelongsTo
@@ -220,5 +228,25 @@ class Venue extends Model
             ->orderBy('distance_km');
 
         return $query->when($radiusKm, fn (Builder $q) => $q->whereRaw("{$haversine} <= ?", [$lat, $lng, $lat, $radiusKm]));
+    }
+    public function services(): HasMany
+    {
+        return $this->hasMany(Service::class);
+    }
+    /** 
+     * Lấy yêu cầu thay đổi thông tin (bản nháp) mới nhất đang chờ Admin duyệt 
+     */
+    public function pendingUpdateRequest(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(VenueUpdateRequest::class)->where('status', 'pending')->latestOfMany();
+    }
+
+    // BẠN THÊM ĐOẠN NÀY VÀO ĐÂY NHÉ:
+    /**
+     * Lấy tất cả các yêu cầu thay đổi thông tin của cơ sở này
+     */
+    public function updateRequests(): HasMany
+    {
+        return $this->hasMany(VenueUpdateRequest::class);
     }
 }

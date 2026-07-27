@@ -35,4 +35,24 @@ return [
         ],
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', '/auth/google/callback'),
+    ],
+
+    'facebook' => [
+        'client_id' => env('FACEBOOK_CLIENT_ID'),
+        'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
+        'redirect' => env('FACEBOOK_REDIRECT_URI', '/auth/facebook/callback'),
+    ],
+
+    'vnpay' => [
+        'tmn_code' => env('VNPAY_TMN_CODE', env('VNP_TMN_CODE')),
+        'hash_secret' => env('VNPAY_HASH_SECRET', env('VNP_HASH_SECRET')),
+        'url' => env('VNPAY_URL', env('VNP_URL', 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html')),
+        'return_url' => env('VNPAY_RETURN_URL'),
+        'topup_return_url' => env('VNPAY_TOPUP_RETURN_URL'),
+    ],
+
 ];

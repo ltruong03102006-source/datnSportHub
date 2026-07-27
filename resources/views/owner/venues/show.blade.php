@@ -328,7 +328,83 @@
                         <div class="text-muted small"><strong>Kinh độ:</strong> {{ $venue->lng }}</div>
                     </div>
                 </div>
-                <h5 class="fw-bold text-dark border-bottom pb-2 mt-4 mb-3">Thư viện ảnh</h5>
+                    <!-- THÊM MỚI: THÔNG TIN LIÊN HỆ -->
+                <h5 class="fw-bold text-dark border-bottom pb-2 mt-5 mb-3">Thông tin liên hệ</h5>
+                <div class="row g-3 mb-2">
+                    <div class="col-12 col-md-6">
+                        <strong><i class="fa-solid fa-phone me-2 text-success"></i>Số điện thoại:</strong> 
+                        {{ $venue->phone ?? 'Chưa cập nhật' }}
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <strong><i class="fa-solid fa-envelope me-2 text-success"></i>Email:</strong> 
+                        {{ $venue->email ?? 'Chưa cập nhật' }}
+                    </div>
+                </div>
+
+                <!-- THÊM MỚI: HỒ SƠ PHÁP LÝ & THANH TOÁN -->
+                <h5 class="fw-bold text-dark border-bottom pb-2 mt-5 mb-3">Hồ sơ pháp lý & Thanh toán</h5>
+                @if($venue->legalDocument)
+                    <div class="bg-light p-4 rounded-3 border">
+                        <div class="row g-3">
+                            <div class="col-12 col-md-4">
+                                <div class="text-muted small">Tên chủ sở hữu</div>
+                                <div class="fw-bold">{{ $venue->legalDocument->owner_name }}</div>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <div class="text-muted small">Số CCCD</div>
+                                <div class="fw-bold">{{ $venue->legalDocument->citizen_id }}</div>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <div class="text-muted small">Mã số thuế / GPKD</div>
+                                <div class="fw-bold">{{ $venue->legalDocument->business_license_number }}</div>
+                            </div>
+                            
+                            <div class="col-12"><hr class="text-muted my-1"></div>
+
+                            <div class="col-12 col-md-4">
+                                <div class="text-muted small">Ngân hàng</div>
+                                <div class="fw-bold text-primary">{{ $venue->legalDocument->bank_name }}</div>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <div class="text-muted small">Số tài khoản</div>
+                                <div class="fw-bold text-primary">{{ $venue->legalDocument->bank_account_number }}</div>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <div class="text-muted small">Chủ tài khoản</div>
+                                <div class="fw-bold text-primary">{{ $venue->legalDocument->bank_account_holder }}</div>
+                            </div>
+
+                            <div class="col-12"><hr class="text-muted my-1"></div>
+
+                            <div class="col-12">
+                                <div class="text-muted small mb-2">Tài liệu đính kèm</div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    @if($venue->legalDocument->citizen_front_image)
+                                        <a href="{{ asset('storage/' . $venue->legalDocument->citizen_front_image) }}" target="_blank" class="btn btn-sm btn-outline-secondary">CCCD Mặt trước</a>
+                                    @endif
+                                    @if($venue->legalDocument->citizen_back_image)
+                                        <a href="{{ asset('storage/' . $venue->legalDocument->citizen_back_image) }}" target="_blank" class="btn btn-sm btn-outline-secondary">CCCD Mặt sau</a>
+                                    @endif
+                                    @if($venue->legalDocument->business_license_file)
+                                        <a href="{{ asset('storage/' . $venue->legalDocument->business_license_file) }}" target="_blank" class="btn btn-sm btn-outline-success">Giấy phép KD</a>
+                                    @endif
+                                    @if($venue->legalDocument->rental_contract_file)
+                                        <a href="{{ asset('storage/' . $venue->legalDocument->rental_contract_file) }}" target="_blank" class="btn btn-sm btn-outline-info">Hợp đồng thuê</a>
+                                    @endif
+                                    @if($venue->legalDocument->land_certificate_file)
+                                        <a href="{{ asset('storage/' . $venue->legalDocument->land_certificate_file) }}" target="_blank" class="btn btn-sm btn-outline-warning">Sổ đỏ/Sổ hồng</a>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @else
+                    <div class="alert alert-secondary text-center">
+                        Cơ sở này chưa có hồ sơ pháp lý.
+                    </div>
+                @endif
+            </div>
+            <h5 class="fw-bold text-dark border-bottom pb-2 mt-4 mb-3">Thư viện ảnh</h5>
                     @if($venue->images && $venue->images->count() > 0)
                         <div class="d-flex flex-wrap gap-2">
                             @foreach($venue->images as $img)
@@ -338,7 +414,6 @@
                     @else
                         <div class="text-muted small">Chưa có ảnh nào trong thư viện.</div>
                     @endif
-            </div>
         </div>
     </div>
     <div class="card card-shell mb-4">
@@ -377,6 +452,79 @@
                         <tr><td colspan="3" class="text-center text-muted py-4">Đang tải cấu hình...</td></tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+    <!-- KHỐI QUẢN LÝ DỊCH VỤ -->
+    <div class="card card-shell mb-4">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3" style="border-top-left-radius: 18px; border-top-right-radius: 18px;">
+            <h5 class="mb-0 fw-bold">Dịch vụ & Đồ uống bán kèm</h5>
+            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createServiceModal">
+                + Thêm Dịch vụ
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <div class="list-group list-group-flush rounded-bottom" style="border-bottom-left-radius: 18px; border-bottom-right-radius: 18px;">
+                @forelse($venue->services ?? [] as $service)
+                    <div class="list-group-item py-3 px-4 d-flex justify-content-between align-items-center">
+                        <div class="d-flex items-center gap-3">
+                            <div class="bg-light rounded d-flex align-items-center justify-content-center border" style="width: 48px; height: 48px;">
+                                @if($service->image)
+                                    <img src="{{ asset('storage/'.$service->image) }}" class="w-100 h-100 object-cover rounded">
+                                @else
+                                    <i class="fa-solid fa-box text-secondary"></i>
+                                @endif
+                            </div>
+                            <div>
+                                <h6 class="mb-1 fw-bold text-dark d-flex align-items-center gap-2">
+                                    {{ $service->name }}
+                                    @if($service->pricing_type === 'rental')
+                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle" style="font-size: 0.65rem; padding: 0.35em 0.5em;">Cho thuê</span>
+                                    @else
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle" style="font-size: 0.65rem; padding: 0.35em 0.5em;">Bán đứt</span>
+                                    @endif
+                                </h6>
+                                <div class="text-muted small">
+                                    Giá: <strong class="text-success">{{ number_format($service->price, 0, ',', '.') }}đ</strong> / {{ $service->unit }}
+<span class="mx-2">|</span> 
+Trạng thái: {!! $service->is_active ? '<span class="text-success">Đang bán</span>' : '<span class="text-danger">Tạm ngưng</span>' !!}
+
+<!-- BỔ SUNG ĐOẠN NÀY ĐỂ NHẮC NHỞ CHỦ SÂN -->
+@if($service->stock === 0)
+    <span class="ms-2 badge bg-danger">Kho: Đã hết</span>
+@elseif($service->stock !== null)
+    <span class="ms-2 badge bg-info text-dark">Kho: {{ $service->stock }}</span>
+@endif
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <!-- Nút Đổi trạng thái (Bật/Tắt) -->
+                            <form action="{{ route('owner.web.services.toggle', $service->id) }}" method="POST" class="m-0">
+                                @csrf @method('PATCH')
+                                <button type="submit" class="btn btn-sm {{ $service->is_active ? 'btn-outline-secondary' : 'btn-outline-success' }}">
+                                    {{ $service->is_active ? 'Tạm ngưng' : 'Mở bán lại' }}
+                                </button>
+                            </form>
+                            <!-- BẮT ĐẦU: Nút Sửa -->
+                            <button type="button" 
+                                    class="btn btn-sm btn-outline-primary"
+                                    onclick='openEditServiceModal(@json($service))'>
+                                Sửa
+                            </button>
+                            <!-- KẾT THÚC: Nút Sửa -->
+                            <!-- Nút Xóa -->
+                            <form action="{{ route('owner.web.services.destroy', $service->id) }}" method="POST" class="m-0" onsubmit="return confirm('Bạn có chắc chắn muốn xóa dịch vụ này?');">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Xóa</button>
+                            </form>
+                        </div>
+                    </div>
+                @empty
+                    <div class="list-group-item py-4 text-center text-muted bg-light">
+                        Chưa có dịch vụ/đồ uống nào. Bấm "Thêm Dịch vụ" để tạo mặt hàng mới!
+                    </div>
+                @endforelse
             </div>
         </div>
     </div>
@@ -547,7 +695,137 @@
         </div>
     </div>
 </div>
+<!-- Modal Thêm Dịch Vụ -->
+<div class="modal fade" id="createServiceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius: 14px;">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Thêm Dịch Vụ / Đồ Uống</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('owner.web.services.store') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <input type="hidden" name="venue_id" value="{{ $venue->id }}">
+                
+                <div class="modal-body space-y-3 p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tên dịch vụ <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" placeholder="VD: Nước khoáng Lavie / Vợt Tennis" required>
+                    </div>
 
+                    <!-- HÀNG MỚI: DANH MỤC & HÌNH THỨC -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Danh mục <span class="text-danger">*</span></label>
+                            <select name="category" class="form-select" required>
+                                <option value="do_uong">🍹 Đồ uống</option>
+                                <option value="do_an">🍔 Đồ ăn</option>
+                                <option value="dung_cu">🎾 Dụng cụ</option>
+                                <option value="combo">🎁 Combo</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Hình thức tính tiền <span class="text-danger">*</span></label>
+                            <select name="pricing_type" class="form-select" required>
+                                <option value="retail">Bán đứt (SL x Giá)</option>
+                                <option value="rental">Cho thuê (SL x Giờ x Giá)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- HÀNG MỚI: GIÁ - ĐƠN VỊ - TỒN KHO -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-4">
+                            <label class="form-label fw-semibold">Đơn giá <span class="text-danger">*</span></label>
+                            <input type="number" name="price" class="form-control" placeholder="10000" min="0" onkeydown="return ['e', 'E', '+', '-', '.'].includes(event.key) ? false : true" required>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold">Đơn vị <span class="text-danger">*</span></label>
+                            <input type="text" name="unit" class="form-control" placeholder="Chai/Giờ..." required>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold">Tồn kho</label>
+                            <input type="number" name="stock" class="form-control" placeholder="Vô hạn" min="0">
+                        </div>
+                    </div>
+
+                    <div class="mb-1">
+                        <label class="form-label fw-semibold">Hình ảnh (Không bắt buộc)</label>
+                        <input type="file" name="image" accept="image/*" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-3 border-top-0">
+                    <button type="button" class="btn btn-outline-secondary fw-bold" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary text-white fw-bold px-4">Lưu dịch vụ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- Modal Sửa Dịch Vụ -->
+<div class="modal fade" id="editServiceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius: 14px;">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Sửa Dịch Vụ / Đồ Uống</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formEditService" method="POST" enctype="multipart/form-data">
+                @csrf
+                @method('PUT')
+                <div class="modal-body space-y-3 p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Tên dịch vụ <span class="text-danger">*</span></label>
+                        <input type="text" name="name" id="edit_service_name" class="form-control" required>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Danh mục <span class="text-danger">*</span></label>
+                            <select name="category" id="edit_service_category" class="form-select" required>
+                                <option value="do_uong">🍹 Đồ uống</option>
+                                <option value="do_an">🍔 Đồ ăn</option>
+                                <option value="dung_cu">🎾 Dụng cụ</option>
+                                <option value="combo">🎁 Combo</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Hình thức tính tiền <span class="text-danger">*</span></label>
+                            <select name="pricing_type" id="edit_service_pricing_type" class="form-select" required>
+                                <option value="retail">Bán đứt (SL x Giá)</option>
+                                <option value="rental">Cho thuê (SL x Giờ x Giá)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-4">
+                            <label class="form-label fw-semibold">Đơn giá <span class="text-danger">*</span></label>
+                            <input type="number" name="price" id="edit_service_price" class="form-control" min="0" onkeydown="return ['e', 'E', '+', '-', '.'].includes(event.key) ? false : true" required>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold">Đơn vị <span class="text-danger">*</span></label>
+                            <input type="text" name="unit" id="edit_service_unit" class="form-control" required>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-semibold">Tồn kho</label>
+                            <input type="number" name="stock" id="edit_service_stock" class="form-control" min="0">
+                        </div>
+                    </div>
+
+                    <div class="mb-1">
+                        <label class="form-label fw-semibold">Cập nhật Hình ảnh (Để trống nếu giữ nguyên)</label>
+                        <input type="file" name="image" accept="image/*" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer bg-light rounded-bottom-3 border-top-0">
+                    <button type="button" class="btn btn-outline-secondary fw-bold" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary text-white fw-bold px-4">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 <div class="modal fade" id="generateSlotsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content" style="border-radius: 14px;">
@@ -1291,6 +1569,67 @@
         } catch (e) { 
             alert('Lỗi kết nối đến máy chủ.'); 
         }
+    }
+    // --- LOGIC THÔNG MINH CHO FORM THÊM DỊCH VỤ ---
+    document.addEventListener('DOMContentLoaded', function() {
+        // Form Thêm mới
+        const categorySelect = document.querySelector('#createServiceModal select[name="category"]');
+        const pricingTypeSelect = document.querySelector('#createServiceModal select[name="pricing_type"]');
+        const unitInput = document.querySelector('#createServiceModal input[name="unit"]');
+
+        function updateFormLogic() {
+            if (!categorySelect || !pricingTypeSelect || !unitInput) return;
+
+            // 1. Logic: Đồ ăn/Uống/Combo không được cho thuê
+            if (['do_uong', 'do_an', 'combo'].includes(categorySelect.value)) {
+                pricingTypeSelect.value = 'retail'; // Ép về Bán đứt
+                pricingTypeSelect.querySelector('option[value="rental"]').disabled = true; // Khóa Cho thuê
+            } else {
+                pricingTypeSelect.querySelector('option[value="rental"]').disabled = false; // Mở khóa Cho thuê
+            }
+
+            // 2. Logic: Cho thuê thì GỢI Ý "Chiếc/Giờ" nhưng VẪN CHO SỬA
+            if (pricingTypeSelect.value === 'rental') {
+                // Nếu ô đang trống hoặc đang là đơn vị cũ, tự động gợi ý
+                if (unitInput.value === '' || !unitInput.value.includes('Giờ')) {
+                    unitInput.value = '';
+                }
+            }
+        }
+
+        // Gắn sự kiện lắng nghe khi người dùng thay đổi Dropdown
+        if (categorySelect && pricingTypeSelect && unitInput) {
+            updateFormLogic(); // Chạy 1 lần lúc mới mở Modal
+            
+            categorySelect.addEventListener('change', updateFormLogic);
+            pricingTypeSelect.addEventListener('change', updateFormLogic);
+        }
+    });
+    function openEditServiceModal(service) {
+        // Đổ dữ liệu vào các ô input
+        document.getElementById('edit_service_name').value = service.name;
+        document.getElementById('edit_service_price').value = Math.round(service.price);
+        document.getElementById('edit_service_unit').value = service.unit;
+        document.getElementById('edit_service_stock').value = service.stock !== null ? service.stock : '';
+        document.getElementById('edit_service_category').value = service.category;
+        document.getElementById('edit_service_pricing_type').value = service.pricing_type;
+        
+        // Cập nhật đường dẫn (Action) của Form để gọi đúng tới API cập nhật
+        document.getElementById('formEditService').action = `/owner/services/${service.id}`;
+        
+        // Cập nhật lại logic khóa nút như lúc thêm mới
+        const categorySelect = document.getElementById('edit_service_category');
+        const pricingTypeSelect = document.getElementById('edit_service_pricing_type');
+        
+        if (['do_uong', 'do_an', 'combo'].includes(service.category)) {
+            pricingTypeSelect.querySelector('option[value="rental"]').disabled = true;
+        } else {
+            pricingTypeSelect.querySelector('option[value="rental"]').disabled = false;
+        }
+        
+        // Hiện Modal (Bootstrap 5)
+        var myModal = new bootstrap.Modal(document.getElementById('editServiceModal'));
+        myModal.show();
     }
 </script>
 @include('owner.partials.notification-script')
