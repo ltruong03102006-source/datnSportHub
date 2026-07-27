@@ -12,6 +12,10 @@ use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Models\WithdrawalRequest;
 use App\Services\DebtService;
+use App\Services\PlatformWalletService;
+use App\Gateways\SettlementGatewayInterface;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
@@ -501,5 +505,54 @@ class AdminFinanceDashboardController extends Controller
             'total' => $rows->pluck('total_commission')->values(),
             'rows' => $rows,
         ];
+    }
+    public function withdrawRevenue(Request $request, PlatformWalletService $walletService, SettlementGatewayInterface $gateway)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:10000'
+        ], [
+            'amount.required' => 'Vui lòng nhập số tiền muốn rút.',
+            'amount.min' => 'Số tiền rút tối thiểu là 10.000đ.'
+        ]);
+        
+        $amount = (float) $request->amount;
+
+        try {
+            DB::transaction(function () use ($amount, $walletService, $gateway) {
+                // 1. Tính tổng số dư khả dụng của tất cả Chủ sân (những ví có tiền > 0)
+                $totalOwnerBalance = Wallet::where('balance', '>', 0)->sum('balance');
+                
+                // Lấy ví nền tảng hiện tại
+                $platformWallet = $walletService->getDefaultWallet();
+                
+                // Tính số tiền an toàn (Tiền nền tảng đang có - Tiền đang nợ chủ sân)
+                $safeWithdrawableAmount = $platformWallet->balance - $totalOwnerBalance;
+
+                if ($amount > $safeWithdrawableAmount) {
+                    throw new \Exception('Lỗi: Số tiền rút vượt quá lợi nhuận khả dụng thực tế!');
+                }
+
+                // 2. Tạo mã tham chiếu giao dịch đối soát (Settlement)
+                $referenceId = 'SETTLE-' . Str::upper(Str::random(8));
+
+                // 3. Trừ tiền Ví nền tảng (Hold tiền chờ ngân hàng xử lý)
+                $walletService->debit(
+                    amount: $amount,
+                    type: 'admin_revenue_withdrawal',
+                    description: 'Đang xử lý lệnh rút doanh thu nền tảng (Ref: ' . $referenceId . ')',
+                    referenceType: 'settlement', 
+                    reference: $referenceId,
+                    performedBy: auth()->id()
+                );
+
+                // 4. Bàn giao lệnh chuyển tiền cho Gateway xử lý ngầm (bắn qua ngân hàng ảo)
+                $gateway->processPayout($referenceId, $amount, []);
+            });
+
+            return back()->with('success', 'Đã tiếp nhận lệnh rút doanh thu. Hệ thống đối soát đang xử lý!');
+            
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
     }
 }
