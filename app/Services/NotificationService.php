@@ -142,4 +142,20 @@ class NotificationService
         $link = route('account.bookings.index');
         return $this->create($userId, $title, $content, $link, 'reschedule_rejected');
     }
+
+    public function notifyOwnerDebtWarning(int $ownerId, array $summary): Notification
+    {
+        $usagePercent = round((float) ($summary['usage_percent'] ?? 0), 2);
+        $debtAmount = number_format((float) ($summary['debt_amount'] ?? 0), 0, ',', '.');
+        $debtLimit = number_format((float) ($summary['debt_limit'] ?? 0), 0, ',', '.');
+
+        $title = 'Cảnh báo công nợ';
+        $content = "Công nợ của bạn đã đạt {$usagePercent}% hạn mức ({$debtAmount}đ / {$debtLimit}đ). Vui lòng nạp tiền để tránh bị tạm khóa cơ sở.";
+
+        if ($usagePercent >= 100) {
+            $content = "Công nợ của bạn đã vượt hạn mức cho phép ({$debtAmount}đ / {$debtLimit}đ). Cơ sở có thể bị tạm khóa cho đến khi bạn nạp tiền trả nợ.";
+        }
+
+        return $this->create($ownerId, $title, $content, route('owner.web.wallet.topup.create'), 'debt_warning');
+    }
 }

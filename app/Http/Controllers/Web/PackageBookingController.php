@@ -8,9 +8,12 @@ use App\Models\BookingPackage;
 use App\Models\Venue;
 use App\Models\VenuePackage;
 use App\Services\PackageBookingService;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 use RuntimeException;
 use Throwable;
@@ -128,6 +131,123 @@ class PackageBookingController extends Controller
         ]);
 
         return view('package-bookings.show', compact('bookingPackage'));
+    }
+
+    public function showVnpay(Request $request, BookingPackage $bookingPackage): RedirectResponse|View
+    {
+        abort_unless(
+            (int) $bookingPackage->user_id === (int) $request->user()->id,
+            403
+        );
+
+        if ($bookingPackage->status !== 'pending_payment') {
+            return redirect()->route('package-bookings.show', $bookingPackage)
+                ->with('error', 'Chỉ những gói đang chờ thanh toán mới có thể thanh toán VNPay.');
+        }
+
+        $service = app(\App\Services\PackageBookingService::class);
+        $packageHoldExpiresAt = $service->paymentHoldExpiresAt($bookingPackage);
+        $packageHoldExpired = $service->paymentHoldExpired($bookingPackage);
+
+        return view('package-bookings.payment.vnpay', compact('bookingPackage', 'packageHoldExpiresAt', 'packageHoldExpired'));
+    }
+
+    public function startVnpay(Request $request, BookingPackage $bookingPackage): RedirectResponse
+    {
+        abort_unless(
+            (int) $bookingPackage->user_id === (int) $request->user()->id,
+            403
+        );
+
+        $service = app(\App\Services\PackageBookingService::class);
+
+        if ($bookingPackage->status !== 'pending_payment') {
+            return redirect()->route('package-bookings.show', $bookingPackage)
+                ->with('error', 'Chỉ những gói đang chờ thanh toán mới có thể thanh toán VNPay.');
+        }
+
+        if ($service->paymentHoldExpired($bookingPackage)) {
+            return redirect()->route('package-bookings.show', $bookingPackage)
+                ->with('error', 'Thời gian giữ chỗ thanh toán đã hết. Vui lòng tạo lại gói mới.');
+        }
+
+        try {
+            $paymentUrl = $this->createPackagePaymentUrl($request, $bookingPackage);
+        } catch (\Throwable $exception) {
+            Log::error('Lỗi khi tạo đường dẫn VNPay cho gói đặt sân.', [
+                'booking_package_id' => $bookingPackage->id,
+                'user_id' => $request->user()->id,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return redirect()->route('package-bookings.show', $bookingPackage)
+                ->with('error', 'Không thể khởi tạo thanh toán VNPay. Vui lòng thử lại.');
+        }
+
+        return redirect()->away($paymentUrl);
+    }
+
+    private function createPackagePaymentUrl(Request $request, BookingPackage $bookingPackage): string
+    {
+        $vnp_TmnCode = config('vnpay.vnp_TmnCode');
+        $vnp_HashSecret = config('vnpay.vnp_HashSecret');
+        $vnp_Url = config('vnpay.vnp_Url');
+        $vnp_Returnurl = route('vnpay.callback');
+
+        if (! $vnp_Url || ! $vnp_TmnCode || ! $vnp_HashSecret) {
+            throw new RuntimeException('Thiếu cấu hình VNPay. Vui lòng kiểm tra cấu hình VNPAY.');
+        }
+
+        $txnRef = 'PKG-' . $bookingPackage->id . '-' . time();
+        $amount = (int) round($bookingPackage->final_amount * 100);
+
+        $inputData = [
+            'vnp_Version' => '2.1.0',
+            'vnp_TmnCode' => $vnp_TmnCode,
+            'vnp_Amount' => $amount,
+            'vnp_Command' => 'pay',
+            'vnp_CreateDate' => now()->format('YmdHis'),
+            'vnp_CurrCode' => 'VND',
+            'vnp_IpAddr' => $request->ip() ?: '127.0.0.1',
+            'vnp_Locale' => 'vn',
+            'vnp_OrderInfo' => 'Thanh toan goi SportHub ' . $bookingPackage->id,
+            'vnp_OrderType' => 'other',
+            'vnp_ReturnUrl' => $vnp_Returnurl,
+            'vnp_TxnRef' => $txnRef,
+        ];
+
+        ksort($inputData);
+
+        $hashData = '';
+        $query = '';
+        $i = 0;
+
+        foreach ($inputData as $key => $value) {
+            if ($i === 1) {
+                $hashData .= '&' . urlencode($key) . '=' . urlencode($value);
+            } else {
+                $hashData .= urlencode($key) . '=' . urlencode($value);
+                $i = 1;
+            }
+            $query .= urlencode($key) . '=' . urlencode($value) . '&';
+        }
+
+        $vnpSecureHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
+        $paymentUrl = $vnp_Url . '?' . $query . 'vnp_SecureHash=' . $vnpSecureHash;
+
+        if (Schema::hasTable('transactions') && Schema::hasColumn('transactions', 'booking_package_id')) {
+            DB::table('transactions')
+                ->where('booking_package_id', $bookingPackage->id)
+                ->where('payment_status', 'pending')
+                ->update([
+                    'payment_method' => 'vnpay',
+                    'payment_gateway' => 'VNPay',
+                    'note' => 'Khách hàng đang chuyển sang cổng thanh toán VNPay cho gói đặt sân.',
+                    'transaction_time' => now(),
+                ]);
+        }
+
+        return $paymentUrl;
     }
 
     /**

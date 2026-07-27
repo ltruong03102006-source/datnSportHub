@@ -8,10 +8,12 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Sanctum\HasApiTokens; // 1. Import class HasApiTokens
+use \App\Traits\HasWallet;
 
 // 2. Thêm 'role' và 'status' vào danh sách cho phép fill
 #[Fillable(['name', 'email', 'phone', 'avatar', 'password', 'role', 'status', 'provider', 'provider_id', 'bank_name', 'bank_account_no', 'bank_account_name', 'balance'])]
@@ -20,7 +22,7 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     // 3. Khai báo sử dụng trait HasApiTokens
-    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    use HasApiTokens, HasFactory, Notifiable, HasWallet;
 
     /**
      * Get the attributes that should be cast.
@@ -58,5 +60,25 @@ class User extends Authenticatable
     public function bookingPackages(): HasMany
     {
         return $this->hasMany(BookingPackage::class);
+    }
+
+    public function topupTransactions(): HasMany
+    {
+        return $this->hasMany(TopupTransaction::class, 'owner_id');
+    }
+
+    public function withdrawalRequests(): HasMany
+    {
+        return $this->hasMany(WithdrawalRequest::class, 'owner_id');
+    }
+
+    public function performedPlatformWalletTransactions(): HasMany
+    {
+        return $this->hasMany(PlatformWalletTransaction::class, 'performed_by');
+    }
+
+    public function wallet(): HasOne
+    {
+        return $this->hasOne(Wallet::class, 'owner_id');
     }
 }

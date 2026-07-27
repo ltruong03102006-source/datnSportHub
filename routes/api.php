@@ -26,6 +26,7 @@ use App\Http\Controllers\Web\UserBookingController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/webhooks/settlement', [\App\Http\Controllers\Api\WebhookController::class, 'handleSettlement']);
 
 /*
 |--------------------------------------------------------------------------

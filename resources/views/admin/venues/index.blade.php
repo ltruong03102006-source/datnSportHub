@@ -393,7 +393,7 @@
     <form action="{{ route('admin.venues.index') }}" method="GET" style="display: flex; width: 100%; gap: 24px; align-items: center;">
         <div class="search-box">
             <i class="fa-solid fa-magnifying-glass"></i>
-            <input type="text" name="search" placeholder="Tìm kiếm theo tên sân hoặc chủ sân..." value="{{ request('search') }}">
+            <input type="text" name="search" placeholder="Tìm theo tên sân, địa chỉ, tên/email chủ sân..." value="{{ request('search') }}">
         </div>
         
 
@@ -441,6 +441,9 @@
                 </td>
                 <td>
                     <div class="owner-name">{{ $venue->owner ? $venue->owner->name : 'Không có' }}</div>
+                    @if($venue->owner?->email)
+                        <div class="text-muted small">{{ $venue->owner->email }}</div>
+                    @endif
                 </td>
                 <td title="{{ $venue->address }}">
                     <div class="address-text">{{ $venue->address }}</div>
@@ -458,12 +461,19 @@
                     <div class="text-muted">{{ $venue->created_at ? $venue->created_at->format('d/m/Y') : '-' }}</div>
                 </td>
                 <td style="text-align: right; white-space: nowrap;">
-                    <div class="venue-actions">
-                    <a href="{{ route('admin.venues.documents', $venue->id) }}"
-                    class="venue-action-btn venue-action-docs">
-                        <i class="fa-regular fa-folder-open"></i> Hồ sơ
-                    </a>
-                    @if($venue->status === 'pending')
+    <div class="venue-actions">
+        <!-- Nút cấu hình hoa hồng -->
+        <button type="button" class="venue-action-btn" style="color: #d97706; background: #fef3c7; border-color: #fde68a;" data-bs-toggle="modal" data-bs-target="#commissionModal{{ $venue->id }}">
+            <i class="fa-solid fa-percent"></i> Phí
+        </button>
+
+        <!-- Nút xem hồ sơ cũ của bạn -->
+        <a href="{{ route('admin.venues.documents', $venue->id) }}"
+        class="venue-action-btn venue-action-docs">
+            <i class="fa-regular fa-folder-open"></i> Hồ sơ
+        </a>
+        
+        @if($venue->status === 'pending')
     <form action="{{ route('admin.venues.approve', $venue->id) }}" method="POST">
         @csrf
         <button type="submit" class="venue-action-btn venue-action-approve"><i class="fa-solid fa-check"></i> Duyệt</button>
@@ -484,6 +494,52 @@
                     </div>
                 </td>
             </tr>
+           {{-- <!-- Modal Cấu Hình Hoa Hồng Riêng cho từng Venue -->
+<div class="modal fade" id="commissionModal{{ $venue->id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border: none; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+            <form action="{{ route('admin.venues.commission.update', $venue->id) }}" method="POST">
+                @csrf
+                @method('PUT')
+                <div class="modal-header" style="background-color: #fffbeb; border-bottom: 1px solid #fde68a; border-radius: 12px 12px 0 0; padding: 16px 24px;">
+                    <h5 class="modal-title" style="color: #d97706; font-weight: 700; font-size: 16px;">
+                        <i class="fa-solid fa-percent me-2"></i> Hoa Hồng Riêng
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <div class="modal-body text-start" style="padding: 24px;">
+                    <div class="mb-2">
+                        <label class="form-label" style="font-size: 13px; font-weight: 700; color: #495057; text-transform: uppercase;">Cơ sở áp dụng</label>
+                        <div style="padding: 10px 16px; background: #f8f9fa; border-radius: 8px; font-weight: 600; color: #212529; border: 1px solid #e9ecef;">
+                            {{ $venue->name }}
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <label class="form-label" style="font-size: 13px; font-weight: 700; color: #495057; text-transform: uppercase;">Tỷ lệ hoa hồng (%)</label>
+                        <input type="number" step="0.01" class="form-control" name="commission_rate" 
+                               value="{{ $venue->commission_rate }}" placeholder="VD: 15.5" 
+                               style="border-radius: 8px; padding: 12px 16px; font-size: 16px; font-weight: 600; border: 2px solid #fde68a;">
+                        
+                        <div class="alert alert-warning mt-3 mb-0" style="background-color: #fffbeb; border-color: #fde68a; color: #92400e; font-size: 13px; padding: 12px; border-radius: 8px;">
+                            <i class="fa-solid fa-circle-info me-1"></i> <strong>Lưu ý:</strong><br>
+                            - Nhập số để áp dụng mức phí đặc biệt cho cơ sở này.<br>
+                            - <strong>Xóa trắng ô nhập</strong> nếu muốn cơ sở này sử dụng lại mức phí mặc định của hệ thống.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer" style="border-top: 1px solid #f3f4f6; padding: 16px 24px;">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="font-weight: 600; border-radius: 8px; padding: 8px 20px;">Đóng</button>
+                    <button type="submit" class="btn" style="background-color: #f59e0b; color: white; font-weight: 600; border-radius: 8px; padding: 8px 20px; box-shadow: 0 4px 6px rgba(245, 158, 11, 0.2);">
+                        Lưu Cấu Hình
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div> --}}
             @empty
             <tr>
                 <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">Không tìm thấy cơ sở sân nào.</td>
@@ -494,7 +550,7 @@
     
     <div class="pagination-wrapper">
         <div class="pagination-info">
-            Hiển thị {{ $venues->firstItem() ?? 0 }}-{{ $venues->lastItem() ?? 0 }} trên tổng số {{ $totalVenues }} sân
+            Hiển thị {{ $venues->firstItem() ?? 0 }}-{{ $venues->lastItem() ?? 0 }} trên tổng số {{ $venues->total() }} sân
         </div>
         <div class="pagination-links">
             {{ $venues->links('vendor.pagination.admin') }}
@@ -523,7 +579,69 @@
         </form>
     </div>
 </div> --}}
+<!-- ================= KHU VỰC CHỨA MODAL (NẰM NGOÀI BẢNG) ================= -->
+@foreach($venues as $venue)
+    <!-- Modal Cấu Hình Hoa Hồng Riêng cho từng Venue -->
+    <div class="modal fade" id="commissionModal{{ $venue->id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border: none; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+                <form action="{{ route('admin.venues.commission.update', $venue->id) }}" method="POST">
+                    @csrf
+                    @method('PUT')
+                    <div class="modal-header" style="background-color: #fffbeb; border-bottom: 1px solid #fde68a; border-radius: 12px 12px 0 0; padding: 16px 24px;">
+                        <h5 class="modal-title" style="color: #d97706; font-weight: 700; font-size: 16px;">
+                            <i class="fa-solid fa-percent me-2"></i> Hoa Hồng Riêng
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    
+                    <div class="modal-body text-start" style="padding: 24px;">
+                        <div class="mb-2">
+                            <label class="form-label" style="font-size: 13px; font-weight: 700; color: #495057; text-transform: uppercase;">Cơ sở áp dụng</label>
+                            <div style="padding: 10px 16px; background: #f8f9fa; border-radius: 8px; font-weight: 600; color: #212529; border: 1px solid #e9ecef;">
+                                {{ $venue->name }}
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                        <label class="form-label" style="font-size: 13px; font-weight: 700; color: #495057; text-transform: uppercase;">Tỷ lệ hoa hồng (%)</label>
+                        
+                        <!-- TRƯỜNG ẨN ĐỂ NHẬN DIỆN ĐANG SỬA SÂN NÀO -->
+                        <input type="hidden" name="error_venue_id" value="{{ $venue->id }}">
 
+                        <input type="number" step="0.01" 
+                               class="form-control @if($errors->has('commission_rate') && old('error_venue_id') == $venue->id) is-invalid @endif" 
+                               name="commission_rate" 
+                               value="{{ old('error_venue_id') == $venue->id ? old('commission_rate') : $venue->commission_rate }}" 
+                               placeholder="VD: 15.5" 
+                               style="border-radius: 8px; padding: 12px 16px; font-size: 16px; font-weight: 600; border: 2px solid #fde68a;">
+                        
+                        <!-- HIỂN THỊ LỖI MÀU ĐỎ -->
+                        @if($errors->has('commission_rate') && old('error_venue_id') == $venue->id)
+                            <small class="text-danger d-block mt-2 fw-bold">
+                                <i class="fa-solid fa-circle-exclamation"></i> {{ $errors->first('commission_rate') }}
+                            </small>
+                        @endif
+                        
+                        <div class="alert alert-warning mt-3 mb-0" style="background-color: #fffbeb; border-color: #fde68a; color: #92400e; font-size: 13px; padding: 12px; border-radius: 8px;">
+                            <i class="fa-solid fa-circle-info me-1"></i> <strong>Lưu ý:</strong><br>
+                            - Nhập số để áp dụng mức phí đặc biệt cho cơ sở này.<br>
+                            - <strong>Xóa trắng ô nhập</strong> nếu muốn cơ sở này sử dụng lại mức phí mặc định của hệ thống.
+                        </div>
+                    </div>
+                    </div>
+                    
+                    <div class="modal-footer" style="border-top: 1px solid #f3f4f6; padding: 16px 24px;">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="font-weight: 600; border-radius: 8px; padding: 8px 20px;">Đóng</button>
+                        <button type="submit" class="btn" style="background-color: #f59e0b; color: white; font-weight: 600; border-radius: 8px; padding: 8px 20px; box-shadow: 0 4px 6px rgba(245, 158, 11, 0.2);">
+                            Lưu Cấu Hình
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endforeach
 
 @endsection
 
@@ -585,5 +703,16 @@
 
     return confirm('Bạn có chắc chắn muốn từ chối cơ sở sân này không?');
 }
+@if($errors->any() && old('error_venue_id'))
+        document.addEventListener('DOMContentLoaded', function () {
+            // Tự động tìm đúng ID của Modal vừa bị lỗi và bật nó lên lại
+            var modalId = 'commissionModal{{ old("error_venue_id") }}';
+            var modalElement = document.getElementById(modalId);
+            if(modalElement) {
+                var myModal = new bootstrap.Modal(modalElement);
+                myModal.show();
+            }
+        });
+    @endif
 </script>
 @endpush

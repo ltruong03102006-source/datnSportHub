@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\BookingPackage;
 use App\Models\BookingLog;
+use App\Models\User;
+use App\Models\WalletTransaction;
 use App\Services\BookingCompletionService;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
@@ -103,6 +105,8 @@ class UserBookingController extends Controller
         if (!empty($idsToComplete)) {
             Booking::whereIn('id', $idsToComplete)->update(['status' => 'completed']);
         }
+
+        $completionService->settleCompletedBookings(userId: Auth::id());
 
         $bookings = Booking::select(
                 'court_id', 'slot_date', 'created_at', 'status', 'cancel_reason',
@@ -375,6 +379,7 @@ class UserBookingController extends Controller
                 // GỌI THUẬT TOÁN TÍNH PHẠT ĐỘNG
                 $feePercent = $this->determineCancellationFeePercent($firstBooking);
 
+                /** @var User $user */
                 $user = Auth::user();
 
                 foreach ($groupBookings as $b) {
@@ -391,19 +396,42 @@ class UserBookingController extends Controller
                         $refund = $b->total_price - $fee; // Tiền hoàn lại = Tổng đơn - Phạt (Tự động hoàn 100% DV)
                         
                         if ($refund > 0) {
-                            $refundStatus = 'refunded';
-                            
-                            $user->balance += $refund;
-                            $user->save();
+    $refundStatus = 'refunded';
+    
+    // 1. Lấy hoặc tạo Ví điện tử cho Khách hàng
+    $wallet = $user->getOrCreateWallet();
+    $balanceBefore = $wallet->balance;
+    
+    // 2. Cộng tiền hoàn vào Ví của Khách
+    $wallet->balance += $refund;
+    $wallet->save();
 
-                            \App\Models\WalletTransaction::create([
-                                'user_id' => $user->id,
-                                'type' => 'refund',
-                                'amount' => $refund,
-                                'balance_after' => $user->balance,
-                                'description' => 'Hoàn tiền sau khi trừ phí hủy cho đơn đặt sân #' . $b->id,
-                            ]);
-                        }
+    // 3. Ghi Log giao dịch cho Khách (Sử dụng đúng wallet_id)
+    // 3. Ghi Log giao dịch cho Khách (Đã bổ sung reference)
+    WalletTransaction::create([
+        'wallet_id' => $wallet->id,
+        'booking_id' => $b->id,
+        'reference' => 'REFUND-B' . $b->id . '-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(5)), // Thêm dòng này
+        'type' => 'refund', 
+        'amount' => $refund,
+        'balance_before' => $balanceBefore,
+        'balance_after' => $wallet->balance,
+        'description' => 'Hoàn tiền sau khi trừ phí hủy cho đơn đặt sân #' . $b->id,
+    ]);
+
+    // 4. BẮT BUỘC: Trừ tiền từ Két sắt của Admin (Ví nền tảng)
+    if (class_exists(\App\Services\PlatformWalletService::class)) {
+        app(\App\Services\PlatformWalletService::class)->debit(
+            amount: $refund,
+            type: 'customer_refund_out',
+            description: 'Hoàn tiền cho khách hủy đơn #' . $b->id,
+            referenceType: 'booking',
+            referenceId: $b->id,
+            reference: 'REFUND-' . $b->id,
+            performedBy: Auth::id()
+        );
+    }
+}
                     }
 
                     $oldStatus = $b->status;
