@@ -152,16 +152,31 @@
                 <div class="info-label">Chủ tài khoản</div>
                 <div class="info-value">{{ $withdrawal->bank_account_holder ?? $withdrawal->bank_account_name }}</div>
             </div>
-        </section>
 
-        <section class="info-card">
-            <div class="card-title">Ghi chú</div>
-
-            <div class="info-label" style="margin-bottom: 8px;">Ghi chú chủ sân</div>
-            <div class="note-box">{{ $withdrawal->owner_note ?: 'Không có ghi chú.' }}</div>
-
-            <div class="info-label" style="margin: 16px 0 8px;">Ghi chú admin</div>
-            <div class="note-box">{{ $withdrawal->admin_note ?: 'Chưa có ghi chú admin.' }}</div>
+            <!-- MÃ VIETQR TỰ ĐỘNG (CHỈ HIỂN THỊ KHI ĐƠN ĐANG CHỜ DUYỆT) -->
+            @if($statusValue === 'pending')
+                @php
+                    $bankMap = [
+                        'Vietcombank' => 'VCB', 'Techcombank' => 'TCB', 'MBBank' => 'MB',
+                        'VietinBank' => 'CTG', 'BIDV' => 'BIDV', 'ACB' => 'ACB',
+                        'VPBank' => 'VPB', 'Agribank' => 'VBA', 'TPBank' => 'TPB',
+                        'Sacombank' => 'STB'
+                    ];
+                    $bankCode = $bankMap[$withdrawal->bank_name] ?? $withdrawal->bank_name;
+                    $transferNote = urlencode("Thanh toan rut tien " . $withdrawal->code);
+                    $accountName = urlencode($withdrawal->bank_account_holder ?? $withdrawal->bank_account_name);
+                    $amount = (int) $withdrawal->amount;
+                    
+                    $qrUrl = "https://img.vietqr.io/image/{$bankCode}-".($withdrawal->bank_account_number ?? $withdrawal->bank_account_no)."-compact2.png?amount={$amount}&addInfo={$transferNote}&accountName={$accountName}";
+                @endphp
+                
+                <div style="margin-top: 24px; background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px dashed #cbd5e1; text-align: center;">
+                    <div style="color: #059669; font-size: 13px; font-weight: 800; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">
+                        <i class="fa-solid fa-qrcode"></i> Quét mã để chuyển khoản nhanh
+                    </div>
+                    <img src="{{ $qrUrl }}" alt="VietQR Code" style="max-width: 200px; border-radius: 8px; margin: 0 auto; display: block; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                </div>
+            @endif
         </section>
 
         @if($statusValue === 'pending')

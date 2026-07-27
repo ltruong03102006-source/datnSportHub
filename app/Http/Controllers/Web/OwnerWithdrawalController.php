@@ -48,18 +48,23 @@ class OwnerWithdrawalController extends Controller
             ->sum('amount');
 
         $availableBalance = max(0, (float) $wallet->balance - (float) $pendingWithdrawAmount);
-
+        // 1. THÊM DÒNG NÀY ĐỂ LẤY HẠN MỨC TỪ DB (Giống hệt hàm store):
+        $minWithdraw = \App\Models\Setting::where('key', 'minimum_withdraw')->value('value') ?? 50000;
         return view('owner.withdrawals.create', compact(
             'wallet',
             'pendingWithdrawAmount',
-            'availableBalance'
+            'availableBalance', 'minWithdraw'
         ));
     }
 
     public function store(Request $request): RedirectResponse
     {
+        // 1. Lấy cấu hình Rút tối thiểu từ DB, nếu không có thì mặc định 50k
+        $minWithdraw = \App\Models\Setting::where('key', 'minimum_withdraw')->value('value') ?? 50000;
+
+        // 2. Ép rule validate theo biến $minWithdraw
         $data = $request->validate([
-            'amount' => ['required', 'numeric', 'min:50000'],
+            'amount' => ['required', 'numeric', 'min:' . $minWithdraw],
             'bank_name' => ['required', 'string', 'max:255'],
             'bank_account_number' => ['required', 'string', 'max:50'],
             'bank_account_holder' => ['required', 'string', 'max:255'],
@@ -67,7 +72,8 @@ class OwnerWithdrawalController extends Controller
         ], [
             'amount.required' => 'Vui lòng nhập số tiền muốn rút.',
             'amount.numeric' => 'Số tiền rút không hợp lệ.',
-            'amount.min' => 'Số tiền rút tối thiểu là 50.000đ.',
+            // 3. Render câu thông báo lỗi linh động
+            'amount.min' => 'Số tiền rút tối thiểu là ' . number_format($minWithdraw, 0, ',', '.') . 'đ.',
             'bank_name.required' => 'Vui lòng nhập tên ngân hàng.',
             'bank_account_number.required' => 'Vui lòng nhập số tài khoản.',
             'bank_account_holder.required' => 'Vui lòng nhập tên chủ tài khoản.',
@@ -92,7 +98,7 @@ class OwnerWithdrawalController extends Controller
                 ]);
             }
 
-            $pendingWithdrawAmount = WithdrawalRequest::query()
+            $pendingWithdrawAmount = \App\Models\WithdrawalRequest::query()
                 ->where('owner_id', $owner->id)
                 ->where('status', 'pending')
                 ->lockForUpdate()
@@ -106,7 +112,7 @@ class OwnerWithdrawalController extends Controller
                 ]);
             }
 
-            WithdrawalRequest::create([
+            \App\Models\WithdrawalRequest::create([
                 'owner_id' => $owner->id,
                 'wallet_id' => $wallet->id,
                 'code' => 'WD-' . now()->format('YmdHis') . '-' . $owner->id . '-' . Str::upper(Str::random(4)),
