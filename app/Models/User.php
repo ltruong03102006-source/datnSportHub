@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Sanctum\HasApiTokens; // 1. Import class HasApiTokens
 
 // 2. Thêm 'role' và 'status' vào danh sách cho phép fill
@@ -19,7 +20,7 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     // 3. Khai báo sử dụng trait HasApiTokens
-    use HasApiTokens, HasFactory, Notifiable; 
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     /**
      * Get the attributes that should be cast.

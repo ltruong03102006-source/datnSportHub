@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\BookingRequest;
 use App\Jobs\SendBookingConfirmation;
 use App\Models\Booking;
+use App\Models\BookingItem;
 use App\Models\BookingLog;
 use App\Models\Court;
 use App\Models\Setting;
+use App\Models\TimeSlot;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -50,30 +52,50 @@ class BookingController extends Controller
                 }
             }
 
-            $bookings = DB::transaction(function () use ($request, $slots, $dayOfWeek, $now, $court, $holdCutoff) {
-                $created = collect();
+            $booking = DB::transaction(function () use ($request, $slots, $dayOfWeek, $now, $court, $holdCutoff) {
+                $items = collect();
 
                 // 1. TÍNH TỔNG SỐ GIỜ KHÁCH ĐẶT ĐỂ TÍNH TIỀN CHO THUÊ
                 $totalMinutes = 0;
                 foreach ($slots as $slot) {
-                    $totalMinutes += Carbon::parse($slot['start_time'])->diffInMinutes(Carbon::parse($slot['end_time']));
-                }
-                $totalHours = $totalMinutes / 60;
+                    $conflict = BookingItem::whereDate('slot_date', $request->slot_date)
+                        ->where(function ($q) use ($slot) {
+                            $q->where('start_time', '<', $slot['end_time'])
+                                ->where('end_time', '>', $slot['start_time']);
+                        })
+                        ->whereIn('status', ['booked', 'reschedule_pending'])
+                        ->whereHas('booking', function ($query) use ($request, $holdCutoff) {
+                            $query->where('court_id', $request->court_id)
+                                ->where(function ($statusQuery) use ($holdCutoff) {
+                                    $statusQuery->whereIn('status', ['confirmed', 'completed'])
+                                        ->orWhere(function ($pendingQuery) use ($holdCutoff) {
+                                            $pendingQuery->where('status', 'pending')
+                                                ->where('created_at', '>=', $holdCutoff);
+                                        });
+                                });
+                        })
+                        ->lockForUpdate()
+                        ->exists();
 
-                // 2. TÍNH TIỀN DỊCH VỤ VÀ CHUẨN BỊ DATA ĐỂ LƯU PIVOT
-                $servicesTotal = 0;
-                $syncData = [];
-                if ($request->has('services') && is_array($request->services)) {
-                    foreach ($request->services as $svc) {
-                        $service = \App\Models\Service::find($svc['id']);
-                        if ($service && $service->is_active && ($service->stock === null || $service->stock >= $svc['quantity'])) {
-                            $itemPrice = $service->pricing_type === 'rental' 
-                                ? $service->price * $svc['quantity'] * $totalHours 
-                                : $service->price * $svc['quantity'];
-                            
-                            $servicesTotal += $itemPrice;
-                            $syncData[$service->id] = ['quantity' => $svc['quantity'], 'price' => $itemPrice];
-                        }
+                    $legacyConflict = Booking::where('court_id', $request->court_id)
+                        ->whereDate('slot_date', $request->slot_date)
+                        ->where(function ($statusQuery) use ($holdCutoff) {
+                            $statusQuery->whereIn('status', ['confirmed', 'completed'])
+                                ->orWhere(function ($pendingQuery) use ($holdCutoff) {
+                                    $pendingQuery->where('status', 'pending')
+                                        ->where('created_at', '>=', $holdCutoff);
+                                });
+                        })
+                        ->whereDoesntHave('items')
+                        ->where(function ($q) use ($slot) {
+                            $q->where('start_time', '<', $slot['end_time'])
+                                ->where('end_time', '>', $slot['start_time']);
+                        })
+                        ->lockForUpdate()
+                        ->exists();
+
+                    if ($conflict || $legacyConflict) {
+                        throw new HttpException(409, 'This time slot has already been booked');
                     }
                 }
 
@@ -82,10 +104,16 @@ class BookingController extends Controller
                 foreach ($slots as $slot) {
                     // ... (Đoạn check conflict giữ nguyên) ...
 
+                    $timeSlot = TimeSlot::where('court_id', $request->court_id)
+                        ->where('start_time', $slot['start_time'])
+                        ->where('end_time', $slot['end_time'])
+                        ->first();
+
                     $price = DB::table('slot_prices')
                         ->join('time_slots', 'slot_prices.time_slot_id', '=', 'time_slots.id')
                         ->where('time_slots.court_id', $request->court_id)
                         ->where('time_slots.start_time', $slot['start_time'])
+                        ->where('time_slots.end_time', $slot['end_time'])
                         ->where(function ($q) use ($dayOfWeek) {
                             $q->where('slot_prices.day_of_week', $dayOfWeek)
                                 ->orWhereNull('slot_prices.day_of_week');
@@ -93,47 +121,42 @@ class BookingController extends Controller
                         ->orderByRaw('day_of_week IS NULL ASC')
                         ->value('price') ?? 0;
 
-                    $booking = new Booking();
-                    $booking->court_id = $request->court_id;
-                    $booking->user_id = Auth::id();
-                    $booking->slot_date = $request->slot_date;
-                    $booking->start_time = $slot['start_time'];
-                    $booking->end_time = $slot['end_time'];
-                    
-                    // NẾU LÀ BOOKING ĐẦU TIÊN -> CỘNG TỔNG TIỀN DỊCH VỤ VÀO ĐƠN NÀY
-                    if ($isFirstBooking) {
-                        $booking->total_price = $price + $servicesTotal;
-                    } else {
-                        $booking->total_price = $price;
-                    }
-
-                    $booking->status = 'pending';
-                    $booking->payment_status = 'unpaid';
-                    $booking->note = $request->note;
-                    $booking->timestamps = false;
-                    $booking->created_at = $now;
-                    $booking->updated_at = $now;
-                    $booking->save();
-
-                    // LƯU CHI TIẾT DỊCH VỤ VÀ TRỪ TỒN KHO VÀO BOOKING ĐẦU TIÊN
-                    if ($isFirstBooking && !empty($syncData)) {
-                        $booking->services()->sync($syncData);
-                        
-                        // Trừ tồn kho thực tế
-                        foreach ($syncData as $serviceId => $data) {
-                            $svcModel = \App\Models\Service::find($serviceId);
-                            if ($svcModel->stock !== null) {
-                                $svcModel->decrement('stock', $data['quantity']);
-                            }
-                        }
-                        $isFirstBooking = false; // Tắt cờ, các booking ca sau không bị cộng tiền DV nữa
-                    }
-
-                    $booking->recordStatusChange(Auth::id(), '', 'pending', 'Người dùng tạo booking', $now);
-                    $created->push($booking);
+                    $items->push([
+                        'time_slot_id' => $timeSlot?->id,
+                        'slot_date' => $request->slot_date,
+                        'start_time' => $slot['start_time'],
+                        'end_time' => $slot['end_time'],
+                        'price' => $price,
+                        'status' => 'booked',
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]);
                 }
 
-                return $created;
+                $booking = new Booking();
+                $booking->court_id = $request->court_id;
+                $booking->time_slot_id = $items->first()['time_slot_id'];
+                $booking->user_id = Auth::id();
+                $booking->slot_date = $request->slot_date;
+                $booking->start_time = $items->first()['start_time'];
+                $booking->end_time = $items->last()['end_time'];
+                $booking->total_price = $items->sum('price');
+                $booking->status = 'pending';
+                $booking->payment_status = 'unpaid';
+                $booking->note = $request->note;
+                $booking->timestamps = false;
+                $booking->created_at = $now;
+                $booking->updated_at = $now;
+                $booking->save();
+
+                $booking->items()->createMany($items->map(function ($item) {
+                    unset($item['created_at'], $item['updated_at']);
+                    return $item;
+                })->all());
+
+                $booking->recordStatusChange(Auth::id(), '', 'pending', 'Người dùng tạo booking', $now);
+
+                return $booking;
             });
         } catch (HttpException $exception) {
             return response()->json([
@@ -141,36 +164,29 @@ class BookingController extends Controller
             ], $exception->getStatusCode());
         }
 
-        $bookings = $bookings->map(function ($booking) {
-            dispatch(new SendBookingConfirmation($booking));
-            return $booking->load('court.venue');
-        });
+        dispatch(new SendBookingConfirmation($booking));
+        $booking->load(['court.venue', 'items']);
 
-        // Notify customer and owner(s) about new booking(s) (best-effort)
+        // Notify customer and owner about new booking (best-effort)
         try {
-            foreach ($bookings as $booking) {
-                app(\App\Services\NotificationService::class)->notifyBookingPlaced($booking);
-                $ownerId = $booking->court->venue->owner_id ?? null;
-                if ($ownerId) {
-                    app(\App\Services\NotificationService::class)->notifyOwnerNewBooking($ownerId, $booking);
-                }
+            app(\App\Services\NotificationService::class)->notifyBookingPlaced($booking);
+            $ownerId = $booking->court->venue->owner_id ?? null;
+            if ($ownerId) {
+                app(\App\Services\NotificationService::class)->notifyOwnerNewBooking($ownerId, $booking);
             }
         } catch (\Throwable $e) {
             // ignore notification errors
         }
 
-        $data = $bookings->map(function ($booking) {
-            return [
+        return response()->json([
+            'message' => 'Booking confirmed successfully',
+            'data' => [
                 'id' => $booking->id,
                 'booking_id' => $booking->id,
                 'status' => $booking->status,
                 'payment_status' => $booking->payment_status,
-            ];
-        });
-
-        return response()->json([
-            'message' => 'Booking confirmed successfully',
-            'data' => $bookings->count() === 1 ? $data->first() : $data,
+                'items_count' => $booking->items->count(),
+            ],
         ], 201);
     }
 }

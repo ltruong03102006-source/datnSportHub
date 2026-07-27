@@ -80,48 +80,37 @@
 
             <div class="space-y-3">
                 <div class="flex items-start gap-x-4">
-    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Ngày chơi:</p>
-    <div class="flex-1">
-        <p class="text-sm font-bold text-zinc-900 mb-1.5">{{ $slotDate }}</p>
-        @php
-            // 1. Sắp xếp mảng ca theo giờ bắt đầu
-            $sortedGroup = collect($bookingGroup)->sortBy('start_time')->values();
-            $mergedSlots = [];
+                    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Ngày chơi:</p>
+                    <div class="flex-1 space-y-3">
+                        @php
+                            $scheduleGroups = collect($bookingGroup)
+                                ->sortBy(fn ($slot) => ($slot->slot_date?->format('Y-m-d') ?? '') . ' ' . $slot->start_time)
+                                ->groupBy(fn ($slot) => $slot->slot_date?->format('Y-m-d') ?? $booking->slot_date?->format('Y-m-d'));
+                        @endphp
 
-            if ($sortedGroup->count() > 0) {
-                // 2. Khởi tạo mốc thời gian của ca đầu tiên
-                $currentCourt = $sortedGroup[0]->court->name;
-                $currentStart = substr((string) $sortedGroup[0]->start_time, 0, 5);
-                $currentEnd = substr((string) $sortedGroup[0]->end_time, 0, 5);
+                        @foreach($scheduleGroups as $dateValue => $slots)
+                            <div class="rounded-xl border border-stone-100 bg-stone-50/70 px-3 py-2.5">
+                                <p class="text-sm font-black text-zinc-900">
+                                    {{ \Carbon\Carbon::parse($dateValue)->format('d/m/Y') }}
+                                </p>
 
-                // 3. Duyệt từ ca thứ 2 để gộp
-                for ($i = 1; $i < $sortedGroup->count(); $i++) {
-                    $nextCourt = $sortedGroup[$i]->court->name;
-                    $nextStart = substr((string) $sortedGroup[$i]->start_time, 0, 5);
-                    $nextEnd = substr((string) $sortedGroup[$i]->end_time, 0, 5);
+                                <div class="mt-1.5 space-y-1">
+                                    @foreach($slots->sortBy('start_time') as $slot)
+                                        @php
+                                            $isRescheduled = $slot->relationLoaded('rescheduleRequests')
+                                                && $slot->rescheduleRequests->where('status', 'approved')->isNotEmpty();
+                                        @endphp
 
-                    // ĐIỀU KIỆN GỘP: Cùng tên sân VÀ Giờ kết thúc ca trước == Giờ bắt đầu ca sau
-                    if ($currentCourt === $nextCourt && $currentEnd === $nextStart) {
-                        $currentEnd = $nextEnd; // Kéo dài thời gian kết thúc
-                    } else {
-                        // Nếu bị ngắt quãng, lưu lại dải thời gian vừa gộp và làm mới biến
-                        $mergedSlots[] = "- Sân $currentCourt: $currentStart - $currentEnd";
-                        $currentCourt = $nextCourt;
-                        $currentStart = $nextStart;
-                        $currentEnd = $nextEnd;
-                    }
-                }
-                // Nhớ lưu lại dải thời gian của ca cuối cùng
-                $mergedSlots[] = "- Sân $currentCourt: $currentStart - $currentEnd";
-            }
-        @endphp
-
-        {{-- 4. In danh sách ca đã được gộp đẹp mắt --}}
-        @foreach($mergedSlots as $slotInfo)
-            <p class="text-sm font-semibold text-zinc-700">{{ $slotInfo }}</p>
-        @endforeach
-    </div>
-</div>
+                                        <p class="text-sm font-semibold {{ $isRescheduled ? 'text-emerald-700' : 'text-zinc-700' }}">
+                                            {{ $isRescheduled ? '' : '' }}
+                                            {{ substr((string) $slot->start_time, 0, 5) }} - {{ substr((string) $slot->end_time, 0, 5) }}
+                                        </p>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
                 <div class="flex items-start gap-x-4">
                     <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Tổng giờ:</p>
                     <p class="text-sm font-bold text-zinc-900">{{ $totalDurationStr }}</p>

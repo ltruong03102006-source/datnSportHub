@@ -17,6 +17,15 @@ class AdminUserController extends Controller
     {
         $query = User::query();
 
+        // Lấy cả user đã xóa
+        if ($request->input('trashed') == '1') {
+            $query->withTrashed();
+        }
+
+        if ($role = $request->input('role')) {
+            $query->where('role', $role);
+        }
+
         // Lọc theo từ khóa (tên hoặc email) nếu có
         if ($search = $request->input('search')) {
             $query->where(function($q) use ($search) {
