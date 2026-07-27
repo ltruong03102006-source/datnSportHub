@@ -183,11 +183,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 Route::get('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingController::class, 'index'])->name('financial-settings.index');
         Route::post('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingController::class, 'update'])->name('financial-settings.update');
         Route::put('/venues/{venue}/commission', [\App\Http\Controllers\Admin\VenueCommissionController::class, 'update'])->name('venues.commission.update');
-    }); // <-- ÄÃ³ng cá»§a middleware(['admin'])
 
-}); // <====== DÃ’NG NÃ€Y Bá»Š THIáº¾U! (ÄÃ³ng cá»§a prefix('admin'))
-
-// --- KHU Vá»°C QUáº¢N LÃ Cá»¦A CHá»¦ SÃ‚N (OWNER) ---  
+//chu san
 Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group(function () {
     Route::get('/wallet', [OwnerWalletController::class, 'index'])->name('wallet.index');
     Route::get('/wallet/topup', [OwnerWalletTopupController::class, 'create'])->name('wallet.topup.create');
