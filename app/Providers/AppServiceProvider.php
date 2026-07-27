@@ -14,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(\App\Gateways\SettlementGatewayInterface::class, \App\Gateways\SimulatedSettlementGateway::class);
     }
 
     /**
