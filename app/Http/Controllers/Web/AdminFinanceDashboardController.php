@@ -15,6 +15,7 @@ use App\Services\DebtService;
 use App\Services\PlatformWalletService;
 use App\Gateways\SettlementGatewayInterface;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
@@ -509,7 +510,7 @@ class AdminFinanceDashboardController extends Controller
             'rows' => $rows,
         ];
     }
-    public function withdrawRevenue(Request $request, PlatformWalletService $walletService, SettlementGatewayInterface $gateway)
+    public function withdrawRevenue(Request $request, PlatformWalletService $platformWalletService, SettlementGatewayInterface $gateway)
     {
         $request->validate([
             'amount' => 'required|numeric|min:10000'
@@ -524,9 +525,9 @@ class AdminFinanceDashboardController extends Controller
             $referenceId = '';
             $bankCode = 'VCB' . rand(100000, 999999); // Sinh mã ngân hàng ảo
 
-            DB::transaction(function () use ($amount, $walletService, $gateway, &$referenceId) {
+            DB::transaction(function () use ($amount, $platformWalletService, $gateway, &$referenceId) {
                 $totalOwnerBalance = \App\Models\Wallet::where('balance', '>', 0)->sum('balance');
-                $platformWallet = $walletService->getDefaultWallet();
+                $platformWallet = $platformWalletService->getDefaultWallet();
                 $safeWithdrawableAmount = $platformWallet->balance - $totalOwnerBalance;
 
                 if ($amount > $safeWithdrawableAmount) {
@@ -537,13 +538,13 @@ class AdminFinanceDashboardController extends Controller
                 $referenceId = 'WD-' . now()->format('Ymd') . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
 
                 // 3. Trừ tiền Ví nền tảng (Hold tiền)
-                $walletService->debit(
+                $platformWalletService->debit(
                     amount: $amount,
                     type: 'admin_revenue_withdrawal',
                     description: 'Đang xử lý lệnh rút doanh thu nền tảng (Ref: ' . $referenceId . ')',
                     referenceType: 'settlement', 
                     reference: $referenceId,
-                    performedBy: auth()->id()
+                    performedBy: Auth::id()
                 );
 
                 // 4. Bàn giao Gateway

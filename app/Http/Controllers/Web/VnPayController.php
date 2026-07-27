@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\BookingPackage;
 use App\Models\PlatformWalletTransaction;
 use App\Models\Setting;
 use App\Models\Transaction;
+use App\Services\PackageBookingService;
 use App\Services\PlatformWalletService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -184,7 +186,7 @@ class VnPayController extends Controller
         return $vnp_Url;
     }
 
-    public function vnpayReturn(Request $request, PlatformWalletService $platformWalletService)
+    public function vnpayReturn(Request $request, PlatformWalletService $platformWalletService, PackageBookingService $packageBookingService)
     {
         $vnp_HashSecret = config('vnpay.vnp_HashSecret');
         $inputData = array();
@@ -211,15 +213,52 @@ class VnPayController extends Controller
         }
 
         $secureHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
-        
-        $orderIdArr = explode('_', $request->vnp_TxnRef);
-        $bookingId = $orderIdArr[0];
+        $txnRef = (string) $request->input('vnp_TxnRef', '');
+        $isPackageTransaction = str_starts_with($txnRef, 'PKG-');
+        $orderId = null;
+
+        if ($txnRef !== '') {
+            $parts = explode('_', $txnRef);
+            if ($isPackageTransaction) {
+                $packageParts = explode('-', $txnRef);
+                $orderId = isset($packageParts[1]) ? (int) $packageParts[1] : null;
+            } else {
+                $orderId = isset($parts[0]) ? (int) $parts[0] : null;
+            }
+        }
 
         if ($secureHash == $vnp_SecureHash) {
             if ($request->vnp_ResponseCode == '00') {
-                // Payment Success
+                if ($isPackageTransaction) {
+                    try {
+                        $bookingPackage = BookingPackage::findOrFail($orderId);
+
+                        if ($packageBookingService->paymentHoldExpired($bookingPackage)) {
+                            return redirect()->route('package-bookings.show', $bookingPackage)
+                                ->with('error', 'Thời gian giữ chỗ thanh toán đã hết. Vui lòng tạo lại gói mới.');
+                        }
+
+                        $packageBookingService->activateAfterPayment(
+                            bookingPackage: $bookingPackage,
+                            changedBy: null,
+                            transactionStatus: 'success'
+                        );
+
+                        return redirect()->route('package-bookings.show', $bookingPackage)
+                            ->with('success', 'Thanh toán gói thành công. Hệ thống đã kích hoạt gói đặt sân.');
+                    } catch (\Throwable $e) {
+                        Log::error('Lỗi xử lý callback VNPay cho gói đặt sân: ' . $e->getMessage(), [
+                            'txnRef' => $txnRef,
+                            'request' => $request->all(),
+                        ]);
+
+                        return redirect()->route('package-bookings.create')
+                            ->with('error', 'Thanh toán thành công nhưng có lỗi cập nhật gói. Vui lòng liên hệ hỗ trợ.');
+                    }
+                }
+
                 try {
-                    $booking = Booking::findOrFail($bookingId);
+                    $booking = Booking::findOrFail($orderId);
 
                     if ($this->pendingPaymentExpired($booking)) {
                         return redirect()->route('account.bookings.index')
@@ -328,7 +367,7 @@ class VnPayController extends Controller
                         }
                     });
                         
-                    return redirect()->route('web.bookings.success', ['booking' => $bookingId])
+                    return redirect()->route('web.bookings.success', ['booking' => $orderId])
                                    ->with('success', 'Thanh toán thành công qua VNPay!');
                 } catch (\Exception $e) {
                     Log::error('VNPay Success Processing Error: ' . $e->getMessage());
@@ -336,7 +375,7 @@ class VnPayController extends Controller
                                    ->with('error', 'Thanh toán thành công nhưng có lỗi cập nhật. Vui lòng liên hệ hỗ trợ.');
                 }
             } else {
-                $booking = Booking::find($bookingId);
+                $booking = Booking::find($orderId);
                 if ($booking) {
                     Transaction::updateOrCreate(
                         ['booking_id' => $booking->id],
@@ -353,7 +392,7 @@ class VnPayController extends Controller
                     );
                 }
 
-                return redirect()->route('web.bookings.success', ['booking' => $bookingId])
+                return redirect()->route('web.bookings.success', ['booking' => $orderId])
                                ->with('error', 'Giao dịch không thành công hoặc bị hủy.');
             }
         } else {

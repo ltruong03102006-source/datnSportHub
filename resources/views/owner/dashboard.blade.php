@@ -121,7 +121,7 @@
         </form>
 
         <!-- Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
             <!-- Revenue Card -->
             <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
                 <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -146,6 +146,16 @@
                     @endif
                     <span class="text-xs text-slate-400 ml-2">so với kỳ trước</span>
                 </div>
+            </div>
+
+            <!-- Package Revenue Card -->
+            <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                    <svg class="w-16 h-16 text-violet-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l8 4v6c0 5.25-3.44 9.92-8 11-4.56-1.08-8-5.75-8-11V6l8-4zm0 3.18L6 7.24v3.36c0 3.84 2.4 7.34 6 8.44 3.6-1.1 6-4.6 6-8.44V7.24l-6-2.06z"/></svg>
+                </div>
+                <p class="text-sm font-medium text-slate-500 mb-1">Doanh thu gói</p>
+                <h3 class="text-3xl font-bold text-slate-800">{{ number_format($packageBookingRevenue, 0, ',', '.') }} <span class="text-lg text-slate-500 font-normal">VNĐ</span></h3>
+                <p class="text-xs text-violet-600 mt-2 font-medium bg-violet-50 inline-block px-2 py-1 rounded-md">Từ booking phát sinh từ gói</p>
             </div>
 
             <!-- Total Bookings Card -->

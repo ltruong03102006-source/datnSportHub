@@ -54,7 +54,13 @@ class OwnerDashboardController extends Controller
                 'year' => Carbon::now()->startOfYear(),
                 default => Carbon::now()->startOfMonth(),
             };
-            $endDate = Carbon::now()->endOfDay();
+            $endDate = match($period) {
+                'today' => Carbon::today()->endOfDay(),
+                'week' => Carbon::now()->endOfWeek(),
+                'month' => Carbon::now()->endOfMonth(),
+                'year' => Carbon::now()->endOfYear(),
+                default => Carbon::now()->endOfMonth(),
+            };
 
             $prevStartDate = match($period) {
                 'today' => Carbon::today()->subDay(),
@@ -80,12 +86,46 @@ class OwnerDashboardController extends Controller
             ->whereBetween('slot_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
             ->get();
 
+        $validBookings = $bookings->filter(fn (Booking $booking) => in_array($booking->status, ['confirmed', 'completed'], true));
+        $paidBookings = $validBookings->filter(function (Booking $booking) {
+            if (in_array((string) $booking->payment_status, ['paid', 'completed', 'success'], true)) {
+                return true;
+            }
+
+            $method = strtolower((string) $booking->payment_method);
+            // Bao gồm cả booking từ gói
+            if (in_array($method, ['cod', 'cash', 'offline', 'package'], true)) {
+                return true;
+            }
+
+            return false;
+        });
+        $completedPaidBookings = $paidBookings->where('status', 'completed');
+
+        $packageBookingRevenue = $validBookings
+            ->filter(fn (Booking $booking): bool => ! empty($booking->booking_package_id) && strtolower((string) $booking->payment_method) === 'package')
+            ->sum(function (Booking $booking): float {
+                $ownerEarnings = (float) ($booking->owner_earnings ?? 0);
+
+                return $ownerEarnings > 0 ? $ownerEarnings : (float) $booking->total_price;
+            });
+
+        $bookingRevenue = function (Booking $booking): float {
+            $ownerEarnings = (float) ($booking->owner_earnings ?? 0);
+
+            if ($booking->booking_package_id && strtolower((string) $booking->payment_method) === 'package') {
+                return $ownerEarnings;
+            }
+
+            return $ownerEarnings > 0 ? $ownerEarnings : (float) $booking->total_price;
+        };
+
         // 2. Revenue calculation
         $completedBookings = $bookings->where('status', 'completed');
-        $totalRevenue = $completedBookings->sum('total_price');
+        $totalRevenue = $completedPaidBookings->sum($bookingRevenue);
         
         // 3. Booking Stats
-        $totalBookings = $bookings->count();
+        $totalBookings = $validBookings->count();
         $bookingStatuses = [
             'completed' => $completedBookings->count(),
             'confirmed' => $bookings->where('status', 'confirmed')->count(),
@@ -94,25 +134,25 @@ class OwnerDashboardController extends Controller
         ];
 
         // 4. Revenue by Day for Line Chart
-        $revenueByDay = $completedBookings->groupBy(function($b) {
+        $revenueByDay = $completedPaidBookings->groupBy(function($b) {
             return Carbon::parse($b->slot_date)->format('Y-m-d');
-        })->map(function ($row) {
-            return $row->sum('total_price');
+        })->map(function ($row) use ($bookingRevenue) {
+            return $row->sum($bookingRevenue);
         });
         $revenueByDay = $revenueByDay->sortKeys();
 
         // 5. Peak Hours (Khung giờ cao điểm)
-        $peakHours = $bookings->groupBy(function($b) {
+        $peakHours = $validBookings->groupBy(function($b) {
             return Carbon::parse($b->start_time)->format('H:i');
         })->map(function ($row) {
             return $row->count();
         })->sortDesc()->take(7);
 
         // 6. Unique Customers
-        $uniqueCustomers = $bookings->pluck('user_id')->unique()->count();
+        $uniqueCustomers = $validBookings->pluck('user_id')->unique()->count();
 
         // 7. Total Booked Hours
-        $totalHours = $completedBookings->reduce(function($carry, $b) {
+        $totalHours = $validBookings->reduce(function($carry, $b) {
             $start = Carbon::parse($b->start_time);
             $end = Carbon::parse($b->end_time);
             return $carry + (abs($end->diffInMinutes($start)) / 60); 
@@ -142,8 +182,13 @@ class OwnerDashboardController extends Controller
                 $query->whereIn('venue_id', $venueIds);
             })
             ->where('status', 'completed')
+            ->where(function ($query) {
+                $query->whereIn('payment_status', ['paid', 'completed', 'success'])
+                    ->orWhereIn('payment_method', ['cod', 'cash', 'offline']);
+            })
             ->whereBetween('slot_date', [$prevStartDate->format('Y-m-d'), $prevEndDate->format('Y-m-d')])
-            ->sum('total_price');
+            ->get()
+            ->sum($bookingRevenue);
 
         $revenueChange = 0;
         if ($prevRevenue > 0) {
@@ -153,24 +198,24 @@ class OwnerDashboardController extends Controller
         }
 
         // 9. Top Venues
-        $topVenues = $completedBookings->groupBy(function($b) {
+        $topVenues = $completedPaidBookings->groupBy(function($b) {
             return $b->court->venue->id;
-        })->map(function($venueBookings) {
+        })->map(function($venueBookings) use ($bookingRevenue) {
             $venue = $venueBookings->first()->court->venue;
             return [
                 'name' => $venue->name,
-                'revenue' => $venueBookings->sum('total_price'),
+                'revenue' => $venueBookings->sum($bookingRevenue),
                 'bookings_count' => $venueBookings->count(),
             ];
         })->sortByDesc('revenue')->take(5)->values();
 
         // 10. Top Customers
-        $topCustomers = $completedBookings->groupBy('user_id')->map(function($userBookings) {
+        $topCustomers = $completedPaidBookings->groupBy('user_id')->map(function($userBookings) use ($bookingRevenue) {
             $user = $userBookings->first()->user;
             return [
                 'name' => $user->name ?? 'Unknown',
                 'email' => $user->email ?? 'N/A',
-                'revenue' => $userBookings->sum('total_price'),
+                'revenue' => $userBookings->sum($bookingRevenue),
                 'bookings_count' => $userBookings->count(),
             ];
         })->sortByDesc('revenue')->take(5)->values();
@@ -192,6 +237,7 @@ class OwnerDashboardController extends Controller
             'allVenues',
             'selectedVenueId',
             'totalRevenue',
+            'packageBookingRevenue',
             'totalBookings',
             'bookingStatuses',
             'uniqueCustomers',

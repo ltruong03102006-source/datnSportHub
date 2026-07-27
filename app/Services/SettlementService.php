@@ -32,6 +32,14 @@ class SettlementService
             if (
                 $lockedBooking->settlement_status === SettlementStatus::SETTLED
                 && $lockedBooking->settled_at
+                && $lockedBooking->booking_package_id
+            ) {
+                return $lockedBooking;
+            }
+
+            if (
+                $lockedBooking->settlement_status === SettlementStatus::SETTLED
+                && $lockedBooking->settled_at
                 && (
                     (float) ($lockedBooking->platform_fee ?? 0) > 0
                     || (float) ($lockedBooking->owner_earnings ?? 0) > 0

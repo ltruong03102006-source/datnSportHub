@@ -2,10 +2,13 @@
 
 namespace App\Services;
 
+use App\Enums\SettlementStatus;
+use App\Enums\TransactionType;
 use App\Models\Booking;
 use App\Models\BookingPackage;
 use App\Models\BookingPackageSession;
 use App\Models\Court;
+use App\Models\PlatformWalletTransaction;
 use App\Models\SlotPrice;
 use App\Models\Setting;
 use App\Models\TimeSlot;
@@ -20,6 +23,12 @@ use Throwable;
 
 class PackageBookingService
 {
+    public function __construct(
+        protected CommissionService $commissionService,
+        protected WalletService $walletService,
+        protected PlatformWalletService $platformWalletService,
+    ) {}
+
     /**
      * Sinh ngày lặp theo tuần từ một ngày bắt đầu cụ thể.
      *
@@ -349,6 +358,7 @@ class PackageBookingService
                     'paid_at' => now(),
                 ]);
 
+                $this->settlePackagePayment($bookingPackage);
                 $this->markPackageTransactionSuccess($bookingPackage, $transactionStatus);
 
                 return $this->safeLoad($bookingPackage, [
@@ -425,6 +435,7 @@ class PackageBookingService
                 'paid_at' => now(),
             ]);
 
+            $this->settlePackagePayment($bookingPackage);
             $this->markPackageTransactionSuccess($bookingPackage, $transactionStatus);
 
             return $this->safeLoad($bookingPackage, [
@@ -841,6 +852,112 @@ class PackageBookingService
             'transaction_time' => now(),
             'note' => "Tạo giao dịch chờ thanh toán cho gói đặt sân #{$bookingPackage->id}.",
         ]));
+    }
+
+    public function settlePackagePayment(BookingPackage $bookingPackage): void
+    {
+        $grossAmount = (float) $bookingPackage->final_amount;
+
+        if ($grossAmount <= 0) {
+            return;
+        }
+
+        $venue = $bookingPackage->venue;
+        $owner = $venue?->owner;
+
+        if (! $venue || ! $owner) {
+            throw new RuntimeException('Không tìm thấy chủ sân cho gói đặt sân.');
+        }
+
+        $commissionRate = $this->commissionService->getApplicableRate($venue);
+        $commissionAmount = $this->commissionService->calculatePlatformFee($grossAmount, $commissionRate);
+        $ownerAmount = $this->commissionService->calculateOwnerEarnings($grossAmount, $commissionAmount);
+        $wallet = $owner->getOrCreateWallet();
+
+        $this->settlePackageBookings($bookingPackage);
+
+        $this->platformWalletService->credit(
+            amount: $grossAmount,
+            type: PlatformWalletTransaction::TYPE_CUSTOMER_ONLINE_PAYMENT_IN,
+            description: 'Khách thanh toán gói đặt sân #' . $bookingPackage->id,
+            referenceType: 'booking_package',
+            referenceId: $bookingPackage->id,
+            reference: 'PKG-' . $bookingPackage->id,
+            metadata: [
+                'package_id' => $bookingPackage->id,
+                'venue_id' => $venue->id,
+                'gross_amount' => $grossAmount,
+                'commission_amount' => $commissionAmount,
+                'owner_amount' => $ownerAmount,
+            ]
+        );
+
+        if ($ownerAmount > 0) {
+            $this->walletService->processTransaction(
+                wallet: $wallet,
+                type: TransactionType::BOOKING_ONLINE_CREDIT,
+                amount: $ownerAmount,
+                description: 'Nhận tiền gói đặt sân #' . $bookingPackage->id,
+                metadata: [
+                    'payment_method' => 'vnpay',
+                    'gross_amount' => $grossAmount,
+                    'commission_amount' => $commissionAmount,
+                    'owner_amount' => $ownerAmount,
+                    'reference_type' => 'booking_package',
+                    'reference_id' => $bookingPackage->id,
+                ],
+                reference: 'PKG-' . $bookingPackage->id
+            );
+        }
+    }
+
+    private function settlePackageBookings(BookingPackage $bookingPackage): void
+    {
+        if (! Schema::hasTable('bookings')) {
+            return;
+        }
+
+        if (! Schema::hasColumn('bookings', 'settlement_status')
+            || ! Schema::hasColumn('bookings', 'platform_fee')
+            || ! Schema::hasColumn('bookings', 'owner_earnings')) {
+            return;
+        }
+
+        $bookings = $bookingPackage->bookings()
+            ->orderBy('slot_date')
+            ->orderBy('start_time')
+            ->orderBy('id')
+            ->get();
+        $venue = $bookingPackage->venue;
+
+        if (! $venue || $bookings->isEmpty()) {
+            return;
+        }
+
+        $grossAmount = (float) $bookingPackage->final_amount;
+
+        if ($grossAmount <= 0) {
+            $grossAmount = (float) $bookings->sum(fn (Booking $booking) => (float) ($booking->gross_amount ?: $booking->total_price ?: $booking->total_amount ?: 0));
+        }
+
+        if ($grossAmount <= 0) {
+            return;
+        }
+
+        $commissionRate = $this->commissionService->getApplicableRate($venue);
+        $commissionAmount = $this->commissionService->calculatePlatformFee($grossAmount, $commissionRate);
+        $ownerAmount = $this->commissionService->calculateOwnerEarnings($grossAmount, $commissionAmount);
+        $representativeBookingId = (int) $bookings->first()->id;
+
+        foreach ($bookings as $booking) {
+            $booking->update([
+                'commission_rate' => $commissionRate,
+                'platform_fee' => (int) $booking->id === $representativeBookingId ? $commissionAmount : 0,
+                'owner_earnings' => (int) $booking->id === $representativeBookingId ? $ownerAmount : 0,
+                'settlement_status' => SettlementStatus::SETTLED,
+                'settled_at' => $booking->settled_at ?: now(),
+            ]);
+        }
     }
 
     public function paymentHoldExpiresAt(BookingPackage $bookingPackage): Carbon
