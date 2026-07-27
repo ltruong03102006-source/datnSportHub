@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +24,7 @@ class WalletController extends Controller
             'amount.required' => 'Vui lòng nhập số tiền muốn rút.',
         ]);
 
+        /** @var User $user */
         $user = Auth::user();
         $amount = $request->input('amount');
 

@@ -37,42 +37,28 @@
     <nav class="bg-white shadow-sm border-b border-slate-200 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
         <div class="flex items-center gap-4">
             <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-teal-500">
-                Tổng Quan Kinh Doanh
+                Tổng Quan Kinh Doanh
             </h1>
         </div>
         <div class="flex items-center gap-4">
             <a href="{{ route('owner.web.venues.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Quản lý cơ sở</a>
             <a href="{{ route('owner.web.calendar.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Lịch đặt sân</a>
             <a href="{{ route('owner.web.packages.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Quản lý gói</a>
-            <a href="{{ route('owner.web.settings.bank') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Thanh toán (Bank)</a>
         </div>
     </nav>
 
     <div class="flex-1 p-6 lg:p-10 max-w-7xl mx-auto w-full" x-data="{ filterType: '{{ $period == "custom" ? "custom" : "quick" }}' }">
         
-        @if(!Auth::user()->bank_name || !Auth::user()->bank_account_no)
-        <div class="mb-6 flex items-center justify-between rounded-lg border-l-4 border-amber-500 bg-amber-50 p-4 shadow-sm">
-            <div class="flex items-center gap-3">
-                <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <div>
-                    <h3 class="font-bold text-amber-800">Bạn chưa cấu hình tài khoản nhận tiền!</h3>
-                    <p class="text-sm text-amber-700">Khách hàng sẽ không thể thanh toán tự động qua mã VietQR khi đặt sân. Vui lòng cấu hình ngay.</p>
-                </div>
-            </div>
-            <a href="{{ route('owner.web.settings.bank') }}" class="shrink-0 rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-700 transition">
-                Cấu hình ngay
-            </a>
-        </div>
-        @endif
+
+        {{-- @include('owner.partials.debt-warning') --}}
+        @include('owner.partials.wallet-summary')
 
         <!-- Header & Filters Form -->
         <form method="GET" action="{{ route('owner.dashboard') }}" class="mb-8">
             <div class="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                 
                 <div>
-                    <h2 class="text-2xl font-bold text-slate-800 mb-1">Hi, {{ Auth::user()->name ?? 'Chủ sân' }} 👋</h2>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-1">Xin chào, {{ Auth::user()->name ?? 'Chủ sân' }}</h2>
                     <p class="text-sm text-slate-500">Tùy chỉnh bộ lọc để xem thống kê chi tiết.</p>
                 </div>
                 
@@ -94,10 +80,10 @@
                         <div class="flex rounded-lg border border-slate-300 p-0.5 bg-slate-50 shadow-sm">
                             <button type="button" @click="filterType = 'quick'; $nextTick(() => { document.getElementById('periodSelect').value = 'month'; document.getElementById('filterFormBtn').click() })" 
                                     :class="filterType === 'quick' ? 'bg-white shadow text-emerald-700 font-medium' : 'text-slate-500 hover:text-slate-700'" 
-                                    class="px-4 py-1.5 text-sm rounded-md transition-all">Lọc Nhanh</button>
+                                    class="px-4 py-1.5 text-sm rounded-md transition-all">Lọc nhanh</button>
                             <button type="button" @click="filterType = 'custom'" 
                                     :class="filterType === 'custom' ? 'bg-white shadow text-emerald-700 font-medium' : 'text-slate-500 hover:text-slate-700'" 
-                                    class="px-4 py-1.5 text-sm rounded-md transition-all">Tùy Chọn</button>
+                                    class="px-4 py-1.5 text-sm rounded-md transition-all">Tùy chọn</button>
                         </div>
                     </div>
 
@@ -141,7 +127,7 @@
                 <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                     <svg class="w-16 h-16 text-emerald-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
                 </div>
-                <p class="text-sm font-medium text-slate-500 mb-1">Tổng Doanh Thu</p>
+                <p class="text-sm font-medium text-slate-500 mb-1">Tổng doanh thu</p>
                 <h3 class="text-3xl font-bold text-slate-800">{{ number_format($totalRevenue, 0, ',', '.') }} <span class="text-lg text-slate-500 font-normal">VNĐ</span></h3>
                 
                 <div class="mt-2 flex items-center">
@@ -167,7 +153,7 @@
                 <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                     <svg class="w-16 h-16 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10z"/></svg>
                 </div>
-                <p class="text-sm font-medium text-slate-500 mb-1">Tổng Lượt Đặt</p>
+                <p class="text-sm font-medium text-slate-500 mb-1">Tổng lượt đặt</p>
                 <h3 class="text-3xl font-bold text-slate-800">{{ $totalBookings }}</h3>
                 <p class="text-xs text-blue-600 mt-2 font-medium bg-blue-50 inline-block px-2 py-1 rounded-md">
                     {{ $bookingStatuses['completed'] ?? 0 }} lượt hoàn tất
@@ -181,7 +167,7 @@
                 </div>
                 <div class="flex justify-between items-start">
                     <div>
-                        <p class="text-sm font-medium text-slate-500 mb-1">Tỷ Lệ Lấp Đầy</p>
+                        <p class="text-sm font-medium text-slate-500 mb-1">Tỷ lệ lấp đầy</p>
                         <h3 class="text-3xl font-bold text-slate-800">{{ number_format($occupancyRate, 1) }}<span class="text-lg text-slate-500 font-normal">%</span></h3>
                     </div>
                 </div>
@@ -193,7 +179,7 @@
                 <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                     <svg class="w-16 h-16 text-orange-600" fill="currentColor" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
                 </div>
-                <p class="text-sm font-medium text-slate-500 mb-1">Khách Hàng Mới</p>
+                <p class="text-sm font-medium text-slate-500 mb-1">Khách hàng mới</p>
                 <h3 class="text-3xl font-bold text-slate-800">{{ $uniqueCustomers }}</h3>
                 <p class="text-xs text-orange-600 mt-2 font-medium bg-orange-50 inline-block px-2 py-1 rounded-md">Khách hàng riêng biệt</p>
             </div>
@@ -203,7 +189,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <!-- Revenue Line Chart -->
             <div class="glass-card rounded-2xl p-6 lg:col-span-2">
-                <h3 class="text-lg font-bold text-slate-800 mb-4">Biểu Đồ Doanh Thu</h3>
+                <h3 class="text-lg font-bold text-slate-800 mb-4">Biểu đồ doanh thu</h3>
                 <div class="relative h-72 w-full">
                     <canvas id="revenueChart"></canvas>
                 </div>
@@ -211,7 +197,7 @@
 
             <!-- Peak Hours Ranking -->
             <div class="glass-card rounded-2xl p-6 flex flex-col">
-                <h3 class="text-lg font-bold text-slate-800 mb-4">Top Khung Giờ "Hot"</h3>
+                <h3 class="text-lg font-bold text-slate-800 mb-4">Top khung giờ "hot"</h3>
                 <p class="text-xs text-slate-500 mb-4">Các khung giờ được đặt nhiều nhất.</p>
                 
                 <div class="flex-1 overflow-y-auto pr-2" style="max-height: 280px;">
@@ -222,7 +208,7 @@
                                     {{ $time }}
                                 </div>
                                 <div>
-                                    <p class="text-sm font-bold text-slate-800">Giờ Vàng</p>
+                                    <p class="text-sm font-bold text-slate-800">Giờ vàng</p>
                                 </div>
                             </div>
                             <div class="text-right">
@@ -238,7 +224,7 @@
             
             <!-- Booking Status Chart -->
             <div class="glass-card rounded-2xl p-6">
-                <h3 class="text-lg font-bold text-slate-800 mb-4">Tỷ Lệ Trạng Thái</h3>
+                <h3 class="text-lg font-bold text-slate-800 mb-4">Tỷ lệ trạng thái</h3>
                 <div class="relative h-64 w-full flex justify-center">
                     <canvas id="statusChart"></canvas>
                 </div>
@@ -246,7 +232,7 @@
 
             <!-- Peak Hours Bar Chart -->
             <div class="glass-card rounded-2xl p-6 lg:col-span-2">
-                <h3 class="text-lg font-bold text-slate-800 mb-4">Mật Độ Khung Giờ Đặt Sân</h3>
+                <h3 class="text-lg font-bold text-slate-800 mb-4">Mật độ khung giờ đặt sân</h3>
                 <div class="relative h-64 w-full">
                     <canvas id="peakChart"></canvas>
                 </div>
@@ -259,15 +245,15 @@
             <!-- Top Venues Table -->
             <div class="glass-card rounded-2xl p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-bold text-slate-800">Cơ Sở Hiệu Quả Nhất</h3>
+                    <h3 class="text-lg font-bold text-slate-800">Cơ sở hiệu quả nhất</h3>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm text-left">
                         <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
                             <tr>
-                                <th class="px-4 py-3 rounded-tl-lg">Tên Cơ Sở</th>
-                                <th class="px-4 py-3 text-center">Lượt Đặt</th>
-                                <th class="px-4 py-3 text-right rounded-tr-lg">Doanh Thu</th>
+                                <th class="px-4 py-3 rounded-tl-lg">Tên cơ sở</th>
+                                <th class="px-4 py-3 text-center">Lượt đặt</th>
+                                <th class="px-4 py-3 text-right rounded-tr-lg">Doanh thu</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -292,15 +278,15 @@
             <!-- Top Customers Table -->
             <div class="glass-card rounded-2xl p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-bold text-slate-800">Khách Hàng VIP</h3>
+                    <h3 class="text-lg font-bold text-slate-800">Khách hàng VIP</h3>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm text-left">
                         <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
                             <tr>
-                                <th class="px-4 py-3 rounded-tl-lg">Khách Hàng</th>
-                                <th class="px-4 py-3 text-center">Lượt Đặt</th>
-                                <th class="px-4 py-3 text-right rounded-tr-lg">Đã Chi</th>
+                                <th class="px-4 py-3 rounded-tl-lg">Khách hàng</th>
+                                <th class="px-4 py-3 text-center">Lượt đặt</th>
+                                <th class="px-4 py-3 text-right rounded-tr-lg">Đã chi</th>
                             </tr>
                         </thead>
                         <tbody>

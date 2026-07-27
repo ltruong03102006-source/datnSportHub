@@ -9,14 +9,18 @@ use App\Models\Venue;
 use App\Models\Court;
 use App\Models\Booking;
 use App\Models\TimeSlot;
+use App\Services\BookingCompletionService;
 use Carbon\Carbon;
 use Illuminate\View\View;
 
 class OwnerDashboardController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, BookingCompletionService $completionService): View
     {
         $ownerId = Auth::id();
+
+        $completionService->completeExpiredBookings(ownerId: $ownerId);
+        $completionService->settleCompletedBookings(ownerId: $ownerId);
         
         // Retrieve all venues owned by the user
         $allVenues = Venue::where('owner_id', $ownerId)->get();
@@ -201,8 +205,4 @@ class OwnerDashboardController extends Controller
         ));
     }
 
-    public function bankSettings(): View
-    {
-        return view('owner.bank');
-    }
 }

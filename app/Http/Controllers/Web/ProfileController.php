@@ -132,6 +132,6 @@ class ProfileController extends Controller
             'bank_account_name' => mb_strtoupper($validated['bank_account_name'], 'UTF-8'),
         ]);
 
-        return back()->with('success', 'Đã cập nhật thông tin ngân hàng thành công. Các sân của bạn sẽ tự động sử dụng tài khoản này để nhận thanh toán QR.');
+        return back()->with('success', 'Đã cập nhật thông tin ngân hàng thành công. QR thanh toán đặt sân hiện do admin cấu hình.');
     }
 }
