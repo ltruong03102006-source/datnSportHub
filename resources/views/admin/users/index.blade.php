@@ -226,22 +226,10 @@
                 </td>
                 <td style="font-size: 12px; color: var(--text-muted);">{{ $user->created_at ? $user->created_at->format('d/m/Y') : 'N/A' }}</td>
                 <td style="padding-right: 24px; text-align: right;">
-                    <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
-                        @if($user->trashed())
-                        <form action="{{ route('admin.users.restore', $user->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn khôi phục người dùng này?');" style="margin:0;">
-                            @csrf
-                            @method('PATCH')
-                            <button type="submit" class="btn-action" title="Khôi phục người dùng" style="color: #27ae60; border-color: #a9dfbf;"><i class="fa-solid fa-rotate-left"></i> Khôi phục</button>
-                        </form>
-                        @else
+                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
                         <a href="{{ route('admin.users.show', $user->id) }}" class="btn-action" title="Xem chi tiết"><i class="fa-regular fa-eye"></i></a>
                         <a href="{{ route('admin.users.edit', $user->id) }}" class="btn-action" title="Chỉnh sửa"><i class="fa-regular fa-pen-to-square"></i></a>
-                        <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa người dùng này? (Soft Delete)');" style="margin:0;">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn-action btn-delete" title="Xóa người dùng"><i class="fa-solid fa-trash"></i></button>
-                        </form>
-                        @endif
+                        <button class="btn-action btn-delete" title="Khóa/Xóa"><i class="fa-solid fa-lock"></i></button>
                     </div>
                 </td>
             </tr>
