@@ -49,7 +49,8 @@ class BookingCompletionService
                             ->where(function ($invalidSettledQuery) {
                                 $invalidSettledQuery->whereNull('settled_at')
                                     ->orWhere(function ($amountQuery) {
-                                        $amountQuery->where('platform_fee', '<=', 0)
+                                        $amountQuery->whereNull('booking_package_id')
+                                            ->where('platform_fee', '<=', 0)
                                             ->where('owner_earnings', '<=', 0);
                                     });
                             });
