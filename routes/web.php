@@ -22,7 +22,7 @@ use App\Http\Controllers\Web\OwnerCancellationPolicyController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Web\OwnerCourtController;
-use App\Http\Controllers\Web\BookingRescheduleController;
+use App\Http\Controllers\Web\CustomerBookingRescheduleController;
 use App\Http\Controllers\Web\OwnerBookingRescheduleController;
 use App\Http\Controllers\Web\VnPayController;
 use App\Http\Controllers\Web\OwnerVenuePackageController;
@@ -119,6 +119,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Quáº£n lÃ½ Users
         Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [AdminUserController::class, 'create'])->name('users.create');
+        Route::post('/users', [AdminUserController::class, 'store'])->name('users.store');
+        Route::get('/users/{user}', [AdminUserController::class, 'show'])->name('users.show');
+        Route::get('/users/{user}/edit', [AdminUserController::class, 'edit'])->name('users.edit');
+        Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
 
         // Quáº£n lÃ½ CÆ¡ sá»Ÿ sÃ¢n
         Route::get('/venues', [AdminVenueController::class, 'index'])->name('venues.index');
@@ -181,9 +186,9 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
     Route::post('/withdrawals', [OwnerWithdrawalController::class, 'store'])->name('withdrawals.store');
 
     Route::get('/reschedule-requests', [OwnerBookingRescheduleController::class, 'index'])->name('reschedule.index');
-    Route::get('/reschedule-requests/{rescheduleRequest}', [OwnerBookingRescheduleController::class, 'show'])->name('reschedule.show');
-    Route::post('/reschedule-requests/{rescheduleRequest}/approve', [OwnerBookingRescheduleController::class, 'approve'])->name('reschedule.approve');
-    Route::post('/reschedule-requests/{rescheduleRequest}/reject', [OwnerBookingRescheduleController::class, 'reject'])->name('reschedule.reject');
+    Route::get('/reschedule-requests/{requestCode}', [OwnerBookingRescheduleController::class, 'show'])->name('reschedule.show');
+    Route::post('/reschedule-requests/{requestCode}/approve', [OwnerBookingRescheduleController::class, 'approve'])->name('reschedule.approve');
+    Route::post('/reschedule-requests/{requestCode}/reject', [OwnerBookingRescheduleController::class, 'reject'])->name('reschedule.reject');
     Route::get('/calendar', [OwnerBookingCalendarController::class, 'index'])->name('calendar.index');
     Route::get('/calendar/events', [OwnerBookingCalendarController::class, 'events'])->name('calendar.events');
     Route::patch('/calendar/bookings/{booking}/status', [OwnerBookingCalendarController::class, 'updateStatus'])
@@ -266,8 +271,8 @@ Route::middleware('auth')->group(function () {
     Route::match(['POST', 'DELETE'], '/package-bookings/{bookingPackage}/cancel', [PackageBookingController::class, 'cancel'])
         ->name('package-bookings.cancel');
 
-    Route::get('/bookings/{booking}/reschedule', [BookingRescheduleController::class, 'create'])->name('customer.booking.reschedule.create');
-    Route::post('/bookings/{booking}/reschedule', [BookingRescheduleController::class, 'store'])->name('customer.booking.reschedule.store');
+    Route::get('/bookings/{booking}/reschedule', [CustomerBookingRescheduleController::class, 'create'])->name('customer.booking.reschedule.create');
+    Route::post('/bookings/{booking}/reschedule', [CustomerBookingRescheduleController::class, 'store'])->name('customer.booking.reschedule.store');
 
     // Gá»­i bÃ¡o cÃ¡o sÃ¢n
     Route::post('/courts/{court}/report', [\App\Http\Controllers\Web\CourtReportController::class, 'store'])->name('web.courts.report');
