@@ -27,7 +27,8 @@ class AdminWithdrawalController extends Controller
     {
         $request->validate([
             'status' => 'required|in:approved,rejected',
-            'admin_note' => 'nullable|string|max:500'
+            'admin_note' => 'nullable|string|max:500',
+            'proof_image' => 'required_if:status,approved|image|mimes:jpeg,png,jpg,webp|max:5120'
         ]);
 
         if ($withdrawal->status !== 'pending') {
@@ -37,10 +38,18 @@ class AdminWithdrawalController extends Controller
         $newStatus = $request->input('status');
         $adminNote = $request->input('admin_note');
 
+        $proofImagePath = null;
+        if ($newStatus === 'approved' && $request->hasFile('proof_image')) {
+            $proofImagePath = $request->file('proof_image')->store('withdrawals', 'public');
+        }
+
         try {
-            DB::transaction(function () use ($withdrawal, $newStatus, $adminNote) {
+            DB::transaction(function () use ($withdrawal, $newStatus, $adminNote, $proofImagePath) {
                 $withdrawal->status = $newStatus;
                 $withdrawal->admin_note = $adminNote;
+                if ($proofImagePath) {
+                    $withdrawal->proof_image = $proofImagePath;
+                }
                 $withdrawal->save();
 
                 if ($newStatus === 'rejected') {
@@ -66,6 +75,9 @@ class AdminWithdrawalController extends Controller
                 ? 'Yêu cầu rút ' . number_format($withdrawal->amount) . 'đ của bạn đã được chuyển khoản. Vui lòng kiểm tra tài khoản ngân hàng.' 
                 : 'Yêu cầu rút ' . number_format($withdrawal->amount) . 'đ bị từ chối. Số tiền đã được hoàn lại vào ví. Lý do: ' . $adminNote;
 
+            if ($newStatus === 'approved' && $withdrawal->proof_image) {
+                $message .= ' (Minh chứng: ' . asset('storage/' . $withdrawal->proof_image) . ')';
+            }
             app(\App\Services\NotificationService::class)->create(
                 $withdrawal->user_id,
                 $title,
