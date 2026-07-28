@@ -195,6 +195,80 @@
     }
     .alert-success { background: #eafaf1; color: #2ecc71; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; }
     .alert-error { background: #fdedec; color: #e74c3c; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; }
+
+    /* Custom File Upload */
+    .upload-zone {
+        border: 2px dashed #cbd5e1;
+        border-radius: 12px;
+        padding: 32px 24px;
+        text-align: center;
+        background: #f8fafc;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+        border-color: var(--primary, #10b981);
+        background: #f0fdf4;
+    }
+    .upload-icon {
+        font-size: 32px;
+        color: #64748b;
+        margin-bottom: 12px;
+    }
+    .upload-text {
+        font-size: 14px;
+        color: #334155;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+    .upload-hint {
+        font-size: 12px;
+        color: #94a3b8;
+    }
+    .upload-zone input[type="file"] {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        opacity: 0;
+        cursor: pointer;
+        width: 100%;
+    }
+    
+    .image-preview-container {
+        display: none;
+        margin-top: 12px;
+        position: relative;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+    }
+    .image-preview-container img {
+        width: 100%;
+        max-height: 200px;
+        object-fit: contain;
+        display: block;
+        background: #f1f5f9;
+    }
+    .remove-image-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(0,0,0,0.6);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .remove-image-btn:hover {
+        background: rgba(220, 38, 38, 0.9);
+    }
 </style>
 @endpush
 
@@ -298,7 +372,7 @@
             <h3 id="modalTitle">Xử lý rút tiền</h3>
             <button type="button" onclick="closeProcessModal()" class="modal-close">&times;</button>
         </div>
-        <form id="processForm" method="POST" action="">
+        <form id="processForm" method="POST" action="" enctype="multipart/form-data">
             @csrf
             @method('PATCH')
             <div class="modal-body">
@@ -308,13 +382,35 @@
                     
                     <div class="radio-group">
                         <label class="radio-item">
-                            <input type="radio" name="status" value="approved" checked>
+                            <input type="radio" name="status" value="approved" checked onchange="toggleProofUpload()">
                             <span style="color: #2ecc71; font-weight: 500;">Đã chuyển khoản (Duyệt)</span>
                         </label>
                         <label class="radio-item">
-                            <input type="radio" name="status" value="rejected">
+                            <input type="radio" name="status" value="rejected" onchange="toggleProofUpload()">
                             <span style="color: #e74c3c; font-weight: 500;">Từ chối (Hoàn tiền)</span>
                         </label>
+                    </div>
+                </div>
+
+                <div class="form-group" id="proofUploadGroup">
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-camera" style="color: #475569;"></i> 
+                        Ảnh minh chứng <span style="color: #e74c3c;">*</span> 
+                        <span style="color: #94a3b8; font-weight: normal;">(Bắt buộc khi duyệt)</span>
+                    </label>
+                    
+                    <div class="upload-zone" id="uploadZone">
+                        <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                        <div class="upload-text">Kéo thả ảnh vào đây <br>hoặc <span style="color: var(--primary);">Chọn tệp</span> từ máy tính</div>
+                        <div class="upload-hint">PNG, JPG, JPEG, WEBP • Tối đa 5MB</div>
+                        <input type="file" id="proof_image" name="proof_image" accept="image/png, image/jpeg, image/jpg, image/webp" onchange="handleFileSelect(this)">
+                    </div>
+
+                    <div class="image-preview-container" id="imagePreviewContainer">
+                        <img id="imagePreview" src="" alt="Preview">
+                        <button type="button" class="remove-image-btn" onclick="removeImage()" title="Xóa ảnh">
+                            <i class="fa-solid fa-times"></i>
+                        </button>
                     </div>
                 </div>
                 <div class="form-group">
@@ -343,6 +439,82 @@
 
     function closeProcessModal() {
         document.getElementById('processModal').style.display = 'none';
+        // Reset form khi đóng
+        document.getElementById('processForm').reset();
+        removeImage();
     }
+
+    function toggleProofUpload() {
+        const isApproved = document.querySelector('input[name="status"][value="approved"]').checked;
+        const proofGroup = document.getElementById('proofUploadGroup');
+        const proofInput = document.getElementById('proof_image');
+        
+        if (isApproved) {
+            proofGroup.style.display = 'block';
+            proofInput.required = true;
+        } else {
+            proofGroup.style.display = 'none';
+            proofInput.required = false;
+        }
+    }
+
+    function handleFileSelect(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                document.getElementById('imagePreview').src = e.target.result;
+                document.getElementById('imagePreviewContainer').style.display = 'block';
+                document.getElementById('uploadZone').style.display = 'none';
+            }
+            
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function removeImage() {
+        document.getElementById('proof_image').value = '';
+        document.getElementById('imagePreview').src = '';
+        document.getElementById('imagePreviewContainer').style.display = 'none';
+        document.getElementById('uploadZone').style.display = 'block';
+    }
+
+    // Xử lý kéo thả file
+    const uploadZone = document.getElementById('uploadZone');
+    
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, () => {
+            uploadZone.classList.add('dragover');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, () => {
+            uploadZone.classList.remove('dragover');
+        }, false);
+    });
+
+    uploadZone.addEventListener('drop', (e) => {
+        let dt = e.dataTransfer;
+        let files = dt.files;
+        
+        if (files.length) {
+            document.getElementById('proof_image').files = files;
+            handleFileSelect(document.getElementById('proof_image'));
+        }
+    }, false);
+
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleProofUpload();
+    });
 </script>
 @endpush
