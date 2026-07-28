@@ -1,0 +1,473 @@
+[33mcommit a2b1ceaad1756449b1a30e2318e9b473e07b9ecd[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/tao-bang-voucher[m[33m, [m[1;31morigin/feature/tao-bang-voucher[m[33m)[m
+Author: dungcon1111hl-jpg <dungcon1111hl@gmail.com>
+Date:   Fri Jul 24 21:19:27 2026 +0700
+
+    Bảng trung gian voucher - sân (many-to-many)
+
+[33mcommit c0b4f4360fa28add68fd161528a56d8177fa7d8b[m
+Author: dungcon1111hl-jpg <dungcon1111hl@gmail.com>
+Date:   Fri Jul 24 21:16:16 2026 +0700
+
+    Tạo migration cho bảng vouchers
+
+[33mcommit efe99c7f254ea1fd789ebc4b8e7d031bc203f451[m[33m ([m[1;31morigin/develop[m[33m, [m[1;32mdevelop[m[33m)[m
+Merge: 7dd005d 78b7b0d
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Mon Jul 20 00:08:25 2026 +0700
+
+    Merge pull request #66 from ltruong03102006-source/dichvu
+    
+    Dichvu
+
+[33mcommit 78b7b0df8cf4e69c46337b7105b6442e8aa97b34[m[33m ([m[1;31morigin/dichvu[m[33m)[m
+Author: ngochua1210 <ngochua2006@gmail.com>
+Date:   Sun Jul 19 14:06:14 2026 +0700
+
+    feat: hoan thien task 6 - chi tiet hoa don va xu ly huy don
+
+[33mcommit eb0e12896fbb309bf1dca5df169e8eaa55ac8478[m
+Author: ngochua1210 <ngochua2006@gmail.com>
+Date:   Sat Jul 18 23:01:39 2026 +0700
+
+    feat(booking): hoan thien task 5 - tich hop gio hang dich vu, tinh tien tu dong theo gio thue va xu ly tru ton kho
+
+[33mcommit 25497bd50a2af6638d521ee6a5ef1e92cdc2c161[m
+Author: ngochua1210 <ngochua2006@gmail.com>
+Date:   Sat Jul 18 22:08:08 2026 +0700
+
+    feat: hoan thanh task 3 & 4 - crud dich vu chu san, tich hop fomo ton kho va geocoding ban do
+
+[33mcommit c2a3b194205c844e8be8d90bed9c334dfe4ea893[m
+Author: ngochua1210 <ngochua2006@gmail.com>
+Date:   Sat Jul 18 20:35:08 2026 +0700
+
+    feat(models): thiet lap relation cho model Venue, Booking va tao model Service
+
+[33mcommit 34ac64e791c89fc282c4e0d3da12087aa1f03ce6[m
+Author: ngochua1210 <ngochua2006@gmail.com>
+Date:   Sat Jul 18 20:30:52 2026 +0700
+
+    feat(database): tạo bảng services và booking_services
+
+[33mcommit 7dd005d2bcaa1c9a07ebe356471e31686c836068[m
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Thu Jul 16 22:22:59 2026 +0700
+
+    Fix lỗi
+
+[33mcommit 0fff1fa9bee2a3f44528829f4f7185472f6fd375[m
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Thu Jul 16 22:10:36 2026 +0700
+
+    Remove holdCutoff parameter from transaction
+
+[33mcommit 454b45619cd07ecb77ceb8672de5f3b634a99819[m
+Merge: 5282625 781ce4d
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Thu Jul 16 21:44:29 2026 +0700
+
+    Merge pull request #65 from ltruong03102006-source/feature/Fix_Loi
+    
+    Update booking UI
+
+[33mcommit 781ce4dc23e66a1b4da62f2b1df04b481a6b9867[m
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Thu Jul 16 21:35:59 2026 +0700
+
+    Update booking UI
+
+[33mcommit 5282625e1220fc28796c37a2cb155a9bce12f831[m
+Merge: 79aed75 e5745ab
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Mon Jul 13 22:44:14 2026 +0700
+
+    Merge pull request #62 from ltruong03102006-source/feature/social-login
+    
+    Them dang nhap bang Google va Facebook
+
+[33mcommit 79aed75e05d59bad2e32bd1f3e0f04d4f2707e9b[m
+Merge: 660d096 1e62ca5
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Mon Jul 13 22:43:58 2026 +0700
+
+    Merge pull request #63 from ltruong03102006-source/feature/Fix_Loi
+    
+    Update Đặt gói sân
+
+[33mcommit 1e62ca5acfd9f84ea5acbd6577ed26a1f90f3065[m
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Mon Jul 13 22:42:46 2026 +0700
+
+    Update Đặt gói sân
+
+[33mcommit e5745ab01a762958df08d2185048e4194ea28f29[m[33m ([m[1;31morigin/feature/social-login[m[33m)[m
+Author: longhoang <longhoangzzz06@gmail.com>
+Date:   Fri Jul 10 22:20:13 2026 +0700
+
+    Them dang nhap bang Google va Facebook
+
+[33mcommit 660d0965db152d15366d50eaada25403f2212df5[m
+Merge: 7f07b48 b3de879
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Thu Jul 9 00:29:01 2026 +0700
+
+    Merge pull request #61 from ltruong03102006-source/chedosangtoi
+    
+    Add dark mode toggle
+
+[33mcommit b3de8796245287a924c1f0e588758ba3a1dae292[m[33m ([m[1;31morigin/chedosangtoi[m[33m)[m
+Author: Gaming Klx <nt231507@gmail.com>
+Date:   Thu Jul 9 00:07:17 2026 +0700
+
+    Add dark mode toggle
+
+[33mcommit 7f07b48d3e9de47075e372bdb6c8a41195be880e[m
+Merge: d7a1f2d 208e994
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Wed Jul 8 22:53:10 2026 +0700
+
+    Merge pull request #60 from ltruong03102006-source/feature/hoantien
+    
+    Feature/hoantien
+
+[33mcommit 208e99431a11bb979ed92d74f778047508f8e9fe[m[33m ([m[1;31morigin/feature/hoantien[m[33m)[m
+Author: dungcon1111hl-jpg <dungcon1111hl@gmail.com>
+Date:   Wed Jul 8 22:51:04 2026 +0700
+
+    Hoan tien booking va cap nhat giao dien
+
+[33mcommit a92eee8059c1a7b32594abd0a8aac4dddc867149[m
+Author: dungcon1111hl-jpg <dungcon1111hl@gmail.com>
+Date:   Wed Jul 8 22:12:20 2026 +0700
+
+    Thêm chức năng hoàn tiền
+
+[33mcommit d7a1f2d97d85747eefc6313fb9eab503e3e9c83c[m
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Sat Jul 4 14:13:55 2026 +0700
+
+    fix routes
+    
+    Removed unused AdminTransactionController and TransactionController imports.
+
+[33mcommit aa1720e4f1a348b99ef1d651acd55ce0e3d4c456[m
+Merge: 2526c64 c30ba07
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Sat Jul 4 14:02:04 2026 +0700
+
+    Merge pull request #58 from ltruong03102006-source/xephangcosotheodanhgiavasodatsotheodanhsan
+    
+    Xếp hạng cơ sở theo đánh giá & số lượt đặt sân
+
+[33mcommit 2526c645014e9b8c91d99772755c29faa6270064[m
+Merge: 03db641 3bc150b
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Sat Jul 4 14:00:14 2026 +0700
+
+    Merge pull request #57 from ltruong03102006-source/feature/DatSanTheoGoi
+    
+    Update luồng lịch sử thanh toán
+
+[33mcommit 3bc150b051b4645ae147cba081a3a558763666d0[m[33m ([m[1;31morigin/feature/DatSanTheoGoi[m[33m)[m
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Sat Jul 4 13:59:14 2026 +0700
+
+    Update luồng lịch sử thanh toán
+
+[33mcommit c30ba0701a6b5f9278c6c6b16df1f8b5c4ba4a6e[m[33m ([m[1;31morigin/xephangcosotheodanhgiavasodatsotheodanhsan[m[33m)[m
+Author: Gaming Klx <nt231507@gmail.com>
+Date:   Fri Jul 3 00:09:50 2026 +0700
+
+    Xếp hạng cơ sở theo đánh giá & số lượt đặt sân
+
+[33mcommit 03db641b636ba1839eb509b928599cec86b4446e[m
+Merge: 37c060f 8a01198
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Thu Jul 2 17:02:19 2026 +0700
+
+    Merge pull request #56 from ltruong03102006-source/feature/DatSanTheoGoi
+    
+    Update Đặt sân theo gói tuần / tháng — giá ưu đãi hơn đặt lẻ
+
+[33mcommit 8a0119827701dd7f7059225de3f00fbbb2402855[m
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Thu Jul 2 16:55:59 2026 +0700
+
+    Update Đặt sân theo gói tuần / tháng — giá ưu đãi hơn đặt lẻ
+
+[33mcommit 37c060f000864c69e8a26a6e88e68aeeab660e4f[m
+Merge: 178abcf e1451eb
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Thu Jul 2 03:32:04 2026 +0700
+
+    Merge pull request #54 from ltruong03102006-source/feature/DatSanTheoGoi
+    
+    Đặt sân theo gói tuần / tháng — giá ưu đãi hơn đặt lẻ
+
+[33mcommit e1451ebc0f0564e4c7cfda8429043b64c88bfdd8[m
+Merge: af48010 178abcf
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Thu Jul 2 03:31:53 2026 +0700
+
+    Merge branch 'develop' into feature/DatSanTheoGoi
+
+[33mcommit 178abcf84acbf6c0af70c8b71ad09bc11e4a3c5c[m
+Merge: 5486b29 45e511e
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Thu Jul 2 03:29:37 2026 +0700
+
+    Merge pull request #53 from ltruong03102006-source/lichsutimkiem-timdoibatcap
+    
+    lich su tim kiem va tim doi, bat cap
+
+[33mcommit af48010e9d91c8debf3cebd81de08c178be81c0d[m
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Thu Jul 2 03:27:10 2026 +0700
+
+    Đặt sân theo gói tuần / tháng — giá ưu đãi hơn đặt lẻ
+
+[33mcommit 45e511ed98353db92a47a5b72c70aa2b01d573b6[m
+Author: hoangvu1311fb-gif <hoangvu1311fb@gmail.com>
+Date:   Wed Jul 1 23:40:14 2026 +0700
+
+    lich su tim kiem va tim doi, bat cap
+
+[33mcommit 5486b29f75243a6ea236201d5e71807e9ee9ab4e[m
+Merge: c377fff 55cf166
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Wed Jul 1 20:23:56 2026 +0700
+
+    Merge pull request #51 from ltruong03102006-source/feature/LichSuGiaoDichThanhToan
+    
+    Lịch sử giao dịch thanh toán — bảng transactions
+
+[33mcommit 55cf166a8e32dca3e3eed7f3965c0c79b7619ec4[m[33m ([m[1;31morigin/feature/LichSuGiaoDichThanhToan[m[33m)[m
+Author: nhathb1230z-a11y <nhathb1230z@gmail.com>
+Date:   Wed Jul 1 19:23:29 2026 +0700
+
+    Lịch sử giao dịch thanh toán — bảng transactions
+
+[33mcommit c377fff77faac92e7ed45da0b73a19000c474dd9[m
+Merge: 8a36836 fad17b0
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Tue Jun 30 09:18:56 2026 +0700
+
+    Merge pull request #50 from ltruong03102006-source/feature/thanh-toan-khi-dat-san
+    
+    Thêm tích hợp VNPay, thông tin ngân hàng và xác nhận giao dịch & cập …
+
+[33mcommit fad17b044f3af06008e68520de30da8f2533f8e9[m[33m ([m[1;31morigin/feature/thanh-toan-khi-dat-san[m[33m)[m
+Merge: e3fb8b8 8a36836
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Tue Jun 30 09:18:42 2026 +0700
+
+    Merge branch 'develop' into feature/thanh-toan-khi-dat-san
+
+[33mcommit e3fb8b8c795a3b2fbd50a90f5e88fab6571638a3[m
+Author: dungcon1111hl-jpg <dungcon1111hl@gmail.com>
+Date:   Mon Jun 29 14:35:39 2026 +0700
+
+    Thêm tích hợp VNPay, thông tin ngân hàng và xác nhận giao dịch & cập nhật booking
+
+[33mcommit 8a3683650b1972689ac856060b0e73f01f64bd4f[m
+Merge: f3a5aee ca50e83
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Sun Jun 28 16:13:16 2026 +0700
+
+    Merge pull request #47 from ltruong03102006-source/feature/venue-filters
+    
+    Them loc co so theo tinh/phuong, gia, rating, khoang cach va xep hang
+
+[33mcommit f3a5aee0daa2079da0b3f40e62852911fa7d8238[m
+Merge: 24b1191 0737f82
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Sun Jun 28 16:11:31 2026 +0700
+
+    Merge pull request #48 from ltruong03102006-source/feature/Fix_Loi
+    
+    Update thông báo
+
+[33mcommit 0737f823da5bcd59698ce2465f8b143ba67c3cb6[m
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Sun Jun 28 16:04:53 2026 +0700
+
+    Update thông báo
+
+[33mcommit ca50e835c831498d62009aabfad9141252836792[m[33m ([m[1;31morigin/feature/venue-filters[m[33m)[m
+Author: longhoang <longhoangzzz06@gmail.com>
+Date:   Sat Jun 27 19:58:14 2026 +0700
+
+    Them loc co so theo tinh/phuong, gia, rating, khoang cach va xep hang co so
+
+[33mcommit 24b1191d5e232bccb5b12e8dcdd034fcad55ee4e[m
+Merge: 3517a0f ccb703d
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Thu Jun 25 00:08:58 2026 +0700
+
+    Merge pull request #45 from ltruong03102006-source/feature/yeucaudoibooking
+    
+    Update Validate
+
+[33mcommit ccb703d809c6dd8464d2643428a74a0e020ea6a4[m[33m ([m[1;31morigin/feature/yeucaudoibooking[m[33m)[m
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Thu Jun 25 00:08:10 2026 +0700
+
+    Update Validate
+
+[33mcommit 3517a0fb9d3cbf9ce3067637ec51e9ba40888519[m
+Merge: 875c25c c087033
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Wed Jun 24 23:27:43 2026 +0700
+
+    Merge pull request #44 from ltruong03102006-source/feature/ThongBaoTrongKhiBookingMoi
+    
+    Notification bell — thông báo trong app khi có booking mới
+
+[33mcommit 875c25c123a722e458092b55dbe2c7ae436aee2b[m
+Merge: 8d185a4 48740ee
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Wed Jun 24 23:26:53 2026 +0700
+
+    Merge pull request #43 from ltruong03102006-source/feature/timsanganday
+    
+    update chuc nang tim san gan day
+
+[33mcommit 48740ee9c8a43fe0b3672756c10d8bf8ec7f7584[m[33m ([m[1;31morigin/feature/timsanganday[m[33m)[m
+Author: dungcon1111hl-jpg <dungcon1111hl@gmail.com>
+Date:   Wed Jun 24 22:39:12 2026 +0700
+
+    update chuc nang tim san gan day
+
+[33mcommit 8d185a4022ccb6afb63d68cfd4aa21394b1a8d11[m
+Merge: 411164b d8b8876
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Wed Jun 24 22:27:09 2026 +0700
+
+    Merge pull request #41 from ltruong03102006-source/feature/user-profile
+    
+    feat: trang cá nhân (thông tin, bảo mật, avatar)
+
+[33mcommit d8b88766c51a443b4745a297aff36201d0ee34bd[m[33m ([m[1;31morigin/feature/user-profile[m[33m)[m
+Author: longhoang <longhoangzzz06@gmail.com>
+Date:   Wed Jun 24 21:24:58 2026 +0700
+
+    feat: trang cá nhân (thông tin, bảo mật, avatar)
+
+[33mcommit 411164bebb33a8cce77fb81b42509c8e490e8e49[m
+Merge: 2a51ddc cad8543
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Wed Jun 24 10:34:05 2026 +0700
+
+    Merge pull request #40 from ltruong03102006-source/feature/yeucaudoibooking
+    
+    Update giao diện
+
+[33mcommit 2a51ddc5f56dc5de1a4a42c74d1d8c607965f28f[m
+Merge: c703155 5cc0c93
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Wed Jun 24 10:33:10 2026 +0700
+
+    Merge pull request #39 from ltruong03102006-source/tudongvietdanhgiakhibookinghoanthanh
+    
+    tự hiện đánh giá khi hoàn thành booking
+
+[33mcommit cad8543826392be6665abd17dcf5c6b61b62875c[m
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Wed Jun 24 00:24:56 2026 +0700
+
+    Update giao diện
+
+[33mcommit 5cc0c9326acbd0d2ecafd6ed40e6b830c2076041[m[33m ([m[1;31morigin/tudongvietdanhgiakhibookinghoanthanh[m[33m)[m
+Author: Gaming Klx <nt231507@gmail.com>
+Date:   Mon Jun 22 23:34:20 2026 +0700
+
+    tự hiện đánh giá khi hoàn thành booking
+
+[33mcommit c087033ffb6489e794d03bdbb69f6b5a134056ab[m[33m ([m[1;31morigin/feature/ThongBaoTrongKhiBookingMoi[m[33m)[m
+Author: nhathb1230z-a11y <nhathb1230z@gmail.com>
+Date:   Mon Jun 22 14:05:31 2026 +0700
+
+    Notification bell — thông báo trong app khi có booking mới
+
+[33mcommit c70315504bb65bccb05da5b63324e3ce616d970d[m
+Merge: 3fefeef a0f8165
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Mon Jun 22 13:01:59 2026 +0700
+
+    Merge pull request #38 from ltruong03102006-source/feature/yeucaudoibooking
+    
+    Người dùng yêu cầu đổi lịch booking
+
+[33mcommit a0f8165ca02a2e63e2d57b9cd9040d615817c033[m
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Mon Jun 22 13:00:15 2026 +0700
+
+    Người dùng yêu cầu đổi lịch booking
+
+[33mcommit 3fefeefdb280608e637f649e1d19919e2e2c4c84[m
+Merge: ce08ca7 2ce06e3
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Mon Jun 22 10:02:42 2026 +0700
+
+    Merge pull request #37 from ltruong03102006-source/chusancauhinhchinhsachhuy
+    
+    Chủ sân cấu hình chính sách hủy
+
+[33mcommit 2ce06e319440be42e1a24b55c545df12341044f3[m[33m ([m[1;31morigin/chusancauhinhchinhsachhuy[m[33m)[m
+Merge: 619e58c ce08ca7
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Mon Jun 22 10:02:01 2026 +0700
+
+    Merge branch 'develop' into chusancauhinhchinhsachhuy
+
+[33mcommit ce08ca72c7b9fdb9aadba08b71822c725508320b[m
+Merge: 3defa99 d1f4abb
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Mon Jun 22 01:40:33 2026 +0700
+
+    Merge pull request #36 from ltruong03102006-source/feature/AdminDuyetTuChoiChuSan
+    
+    Update chủ sân tạo tài khoản
+
+[33mcommit d1f4abbb89629d773b109d72a66b153445e043ec[m[33m ([m[1;31morigin/feature/AdminDuyetTuChoiChuSan[m[33m)[m
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Mon Jun 22 01:36:24 2026 +0700
+
+    Update chủ sân tạo tài khoản
+
+[33mcommit 3defa996d26389a2e0bca7ff56bc20ceafa11339[m
+Merge: 6ad5ff4 03e8d3c
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Mon Jun 22 00:17:31 2026 +0700
+
+    Merge pull request #35 from ltruong03102006-source/feature/AdminDuyetTuChoiChuSan
+    
+    Update Admin duyệt cho chu sân tạo sân
+
+[33mcommit 03e8d3c427050c74507c994106cdf99c97c84598[m
+Merge: 0306532 6ad5ff4
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Mon Jun 22 00:17:19 2026 +0700
+
+    Merge branch 'develop' into feature/AdminDuyetTuChoiChuSan
+
+[33mcommit 0306532873a2728813e3983e30f81a61c480e388[m
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Mon Jun 22 00:16:23 2026 +0700
+
+    Update Admin duyệt cho chu sân tạo sân
+
+[33mcommit 619e58c9b224faf255060c3d865699febbf6d6ea[m
+Author: ngochua1210 <ngochua2006@gmail.com>
+Date:   Sun Jun 21 21:00:57 2026 +0700
+
+    Chủ sân cấu hình chính sách hủy
+
+[33mcommit 6ad5ff43c3b3449f5426ab9d5f1ecc12ed2ddfa5[m
+Merge: 5e85bc1 20ec86a
+Author: truong06 <ltruong03102006@gmail.com>
+Date:   Sat Jun 20 17:29:22 2026 +0700
+
+    Merge pull request #34 from ltruong03102006-source/NguoiDungHuyBookingVaTrangYeuThich
+    
+    nguoidunghuybookingvatrangyeuthich

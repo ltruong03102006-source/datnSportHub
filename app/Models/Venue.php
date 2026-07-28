@@ -225,4 +225,10 @@ class Venue extends Model
     {
         return $this->hasMany(Service::class);
     }
+
+    public function vouchers(): BelongsToMany
+    {
+        return $this->belongsToMany(Voucher::class, 'venue_voucher')
+            ->withTimestamps();
+    }
 }

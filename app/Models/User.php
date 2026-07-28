@@ -58,4 +58,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(BookingPackage::class);
     }
+
+    public function createdVouchers(): HasMany
+    {
+        return $this->hasMany(Voucher::class, 'created_by_id');
+    }
 }
