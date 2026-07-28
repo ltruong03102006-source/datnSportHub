@@ -270,11 +270,21 @@
                     @endif
                 </td>
                 <td style="color: var(--text-muted); font-size: 12px;">{{ $w->created_at->format('H:i d/m/Y') }}</td>
-                <td style="text-align: right;">
+                <td style="text-align: right; display: flex; justify-content: flex-end; gap: 8px;">
                     @if($w->status === 'pending')
                     <button onclick="openProcessModal({{ $w->id }}, {{ $w->amount }}, '{{ $w->user->name ?? '' }}')" class="btn-action" style="background: var(--primary); color: white; border: none; font-weight: 600;">Xử lý</button>
                     @else
-                    <span style="font-size: 12px; color: var(--text-muted);">Đã xử lý</span>
+                    <button onclick="openDetailModal({
+                        id: {{ $w->id }},
+                        amount: '{{ number_format($w->amount) }}đ',
+                        user: '{{ $w->user->name ?? '' }}',
+                        bankName: '{{ $w->bank_name }}',
+                        bankAccount: '{{ $w->bank_account_no }}',
+                        accountName: '{{ $w->bank_account_name }}',
+                        status: '{{ $w->status }}',
+                        note: '{{ e(str_replace(array("\r", "\n"), '', $w->admin_note)) }}',
+                        proof: '{{ $w->proof_image ? asset('storage/' . $w->proof_image) : '' }}'
+                    })" class="btn-action">Chi tiết</button>
                     @endif
                 </td>
             </tr>
@@ -329,6 +339,32 @@
         </form>
     </div>
 </div>
+
+<!-- Modal xem chi tiết -->
+<div id="detailModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="detailTitle">Chi tiết rút tiền</h3>
+            <button type="button" onclick="closeDetailModal()" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body" style="font-size: 13px; line-height: 1.6;">
+            <div style="margin-bottom: 12px;"><strong>Người yêu cầu:</strong> <span id="detailUser"></span></div>
+            <div style="margin-bottom: 12px;"><strong>Số tiền:</strong> <span id="detailAmount" style="color: #e74c3c; font-weight: bold;"></span></div>
+            <div style="margin-bottom: 12px;"><strong>Ngân hàng:</strong> <span id="detailBank"></span></div>
+            <div style="margin-bottom: 12px;"><strong>Trạng thái:</strong> <span id="detailStatus"></span></div>
+            <div style="margin-bottom: 12px;"><strong>Ghi chú Admin:</strong> <span id="detailNote" style="color: #64748b;"></span></div>
+            
+            <div id="detailProofContainer" style="display: none; margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                <strong style="display: block; margin-bottom: 8px;">Ảnh minh chứng:</strong>
+                <img id="detailProofImage" src="" alt="Minh chứng" style="max-width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; max-height: 250px; object-fit: contain;">
+                <a id="detailProofDownload" href="" download class="btn-action" style="display: inline-block; margin-top: 8px; text-decoration: none; font-weight: 500;"><i class="fa-solid fa-download"></i> Tải ảnh về</a>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" onclick="closeDetailModal()" class="btn-action">Đóng</button>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -343,6 +379,34 @@
 
     function closeProcessModal() {
         document.getElementById('processModal').style.display = 'none';
+    }
+
+    function openDetailModal(data) {
+        document.getElementById('detailTitle').innerText = 'Chi tiết rút tiền #' + data.id;
+        document.getElementById('detailUser').innerText = data.user;
+        document.getElementById('detailAmount').innerText = data.amount;
+        document.getElementById('detailBank').innerText = `${data.bankName} - ${data.bankAccount} (${data.accountName})`;
+        document.getElementById('detailNote').innerText = data.note || 'Không có ghi chú';
+        
+        let statusHtml = '';
+        if (data.status === 'approved') statusHtml = '<span class="badge-status status-approved">Đã duyệt</span>';
+        else if (data.status === 'rejected') statusHtml = '<span class="badge-status status-rejected">Từ chối</span>';
+        document.getElementById('detailStatus').innerHTML = statusHtml;
+
+        const proofContainer = document.getElementById('detailProofContainer');
+        if (data.proof) {
+            document.getElementById('detailProofImage').src = data.proof;
+            document.getElementById('detailProofDownload').href = data.proof;
+            proofContainer.style.display = 'block';
+        } else {
+            proofContainer.style.display = 'none';
+        }
+
+        document.getElementById('detailModal').style.display = 'flex';
+    }
+
+    function closeDetailModal() {
+        document.getElementById('detailModal').style.display = 'none';
     }
 </script>
 @endpush
