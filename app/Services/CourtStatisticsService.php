@@ -172,8 +172,9 @@ class CourtStatisticsService
     {
         $valid = $this->validBookingsByCourt($bookings);
 
-        // Khung giờ hiển thị: lấy theo dữ liệu thực tế, tối thiểu là khung 6h-22h
-        $bookedHours = $bookings
+        // Khung giờ hiển thị: lấy theo lịch đặt hợp lệ, tối thiểu là khung 6h-22h
+        $bookedHours = $valid
+            ->flatten()
             ->map(fn (Booking $b) => (int) Carbon::parse($b->start_time)->format('H'));
 
         $from = min(self::HEATMAP_DEFAULT_FROM, $bookedHours->min() ?? self::HEATMAP_DEFAULT_FROM);
