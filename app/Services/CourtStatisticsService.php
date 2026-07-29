@@ -136,4 +136,19 @@ class CourtStatisticsService
             return min(100, ((float) ($bookedHours[$courtId] ?? 0) / $available) * 100);
         });
     }
+
+    /**
+     * Khung giờ được đặt nhiều nhất của từng sân con.
+     * Trả về map [court_id => ['08:00' => 5, ...]] đã sắp giảm dần.
+     */
+    public function peakHoursByCourt(Collection $bookings, int $limit = 3): Collection
+    {
+        return $this->validBookingsByCourt($bookings)->map(function (Collection $courtBookings) use ($limit) {
+            return $courtBookings
+                ->groupBy(fn (Booking $b) => Carbon::parse($b->start_time)->format('H:i'))
+                ->map(fn (Collection $slot) => $slot->count())
+                ->sortDesc()
+                ->take($limit);
+        });
+    }
 }
