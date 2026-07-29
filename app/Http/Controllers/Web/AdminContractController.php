@@ -131,4 +131,23 @@ class AdminContractController extends Controller
 
         return view('admin.contracts.show', compact('contract'));
     }
+
+    /**
+     * Send a contract by changing its status from draft/rejected to sent.
+     *
+     * @param Contract $contract
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function send(Contract $contract)
+    {
+        if (!in_array($contract->status, ['draft', 'rejected'], true)) {
+            return Redirect::route('admin.contracts.index')
+                ->with('error', 'Hợp đồng này không thể gửi.');
+        }
+
+        $contract->update(['status' => 'sent']);
+
+        return Redirect::route('admin.contracts.index')
+            ->with('success', 'Hợp đồng đã được gửi thành công.');
+    }
 }

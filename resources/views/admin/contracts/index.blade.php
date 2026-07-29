@@ -65,8 +65,15 @@
                                             </td>
                                             <td>{{ $contract->created_at->format('Y-m-d H:i') }}</td>
                                             <td>
-                                                <a href="#" class="btn btn-sm btn-outline-primary me-1">Xem</a>
-                                                <a href="#" class="btn btn-sm btn-outline-secondary">Sửa</a>
+                                                <a href="{{ route('admin.contracts.show', $contract) }}" class="btn btn-sm btn-outline-primary me-1">Xem</a>
+                                                <a href="{{ route('admin.contracts.edit', $contract) }}" class="btn btn-sm btn-outline-secondary me-1">Sửa</a>
+
+                                                @if(in_array($contract->status, ['draft', 'rejected'], true))
+                                                    <form action="{{ route('admin.contracts.send', $contract) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn gửi hợp đồng này?');">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm btn-outline-success">Gửi hợp đồng</button>
+                                                    </form>
+                                                @endif
                                             </td>
                                         </tr>
                                     @endforeach

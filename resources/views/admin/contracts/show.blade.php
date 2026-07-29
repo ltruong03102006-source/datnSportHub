@@ -14,6 +14,12 @@
                         <div class="d-flex gap-2">
                             <a href="{{ route('admin.contracts.index') }}" class="btn btn-outline-secondary">Quay lại danh sách</a>
                             <a href="{{ route('admin.contracts.edit', $contract) }}" class="btn btn-primary">Chỉnh sửa</a>
+                            @if(in_array($contract->status, ['draft', 'rejected'], true))
+                                <form action="{{ route('admin.contracts.send', $contract) }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn gửi hợp đồng này?');">
+                                    @csrf
+                                    <button type="submit" class="btn btn-success">Gửi hợp đồng</button>
+                                </form>
+                            @endif
                         </div>
                     </div>
 
