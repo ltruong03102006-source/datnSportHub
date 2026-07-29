@@ -126,6 +126,12 @@ return [
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
         ],
+        'settlement' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/settlement.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 30, // Lưu 30 ngày
+        ],
 
     ],
 

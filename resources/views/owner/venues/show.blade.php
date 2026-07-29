@@ -328,7 +328,83 @@
                         <div class="text-muted small"><strong>Kinh độ:</strong> {{ $venue->lng }}</div>
                     </div>
                 </div>
-                <h5 class="fw-bold text-dark border-bottom pb-2 mt-4 mb-3">Thư viện ảnh</h5>
+                    <!-- THÊM MỚI: THÔNG TIN LIÊN HỆ -->
+                <h5 class="fw-bold text-dark border-bottom pb-2 mt-5 mb-3">Thông tin liên hệ</h5>
+                <div class="row g-3 mb-2">
+                    <div class="col-12 col-md-6">
+                        <strong><i class="fa-solid fa-phone me-2 text-success"></i>Số điện thoại:</strong> 
+                        {{ $venue->phone ?? 'Chưa cập nhật' }}
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <strong><i class="fa-solid fa-envelope me-2 text-success"></i>Email:</strong> 
+                        {{ $venue->email ?? 'Chưa cập nhật' }}
+                    </div>
+                </div>
+
+                <!-- THÊM MỚI: HỒ SƠ PHÁP LÝ & THANH TOÁN -->
+                <h5 class="fw-bold text-dark border-bottom pb-2 mt-5 mb-3">Hồ sơ pháp lý & Thanh toán</h5>
+                @if($venue->legalDocument)
+                    <div class="bg-light p-4 rounded-3 border">
+                        <div class="row g-3">
+                            <div class="col-12 col-md-4">
+                                <div class="text-muted small">Tên chủ sở hữu</div>
+                                <div class="fw-bold">{{ $venue->legalDocument->owner_name }}</div>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <div class="text-muted small">Số CCCD</div>
+                                <div class="fw-bold">{{ $venue->legalDocument->citizen_id }}</div>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <div class="text-muted small">Mã số thuế / GPKD</div>
+                                <div class="fw-bold">{{ $venue->legalDocument->business_license_number }}</div>
+                            </div>
+                            
+                            <div class="col-12"><hr class="text-muted my-1"></div>
+
+                            <div class="col-12 col-md-4">
+                                <div class="text-muted small">Ngân hàng</div>
+                                <div class="fw-bold text-primary">{{ $venue->legalDocument->bank_name }}</div>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <div class="text-muted small">Số tài khoản</div>
+                                <div class="fw-bold text-primary">{{ $venue->legalDocument->bank_account_number }}</div>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <div class="text-muted small">Chủ tài khoản</div>
+                                <div class="fw-bold text-primary">{{ $venue->legalDocument->bank_account_holder }}</div>
+                            </div>
+
+                            <div class="col-12"><hr class="text-muted my-1"></div>
+
+                            <div class="col-12">
+                                <div class="text-muted small mb-2">Tài liệu đính kèm</div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    @if($venue->legalDocument->citizen_front_image)
+                                        <a href="{{ asset('storage/' . $venue->legalDocument->citizen_front_image) }}" target="_blank" class="btn btn-sm btn-outline-secondary">CCCD Mặt trước</a>
+                                    @endif
+                                    @if($venue->legalDocument->citizen_back_image)
+                                        <a href="{{ asset('storage/' . $venue->legalDocument->citizen_back_image) }}" target="_blank" class="btn btn-sm btn-outline-secondary">CCCD Mặt sau</a>
+                                    @endif
+                                    @if($venue->legalDocument->business_license_file)
+                                        <a href="{{ asset('storage/' . $venue->legalDocument->business_license_file) }}" target="_blank" class="btn btn-sm btn-outline-success">Giấy phép KD</a>
+                                    @endif
+                                    @if($venue->legalDocument->rental_contract_file)
+                                        <a href="{{ asset('storage/' . $venue->legalDocument->rental_contract_file) }}" target="_blank" class="btn btn-sm btn-outline-info">Hợp đồng thuê</a>
+                                    @endif
+                                    @if($venue->legalDocument->land_certificate_file)
+                                        <a href="{{ asset('storage/' . $venue->legalDocument->land_certificate_file) }}" target="_blank" class="btn btn-sm btn-outline-warning">Sổ đỏ/Sổ hồng</a>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @else
+                    <div class="alert alert-secondary text-center">
+                        Cơ sở này chưa có hồ sơ pháp lý.
+                    </div>
+                @endif
+            </div>
+            <h5 class="fw-bold text-dark border-bottom pb-2 mt-4 mb-3">Thư viện ảnh</h5>
                     @if($venue->images && $venue->images->count() > 0)
                         <div class="d-flex flex-wrap gap-2">
                             @foreach($venue->images as $img)
@@ -338,7 +414,6 @@
                     @else
                         <div class="text-muted small">Chưa có ảnh nào trong thư viện.</div>
                     @endif
-            </div>
         </div>
     </div>
     <div class="card card-shell mb-4">

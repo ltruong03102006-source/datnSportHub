@@ -27,18 +27,31 @@ class Booking extends Model
         'status',
         'payment_method',
         'payment_status',
+        'vnpay_tran_id',
+        'paid_at',
         'review_reminder_sent_at',
         'note',
         'cancel_reason',
         'cancellation_fee',
          'refund_amount', 
          'refund_status',
+         'platform_fee',
+        'owner_earnings',
+        'commission_rate',
+        'settlement_status',
+        'settled_at',
     ];
 
     protected $casts = [
         'total_price' => 'decimal:2',
         'slot_date' => 'date',
+        'paid_at' => 'datetime',
         'review_reminder_sent_at' => 'datetime',
+        'platform_fee' => 'decimal:0',
+        'owner_earnings' => 'decimal:0',
+        'commission_rate' => 'decimal:2',
+        'settlement_status' => \App\Enums\SettlementStatus::class,
+        'settled_at' => 'datetime',
     ];
 
     public function court(): BelongsTo
@@ -58,6 +71,7 @@ class Booking extends Model
 
     public function timeSlot(): BelongsTo { return $this->belongsTo(TimeSlot::class); }
     public function bookingPackage(): BelongsTo { return $this->belongsTo(BookingPackage::class); }
+    public function items(): HasMany { return $this->hasMany(BookingItem::class); }
     public function rescheduleRequests(): HasMany { return $this->hasMany(BookingRescheduleRequest::class); }
 
     public function recordStatusChange(int $changedBy, string $oldStatus, string $newStatus, ?string $note = null, $createdAt = null): BookingLog
@@ -128,4 +142,18 @@ class Booking extends Model
         });
     }
     // --- KẾT THÚC: LOGIC TỰ ĐỘNG HOÀN KHO ---
+    public function walletTransactions()
+    {
+        return $this->hasMany(WalletTransaction::class);
+    }
+
+    public function getCommissionAmountAttribute(): float
+    {
+        return (float) ($this->platform_fee ?? 0);
+    }
+
+    public function getOwnerAmountAttribute(): float
+    {
+        return (float) ($this->owner_earnings ?? 0);
+    }
 }

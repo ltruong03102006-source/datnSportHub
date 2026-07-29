@@ -128,67 +128,121 @@ class OwnerVenueController extends Controller
             ->with('success', 'Đã gửi yêu cầu tạo cơ sở, vui lòng chờ Admin duyệt. Mã cơ sở: #' . $createdVenue?->id);
     }
 
-    // Xử lý lưu cập nhật
-    public function update(UpdateVenueRequest $request, Venue $venue)
+  // Xử lý lưu cập nhật (Có phân luồng duyệt dữ liệu nhạy cảm)
+    public function update(\App\Http\Requests\UpdateVenueRequest $request, \App\Models\Venue $venue)
     {
         $this->authorizeOwner($venue);
         $validated = $request->validated();
 
-        $hasUpcomingBookings = Booking::whereIn('court_id', $venue->courts()->pluck('id'))
-            ->where('slot_date', '>=', now()->toDateString())
-            ->whereIn('status', ['pending', 'confirmed'])
-            ->exists();
+        DB::beginTransaction();
+        try {
+            // ========================================================
+            // PHẦN 1: QUÉT XEM CÓ THAY ĐỔI "THÔNG TIN CƠ BẢN" KHÔNG?
+            // ========================================================
+            $hasBasicChanges = false;
 
-        if ($hasUpcomingBookings) {
-            if ($validated['address'] !== $venue->address ||
-                $validated['province_code'] !== $venue->province_code ||
-                $validated['ward_code'] !== $venue->ward_code ||
-                (float)$validated['lat'] !== (float)$venue->lat ||
-                (float)$validated['lng'] !== (float)$venue->lng ||
-                $validated['sport_id'] != $venue->sport_id) {
-                
+            if ($request->has('deleted_image_ids')) {
+                $imagesToDelete = \App\Models\VenueImage::whereIn('id', $request->deleted_image_ids)
+                                                        ->where('venue_id', $venue->id)->get();
+                foreach ($imagesToDelete as $image) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($image->image_path);
+                    $image->delete();
+                }
+                $hasBasicChanges = true;
+            }
+
+            if ($request->hasFile('gallery_images')) {
+                foreach ($request->file('gallery_images') as $file) {
+                    $path = $file->store('venues/gallery', 'public');
+                    $venue->images()->create(['image_path' => $path]);
+                }
+                $hasBasicChanges = true;
+            }
+
+            if ($request->hasFile('banner')) {
+                if ($venue->banner) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($venue->banner);
+                }
+                $venue->banner = $request->file('banner')->store('venues', 'public');
+                $hasBasicChanges = true;
+            }
+
+            $basicFields = ['sport_id', 'name', 'phone', 'email', 'description', 'address', 'province_code', 'ward_code', 'lat', 'lng'];
+            $basicData = \Illuminate\Support\Arr::only($validated, $basicFields);
+            
+            $venue->fill($basicData);
+            if ($venue->isDirty()) { // isDirty() giúp Laravel tự check xem dữ liệu có bị đổi khác với CSDL không
+                $hasBasicChanges = true;
+            }
+            $venue->save();
+
+
+            // ========================================================
+            // PHẦN 2: QUÉT XEM CÓ THAY ĐỔI "HỒ SƠ PHÁP LÝ" KHÔNG?
+            // ========================================================
+            $legalFields = ['owner_name', 'citizen_id', 'business_license_number', 'bank_name', 'bank_account_number', 'bank_account_holder'];
+            $fileFields = ['citizen_front_image', 'citizen_back_image', 'business_license_file', 'rental_contract_file', 'land_certificate_file'];
+
+            $legalData = \Illuminate\Support\Arr::only($validated, $legalFields);
+            $hasLegalChanges = false;
+            $currentLegal = $venue->legalDocument;
+
+            // Kiểm tra trường text
+            foreach ($legalFields as $field) {
+                if (trim($legalData[$field] ?? '') != trim($currentLegal->$field ?? '')) {
+                    $hasLegalChanges = true;
+                    break;
+                }
+            }
+
+            // Kiểm tra file
+            foreach ($fileFields as $field) {
+                if ($request->hasFile($field)) {
+                    $hasLegalChanges = true;
+                    // Chỉ đưa vào danh sách cần duyệt nếu Chủ sân thực sự up file MỚI
+                    $legalData[$field] = $request->file($field)->store('venue-documents/temp_updates', 'public');
+                }
+                // (KHÔNG LÀM GÌ CẢ NẾU KHÔNG UP FILE MỚI, ĐỂ GIỮ NGUYÊN FILE CŨ TRONG DB)
+            }
+
+            if ($hasLegalChanges) {
+                \App\Models\VenueUpdateRequest::where('venue_id', $venue->id)->where('status', 'pending')->delete();
+                \App\Models\VenueUpdateRequest::create([
+                    'venue_id' => $venue->id,
+                    'requested_data' => $legalData,
+                    'status' => 'pending'
+                ]);
+            }
+
+            DB::commit();
+
+            // ========================================================
+            // PHẦN 3: XUẤT TÍN HIỆU THÔNG BÁO THEO 3 TRƯỜNG HỢP
+            // ========================================================
+            if ($hasBasicChanges && $hasLegalChanges) {
                 return response()->json([
-                    'success' => false, 
-                    'message' => 'Lỗi: Không thể thay đổi Địa chỉ, Vị trí bản đồ hoặc Môn thể thao vì sân đang có lịch đặt của khách trong tương lai!'
-                ], 400);
+                    'success' => true, 
+                    'update_type' => 'both',
+                    'message' => 'Đã lưu Thông tin cơ bản. Riêng Hồ sơ pháp lý đang chờ Admin duyệt!'
+                ]);
+            } elseif ($hasLegalChanges) {
+                return response()->json([
+                    'success' => true, 
+                    'update_type' => 'pending_legal',
+                    'message' => 'Yêu cầu thay đổi Hồ sơ pháp lý đã được gửi và đang chờ Admin duyệt!'
+                ]);
+            } else {
+                return response()->json([
+                    'success' => true, 
+                    'update_type' => 'basic',
+                    'message' => 'Đã cập nhật thông tin điểm sân thành công!'
+                ]);
             }
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Lỗi hệ thống: ' . $e->getMessage()], 500);
         }
-
-        // 1. Xử lý XÓA ẢNH nháp
-        if ($request->has('deleted_image_ids')) {
-            $imagesToDelete = \App\Models\VenueImage::whereIn('id', $request->deleted_image_ids)
-                                                    ->where('venue_id', $venue->id)
-                                                    ->get();
-            foreach ($imagesToDelete as $image) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($image->image_path);
-                $image->delete();
-            }
-        }
-
-        // 2. Xử lý LƯU ẢNH MỚI (Chỉ gọi 1 lần duy nhất ở đây)
-        if ($request->hasFile('gallery_images')) {
-            foreach ($request->file('gallery_images') as $file) {
-                $path = $file->store('venues/gallery', 'public');
-                $venue->images()->create(['image_path' => $path]);
-            }
-        }
-
-        if ($request->hasFile('banner')) {
-            $venue->banner = $request->file('banner')->store('venues', 'public');
-        }
-
-        $venue->update([
-            'sport_id' => $validated['sport_id'],
-            'name' => $validated['name'],
-            'address' => $validated['address'],
-            'province_code' => $validated['province_code'],
-            'ward_code' => $validated['ward_code'],
-            'description' => $validated['description'] ?? null,
-            'lat' => $validated['lat'] ?? null,
-            'lng' => $validated['lng'] ?? null,
-        ]);
-
-        return response()->json(['success' => true, 'message' => 'Cập nhật thành công']);
     }
 
     // Xóa mềm (Tạm ẩn điểm sân)

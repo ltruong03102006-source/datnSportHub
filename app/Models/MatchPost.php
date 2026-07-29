@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class MatchPost extends Model
 {
     protected $fillable = [
-        'user_id', 'sport_id', 'title', 'play_date', 
+        'user_id', 'sport_id', 'province_code', 'title', 'play_date', 
         'play_time', 'location', 'skill_level', 
         'needed_players', 'contact_info', 'description', 'status', 'total_players'
     ];
@@ -29,5 +29,9 @@ class MatchPost extends Model
     // Lấy những người ĐÃ ĐƯỢC DUYỆT
     public function approvedParticipants(): HasMany {
         return $this->hasMany(MatchParticipant::class)->where('status', 'approved');
+    }
+    public function province(): BelongsTo { 
+        // Liên kết bằng cột province_code trong bảng match_posts với cột code trong bảng provinces
+        return $this->belongsTo(Province::class, 'province_code', 'code'); 
     }
 }

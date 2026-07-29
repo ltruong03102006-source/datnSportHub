@@ -38,8 +38,8 @@ class StoreVenueRequest extends FormRequest
             'lng' => ['required', 'numeric', 'between:-180,180'],
             'gallery_images.*' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
             'owner_name' => ['required', 'string', 'max:255'],
-            'citizen_id' => ['required', 'string', 'max:50'],
-            'business_license_number' => ['required', 'string', 'max:100'],
+            'citizen_id' => ['required', 'digits:12'],
+            'business_license_number' => ['required', 'alpha_num', 'max:50'],
             'bank_name' => ['required', 'string', 'max:255'],
             'bank_account_number' => ['required', 'string', 'max:50'],
             'bank_account_holder' => ['required', 'string', 'max:255'],
@@ -58,6 +58,8 @@ class StoreVenueRequest extends FormRequest
             'province_code.exists' => 'Tỉnh/thành phố không hợp lệ.',
             'ward_code.required' => 'Vui lòng chọn phường/xã.',
             'ward_code.exists' => 'Phường/xã không hợp lệ hoặc không thuộc tỉnh đã chọn.',
+            'citizen_id.digits' => 'Số Căn cước công dân phải bao gồm chính xác 12 chữ số.',
+            'business_license_number.alpha_num' => 'Số giấy phép kinh doanh chỉ được chứa chữ cái và số, không chứa ký tự đặc biệt.',
         ];
     }
 
