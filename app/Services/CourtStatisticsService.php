@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Booking;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -72,5 +73,25 @@ class CourtStatisticsService
     {
         return $this->validBookingsByCourt($bookings)
             ->map(fn (Collection $courtBookings) => $courtBookings->pluck('user_id')->unique()->count());
+    }
+
+    /**
+     * Số giờ đã được đặt của một lịch đặt.
+     */
+    public function bookedHoursOf(Booking $booking): float
+    {
+        $start = Carbon::parse($booking->start_time);
+        $end = Carbon::parse($booking->end_time);
+
+        return abs($end->diffInMinutes($start)) / 60;
+    }
+
+    /**
+     * Tổng số giờ đã đặt của từng sân con.
+     */
+    public function bookedHoursByCourt(Collection $bookings): Collection
+    {
+        return $this->validBookingsByCourt($bookings)
+            ->map(fn (Collection $courtBookings) => $courtBookings->sum(fn (Booking $b) => $this->bookedHoursOf($b)));
     }
 }
