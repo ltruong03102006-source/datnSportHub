@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -27,6 +28,14 @@ class TimeSlot extends Model
     public function court(): BelongsTo
     {
         return $this->belongsTo(Court::class);
+    }
+
+    /**
+     * Scope: Lấy khung giờ của các sân con chỉ định (dùng để tính công suất sân)
+     */
+    public function scopeForCourts(Builder $query, $courtIds): Builder
+    {
+        return $query->whereIn('court_id', $courtIds);
     }
 
     /**
