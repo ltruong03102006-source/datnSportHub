@@ -3,10 +3,14 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Enums\TransactionType;
 use App\Models\Booking;
 use App\Models\BookingLog;
+use App\Models\PlatformWalletTransaction;
 use App\Models\Venue;
+use App\Models\WalletTransaction;
 use App\Services\BookingCompletionService;
+use App\Services\PlatformWalletService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -178,18 +182,36 @@ class OwnerBookingCalendarController extends Controller
                 if ($lockedBooking->payment_status === 'paid') {
                     $updateData['refund_amount'] = $lockedBooking->total_price;
                     $updateData['refund_status'] = 'refunded';
-                    
-                    $user = $lockedBooking->user;
-                    $user->balance += $lockedBooking->total_price;
-                    $user->save();
 
-                    \App\Models\WalletTransaction::create([
-                        'user_id' => $user->id,
-                        'type' => 'refund',
+                    $user = $lockedBooking->user;
+                    $wallet = $user->getOrCreateWallet();
+                    $balanceBefore = $wallet->balance;
+
+                    $wallet->balance += $lockedBooking->total_price;
+                    $wallet->save();
+
+                    WalletTransaction::create([
+                        'wallet_id' => $wallet->id,
+                        'booking_id' => $lockedBooking->id,
+                        'reference' => 'REFUND-B' . $lockedBooking->id . '-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(5)),
+                        'type' => TransactionType::REFUND,
                         'amount' => $lockedBooking->total_price,
-                        'balance_after' => $user->balance,
+                        'balance_before' => $balanceBefore,
+                        'balance_after' => $wallet->balance,
                         'description' => 'Hoàn tiền do chủ sân từ chối đơn đặt #' . $lockedBooking->id,
                     ]);
+
+                    if ($this->isPlatformOnlinePayment($lockedBooking) && class_exists(PlatformWalletService::class)) {
+                        app(PlatformWalletService::class)->debit(
+                            amount: $lockedBooking->total_price,
+                            type: PlatformWalletTransaction::TYPE_CUSTOMER_REFUND_OUT,
+                            description: 'Hoàn tiền do chủ sân từ chối đơn #' . $lockedBooking->id,
+                            referenceType: 'booking',
+                            referenceId: $lockedBooking->id,
+                            reference: 'REFUND-' . $lockedBooking->id,
+                            performedBy: $request->user()->id
+                        );
+                    }
                 } else {
                     $updateData['refund_amount'] = 0;
                     $updateData['refund_status'] = 'none';
@@ -266,32 +288,29 @@ class OwnerBookingCalendarController extends Controller
             if ($lockedBooking->payment_status === 'paid') {
                 $updateData['refund_amount'] = $lockedBooking->total_price;
                 $updateData['refund_status'] = 'refunded';
-                
+
                 $user = $lockedBooking->user;
-                // 1. Dùng Wallet chuẩn
                 $wallet = $user->getOrCreateWallet();
                 $balanceBefore = $wallet->balance;
-                
+
                 $wallet->balance += $lockedBooking->total_price;
                 $wallet->save();
 
-                // 2. Ghi log ví Khách (có wallet_id và reference)
-                \App\Models\WalletTransaction::create([
+                WalletTransaction::create([
                     'wallet_id' => $wallet->id,
                     'booking_id' => $lockedBooking->id,
                     'reference' => 'REFUND-B' . $lockedBooking->id . '-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(5)),
-                    'type' => 'refund',
+                    'type' => TransactionType::REFUND,
                     'amount' => $lockedBooking->total_price,
                     'balance_before' => $balanceBefore,
                     'balance_after' => $wallet->balance,
                     'description' => 'Hoàn tiền do chủ sân hủy đơn đặt #' . $lockedBooking->id,
                 ]);
 
-                // 3. Trừ tiền Ví nền tảng
-                if (class_exists(\App\Services\PlatformWalletService::class)) {
-                    app(\App\Services\PlatformWalletService::class)->debit(
+                if ($this->isPlatformOnlinePayment($lockedBooking) && class_exists(PlatformWalletService::class)) {
+                    app(PlatformWalletService::class)->debit(
                         amount: $lockedBooking->total_price,
-                        type: 'customer_refund_out',
+                        type: PlatformWalletTransaction::TYPE_CUSTOMER_REFUND_OUT,
                         description: 'Hoàn tiền do chủ sân hủy đơn #' . $lockedBooking->id,
                         referenceType: 'booking',
                         referenceId: $lockedBooking->id,
@@ -329,6 +348,17 @@ class OwnerBookingCalendarController extends Controller
             // ignore
         }
     }
+
+    private function isPlatformOnlinePayment(Booking $booking): bool
+    {
+        return in_array(strtolower((string) $booking->payment_method), [
+            'vnpay',
+            'online',
+            'bank_transfer',
+            'platform_transfer',
+        ], true);
+    }
+
     private function formatEvent(Booking $booking): array
     {
         $status = $this->statusMeta($booking->status);

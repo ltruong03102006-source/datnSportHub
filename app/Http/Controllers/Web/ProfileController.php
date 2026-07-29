@@ -17,15 +17,17 @@ class ProfileController extends Controller
     public function show(): View
     {
         $user = Auth::user();
+        $wallet = $user->getOrCreateWallet();
 
         $loginHistories = $user->loginHistories()
             ->latest('logged_in_at')
             ->limit(10)
             ->get();
 
-        $walletTransactions = \App\Models\WalletTransaction::whereHas('wallet', function ($q) use ($user) {
-            $q->where('owner_id', $user->id);
-        })->latest()->limit(15)->get();
+        $walletTransactions = \App\Models\WalletTransaction::where('wallet_id', $wallet->id)
+            ->latest()
+            ->limit(15)
+            ->get();
 
         $withdrawalRequests = \App\Models\WithdrawalRequest::where('owner_id', $user->id)
             ->latest()
@@ -34,6 +36,7 @@ class ProfileController extends Controller
 
         return view('account.profile', [
             'user' => $user,
+            'wallet' => $wallet,
             'loginHistories' => $loginHistories,
             'walletTransactions' => $walletTransactions,
             'withdrawalRequests' => $withdrawalRequests,
