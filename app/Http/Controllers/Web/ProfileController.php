@@ -23,12 +23,11 @@ class ProfileController extends Controller
             ->limit(10)
             ->get();
 
-        $walletTransactions = \App\Models\WalletTransaction::where('user_id', $user->id)
-            ->latest()
-            ->limit(15)
-            ->get();
+        $walletTransactions = \App\Models\WalletTransaction::whereHas('wallet', function ($q) use ($user) {
+            $q->where('owner_id', $user->id);
+        })->latest()->limit(15)->get();
 
-        $withdrawalRequests = \App\Models\WithdrawalRequest::where('user_id', $user->id)
+        $withdrawalRequests = \App\Models\WithdrawalRequest::where('owner_id', $user->id)
             ->latest()
             ->limit(10)
             ->get();

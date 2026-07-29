@@ -177,12 +177,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // 👇 THÊM 2 DÒNG NÀY VÀO ĐỂ XỬ LÝ YÊU CẦU THAY ĐỔI THÔNG TIN (BẢN NHÁP) 👇
         Route::post('/venues/update-requests/{updateRequest}/approve', [AdminVenueController::class, 'approveUpdateReq'])->name('venues.update-requests.approve');
         Route::post('/venues/update-requests/{updateRequest}/reject', [AdminVenueController::class, 'rejectUpdateReq'])->name('venues.update-requests.reject');
+        // Cập nhật tỷ lệ hoa hồng cho cơ sở (Admin)
+        Route::put('/venues/{venue}/commission', [\App\Http\Controllers\Admin\VenueCommissionController::class, 'update'])->name('venues.commission.update');
     });
 });
 
 Route::get('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingController::class, 'index'])->name('financial-settings.index');
-        Route::post('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingController::class, 'update'])->name('financial-settings.update');
-        Route::put('/venues/{venue}/commission', [\App\Http\Controllers\Admin\VenueCommissionController::class, 'update'])->name('venues.commission.update');
+    Route::post('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingController::class, 'update'])->name('financial-settings.update');
 
 //chu san
 Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group(function () {
