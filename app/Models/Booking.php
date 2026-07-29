@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -57,6 +58,14 @@ class Booking extends Model
     public function court(): BelongsTo
     {
         return $this->belongsTo(Court::class);
+    }
+
+    /**
+     * Scope: Lấy lịch đặt của các sân con chỉ định (dùng cho thống kê)
+     */
+    public function scopeForCourts(Builder $query, $courtIds): Builder
+    {
+        return $query->whereIn('court_id', $courtIds);
     }
 
     public function user(): BelongsTo
