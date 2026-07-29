@@ -244,6 +244,7 @@ class OwnerDashboardController extends Controller
         // Bảng này luôn tính trên toàn bộ sân con để so sánh được với nhau,
         // kể cả khi phía trên đang lọc riêng một sân.
         $courtStats = collect();
+        $courtHeatmap = ['hours' => [], 'rows' => [], 'max' => 0];
         if ($courtsOfVenue->isNotEmpty()) {
             $venueBookings = $selectedCourtId === 'all'
                 ? $bookings
@@ -253,6 +254,7 @@ class OwnerDashboardController extends Controller
                     ->get();
 
             $courtStats = $courtStatistics->statsByCourt($courtsOfVenue, $venueBookings, $daysInPeriod);
+            $courtHeatmap = $courtStatistics->bookingHeatmap($courtsOfVenue, $venueBookings);
         }
 
         $chartData = [
@@ -273,6 +275,7 @@ class OwnerDashboardController extends Controller
             'courtsOfVenue',
             'selectedCourtId',
             'courtStats',
+            'courtHeatmap',
             'totalRevenue',
             'packageBookingRevenue',
             'totalBookings',
