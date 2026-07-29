@@ -166,6 +166,7 @@
         <div class="flex items-center gap-4">
             <a href="{{ route('owner.web.venues.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Quản lý cơ sở</a>
             <a href="{{ route('owner.web.calendar.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Lịch đặt sân</a>
+            <a href="{{ route('owner.web.checkins.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Check-in</a>
             <a href="{{ route('owner.web.packages.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Quản lý gói</a>
             <a href="{{ route('owner.web.settings.bank') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Thanh toán (Bank)</a>
         </div>
@@ -197,6 +198,9 @@
                 <div>
                     <h2 class="spark-title text-3xl font-semibold tracking-tight mb-1">Hi, {{ Auth::user()->name ?? 'Chủ sân' }}</h2>
                     <p class="text-sm text-slate-500">Tùy chỉnh bộ lọc để xem thống kê chi tiết.</p>
+                    <a href="{{ route('owner.web.checkins.index') }}" class="mt-4 inline-flex items-center rounded-full bg-emerald-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700">
+                        Mở check-in hôm nay
+                    </a>
                 </div>
                 
                 <div class="flex flex-col lg:flex-row items-end gap-4 w-full xl:w-auto">
