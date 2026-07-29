@@ -36,4 +36,14 @@ class CourtStatisticsService
             ->filter(fn (Booking $booking) => in_array($booking->status, Booking::VALID_STATUSES, true))
             ->filter(fn (Booking $booking) => $booking->isPaid());
     }
+
+    /**
+     * Doanh thu của từng sân con, trả về map [court_id => doanh thu].
+     */
+    public function revenueByCourt(Collection $bookings): Collection
+    {
+        return $this->payableBookings($bookings)
+            ->groupBy('court_id')
+            ->map(fn (Collection $courtBookings) => $courtBookings->sum(fn (Booking $b) => $this->revenueOf($b)));
+    }
 }
