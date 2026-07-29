@@ -44,6 +44,7 @@
             <a href="{{ route('owner.web.venues.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Quản lý cơ sở</a>
             <a href="{{ route('owner.web.calendar.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Lịch đặt sân</a>
             <a href="{{ route('owner.web.packages.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Quản lý gói</a>
+            <a href="{{ route('owner.contracts.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Hợp đồng</a>
         </div>
     </nav>
 
