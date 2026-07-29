@@ -61,10 +61,22 @@
             </div>
         </section>
 
+        @if(session('success'))
+            <div class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+                {{ session('error') }}
+            </div>
+        @endif
+
         <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div class="border-b border-slate-200 px-5 py-4">
                 <h2 class="text-lg font-extrabold text-slate-900">Booking hôm nay</h2>
-                <p class="mt-1 text-sm text-slate-500">Giai đoạn này chỉ hiển thị dữ liệu, thao tác check-in sẽ được thêm ở các giai đoạn sau.</p>
+                <p class="mt-1 text-sm text-slate-500">Bấm check-in khi khách đã đến sân hoặc đánh dấu không đến nếu khách bỏ lịch.</p>
             </div>
 
             <div class="overflow-x-auto">
@@ -76,6 +88,7 @@
                             <th class="px-5 py-3">Sân</th>
                             <th class="px-5 py-3">Thanh toán</th>
                             <th class="px-5 py-3">Trạng thái check-in</th>
+                            <th class="px-5 py-3 text-right">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 bg-white">
@@ -113,10 +126,30 @@
                                         {{ $checkinStatus }}
                                     </span>
                                 </td>
+                                <td class="px-5 py-4">
+                                    @if(!$booking->checked_in_at && !$booking->no_show_at)
+                                        <div class="flex flex-col items-stretch gap-2 sm:flex-row sm:justify-end">
+                                            <form method="POST" action="{{ route('owner.web.checkins.check-in', $booking) }}">
+                                                @csrf
+                                                <button type="submit" class="w-full rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700">
+                                                    Check-in
+                                                </button>
+                                            </form>
+                                            <form method="POST" action="{{ route('owner.web.checkins.no-show', $booking) }}" onsubmit="return confirm('Đánh dấu khách không đến cho booking này?')">
+                                                @csrf
+                                                <button type="submit" class="w-full rounded-lg bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700 ring-1 ring-rose-200 transition hover:bg-rose-100">
+                                                    Không đến
+                                                </button>
+                                            </form>
+                                        </div>
+                                    @else
+                                        <div class="text-right text-xs font-semibold text-slate-400">Đã xử lý</div>
+                                    @endif
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-5 py-12 text-center">
+                                <td colspan="6" class="px-5 py-12 text-center">
                                     <div class="mx-auto max-w-sm">
                                         <p class="text-base font-bold text-slate-700">Hôm nay chưa có booking cần check-in.</p>
                                         <p class="mt-1 text-sm text-slate-500">Khi có lịch đã xác nhận, danh sách sẽ hiển thị tại đây.</p>
