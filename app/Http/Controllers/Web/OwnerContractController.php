@@ -18,6 +18,8 @@ class OwnerContractController extends Controller
      */
     public function index(): View
     {
+        $this->authorize('viewAny', Contract::class);
+
         $contracts = Contract::with('creator')
             ->where('owner_id', Auth::id())
             ->orderBy('created_at', 'desc')
@@ -34,6 +36,8 @@ class OwnerContractController extends Controller
      */
     public function show(Contract $contract): View
     {
+        $this->authorize('view', $contract);
+
         if ($contract->owner_id !== Auth::id()) {
             abort(403);
         }
@@ -51,6 +55,8 @@ class OwnerContractController extends Controller
      */
     public function accept(Contract $contract)
     {
+        $this->authorize('accept', $contract);
+
         if ($contract->owner_id !== Auth::id()) {
             abort(403);
         }
@@ -77,6 +83,8 @@ class OwnerContractController extends Controller
      */
     public function download(Contract $contract)
     {
+        $this->authorize('download', $contract);
+
         if ($contract->owner_id !== Auth::id()) {
             abort(403);
         }
@@ -97,6 +105,8 @@ class OwnerContractController extends Controller
      */
     public function reject(Request $request, Contract $contract)
     {
+        $this->authorize('reject', $contract);
+
         if ($contract->owner_id !== Auth::id()) {
             abort(403);
         }

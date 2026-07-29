@@ -21,6 +21,8 @@ class AdminContractController extends Controller
      */
     public function index(Request $request): View
     {
+        $this->authorize('viewAny', Contract::class);
+
         // Load owners for the owner filter dropdown.
         $owners = User::where('role', 'owner')->orderBy('name')->get();
 
@@ -64,6 +66,8 @@ class AdminContractController extends Controller
      */
     public function create(): View
     {
+        $this->authorize('create', Contract::class);
+
         // Load all owners for contract assignment.
         $owners = User::where('role', 'owner')->get();
 
@@ -109,6 +113,8 @@ class AdminContractController extends Controller
      */
     public function edit(Contract $contract): View
     {
+        $this->authorize('update', $contract);
+
         if (!in_array($contract->status, ['draft', 'rejected'], true)) {
             return Redirect::route('admin.contracts.index')
                 ->with('error', 'Hợp đồng này không thể chỉnh sửa.');
@@ -128,6 +134,8 @@ class AdminContractController extends Controller
      */
     public function update(Request $request, Contract $contract)
     {
+        $this->authorize('update', $contract);
+
         if (!in_array($contract->status, ['draft', 'rejected'], true)) {
             return Redirect::route('admin.contracts.index')
                 ->with('error', 'Hợp đồng này không thể chỉnh sửa.');
@@ -158,6 +166,8 @@ class AdminContractController extends Controller
      */
     public function show(Contract $contract): View
     {
+        $this->authorize('view', $contract);
+
         $contract->load(['owner', 'creator']);
 
         return view('admin.contracts.show', compact('contract'));
@@ -171,6 +181,8 @@ class AdminContractController extends Controller
      */
     public function exportPdf(Contract $contract)
     {
+        $this->authorize('download', $contract);
+
         $contract->load(['owner', 'creator']);
 
         // Generate PDF directly from a Blade view.
@@ -187,6 +199,8 @@ class AdminContractController extends Controller
      */
     public function send(Contract $contract)
     {
+        $this->authorize('send', $contract);
+
         if (!in_array($contract->status, ['draft', 'rejected'], true)) {
             return Redirect::route('admin.contracts.index')
                 ->with('error', 'Hợp đồng này không thể gửi.');
