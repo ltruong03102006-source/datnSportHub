@@ -799,6 +799,8 @@
 
                     <dt>Trạng thái</dt>
                     <dd><span class="status-pill" id="detail-status"></span></dd>
+                    <dt>Check-in</dt>
+                    <dd id="detail-checkin-status"></dd>
                     <dt>Tổng tiền</dt>
                     <dd id="detail-price"></dd>
                
@@ -1008,6 +1010,7 @@
             document.getElementById('detail-price').textContent = booking.total_price;
             document.getElementById('detail-status').className = `status-pill ${statusClasses[booking.status] || 'status-cancelled'}`;
             document.getElementById('detail-status').textContent = booking.status_label;
+            document.getElementById('detail-checkin-status').textContent = booking.checkin_status_label || 'Chưa check-in';
 
             // FIX QUAN TRỌNG: Dùng ĐÚNG tên biến HTML của bạn để chống sập JS
             actionAlert.className = 'alert d-none';

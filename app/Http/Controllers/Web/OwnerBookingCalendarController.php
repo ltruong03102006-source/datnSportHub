@@ -348,6 +348,7 @@ class OwnerBookingCalendarController extends Controller
                 
                 'status' => $displayStatus, // Gửi status đã ghi đè
                 'status_label' => $status['label'], // Gửi nhãn tên đã ghi đè
+                'checkin_status_label' => $this->checkinStatusLabel($booking),
                 
                 'total_price' => number_format((float) $booking->total_price, 0, ',', '.').' đ',
                 'note' => $booking->note,
@@ -356,6 +357,19 @@ class OwnerBookingCalendarController extends Controller
                 'time_label' => substr($booking->start_time, 0, 5).' - '.substr($booking->end_time, 0, 5),
             ],
         ];
+    }
+
+    private function checkinStatusLabel(Booking $booking): string
+    {
+        if ($booking->checked_in_at) {
+            return 'Đã check-in lúc '.$booking->checked_in_at->format('H:i');
+        }
+
+        if ($booking->no_show_at) {
+            return 'Khách không đến';
+        }
+
+        return 'Chưa check-in';
     }
 
     private function statusMeta(string $status): array
