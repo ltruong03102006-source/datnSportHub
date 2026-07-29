@@ -184,14 +184,39 @@ class CourtStatisticsService
             $cells = [];
             foreach ($hours as $hour) {
                 $count = (int) ($countsByHour[$hour] ?? 0);
-                $cells[] = $count;
+                $cells[] = ['hour' => $hour, 'count' => $count];
                 $max = max($max, $count);
             }
 
             return ['id' => $court->id, 'name' => $court->name, 'cells' => $cells];
         })->values()->all();
 
+        // Quy đổi số lượt đặt sang 4 mức đậm nhạt để giao diện chỉ việc tô màu
+        foreach ($rows as &$row) {
+            foreach ($row['cells'] as &$cell) {
+                $cell['level'] = $this->heatLevel($cell['count'], $max);
+            }
+        }
+
         return ['hours' => $hours, 'rows' => $rows, 'max' => $max];
+    }
+
+    /**
+     * Mức đậm nhạt của một ô nhiệt: 0 = không có lượt đặt, 3 = đông nhất.
+     */
+    private function heatLevel(int $count, int $max): int
+    {
+        if ($count <= 0) {
+            return 0;
+        }
+
+        $ratio = $count / max(1, $max);
+
+        return match (true) {
+            $ratio <= 0.34 => 1,
+            $ratio <= 0.67 => 2,
+            default => 3,
+        };
     }
 
     /**
