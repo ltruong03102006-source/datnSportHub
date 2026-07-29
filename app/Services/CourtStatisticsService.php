@@ -69,19 +69,20 @@ class CourtStatisticsService
 
     /**
      * Số lượt đặt của từng sân con.
+     *
+     * @param  Collection  $grouped  Lịch đặt hợp lệ đã gom theo sân con
      */
-    public function bookingCountByCourt(Collection $bookings): Collection
+    public function bookingCountByCourt(Collection $grouped): Collection
     {
-        return $this->validBookingsByCourt($bookings)->map(fn (Collection $courtBookings) => $courtBookings->count());
+        return $grouped->map(fn (Collection $courtBookings) => $courtBookings->count());
     }
 
     /**
      * Số khách hàng khác nhau đã đặt từng sân con.
      */
-    public function customerCountByCourt(Collection $bookings): Collection
+    public function customerCountByCourt(Collection $grouped): Collection
     {
-        return $this->validBookingsByCourt($bookings)
-            ->map(fn (Collection $courtBookings) => $courtBookings->pluck('user_id')->unique()->count());
+        return $grouped->map(fn (Collection $courtBookings) => $courtBookings->pluck('user_id')->unique()->count());
     }
 
     /**
@@ -98,10 +99,9 @@ class CourtStatisticsService
     /**
      * Tổng số giờ đã đặt của từng sân con.
      */
-    public function bookedHoursByCourt(Collection $bookings): Collection
+    public function bookedHoursByCourt(Collection $grouped): Collection
     {
-        return $this->validBookingsByCourt($bookings)
-            ->map(fn (Collection $courtBookings) => $courtBookings->sum(fn (Booking $b) => $this->bookedHoursOf($b)));
+        return $grouped->map(fn (Collection $courtBookings) => $courtBookings->sum(fn (Booking $b) => $this->bookedHoursOf($b)));
     }
 
     /**
@@ -125,9 +125,9 @@ class CourtStatisticsService
     /**
      * Tỷ lệ lấp đầy (%) của từng sân con trong kỳ.
      */
-    public function occupancyRateByCourt(Collection $bookings, $courtIds, int $daysInPeriod): Collection
+    public function occupancyRateByCourt(Collection $grouped, $courtIds, int $daysInPeriod): Collection
     {
-        $bookedHours = $this->bookedHoursByCourt($bookings);
+        $bookedHours = $this->bookedHoursByCourt($grouped);
         $capacity = $this->dailyCapacityHoursByCourt($courtIds);
         $days = max(1, $daysInPeriod);
 
@@ -146,9 +146,9 @@ class CourtStatisticsService
      * Khung giờ được đặt nhiều nhất của từng sân con.
      * Trả về map [court_id => ['08:00' => 5, ...]] đã sắp giảm dần.
      */
-    public function peakHoursByCourt(Collection $bookings, int $limit = 3): Collection
+    public function peakHoursByCourt(Collection $grouped, int $limit = 3): Collection
     {
-        return $this->validBookingsByCourt($bookings)->map(function (Collection $courtBookings) use ($limit) {
+        return $grouped->map(function (Collection $courtBookings) use ($limit) {
             return $courtBookings
                 ->groupBy(fn (Booking $b) => Carbon::parse($b->start_time)->format('H:i'))
                 ->map(fn (Collection $slot) => $slot->count())
@@ -205,12 +205,15 @@ class CourtStatisticsService
     {
         $courtIds = $courts->pluck('id');
 
+        // Gom lịch đặt hợp lệ theo sân một lần rồi dùng lại cho mọi chỉ số
+        $grouped = $this->validBookingsByCourt($bookings);
+
         $revenue = $this->revenueByCourt($bookings);
-        $bookingCount = $this->bookingCountByCourt($bookings);
-        $customerCount = $this->customerCountByCourt($bookings);
-        $hours = $this->bookedHoursByCourt($bookings);
-        $occupancy = $this->occupancyRateByCourt($bookings, $courtIds, $daysInPeriod);
-        $peakHours = $this->peakHoursByCourt($bookings);
+        $bookingCount = $this->bookingCountByCourt($grouped);
+        $customerCount = $this->customerCountByCourt($grouped);
+        $hours = $this->bookedHoursByCourt($grouped);
+        $occupancy = $this->occupancyRateByCourt($grouped, $courtIds, $daysInPeriod);
+        $peakHours = $this->peakHoursByCourt($grouped);
 
         return $courts->map(function ($court) use ($revenue, $bookingCount, $customerCount, $hours, $occupancy, $peakHours) {
             return [
