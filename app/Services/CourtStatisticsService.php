@@ -172,28 +172,31 @@ class CourtStatisticsService
     {
         $valid = $this->validBookingsByCourt($bookings);
 
-        // Khung giờ hiển thị: lấy theo lịch đặt hợp lệ, tối thiểu là khung 6h-22h
-        $bookedHours = $valid
-            ->flatten()
-            ->map(fn (Booking $b) => (int) Carbon::parse($b->start_time)->format('H'));
-
-        $from = min(self::HEATMAP_DEFAULT_FROM, $bookedHours->min() ?? self::HEATMAP_DEFAULT_FROM);
-        $to = max(self::HEATMAP_DEFAULT_TO, $bookedHours->max() ?? self::HEATMAP_DEFAULT_TO);
-        $hours = range($from, $to);
-
-        $max = 0;
-        $rows = $courts->map(function ($court) use ($valid, $hours, &$max) {
-            // Một ca chơi 18:00-21:00 làm sân bận ở cả 18h, 19h và 20h
-            $countsByHour = collect();
+        // Đếm số lượt chiếm sân theo từng giờ: ca 18:00-21:00 làm sân bận ở 18h, 19h và 20h
+        $countsByCourt = $courts->mapWithKeys(function ($court) use ($valid) {
+            $counts = [];
             foreach ($valid[$court->id] ?? [] as $booking) {
                 foreach ($this->occupiedHoursOf($booking) as $hour) {
-                    $countsByHour[$hour] = ($countsByHour[$hour] ?? 0) + 1;
+                    $counts[$hour] = ($counts[$hour] ?? 0) + 1;
                 }
             }
 
+            return [$court->id => $counts];
+        });
+
+        // Khung giờ hiển thị: đủ rộng để không bỏ sót giờ nào có khách, tối thiểu là 6h-22h
+        $usedHours = collect($countsByCourt)->flatMap(fn (array $counts) => array_keys($counts));
+        $from = min(self::HEATMAP_DEFAULT_FROM, $usedHours->min() ?? self::HEATMAP_DEFAULT_FROM);
+        $to = max(self::HEATMAP_DEFAULT_TO, $usedHours->max() ?? self::HEATMAP_DEFAULT_TO);
+        $hours = range($from, $to);
+
+        $max = 0;
+        $rows = $courts->map(function ($court) use ($countsByCourt, $hours, &$max) {
+            $counts = $countsByCourt[$court->id] ?? [];
+
             $cells = [];
             foreach ($hours as $hour) {
-                $count = (int) ($countsByHour[$hour] ?? 0);
+                $count = (int) ($counts[$hour] ?? 0);
                 $cells[] = ['hour' => $hour, 'count' => $count];
                 $max = max($max, $count);
             }
