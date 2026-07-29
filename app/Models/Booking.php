@@ -68,6 +68,17 @@ class Booking extends Model
         return $query->whereIn('court_id', $courtIds);
     }
 
+    /**
+     * Scope: Lọc lịch đặt trong khoảng ngày chơi
+     */
+    public function scopeInPeriod(Builder $query, $startDate, $endDate): Builder
+    {
+        return $query->whereBetween('slot_date', [
+            $startDate instanceof \DateTimeInterface ? $startDate->format('Y-m-d') : $startDate,
+            $endDate instanceof \DateTimeInterface ? $endDate->format('Y-m-d') : $endDate,
+        ]);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
