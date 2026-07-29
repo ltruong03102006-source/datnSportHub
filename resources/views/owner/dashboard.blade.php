@@ -417,6 +417,46 @@
                 }
             });
         });
+
+        // Đổi cơ sở thì nạp lại danh sách sân con tương ứng
+        (function () {
+            const venueSelect = document.querySelector('select[name="venue_id"]');
+            const courtSelect = document.getElementById('courtSelect');
+
+            if (!venueSelect || !courtSelect) {
+                return;
+            }
+
+            venueSelect.addEventListener('change', async function () {
+                const venueId = this.value;
+
+                if (venueId === 'all') {
+                    courtSelect.innerHTML = '<option value="all">Chọn cơ sở trước</option>';
+                    courtSelect.disabled = true;
+                    return;
+                }
+
+                courtSelect.disabled = true;
+                courtSelect.innerHTML = '<option value="all">Đang tải...</option>';
+
+                try {
+                    const res = await fetch(`/owner/venues/${venueId}/courts-lookup`, {
+                        headers: { Accept: 'application/json' },
+                    });
+                    const json = await res.json();
+
+                    const options = ['<option value="all">Tất cả sân con</option>'];
+                    for (const court of json.data) {
+                        options.push(`<option value="${court.id}">${court.name}</option>`);
+                    }
+
+                    courtSelect.innerHTML = options.join('');
+                    courtSelect.disabled = json.data.length === 0;
+                } catch (error) {
+                    courtSelect.innerHTML = '<option value="all">Không tải được danh sách</option>';
+                }
+            });
+        })();
     </script>
     @include('owner.partials.notification-script')
 </body>
