@@ -180,6 +180,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Cập nhật tỷ lệ hoa hồng cho cơ sở (Admin)
         Route::put('/venues/{venue}/commission', [\App\Http\Controllers\Admin\VenueCommissionController::class, 'update'])->name('venues.commission.update');
         Route::get('/contracts', [\App\Http\Controllers\Web\AdminContractController::class, 'index'])->name('contracts.index');
+        Route::get('/contracts/create', [\App\Http\Controllers\Web\AdminContractController::class, 'create'])->name('contracts.create');
+        Route::post('/contracts', [\App\Http\Controllers\Web\AdminContractController::class, 'store'])->name('contracts.store');
     });
 });
 
