@@ -16,6 +16,10 @@ class CourtStatisticsService
     /** Số giờ mở cửa mặc định mỗi ngày khi sân chưa cấu hình khung giờ */
     private const FALLBACK_DAILY_HOURS = 14;
 
+    /** Khung giờ mặc định hiển thị trên ma trận nhiệt */
+    private const HEATMAP_DEFAULT_FROM = 6;
+    private const HEATMAP_DEFAULT_TO = 22;
+
     /**
      * Doanh thu chủ sân nhận được từ một lịch đặt.
      * Booking từ gói chỉ tính phần owner_earnings, còn lại ưu tiên owner_earnings
@@ -150,6 +154,43 @@ class CourtStatisticsService
                 ->sortDesc()
                 ->take($limit);
         });
+    }
+
+    /**
+     * Ma trận nhiệt: mỗi hàng là một sân con, mỗi cột là một khung giờ trong ngày,
+     * giá trị là số lượt đặt. Dùng để tô màu đậm nhạt trên giao diện.
+     *
+     * @return array{hours: array<int>, rows: array<array{name: string, cells: array<int>}>, max: int}
+     */
+    public function bookingHeatmap(Collection $courts, Collection $bookings): array
+    {
+        $valid = $this->validBookingsByCourt($bookings);
+
+        // Khung giờ hiển thị: lấy theo dữ liệu thực tế, tối thiểu là khung 6h-22h
+        $bookedHours = $bookings
+            ->map(fn (Booking $b) => (int) Carbon::parse($b->start_time)->format('H'));
+
+        $from = min(self::HEATMAP_DEFAULT_FROM, $bookedHours->min() ?? self::HEATMAP_DEFAULT_FROM);
+        $to = max(self::HEATMAP_DEFAULT_TO, $bookedHours->max() ?? self::HEATMAP_DEFAULT_TO);
+        $hours = range($from, $to);
+
+        $max = 0;
+        $rows = $courts->map(function ($court) use ($valid, $hours, &$max) {
+            $countsByHour = ($valid[$court->id] ?? collect())
+                ->groupBy(fn (Booking $b) => (int) Carbon::parse($b->start_time)->format('H'))
+                ->map(fn (Collection $slot) => $slot->count());
+
+            $cells = [];
+            foreach ($hours as $hour) {
+                $count = (int) ($countsByHour[$hour] ?? 0);
+                $cells[] = $count;
+                $max = max($max, $count);
+            }
+
+            return ['id' => $court->id, 'name' => $court->name, 'cells' => $cells];
+        })->values()->all();
+
+        return ['hours' => $hours, 'rows' => $rows, 'max' => $max];
     }
 
     /**
