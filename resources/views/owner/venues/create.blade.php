@@ -143,7 +143,10 @@
                             <div class="row g-3">
                                 <div class="col-12 col-md-6">
                                     <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
-                                    <input type="text" name="phone" class="form-control" value="{{ old('phone') }}" required>
+                                    <input type="text" name="phone" class="form-control" 
+                                           oninput="this.value = this.value.replace(/[^0-9]/g, '')" 
+                                           maxlength="20"
+                                           value="{{ old('phone') }}" required>
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <label class="form-label">Email <span class="text-danger">*</span></label>
@@ -201,13 +204,23 @@
                                     <label class="form-label">Tên chủ sở hữu <span class="text-danger">*</span></label>
                                     <input type="text" name="owner_name" class="form-control" value="{{ old('owner_name') }}" required>
                                 </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label">Số CCCD <span class="text-danger">*</span></label>
-                                    <input type="text" name="citizen_id" class="form-control" value="{{ old('citizen_id') }}" required>
-                                </div>
+                                <div class="col-12 col-md-4">
+    <label class="form-label">Số CCCD <span class="text-danger">*</span></label>
+    <input type="text" name="citizen_id" class="form-control" 
+           oninput="this.value = this.value.replace(/[^0-9]/g, '')" 
+           minlength="12"
+           maxlength="12"
+           pattern="\d{12}"
+           title="Vui lòng nhập đúng và đủ 12 chữ số CCCD"
+           value="{{ old('citizen_id', $venue->legalDocument->citizen_id ?? '') }}" 
+           required>
+</div>
                                 <div class="col-12 col-md-6">
                                     <label class="form-label">Số giấy phép kinh doanh <span class="text-danger">*</span></label>
-                                    <input type="text" name="business_license_number" class="form-control" value="{{ old('business_license_number') }}" required>
+                                    <input type="text" name="business_license_number" class="form-control" 
+           oninput="this.value = this.value.replace(/[^a-zA-Z0-9]/g, '')"
+           value="{{ old('business_license_number', $venue->legalDocument->business_license_number ?? '') }}" 
+           required>
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <label class="form-label">Tên ngân hàng <span class="text-danger">*</span></label>

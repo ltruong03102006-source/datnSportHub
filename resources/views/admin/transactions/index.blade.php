@@ -649,7 +649,13 @@
                                     </span>
                                 </td>
 
-                                <td style="text-align: right;">
+                                <td style="text-align: right; display: flex; gap: 8px; justify-content: flex-end;">
+                                    @if($paymentStatus === 'pending')
+                                        <button type="button" class="admin-tx-btn is-success" onclick="confirmPayment({{ $transaction->id }})" title="Xác nhận thanh toán">
+                                            <i class="fa-solid fa-check-circle"></i> Đã nhận tiền
+                                        </button>
+                                    @endif
+
                                     @if($transaction->exists)
                                         <a href="{{ route('admin.transactions.show', $transaction) }}" class="admin-tx-btn admin-tx-detail">
                                             Chi tiết
@@ -672,4 +678,28 @@
         @endif
     </div>
 </div>
+
+<script>
+    function confirmPayment(billId) {
+        if (confirm('Xác nhận đã nhận tiền cho bill này?')) {
+            fetch(`/api/bills/${billId}/confirm-payment`, {
+                method: 'PUT',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message || 'Thành công');
+                location.reload();
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Có lỗi xảy ra');
+            });
+        }
+    }
+</script>
 @endsection

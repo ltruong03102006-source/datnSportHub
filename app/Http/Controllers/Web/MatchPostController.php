@@ -15,8 +15,8 @@ class MatchPostController extends Controller
     public function index(Request $request)
     {
         $sports = Sport::orderBy('name')->get();
-        
-        $query = MatchPost::with(['user', 'sport'])
+        $provinces = \App\Models\Province::orderedByName()->get();
+        $query = MatchPost::with(['user', 'sport', 'province'])
                     ->where('status', 'open')
                     // CHẶN TRIỆT ĐỂ NGÀY VÀ GIỜ TRONG QUÁ KHỨ
                     ->where(function ($q) {
@@ -33,13 +33,16 @@ class MatchPostController extends Controller
         if ($request->filled('sport_id')) {
             $query->where('sport_id', $request->sport_id);
         }
-
+        // THÊM MỚI: LỌC THEO TỈNH THÀNH
+        if ($request->filled('province_code')) {
+            $query->where('province_code', $request->province_code);
+        }
         // Ưu tiên kèo sắp đá lên đầu
         $posts = $query->orderBy('play_date', 'asc')
                        ->orderBy('play_time', 'asc')
                        ->paginate(12);
 
-        return view('community.index', compact('posts', 'sports'));
+        return view('community.index', compact('posts', 'sports', 'provinces'));
     }
 
     // 2. Lưu kèo mới (AJAX)
@@ -80,6 +83,7 @@ class MatchPostController extends Controller
         $post = MatchPost::create([
             'user_id' => Auth::id(),
             'sport_id' => $request->sport_id,
+            'province_code' => $request->province_code,
             'title' => $request->title,
             'play_date' => $request->play_date,
             'play_time' => $request->play_time,
@@ -96,14 +100,27 @@ class MatchPostController extends Controller
     }
 
     // 3. Quản lý kèo của tôi
+    // 3. Quản lý kèo của tôi (Gồm Kèo tôi tạo & Kèo tôi tham gia)
     public function myPosts()
     {
+        $userId = Auth::id();
+
+        // TAB 1: Kèo do mình tạo
         $posts = MatchPost::with('sport')
-                    ->where('user_id', Auth::id())
+                    ->where('user_id', $userId)
                     ->orderBy('created_at', 'desc')
                     ->paginate(15);
 
-        return view('community.my_posts', compact('posts'));
+        // TAB 2: Kèo mình xin tham gia (Lấy thông tin kèo và trạng thái tham gia)
+        $joinedPosts = MatchPost::with(['sport', 'user']) // Lấy thêm 'user' để biết ai là chủ kèo
+                    ->whereHas('participants', function($query) use ($userId) {
+                        $query->where('user_id', $userId);
+                    })
+                    ->orderBy('play_date', 'desc')
+                    ->orderBy('play_time', 'desc')
+                    ->get();
+
+        return view('community.my_posts', compact('posts', 'joinedPosts'));
     }
 
     // 4. Đóng kèo (Chỉ chính chủ)
@@ -132,33 +149,49 @@ class MatchPostController extends Controller
         return back()->with('success', 'Đã hủy kèo thành công! Kèo đã được lưu vào lịch sử.');
     }
     // Người dùng bấm nút "Tham gia"
-    public function join(Request $request, MatchPost $matchPost)
+    // Người dùng bấm nút "Tham gia"
+    public function join(Request $request, \App\Models\MatchPost $matchPost)
     {
-        $userId = Auth::id();
+        $userId = \Illuminate\Support\Facades\Auth::id();
 
-        // Case 8: Chủ bài tự tham gia -> Không cho
+        // 1. Kiểm tra: Chủ bài tự tham gia -> Không cho
         if ($matchPost->user_id === $userId) {
             return response()->json(['message' => 'Bạn là chủ kèo này rồi!'], 400);
         }
 
-        // Case 6: Bài FULL hoặc đã Hủy -> Không cho join
+        // 2. Kiểm tra: Bài FULL hoặc đã Hủy/Kết thúc -> Không cho join
         if ($matchPost->status !== 'open') {
             return response()->json(['message' => 'Kèo này đã chốt hoặc không còn nhận người.'], 400);
         }
 
-        // Case 5: Đã đăng ký rồi -> Không cho đăng ký đúp
-        $exists = MatchParticipant::where('match_post_id', $matchPost->id)->where('user_id', $userId)->exists();
-        if ($exists) {
-            return response()->json(['message' => 'Bạn đã gửi yêu cầu rồi, đang chờ duyệt.'], 400);
+        // 3. KIỂM TRA LỊCH SỬ THAM GIA CỦA NGƯỜI NÀY (Đoạn code bạn yêu cầu)
+        $existingParticipant = \App\Models\MatchParticipant::where('match_post_id', $matchPost->id)
+                                               ->where('user_id', $userId)
+                                               ->first();
+
+        if ($existingParticipant) {
+            if ($existingParticipant->status === 'pending') {
+                return response()->json(['message' => 'Bạn đã gửi yêu cầu rồi, đang chờ duyệt.'], 400);
+            } elseif ($existingParticipant->status === 'approved') {
+                return response()->json(['message' => 'Bạn đã được duyệt vào kèo này rồi mà!'], 400);
+            } elseif ($existingParticipant->status === 'kicked') {
+                return response()->json(['message' => 'Bạn đã bị chủ kèo mời ra, không thể tham gia lại.'], 400);
+            // THÊM NHÁNH NÀY:
+            } elseif ($existingParticipant->status === 'withdrawn') {
+                return response()->json(['message' => 'Bạn đã rút lui khỏi kèo này rồi, không thể xin tham gia lại.'], 400);
+            } else {
+                return response()->json(['message' => 'Yêu cầu của bạn trước đó đã không được duyệt.'], 400);
+            }
         }
 
-        // Tạo yêu cầu tham gia (Pending)
-        MatchParticipant::create([
+        // 4. Vượt qua mọi bài test -> Tạo yêu cầu tham gia (Pending)
+        \App\Models\MatchParticipant::create([
             'match_post_id' => $matchPost->id,
             'user_id' => $userId,
             'status' => 'pending'
         ]);
 
+        // Thông báo trả về giao diện
         return response()->json(['message' => 'Gửi yêu cầu thành công! Chờ chủ kèo duyệt nhé.']);
     }
 
@@ -190,25 +223,36 @@ class MatchPostController extends Controller
         return back()->with('success', 'Đã duyệt người chơi!');
     }
     // CHỦ KÈO BẤM "TỪ CHỐI"
+    // CHỦ KÈO BẤM "TỪ CHỐI" (HOẶC "KICK" NGƯỜI ĐÃ DUYỆT)
+    // CHỦ KÈO BẤM "TỪ CHỐI" (HOẶC "KICK" NGƯỜI ĐÃ DUYỆT)
     public function rejectParticipant(\App\Models\MatchParticipant $participant)
     {
         $post = $participant->matchPost;
         
-        // Chỉ chủ bài mới có quyền từ chối
+        // Chỉ chủ bài mới có quyền từ chối/kick
         if ($post->user_id !== \Illuminate\Support\Facades\Auth::id()) abort(403);
 
-        $participant->update(['status' => 'rejected']);
+        // Kiểm tra xem người này trước đó đã được duyệt chưa
+        $wasApproved = ($participant->status === 'approved');
 
-        // Bắn thông báo "Tin buồn" cho NGƯỜI XIN
-        // \App\Models\Notification::create([
-        //     'user_id' => $participant->user_id, // Gửi cho người bị từ chối
-        //     'title' => 'Yêu cầu ghép kèo bị từ chối',
-        //     'content' => 'Rất tiếc, yêu cầu tham gia kèo "' . $post->title . '" của bạn không được chủ kèo chấp nhận.',
-        //     'is_read' => false
-        // ]);
+        // LOGIC PHÂN BIỆT RÕ RÀNG:
+        // Nếu đã từng duyệt -> Trạng thái mới là 'kicked'
+        // Nếu chưa từng duyệt (đang pending) -> Trạng thái mới là 'rejected'
+        $participant->update([
+            'status' => $wasApproved ? 'kicked' : 'rejected'
+        ]);
 
-        return back()->with('success', 'Đã từ chối người này.');
+        // Nếu kick người đã duyệt và kèo đang FULL -> Mở lại kèo
+        if ($wasApproved && $post->status === 'full') {
+            $post->update(['status' => 'open']);
+        }
+
+        $message = $wasApproved ? 'Đã mời người chơi này ra khỏi kèo.' : 'Đã từ chối yêu cầu tham gia.';
+        return back()->with('success', $message);
     }
+    // NGƯỜI XIN THAM GIA TỰ HỦY YÊU CẦU / RÚT LUI
+    // NGƯỜI XIN THAM GIA TỰ HỦY YÊU CẦU / RÚT LUI
+    // NGƯỜI XIN THAM GIA TỰ HỦY YÊU CẦU / RÚT LUI
     // NGƯỜI XIN THAM GIA TỰ HỦY YÊU CẦU / RÚT LUI
     public function cancelJoin(\App\Models\MatchPost $matchPost)
     {
@@ -217,18 +261,20 @@ class MatchPostController extends Controller
             ->first();
 
         if ($participant) {
-            // Nếu người đó đã được Duyệt rồi mà lại rút lui -> Báo ngay cho Chủ kèo biết
-            // if ($participant->status === 'approved') {
-            //     \App\Models\Notification::create([
-            //         'user_id' => $matchPost->user_id,
-            //         'title' => 'Một người chơi vừa rút lui!',
-            //         'content' => \Illuminate\Support\Facades\Auth::user()->name . ' vừa hủy tham gia kèo "' . $matchPost->title . '" của bạn. Hãy tìm người thay thế nhé!',
-            //         'is_read' => false
-            //     ]);
-            // }
+            $wasApproved = ($participant->status === 'approved');
             
-            // Xóa yêu cầu tham gia khỏi CSDL
-            $participant->delete(); 
+            if ($wasApproved) {
+                // A. Nếu ĐÃ DUYỆT mà hủy -> Đổi trạng thái thành RÚT LUI (để chủ sân còn thấy)
+                $participant->update(['status' => 'withdrawn']);
+
+                // B. Mở lại kèo nếu kèo đang bị khóa ở trạng thái FULL
+                if ($matchPost->status === 'full') {
+                    $matchPost->update(['status' => 'open']);
+                }
+            } else {
+                // C. Nếu mới Pending mà hủy -> Xóa luôn cho sạch Database
+                $participant->delete(); 
+            }
             
             return response()->json(['message' => 'Bạn đã hủy tham gia kèo này thành công.']);
         }

@@ -332,7 +332,7 @@
         <div class="card-custom stat-card c-users">
             <div class="stat-card-header">
                 <div class="stat-icon"><i class="fa-solid fa-user-group"></i></div>
-                <div class="badge-custom">+15%</div>
+                <div class="badge-custom">Hiện tại</div>
             </div>
             <div>
                 <div class="stat-title">Tổng người dùng</div>
@@ -343,7 +343,7 @@
         <div class="card-custom stat-card c-venues">
             <div class="stat-card-header">
                 <div class="stat-icon"><i class="fa-solid fa-building"></i></div>
-                <div class="badge-custom">+8 mới</div>
+                <div class="badge-custom">Hiện tại</div>
             </div>
             <div>
                 <div class="stat-title">Tổng số sân</div>
@@ -354,10 +354,10 @@
         <div class="card-custom stat-card c-bookings">
             <div class="stat-card-header">
                 <div class="stat-icon"><i class="fa-regular fa-calendar"></i></div>
-                <div class="badge-custom">+12%</div>
+                <div class="badge-custom">Hợp lệ</div>
             </div>
             <div>
-                <div class="stat-title">Tổng lượt đặt sân</div>
+                <div class="stat-title">Tổng booking hợp lệ</div>
                 <div class="stat-value">{{ number_format($totalBookings) }}</div>
             </div>
         </div>
@@ -365,10 +365,10 @@
         <div class="card-custom stat-card c-revenue">
             <div class="stat-card-header">
                 <div class="stat-icon"><i class="fa-solid fa-wallet"></i></div>
-                <div class="badge-custom">Tháng này</div>
+                <div class="badge-custom">Settled</div>
             </div>
             <div>
-                <div class="stat-title">Tổng doanh thu (VNĐ)</div>
+                <div class="stat-title">Doanh thu nền tảng</div>
                 <div class="stat-value">{{ number_format($totalRevenue) }}</div>
             </div>
         </div>
@@ -378,19 +378,19 @@
     <div class="grid-4">
         <div class="card-custom stat-card c-today">
             <div class="stat-card-header">
-                <div class="stat-icon"><i class="fa-regular fa-clock"></i></div>
-                <div class="badge-custom">Hôm nay</div>
+                <div class="stat-icon"><i class="fa-solid fa-chart-line"></i></div>
+                <div class="badge-custom">Settled</div>
             </div>
             <div>
-                <div class="stat-title">Booking hôm nay</div>
-                <div class="stat-value">{{ number_format($bookingsToday) }}</div>
+                <div class="stat-title">GMV</div>
+                <div class="stat-value">{{ number_format($gmv) }}</div>
             </div>
         </div>
 
         <div class="card-custom stat-card c-newusers">
             <div class="stat-card-header">
                 <div class="stat-icon"><i class="fa-solid fa-user-plus"></i></div>
-                <div class="badge-custom">+12% vs trước</div>
+                <div class="badge-custom">Hôm nay</div>
             </div>
             <div>
                 <div class="stat-title">Người dùng mới</div>
@@ -401,7 +401,7 @@
         <div class="card-custom stat-card c-newvenues">
             <div class="stat-card-header">
                 <div class="stat-icon"><i class="fa-solid fa-location-dot"></i></div>
-                <div class="badge-custom">Tháng này</div>
+                <div class="badge-custom">Hôm nay</div>
             </div>
             <div>
                 <div class="stat-title">Sân mới được tạo</div>
@@ -412,7 +412,7 @@
         <div class="card-custom stat-card c-rating">
             <div class="stat-card-header">
                 <div class="stat-icon"><i class="fa-regular fa-star"></i></div>
-                <div class="badge-custom">Tin cậy</div>
+                <div class="badge-custom">Trung bình</div>
             </div>
             <div>
                 <div class="stat-title">Đánh giá trung bình</div>
@@ -427,11 +427,11 @@
             <div class="chart-header">
                 <div class="chart-title">
                     <h3>Lượt đặt sân theo tháng</h3>
-                    <p>Dữ liệu tổng hợp năm 2024</p>
+                    <p>Dữ liệu tổng hợp năm {{ $currentYear }}</p>
                 </div>
                 <div class="chart-filter">
                     <select>
-                        <option>Năm 2024</option>
+                        <option>Năm {{ $currentYear }}</option>
                     </select>
                 </div>
             </div>
@@ -477,8 +477,8 @@
         <div class="card-custom chart-card">
             <div class="chart-header">
                 <div class="chart-title">
-                    <h3>Xu hướng Doanh thu</h3>
-                    <p>Tăng trưởng ổn định hàng quý</p>
+                    <h3>Xu hướng doanh thu nền tảng</h3>
+                    <p>Hoa hồng SportHub đã ghi nhận theo từng tháng.</p>
                 </div>
                 <div class="chart-filter">
                     <div style="background:#f1f2f6; border-radius:20px; padding:4px;">
