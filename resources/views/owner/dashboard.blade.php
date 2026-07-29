@@ -346,6 +346,8 @@
                 <h3 class="text-lg font-bold text-slate-800">Thống kê theo sân con</h3>
                 @if ($selectedVenueId === 'all')
                     <span class="text-xs text-slate-500">Chọn một cơ sở để xem chi tiết từng sân con</span>
+                @elseif ($selectedCourtId !== 'all')
+                    <span class="text-xs text-slate-500">Số liệu phía trên đang lọc riêng sân được tô sáng, bảng dưới hiển thị cả cơ sở để so sánh</span>
                 @endif
             </div>
 
@@ -379,9 +381,15 @@
                         </thead>
                         <tbody>
                             @foreach($courtStats as $court)
-                                <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                                @php($isSelectedCourt = (string) $selectedCourtId === (string) $court['id'])
+                                <tr class="border-b border-slate-50 transition-colors {{ $isSelectedCourt ? 'bg-emerald-50/70' : 'hover:bg-slate-50' }}">
                                     <td class="px-4 py-3">
-                                        <div class="font-medium text-slate-800">{{ $court['name'] }}</div>
+                                        <div class="font-medium text-slate-800">
+                                            {{ $court['name'] }}
+                                            @if ($isSelectedCourt)
+                                                <span class="ml-1 align-middle text-[10px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">đang xem</span>
+                                            @endif
+                                        </div>
                                         @if ($court['status'] !== 'active')
                                             <span class="text-xs text-amber-600">Đang tạm ẩn</span>
                                         @endif
