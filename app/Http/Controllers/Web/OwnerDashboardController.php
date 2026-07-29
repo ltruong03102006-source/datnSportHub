@@ -43,9 +43,12 @@ class OwnerDashboardController extends Controller
             ? Court::forVenues([$selectedVenueId])->orderedByName()->get()
             : collect();
 
-        $selectedCourtId = $request->query('court_id', 'all');
-        if ($selectedCourtId === 'all' || ! $courtsOfVenue->contains('id', (int) $selectedCourtId)) {
-            $selectedCourtId = 'all';
+        // Chỉ nhận court_id là số và phải thuộc cơ sở đang chọn, còn lại coi như xem tất cả
+        $requestedCourtId = $request->query('court_id');
+        $selectedCourtId = 'all';
+        if (is_scalar($requestedCourtId) && ctype_digit((string) $requestedCourtId)
+            && $courtsOfVenue->contains('id', (int) $requestedCourtId)) {
+            $selectedCourtId = (int) $requestedCourtId;
         }
 
         // Date Period Filter
