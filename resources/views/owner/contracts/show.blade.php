@@ -31,6 +31,7 @@
             </div>
             <div class="flex items-center gap-3">
                 <a href="{{ route('owner.contracts.index') }}" class="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200">Quay lại</a>
+                <a href="{{ route('owner.contracts.download', $contract) }}" class="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white bg-slate-700 rounded-lg hover:bg-slate-800">Tải PDF</a>
 
                 @if($contract->status === 'sent')
                     <form action="{{ route('owner.contracts.accept', $contract) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn đồng ý hợp đồng này?');">

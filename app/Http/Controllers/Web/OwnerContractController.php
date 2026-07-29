@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -66,6 +67,25 @@ class OwnerContractController extends Controller
 
         return redirect()->route('owner.contracts.show', $contract)
             ->with('success', 'Bạn đã xác nhận hợp đồng thành công.');
+    }
+
+    /**
+     * Download the contract PDF for the authenticated owner.
+     *
+     * @param Contract $contract
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
+     */
+    public function download(Contract $contract)
+    {
+        if ($contract->owner_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $contract->load(['owner', 'creator']);
+
+        $pdf = Pdf::loadView('contracts.pdf', compact('contract'));
+
+        return $pdf->download("HopDong_{$contract->contract_code}.pdf");
     }
 
     /**

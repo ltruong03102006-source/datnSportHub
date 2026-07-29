@@ -185,6 +185,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/contracts/{contract}/edit', [\App\Http\Controllers\Web\AdminContractController::class, 'edit'])->name('contracts.edit');
         Route::put('/contracts/{contract}', [\App\Http\Controllers\Web\AdminContractController::class, 'update'])->name('contracts.update');
         Route::post('/contracts/{contract}/send', [\App\Http\Controllers\Web\AdminContractController::class, 'send'])->name('contracts.send');
+        Route::get('/contracts/{contract}/pdf', [\App\Http\Controllers\Web\AdminContractController::class, 'exportPdf'])->name('contracts.pdf');
         Route::get('/contracts/{contract}', [\App\Http\Controllers\Web\AdminContractController::class, 'show'])->name('contracts.show');
     });
 });
@@ -380,6 +381,7 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.')->group(function () {
     Route::get('/contracts', [\App\Http\Controllers\Web\OwnerContractController::class, 'index'])->name('contracts.index');
     Route::get('/contracts/{contract}', [\App\Http\Controllers\Web\OwnerContractController::class, 'show'])->name('contracts.show');
+    Route::get('/contracts/{contract}/download', [\App\Http\Controllers\Web\OwnerContractController::class, 'download'])->name('contracts.download');
     Route::post('/contracts/{contract}/accept', [\App\Http\Controllers\Web\OwnerContractController::class, 'accept'])->name('contracts.accept');
     Route::post('/contracts/{contract}/reject', [\App\Http\Controllers\Web\OwnerContractController::class, 'reject'])->name('contracts.reject');
 });

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
 use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
@@ -130,6 +131,22 @@ class AdminContractController extends Controller
         $contract->load(['owner', 'creator']);
 
         return view('admin.contracts.show', compact('contract'));
+    }
+
+    /**
+     * Export the contract to PDF for admin download.
+     *
+     * @param Contract $contract
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
+     */
+    public function exportPdf(Contract $contract)
+    {
+        $contract->load(['owner', 'creator']);
+
+        // Generate PDF directly from a Blade view.
+        $pdf = Pdf::loadView('contracts.pdf', compact('contract'));
+
+        return $pdf->download("HopDong_{$contract->contract_code}.pdf");
     }
 
     /**
