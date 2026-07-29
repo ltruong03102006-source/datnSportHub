@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\CourtAvailabilityController;
 use App\Http\Controllers\Api\AdminOwnerRegistrationController;
 use App\Http\Controllers\Api\AdminVenueController;
 use App\Http\Controllers\CourtController;
+use App\Http\Controllers\Api\AdminBillController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\PackageBookingController;
 use App\Http\Controllers\Api\ReviewController;
@@ -180,4 +181,8 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     // Route::post('/venues/{venue}/activate', [AdminVenueController::class, 'activate'])->name('admin.venues.activate');
     // Route::post('/venues/{venue}/deactivate', [AdminVenueController::class, 'deactivate'])->name('admin.venues.deactivate');
     // Route::get('/venues/{venue}/logs', [AdminVenueController::class, 'logs'])->name('admin.venues.logs');
+});
+
+Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+    Route::put('/bills/{billId}/confirm-payment', [AdminBillController::class, 'confirmPayment']);
 });
