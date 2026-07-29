@@ -6,6 +6,7 @@ use App\Http\Controllers\Web\OwnerLoginController;
 use App\Http\Controllers\Web\OwnerRegistrationController;
 use App\Http\Controllers\Web\OwnerPasswordSetupController;
 use App\Http\Controllers\Web\OwnerBookingCalendarController;
+use App\Http\Controllers\Web\OwnerBookingCheckinController;
 use App\Http\Controllers\Web\OwnerVenueController;
 use App\Http\Controllers\Web\UserBookingController;
 use App\Http\Controllers\Web\UserReviewController;
@@ -168,6 +169,7 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
         ->name('calendar.bookings.status');
     Route::patch('/calendar/bookings/{booking}/cancel', [OwnerBookingCalendarController::class, 'cancel'])
         ->name('calendar.bookings.cancel');
+    Route::get('/checkins', [OwnerBookingCheckinController::class, 'index'])->name('checkins.index');
 
     Route::get('/venues', [OwnerVenueController::class, 'index'])->name('venues.index');
     Route::get('/venues/create', [OwnerVenueController::class, 'create'])->name('venues.create');
