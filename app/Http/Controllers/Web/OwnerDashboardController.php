@@ -10,13 +10,17 @@ use App\Models\Court;
 use App\Models\Booking;
 use App\Models\TimeSlot;
 use App\Services\BookingCompletionService;
+use App\Services\CourtStatisticsService;
 use Carbon\Carbon;
 use Illuminate\View\View;
 
 class OwnerDashboardController extends Controller
 {
-    public function index(Request $request, BookingCompletionService $completionService): View
-    {
+    public function index(
+        Request $request,
+        BookingCompletionService $completionService,
+        CourtStatisticsService $courtStatistics
+    ): View {
         $ownerId = Auth::id();
 
         $completionService->completeExpiredBookings(ownerId: $ownerId);
@@ -236,6 +240,11 @@ class OwnerDashboardController extends Controller
         })->sortByDesc('revenue')->take(5)->values();
 
 
+        // 11. Thống kê chi tiết từng sân con của cơ sở đang chọn
+        $courtStats = $courtsOfVenue->isNotEmpty()
+            ? $courtStatistics->statsByCourt($courtsOfVenue, $bookings, $daysInPeriod)
+            : collect();
+
         $chartData = [
             'revenueDates' => $revenueByDay->keys()->toArray(),
             'revenueValues' => $revenueByDay->values()->toArray(),
@@ -251,6 +260,9 @@ class OwnerDashboardController extends Controller
             'customEnd',
             'allVenues',
             'selectedVenueId',
+            'courtsOfVenue',
+            'selectedCourtId',
+            'courtStats',
             'totalRevenue',
             'packageBookingRevenue',
             'totalBookings',
