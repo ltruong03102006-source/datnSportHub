@@ -349,6 +349,12 @@
                 @endif
             </div>
 
+            @if ($courtStats->isNotEmpty())
+                <div class="h-64 mb-6">
+                    <canvas id="courtRevenueChart"></canvas>
+                </div>
+            @endif
+
             @if ($courtStats->isEmpty())
                 <div class="px-4 py-10 text-center text-slate-500 text-sm">
                     @if ($selectedVenueId === 'all')
@@ -479,6 +485,52 @@
                     responsive: true, maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: { x: { grid: { display: false, drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b' } }, y: { grid: { color: '#f1f5f9', drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b', stepSize: 1 } } }
+                }
+            });
+        });
+
+        // Biểu đồ doanh thu theo từng sân con
+        document.addEventListener('DOMContentLoaded', function () {
+            const courtCanvas = document.getElementById('courtRevenueChart');
+
+            if (!courtCanvas) {
+                return;
+            }
+
+            new Chart(courtCanvas, {
+                type: 'bar',
+                data: {
+                    labels: @json($courtStats->pluck('name')),
+                    datasets: [{
+                        label: 'Doanh thu',
+                        data: @json($courtStats->pluck('revenue')),
+                        backgroundColor: '#10b981',
+                        borderRadius: 6,
+                        barPercentage: 0.6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => new Intl.NumberFormat('vi-VN').format(context.parsed.y) + ' đ'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false, drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b' } },
+                        y: {
+                            grid: { color: '#f1f5f9', drawBorder: false },
+                            ticks: {
+                                font: { family: 'Inter' },
+                                color: '#64748b',
+                                callback: (value) => new Intl.NumberFormat('vi-VN', { notation: 'compact' }).format(value)
+                            }
+                        }
+                    }
                 }
             });
         });
