@@ -151,4 +151,37 @@ class CourtStatisticsService
                 ->take($limit);
         });
     }
+
+    /**
+     * Bảng thống kê đầy đủ của từng sân con, sắp xếp theo doanh thu giảm dần.
+     * Sân chưa có lượt đặt nào vẫn hiển thị với số 0.
+     *
+     * @param  Collection  $courts  Danh sách sân con (model Court)
+     * @param  Collection  $bookings  Lịch đặt đã lọc theo kỳ của các sân đó
+     */
+    public function statsByCourt(Collection $courts, Collection $bookings, int $daysInPeriod): Collection
+    {
+        $courtIds = $courts->pluck('id');
+
+        $revenue = $this->revenueByCourt($bookings);
+        $bookingCount = $this->bookingCountByCourt($bookings);
+        $customerCount = $this->customerCountByCourt($bookings);
+        $hours = $this->bookedHoursByCourt($bookings);
+        $occupancy = $this->occupancyRateByCourt($bookings, $courtIds, $daysInPeriod);
+        $peakHours = $this->peakHoursByCourt($bookings);
+
+        return $courts->map(function ($court) use ($revenue, $bookingCount, $customerCount, $hours, $occupancy, $peakHours) {
+            return [
+                'id' => $court->id,
+                'name' => $court->name,
+                'status' => $court->status,
+                'revenue' => (float) ($revenue[$court->id] ?? 0),
+                'bookings_count' => (int) ($bookingCount[$court->id] ?? 0),
+                'customers_count' => (int) ($customerCount[$court->id] ?? 0),
+                'hours' => round((float) ($hours[$court->id] ?? 0), 1),
+                'occupancy_rate' => round((float) ($occupancy[$court->id] ?? 0), 1),
+                'peak_hours' => ($peakHours[$court->id] ?? collect())->keys()->all(),
+            ];
+        })->sortByDesc('revenue')->values();
+    }
 }
