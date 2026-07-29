@@ -10,25 +10,88 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
+        :root {
+            --owner-ink: #172033;
+            --owner-panel: rgba(255, 255, 255, 0.84);
+            --owner-line: rgba(255, 255, 255, 0.58);
+        }
+
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
+            background:
+                linear-gradient(115deg, rgba(16, 185, 129, 0.16) 0%, transparent 28%),
+                linear-gradient(245deg, rgba(59, 130, 246, 0.14) 0%, transparent 34%),
+                linear-gradient(135deg, #f7fee7 0%, #ecfeff 36%, #fdf2f8 72%, #fff7ed 100%);
+            color: var(--owner-ink);
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.42) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.36) 1px, transparent 1px);
+            background-size: 42px 42px;
+            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.78), transparent 82%);
+        }
+
+        .owner-topbar {
+            background: linear-gradient(120deg, rgba(15, 23, 42, 0.92), rgba(5, 150, 105, 0.88), rgba(37, 99, 235, 0.86));
+            border-bottom: 1px solid rgba(255, 255, 255, 0.24);
+            box-shadow: 0 18px 50px rgba(15, 23, 42, 0.22);
+        }
+
+        .owner-topbar a,
+        .owner-topbar h1,
+        .owner-topbar span {
+            color: #fff !important;
+        }
+
+        .owner-pill {
+            border-radius: 999px;
+            padding: 0.55rem 0.9rem;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            transition: 0.2s ease;
+        }
+
+        .owner-pill:hover {
+            background: rgba(255, 255, 255, 0.24);
+            transform: translateY(-1px);
+        }
+
+        .owner-page {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-shell {
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(240, 253, 250, 0.78)),
+                linear-gradient(120deg, rgba(16, 185, 129, 0.18), rgba(59, 130, 246, 0.12), rgba(244, 114, 182, 0.12));
+            backdrop-filter: blur(18px) saturate(145%);
+            -webkit-backdrop-filter: blur(18px) saturate(145%);
+            border: 1px solid var(--owner-line);
+            box-shadow: 0 22px 60px rgba(15, 23, 42, 0.13);
         }
 
         .detail-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(226, 232, 240, 0.9);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05),
-                        0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            border-radius: 18px;
+            background: var(--owner-panel);
+            backdrop-filter: blur(18px) saturate(145%);
+            -webkit-backdrop-filter: blur(18px) saturate(145%);
+            border: 1px solid var(--owner-line);
+            box-shadow: 0 24px 65px rgba(15, 23, 42, 0.14);
+            border-radius: 24px;
         }
 
         .info-box {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.76);
+            border: 1px solid rgba(255, 255, 255, 0.72);
+            border-radius: 20px;
             padding: 18px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84);
         }
 
         .reschedule-action {
@@ -36,7 +99,7 @@
             align-items: center;
             justify-content: center;
             border: 0;
-            border-radius: 10px;
+            border-radius: 999px;
             padding: 10px 16px;
             font-size: 14px;
             font-weight: 700;
@@ -64,8 +127,8 @@
         .reschedule-note {
             width: 100%;
             margin-bottom: 12px;
-            border: 1px solid #d6d3d1;
-            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.36);
+            border-radius: 18px;
             padding: 11px 12px;
             font: inherit;
             outline: none;
@@ -107,44 +170,44 @@
 <body class="text-slate-800 antialiased min-h-screen flex flex-col">
 
     <!-- Top Navigation -->
-    <nav class="bg-white shadow-sm border-b border-slate-200 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+    <nav class="owner-topbar px-6 py-4 flex justify-between items-center sticky top-0 z-50">
         <div class="flex items-center gap-4">
-            <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-teal-500">
+            <h1 class="text-2xl font-bold">
                 SportHub
             </h1>
 
-            <div class="hidden md:flex items-center gap-2 text-sm text-slate-500 ml-4 border-l border-slate-200 pl-4">
-                <a href="{{ route('owner.dashboard') }}" class="hover:text-emerald-600 transition-colors">
+            <div class="hidden md:flex items-center gap-2 text-sm font-semibold ml-4 border-l border-white/20 pl-4">
+                <a href="{{ route('owner.dashboard') }}" class="hover:opacity-90 transition-colors">
                     Dashboard
                 </a>
                 <span>/</span>
-                <a href="{{ route('owner.web.reschedule.index') }}" class="hover:text-emerald-600 transition-colors">
+                <a href="{{ route('owner.web.reschedule.index') }}" class="hover:opacity-90 transition-colors">
                     Yêu cầu đổi lịch
                 </a>
                 <span>/</span>
-                <span class="text-slate-800 font-medium">Chi tiết</span>
+                <span>Chi tiết</span>
             </div>
         </div>
 
         <div class="flex items-center gap-4">
             <a href="{{ route('owner.dashboard') }}"
-               class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">
+               class="owner-pill text-sm font-medium">
                 Tổng quan
             </a>
 
             <a href="{{ route('owner.web.calendar.index') }}"
-               class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">
+               class="owner-pill text-sm font-medium">
                 Lịch đặt sân
             </a>
             <a href="{{ route('owner.web.packages.index') }}"
-               class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">
+               class="owner-pill text-sm font-medium">
                 Quản lý gói
             </a>
             @include('owner.partials.notification-bell')
         </div>
     </nav>
 
-    <div class="flex-1 p-6 lg:p-10 max-w-5xl mx-auto w-full">
+    <div class="owner-page flex-1 p-6 lg:p-10 max-w-5xl mx-auto w-full">
 
         @php($slots = $rescheduleRequest->slots->sortBy(fn($slot) => $slot->old_start_time ?? $slot->booking?->start_time))
 
@@ -163,20 +226,23 @@
             )->implode(', '))
 
         <!-- Header -->
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div class="hero-shell flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 rounded-3xl p-6 md:p-8">
             <div>
-                <h2 class="text-3xl font-bold text-slate-800 mb-2">
+                <p class="text-xs font-extrabold uppercase tracking-[0.2em] text-emerald-600">
+                    SportHub Owner
+                </p>
+                <h2 class="mt-2 text-3xl font-extrabold text-slate-950 md:text-4xl">
                     Chi tiết đổi lịch #{{ $rescheduleRequest->id }}
                 </h2>
 
-                <p class="text-slate-500">
+                <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
                     Xem thông tin chi tiết và xử lý yêu cầu đổi lịch của khách hàng.
                 </p>
             </div>
 
             <div class="flex gap-3">
                 <a href="{{ route('owner.web.reschedule.index') }}"
-                   class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-colors">
+                   class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-full shadow-sm transition-colors">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M15 19l-7-7 7-7"></path>
@@ -188,7 +254,7 @@
 
         <!-- Error Alert -->
         @if(session('error'))
-            <div class="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 flex items-start">
+            <div class="mb-6 p-4 rounded-2xl bg-red-50/90 border border-red-200 flex items-start shadow-sm">
                 <svg class="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0"
                      fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -209,7 +275,7 @@
 
         <!-- Success Alert -->
         @if(session('success'))
-            <div class="mb-6 p-4 rounded-lg bg-emerald-50 border border-emerald-200 flex items-start">
+            <div class="mb-6 p-4 rounded-2xl bg-emerald-50/90 border border-emerald-200 flex items-start shadow-sm">
                 <svg class="w-5 h-5 text-emerald-500 mt-0.5 mr-3 flex-shrink-0"
                      fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -303,7 +369,7 @@
                     </div>
                 </div>
             @else
-                <div class="mt-6 rounded-xl bg-slate-50 border border-slate-200 p-4 text-sm text-slate-600">
+                <div class="mt-6 rounded-2xl bg-white/70 border border-white/80 p-4 text-sm text-slate-600">
                     Yêu cầu này đã được xử lý, không thể thao tác thêm.
                 </div>
             @endif
