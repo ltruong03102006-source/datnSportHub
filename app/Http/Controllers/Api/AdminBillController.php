@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Bill;
 use App\Models\User;
 use App\Models\WalletTransaction;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -39,6 +40,7 @@ class AdminBillController extends Controller
         $bill->admin_id = $request->user()->id;
         $bill->save();
 
+        $user = null;
         // 2. Cập nhật số dư/dữ liệu liên quan của thành viên
         if ($bill->user_id && $bill->amount) {
             $user = User::find($bill->user_id);
@@ -65,6 +67,24 @@ class AdminBillController extends Controller
             'new_status' => $bill->status,
             'confirmed_at' => $bill->payment_confirmed_at->toDateTimeString()
         ]);
+
+        // Task 1.3: Gửi notification
+        if ($bill->user_id) {
+            // Tạo notification trong hệ thống
+            Notification::create([
+                'user_id' => $bill->user_id,
+                'type' => 'system', // Hoặc 'payment' tuỳ theo enum của hệ thống
+                'title' => 'Xác nhận thanh toán',
+                'content' => 'Admin đã xác nhận chuyển tiền thành công',
+                'link' => '/bills/' . $bill->id, // Đường dẫn nếu có
+                'is_read' => false,
+            ]);
+
+            // Nếu hệ thống hỗ trợ gửi Email/SMS/Push có thể kích hoạt ở đây, ví dụ:
+            // if ($user && $user->email) {
+            //     Mail::to($user->email)->send(new \App\Mail\PaymentConfirmed($bill));
+            // }
+        }
 
         // 4. Trả về response với thông tin bill đã cập nhật
         return response()->json([
