@@ -388,18 +388,16 @@
                                         <td class="pr-2 whitespace-nowrap font-medium {{ (string) $selectedCourtId === (string) $row['id'] ? 'text-emerald-700' : 'text-slate-600' }}">
                                             {{ $row['name'] }}
                                         </td>
-                                        @foreach($row['cells'] as $count)
-                                            @php
-                                                $max = max(1, $courtHeatmap['max']);
-                                                $ratio = $count / $max;
-                                                $bg = $count === 0
-                                                    ? 'bg-slate-100'
-                                                    : ($ratio <= 0.34 ? 'bg-emerald-200' : ($ratio <= 0.67 ? 'bg-emerald-400' : 'bg-emerald-600'));
-                                                $text = $ratio > 0.34 ? 'text-white' : 'text-slate-600';
-                                            @endphp
-                                            <td class="w-8 h-7 text-center rounded-sm {{ $bg }} {{ $text }}"
-                                                title="{{ $row['name'] }} · {{ str_pad($loop->index + $courtHeatmap['hours'][0], 2, '0', STR_PAD_LEFT) }}:00 · {{ $count }} lượt đặt">
-                                                {{ $count > 0 ? $count : '' }}
+                                        @foreach($row['cells'] as $cell)
+                                            <td @class([
+                                                    'w-8 h-7 text-center rounded-sm',
+                                                    'bg-slate-100 text-slate-400' => $cell['level'] === 0,
+                                                    'bg-emerald-200 text-slate-700' => $cell['level'] === 1,
+                                                    'bg-emerald-400 text-white' => $cell['level'] === 2,
+                                                    'bg-emerald-600 text-white' => $cell['level'] === 3,
+                                                ])
+                                                title="{{ $row['name'] }} · {{ str_pad($cell['hour'], 2, '0', STR_PAD_LEFT) }}:00 · {{ $cell['count'] }} lượt đặt">
+                                                {{ $cell['count'] ?: '' }}
                                             </td>
                                         @endforeach
                                     </tr>
