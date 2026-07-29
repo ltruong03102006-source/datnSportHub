@@ -184,6 +184,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/contracts', [\App\Http\Controllers\Web\AdminContractController::class, 'store'])->name('contracts.store');
         Route::get('/contracts/{contract}/edit', [\App\Http\Controllers\Web\AdminContractController::class, 'edit'])->name('contracts.edit');
         Route::put('/contracts/{contract}', [\App\Http\Controllers\Web\AdminContractController::class, 'update'])->name('contracts.update');
+        Route::get('/contracts/{contract}', [\App\Http\Controllers\Web\AdminContractController::class, 'show'])->name('contracts.show');
     });
 });
 

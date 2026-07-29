@@ -118,4 +118,17 @@ class AdminContractController extends Controller
         return Redirect::route('admin.contracts.index')
             ->with('success', 'Cập nhật hợp đồng thành công.');
     }
+
+    /**
+     * Display the details of a single contract.
+     *
+     * @param Contract $contract
+     * @return View
+     */
+    public function show(Contract $contract): View
+    {
+        $contract->load(['owner', 'creator']);
+
+        return view('admin.contracts.show', compact('contract'));
+    }
 }
