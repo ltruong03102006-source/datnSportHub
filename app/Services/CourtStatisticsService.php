@@ -87,13 +87,18 @@ class CourtStatisticsService
 
     /**
      * Số giờ đã được đặt của một lịch đặt.
+     * Ca chơi qua nửa đêm (23:00 -> 01:00) được tính sang ngày hôm sau.
      */
     public function bookedHoursOf(Booking $booking): float
     {
         $start = Carbon::parse($booking->start_time);
         $end = Carbon::parse($booking->end_time);
 
-        return abs($end->diffInMinutes($start)) / 60;
+        if ($end->lessThanOrEqualTo($start)) {
+            $end = $end->addDay();
+        }
+
+        return $start->diffInMinutes($end) / 60;
     }
 
     /**
