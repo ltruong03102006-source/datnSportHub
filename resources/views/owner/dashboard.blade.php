@@ -74,6 +74,23 @@
                         </select>
                     </div>
 
+                    <!-- Court Filter: chỉ bật khi đã chọn 1 cơ sở cụ thể -->
+                    <div class="w-full lg:w-48">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Sân con</label>
+                        <select name="court_id" id="courtSelect"
+                                @disabled($courtsOfVenue->isEmpty())
+                                class="w-full rounded-lg border-slate-300 text-sm focus:border-emerald-500 focus:ring-emerald-500 shadow-sm py-2 px-3 outline-none border transition-colors bg-slate-50 hover:bg-white disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed">
+                            @if ($courtsOfVenue->isEmpty())
+                                <option value="all">Chọn cơ sở trước</option>
+                            @else
+                                <option value="all">Tất cả sân con</option>
+                                @foreach($courtsOfVenue as $court)
+                                    <option value="{{ $court->id }}" {{ (string) $selectedCourtId === (string) $court->id ? 'selected' : '' }}>{{ $court->name }}</option>
+                                @endforeach
+                            @endif
+                        </select>
+                    </div>
+
                     <!-- Period Type Selection -->
                     <div class="w-full lg:w-auto">
                         <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Thời gian</label>
