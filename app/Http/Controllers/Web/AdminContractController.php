@@ -16,15 +16,45 @@ class AdminContractController extends Controller
     /**
      * Display a paginated list of contracts for admin management.
      *
+     * @param Request $request
      * @return View
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        $contracts = Contract::with(['owner', 'creator'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        // Load owners for the owner filter dropdown.
+        $owners = User::where('role', 'owner')->orderBy('name')->get();
 
-        return view('admin.contracts.index', compact('contracts'));
+        $contracts = Contract::with(['owner', 'creator'])
+            ->when($request->keyword, function ($query, $keyword) {
+                $query->where(function ($sub) use ($keyword) {
+                    $sub->where('contract_code', 'like', "%{$keyword}%")
+                        ->orWhere('title', 'like', "%{$keyword}%")
+                        ->orWhereHas('owner', function ($ownerQuery) use ($keyword) {
+                            $ownerQuery->where('name', 'like', "%{$keyword}%");
+                        });
+                });
+            })
+            ->when($request->status, function ($query, $status) {
+                $query->where('status', $status);
+            })
+            ->when($request->owner_id, function ($query, $ownerId) {
+                $query->where('owner_id', $ownerId);
+            })
+            ->when($request->start_date_from, function ($query, $startDate) {
+                $query->whereDate('start_date', '>=', $startDate);
+            })
+            ->when($request->start_date_to, function ($query, $endDate) {
+                $query->whereDate('start_date', '<=', $endDate);
+            })
+            ->when($request->sort === 'oldest', function ($query) {
+                $query->orderBy('created_at', 'asc');
+            }, function ($query) {
+                $query->orderBy('created_at', 'desc');
+            })
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('admin.contracts.index', compact('contracts', 'owners'));
     }
 
     /**

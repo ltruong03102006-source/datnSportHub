@@ -16,6 +16,59 @@
                         </div>
                     </div>
 
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <form method="GET" action="{{ route('admin.contracts.index') }}">
+                                <div class="row g-3 align-items-end">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Tìm kiếm</label>
+                                        <input type="text" name="keyword" value="{{ request('keyword') }}" class="form-control" placeholder="Mã, tiêu đề hoặc tên chủ sân">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Trạng thái</label>
+                                        <select name="status" class="form-select">
+                                            <option value="">Tất cả</option>
+                                            <option value="draft" {{ request('status') === 'draft' ? 'selected' : '' }}>Draft</option>
+                                            <option value="sent" {{ request('status') === 'sent' ? 'selected' : '' }}>Sent</option>
+                                            <option value="accepted" {{ request('status') === 'accepted' ? 'selected' : '' }}>Accepted</option>
+                                            <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>Rejected</option>
+                                            <option value="expired" {{ request('status') === 'expired' ? 'selected' : '' }}>Expired</option>
+                                            <option value="terminated" {{ request('status') === 'terminated' ? 'selected' : '' }}>Terminated</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Chủ sân</label>
+                                        <select name="owner_id" class="form-select">
+                                            <option value="">Tất cả chủ sân</option>
+                                            @foreach($owners as $owner)
+                                                <option value="{{ $owner->id }}" {{ request('owner_id') == $owner->id ? 'selected' : '' }}>{{ $owner->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Từ ngày</label>
+                                        <input type="date" name="start_date_from" value="{{ request('start_date_from') }}" class="form-control">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Đến ngày</label>
+                                        <input type="date" name="start_date_to" value="{{ request('start_date_to') }}" class="form-control">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Sắp xếp</label>
+                                        <select name="sort" class="form-select">
+                                            <option value="newest" {{ request('sort', 'newest') === 'newest' ? 'selected' : '' }}>Mới nhất</option>
+                                            <option value="oldest" {{ request('sort') === 'oldest' ? 'selected' : '' }}>Cũ nhất</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-12 d-flex gap-2 justify-content-end">
+                                        <button type="submit" class="btn btn-primary">Tìm kiếm</button>
+                                        <a href="{{ route('admin.contracts.index') }}" class="btn btn-secondary">Đặt lại</a>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
                     @if($contracts->isEmpty())
                         <div class="alert alert-secondary" role="alert">
                             Chưa có hợp đồng nào.
