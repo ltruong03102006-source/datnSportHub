@@ -58,6 +58,14 @@ class Court extends Model
     }
 
     /**
+     * Scope: Lấy các sân con thuộc danh sách cơ sở (dùng cho thống kê)
+     */
+    public function scopeForVenues(Builder $query, $venueIds): Builder
+    {
+        return $query->whereIn('venue_id', $venueIds);
+    }
+
+    /**
      * Kiểm tra sân có thể đặt trực tuyến không
      */
     public function canBeBooked(): bool
