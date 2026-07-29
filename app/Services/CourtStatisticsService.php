@@ -37,12 +37,13 @@ class CourtStatisticsService
     }
 
     /**
-     * Lọc ra các lịch đặt được tính doanh thu: hợp lệ + đã thu tiền.
+     * Lọc ra các lịch đặt được tính doanh thu: đã hoàn tất và đã thu tiền.
+     * Giữ cùng quy tắc với ô "Tổng doanh thu" của dashboard để hai số liệu khớp nhau.
      */
     public function payableBookings(Collection $bookings): Collection
     {
         return $bookings
-            ->filter(fn (Booking $booking) => in_array($booking->status, Booking::VALID_STATUSES, true))
+            ->filter(fn (Booking $booking) => $booking->status === 'completed')
             ->filter(fn (Booking $booking) => $booking->isPaid());
     }
 
