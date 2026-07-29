@@ -8,76 +8,80 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
-        .table-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 1rem; box-shadow: 0 10px 30px rgba(15, 23, 42, .04); }
+        .page-header { background: #fff; border: 1px solid #e2e8f0; border-radius: 1rem; box-shadow: 0 10px 30px rgba(15, 23, 42, .05); }
+        .content-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 1rem; box-shadow: 0 10px 30px rgba(15, 23, 42, .04); }
     </style>
 </head>
 <body class="text-slate-800 antialiased min-h-screen">
-    <nav class="bg-white shadow-sm border-b border-slate-200 px-6 py-4 flex justify-between items-center">
+    <nav class="bg-white shadow-sm border-bottom border-slate-200 px-4 py-3 d-flex justify-content-between align-items-center">
         <div>
-            <a href="{{ route('owner.dashboard') }}" class="text-xl font-bold text-slate-800">SportHub</a>
+            <a href="{{ route('owner.dashboard') }}" class="text-xl fw-bold text-slate-800">SportHub</a>
         </div>
-        <div class="flex items-center gap-4 text-sm text-slate-600">
-            <a href="{{ route('owner.dashboard') }}" class="hover:text-emerald-600">Dashboard</a>
-            <a href="{{ route('owner.venues.index') }}" class="hover:text-emerald-600">Cơ sở</a>
-            <a href="{{ route('owner.contracts.index') }}" class="text-emerald-600 font-semibold">Hợp đồng</a>
+        <div class="d-flex align-items-center gap-3 small text-secondary">
+            <a href="{{ route('owner.dashboard') }}" class="text-decoration-none text-secondary">Dashboard</a>
+            <a href="{{ route('owner.venues.index') }}" class="text-decoration-none text-secondary">Cơ sở</a>
+            <a href="{{ route('owner.contracts.index') }}" class="text-decoration-none text-success fw-semibold">Hợp đồng</a>
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto p-6">
-        <div class="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-            <div>
-                <h1 class="text-3xl font-bold text-slate-900">Hợp đồng của tôi</h1>
-                <p class="text-slate-500">Xem danh sách hợp đồng dành cho Chủ sân.</p>
+    <main class="container py-5">
+        <div class="page-header p-4 mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="h3 mb-1">Hợp đồng của tôi</h1>
+                    <p class="text-muted mb-0">Xem danh sách hợp đồng dành cho Chủ sân.</p>
+                </div>
             </div>
         </div>
 
-        <div class="table-card p-6">
+        <div class="content-card p-4">
             @if($contracts->isEmpty())
-                <div class="py-16 text-center text-slate-500">
-                    Bạn chưa có hợp đồng nào.
+                <div class="py-5 text-center text-secondary">
+                    <h2 class="h5 mb-2">Bạn chưa có hợp đồng nào.</h2>
+                    <p class="mb-0">Khi hợp đồng được gửi, bạn sẽ thấy danh sách chi tiết ở đây.</p>
                 </div>
             @else
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left border-collapse">
-                        <thead>
-                            <tr class="text-slate-700 bg-slate-100">
-                                <th class="p-3 font-semibold">STT</th>
-                                <th class="p-3 font-semibold">Mã hợp đồng</th>
-                                <th class="p-3 font-semibold">Tiêu đề</th>
-                                <th class="p-3 font-semibold">Hoa hồng</th>
-                                <th class="p-3 font-semibold">Ngày bắt đầu</th>
-                                <th class="p-3 font-semibold">Ngày kết thúc</th>
-                                <th class="p-3 font-semibold">Trạng thái</th>
-                                <th class="p-3 font-semibold">Ngày tạo</th>
-                                <th class="p-3 font-semibold">Thao tác</th>
+                <div class="table-responsive">
+                    <table class="table table-borderless align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col">STT</th>
+                                <th scope="col">Mã</th>
+                                <th scope="col">Tiêu đề</th>
+                                <th scope="col">Hoa hồng</th>
+                                <th scope="col">Bắt đầu</th>
+                                <th scope="col">Kết thúc</th>
+                                <th scope="col">Trạng thái</th>
+                                <th scope="col">Ngày tạo</th>
+                                <th scope="col">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($contracts as $index => $contract)
-                                <tr class="border-t border-slate-200">
-                                    <td class="p-3 align-top">{{ $contracts->firstItem() + $index }}</td>
-                                    <td class="p-3 align-top font-medium">{{ $contract->contract_code }}</td>
-                                    <td class="p-3 align-top">{{ $contract->title }}</td>
-                                    <td class="p-3 align-top">{{ number_format($contract->commission_rate, 2) }}%</td>
-                                    <td class="p-3 align-top">{{ $contract->start_date?->format('Y-m-d') }}</td>
-                                    <td class="p-3 align-top">{{ $contract->end_date?->format('Y-m-d') }}</td>
-                                    <td class="p-3 align-top">
+                                <tr class="border-top">
+                                    <td>{{ $contracts->firstItem() + $index }}</td>
+                                    <td class="fw-semibold">{{ $contract->contract_code }}</td>
+                                    <td>{{ $contract->title }}</td>
+                                    <td>{{ number_format($contract->commission_rate, 2) }}%</td>
+                                    <td>{{ $contract->start_date?->format('Y-m-d') }}</td>
+                                    <td>{{ $contract->end_date?->format('Y-m-d') }}</td>
+                                    <td>
                                         @php
                                             $badge = match($contract->status) {
-                                                'draft' => 'bg-slate-200 text-slate-700',
-                                                'sent' => 'bg-blue-100 text-blue-700',
-                                                'accepted' => 'bg-emerald-100 text-emerald-700',
-                                                'rejected' => 'bg-red-100 text-red-700',
-                                                'expired' => 'bg-amber-100 text-amber-700',
-                                                'terminated' => 'bg-slate-800 text-white',
-                                                default => 'bg-slate-200 text-slate-700',
+                                                'draft' => 'secondary',
+                                                'sent' => 'primary',
+                                                'accepted' => 'success',
+                                                'rejected' => 'danger',
+                                                'expired' => 'warning',
+                                                'terminated' => 'dark',
+                                                default => 'secondary',
                                             };
                                         @endphp
-                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold {{ $badge }}">{{ ucfirst($contract->status) }}</span>
+                                        <span class="badge bg-{{ $badge }} text-capitalize">{{ $contract->status }}</span>
                                     </td>
-                                    <td class="p-3 align-top">{{ $contract->created_at->format('Y-m-d') }}</td>
-                                    <td class="p-3 align-top">
-                                        <a href="{{ route('owner.contracts.show', $contract) }}" class="inline-flex items-center justify-center px-3 py-1.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg">Xem chi tiết</a>
+                                    <td>{{ $contract->created_at->format('Y-m-d') }}</td>
+                                    <td>
+                                        <a href="{{ route('owner.contracts.show', $contract) }}" class="btn btn-sm btn-outline-success">Xem chi tiết</a>
                                     </td>
                                 </tr>
                             @endforeach
@@ -85,7 +89,7 @@
                     </table>
                 </div>
 
-                <div class="mt-6">
+                <div class="mt-4">
                     {{ $contracts->links() }}
                 </div>
             @endif
