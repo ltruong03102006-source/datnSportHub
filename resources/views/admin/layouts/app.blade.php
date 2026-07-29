@@ -9,7 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -299,8 +300,19 @@
             <a href="{{ route('admin.transactions.index') }}" class="nav-item {{ request()->routeIs('admin.transactions.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-wallet"></i> Lịch sử giao dịch
             </a>
+            <a href="{{ route('admin.finance.index') }}" class="nav-item {{ request()->routeIs('admin.finance.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-chart-line"></i> Tổng quan tài chính
+            </a>
+            {{-- <a href="{{ route('admin.debts.index') }}" class="nav-item {{ request()->routeIs('admin.debts.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-scale-balanced"></i> Quản lý công nợ
+            </a> --}}
             <a href="{{ route('admin.withdrawals.index') }}" class="nav-item {{ request()->routeIs('admin.withdrawals.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-money-bill-transfer"></i> Yêu cầu rút tiền
+            </a>
+            <!-- MENU MỚI: CHUYỂN NHƯỢNG CƠ SỞ -->
+            <a href="{{ route('admin.venue-transfers.index') }}" 
+               class="nav-item {{ request()->routeIs('admin.venue-transfers.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-right-left"></i> Chuyển nhượng cơ sở
             </a>
             <!-- Mock links matching the screenshot -->
             {{-- <a href="#" class="nav-item"><i class="fa-solid fa-wallet"></i> Thanh toán</a>
@@ -364,5 +376,7 @@
     </main>
 
     @stack('scripts')
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

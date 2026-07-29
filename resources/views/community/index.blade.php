@@ -17,12 +17,20 @@
         <span class="text-sm font-semibold text-zinc-700">Lọc môn:</span>
         <form id="filterForm" action="{{ route('community.index') }}" method="GET" class="flex items-center gap-2">
             <select name="sport_id" onchange="document.getElementById('filterForm').submit()" class="text-sm rounded-lg border-stone-300 focus:border-emerald-500 focus:ring-emerald-500">
-                <option value="">Tất cả</option>
+                <option value="">Môn: Tất cả</option>
                 @foreach($sports as $s)
                     <option value="{{ $s->id }}" {{ request('sport_id') == $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
                 @endforeach
             </select>
-            @if(request('sport_id'))
+
+            <select name="province_code" onchange="document.getElementById('filterForm').submit()" class="text-sm rounded-lg border-stone-300 focus:border-emerald-500 focus:ring-emerald-500">
+                <option value="">Khu vực: Toàn quốc</option>
+                @foreach($provinces as $p)
+                    <option value="{{ $p->code }}" {{ request('province_code') == $p->code ? 'selected' : '' }}>{{ $p->name }}</option>
+                @endforeach
+            </select>
+
+            @if(request('sport_id') || request('province_code'))
                 <a href="{{ route('community.index') }}" class="text-xs text-rose-500 hover:underline">Xóa lọc</a>
             @endif
         </form>
@@ -52,7 +60,7 @@
                     <p class="flex items-center gap-2"><svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> 
                         <span class="font-semibold text-zinc-900">{{ $post->play_date->format('d/m/Y') }}</span> lúc <span class="font-bold text-rose-600">{{ \Carbon\Carbon::parse($post->play_time)->format('H:i') }}</span>
                     </p>
-                    <p class="flex items-center gap-2"><svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg> {{ $post->location }}</p>
+                    <p class="flex items-center gap-2"><svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>{{ $post->location }} - <strong>{{ $post->province->name ?? '' }}</strong></p>
                     <p class="flex items-center gap-2"><svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> Trình độ: <strong>{{ $post->skill_level }}</strong></p>
                     
                     <!-- THÊM: Tiến độ người tham gia -->
@@ -70,7 +78,7 @@
                 <!-- THAY ĐỔI: Nút Xin Tham Gia gọi AJAX thay vì lấy SĐT -->
                 <!-- KIỂM TRA: Nếu là chủ bài đăng thì hiện nút Quản lý, ngược lại mới cho Tham gia -->
                 <!-- KIỂM TRA: Nếu là chủ bài đăng thì hiện nút Quản lý -->
-                @if($post->user_id === Auth::id())
+               @if($post->user_id === Auth::id())
                     <a href="{{ route('community.my_posts') }}" class="w-full bg-stone-100 text-stone-600 font-bold py-2 rounded-lg border border-stone-200 hover:bg-stone-200 transition flex items-center justify-center gap-2 text-sm text-decoration-none">
                         Quản lý kèo này
                     </a>
@@ -85,28 +93,37 @@
                             <span class="group-hover:hidden"><i class="fa-solid fa-hourglass-half"></i> Đang chờ duyệt</span>
                             <span class="hidden group-hover:block"><i class="fa-solid fa-xmark"></i> Hủy yêu cầu</span>
                         </button>
+
                     @elseif($myParticipantStatus === 'approved')
-    <!-- Nút Rút lui rõ ràng, luôn hiện, không cần hover -->
-    <div class="flex flex-col gap-2">
-        <div class="w-full bg-emerald-50 text-emerald-700 font-bold py-2 rounded-lg flex items-center justify-center gap-2 text-sm border border-emerald-200">
-            <i class="fa-solid fa-check"></i> Đã được duyệt
-        </div>
-        <button onclick="cancelJoinMatch({{ $post->id }})" 
-                class="w-full bg-rose-50 text-rose-600 font-bold py-2 rounded-lg border border-rose-200 hover:bg-rose-100 transition text-sm flex items-center justify-center gap-2">
-            <i class="fa-solid fa-xmark"></i> Rút lui (Có việc đột xuất)
-        </button>
-    </div>
+                        <div class="flex flex-col gap-2">
+                            <div class="w-full bg-emerald-50 text-emerald-700 font-bold py-2 rounded-lg flex items-center justify-center gap-2 text-sm border border-emerald-200">
+                                <i class="fa-solid fa-check"></i> Đã được duyệt
+                            </div>
+                            <button onclick="cancelJoinMatch({{ $post->id }})" 
+                                    class="w-full bg-rose-50 text-rose-600 font-bold py-2 rounded-lg border border-rose-200 hover:bg-rose-100 transition text-sm flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-xmark"></i> Rút lui (Có việc đột xuất)
+                            </button>
+                        </div>
+
                     @elseif($myParticipantStatus === 'rejected')
                         <button disabled class="w-full bg-rose-100 text-rose-700 font-bold py-2 rounded-lg flex items-center justify-center gap-2 text-sm cursor-not-allowed border border-rose-200">
-                            <i class="fa-solid fa-xmark"></i> Bị từ chối
+                            <i class="fa-solid fa-circle-info"></i> Bị từ chối
                         </button>
+                    @elseif($myParticipantStatus === 'withdrawn')
+                        <button disabled class="w-full bg-stone-100 text-stone-500 font-bold py-2 rounded-lg flex items-center justify-center gap-2 text-sm cursor-not-allowed border border-stone-200">
+                            <i class="fa-solid fa-person-walking-arrow-right"></i> Đã rút lui
+                        </button>
+                    @elseif($myParticipantStatus === 'kicked')
+                        <button disabled class="w-full bg-rose-100 text-rose-700 font-bold py-2 rounded-lg flex items-center justify-center gap-2 text-sm cursor-not-allowed border border-rose-200" title="Chủ sân đã mời bạn ra khỏi kèo này">
+                            <i class="fa-solid fa-user-slash"></i> Đã bị mời ra
+                        </button>
+                    
                     @else
-                        <!-- Nút xin tham gia ban đầu -->
                         <button id="btn-join-{{ $post->id }}" onclick="joinMatch({{ $post->id }})" class="w-full bg-emerald-600 text-white font-bold py-2 rounded-lg hover:bg-emerald-700 transition flex items-center justify-center gap-2 text-sm">
                             Xin tham gia ngay
                         </button>
-                    @endif
-                @endif
+                    @endif 
+                @endif 
             </div>
         @empty
             <div class="col-span-full text-center py-12">
@@ -181,12 +198,22 @@
                             <p class="mt-1 text-xs text-rose-500 hidden" id="err-play_time"></p>
                         </div>
                     </div>
-
-                    <div class="mb-4">
-                        <label class="block text-sm font-semibold text-zinc-700 mb-1">Khu vực / Sân <span class="text-rose-500">*</span></label>
-                        <input type="text" name="location" class="w-full rounded-lg border-stone-300 focus:border-emerald-500 focus:ring-emerald-500 text-sm" placeholder="VD: Sân Chùa Láng, Đống Đa" required>
-                        <p class="mt-1 text-xs text-rose-500 hidden" id="err-location"></p>
-                    </div>
+                    <div>
+                            <label class="block text-sm font-semibold text-zinc-700 mb-1">Tỉnh / Thành phố <span class="text-rose-500">*</span></label>
+                            <select name="province_code" class="w-full rounded-lg border-stone-300 focus:border-emerald-500 focus:ring-emerald-500 text-sm" required>
+                                <option value="">Chọn khu vực...</option>
+                                @foreach($provinces as $p)
+                                    <option value="{{ $p->code }}">{{ $p->name }}</option>
+                                @endforeach
+                            </select>
+                            <p class="mt-1 text-xs text-rose-500 hidden" id="err-province_code"></p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-zinc-700 mb-1">Địa chỉ (Sân / Phố) <span class="text-rose-500">*</span></label>
+                            <input type="text" name="location" class="w-full rounded-lg border-stone-300 focus:border-emerald-500 focus:ring-emerald-500 text-sm" placeholder="VD: Sân Chùa Láng..." required>
+                            <p class="mt-1 text-xs text-rose-500 hidden" id="err-location"></p>
+                        </div>
+           
 
                     <div class="mb-4">
                         <label class="block text-sm font-semibold text-zinc-700 mb-1">SĐT / Zalo <span class="text-rose-500">*</span></label>

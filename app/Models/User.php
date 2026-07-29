@@ -8,9 +8,12 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Sanctum\HasApiTokens; // 1. Import class HasApiTokens
+use \App\Traits\HasWallet;
 
 // 2. Thêm 'role' và 'status' vào danh sách cho phép fill
 #[Fillable(['name', 'email', 'phone', 'avatar', 'password', 'role', 'status', 'provider', 'provider_id', 'bank_name', 'bank_account_no', 'bank_account_name', 'balance'])]
@@ -19,7 +22,7 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     // 3. Khai báo sử dụng trait HasApiTokens
-    use HasApiTokens, HasFactory, Notifiable; 
+    use HasApiTokens, HasFactory, Notifiable, HasWallet;
 
     /**
      * Get the attributes that should be cast.

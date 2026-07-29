@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\SettlementStatus;
 use App\Models\Booking;
 use App\Models\Court;
 use App\Models\Sport;
@@ -117,5 +118,8 @@ class PackageBookingPaymentFlowTest extends TestCase
         $this->assertSame('10:00:00', $booking->start_time);
         $this->assertSame('12:00:00', $booking->end_time);
         $this->assertSame(250000.0, (float) $booking->total_price);
+        $this->assertSame(SettlementStatus::SETTLED->value, $booking->settlement_status->value);
+        $this->assertSame(25000.0, (float) $booking->platform_fee);
+        $this->assertSame(225000.0, (float) $booking->owner_earnings);
     }
 }
