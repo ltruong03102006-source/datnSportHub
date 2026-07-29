@@ -71,6 +71,14 @@ class OwnerBookingCheckinController extends Controller
             'checkin_note' => $validated['checkin_note'] ?? null,
         ]);
 
+        $booking->recordStatusChange(
+            $request->user()->id,
+            $booking->status,
+            $booking->status,
+            'Chủ sân check-in khách đến sân'.($booking->checkin_note ? ': '.$booking->checkin_note : null),
+            now('Asia/Ho_Chi_Minh')
+        );
+
         return back()->with('success', "Đã check-in booking #{$booking->id}.");
     }
 
@@ -101,6 +109,14 @@ class OwnerBookingCheckinController extends Controller
             'no_show_by' => $request->user()->id,
             'checkin_note' => $validated['checkin_note'] ?? $booking->checkin_note,
         ]);
+
+        $booking->recordStatusChange(
+            $request->user()->id,
+            $booking->status,
+            $booking->status,
+            'Chủ sân đánh dấu khách không đến'.($booking->checkin_note ? ': '.$booking->checkin_note : null),
+            now('Asia/Ho_Chi_Minh')
+        );
 
         return back()->with('success', "Đã đánh dấu khách không đến cho booking #{$booking->id}.");
     }
