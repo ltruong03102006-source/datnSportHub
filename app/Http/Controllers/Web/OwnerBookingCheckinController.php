@@ -47,7 +47,11 @@ class OwnerBookingCheckinController extends Controller
     {
         $this->ensureOwnerBooking($booking);
 
-        if (! in_array($booking->status, ['confirmed', 'completed'], true)) {
+        if (! $this->isTodayBooking($booking)) {
+            return back()->with('error', 'Chỉ có thể check-in booking trong ngày hôm nay.');
+        }
+
+        if (! $this->hasCheckinStatus($booking)) {
             return back()->with('error', 'Chỉ có thể check-in booking đã xác nhận hoặc đã hoàn thành.');
         }
 
@@ -59,9 +63,7 @@ class OwnerBookingCheckinController extends Controller
             return back()->with('success', 'Booking này đã được check-in trước đó.');
         }
 
-        $validated = $request->validate([
-            'checkin_note' => ['nullable', 'string', 'max:1000'],
-        ]);
+        $validated = $this->validateCheckinNote($request);
 
         $booking->update([
             'checked_in_at' => now('Asia/Ho_Chi_Minh'),
@@ -76,7 +78,11 @@ class OwnerBookingCheckinController extends Controller
     {
         $this->ensureOwnerBooking($booking);
 
-        if (! in_array($booking->status, ['confirmed', 'completed'], true)) {
+        if (! $this->isTodayBooking($booking)) {
+            return back()->with('error', 'Chỉ có thể đánh dấu không đến cho booking trong ngày hôm nay.');
+        }
+
+        if (! $this->hasCheckinStatus($booking)) {
             return back()->with('error', 'Chỉ có thể đánh dấu không đến cho booking đã xác nhận hoặc đã hoàn thành.');
         }
 
@@ -88,9 +94,7 @@ class OwnerBookingCheckinController extends Controller
             return back()->with('success', 'Booking này đã được đánh dấu khách không đến trước đó.');
         }
 
-        $validated = $request->validate([
-            'checkin_note' => ['nullable', 'string', 'max:1000'],
-        ]);
+        $validated = $this->validateCheckinNote($request);
 
         $booking->update([
             'no_show_at' => now('Asia/Ho_Chi_Minh'),
@@ -109,5 +113,23 @@ class OwnerBookingCheckinController extends Controller
                 ->exists(),
             403
         );
+    }
+
+    private function hasCheckinStatus(Booking $booking): bool
+    {
+        return in_array($booking->status, ['confirmed', 'completed'], true);
+    }
+
+    private function isTodayBooking(Booking $booking): bool
+    {
+        return Carbon::parse($booking->slot_date, 'Asia/Ho_Chi_Minh')
+            ->isSameDay(Carbon::today('Asia/Ho_Chi_Minh'));
+    }
+
+    private function validateCheckinNote(Request $request): array
+    {
+        return $request->validate([
+            'checkin_note' => ['nullable', 'string', 'max:1000'],
+        ]);
     }
 }
