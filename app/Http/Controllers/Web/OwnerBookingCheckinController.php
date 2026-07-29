@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\Venue;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,12 +17,42 @@ class OwnerBookingCheckinController extends Controller
     {
         $ownerId = Auth::id();
         $today = Carbon::today('Asia/Ho_Chi_Minh')->toDateString();
+        $filters = $request->validate([
+            'venue_id' => ['nullable', 'integer'],
+            'court_id' => ['nullable', 'integer'],
+            'checkin_status' => ['nullable', 'in:waiting,checked_in,no_show'],
+            'q' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $venues = Venue::query()
+            ->where('owner_id', $ownerId)
+            ->with(['courts' => fn ($query) => $query->orderBy('name')])
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
         $bookings = Booking::query()
             ->with(['court.venue', 'user', 'checkedInBy', 'noShowBy'])
             ->whereDate('slot_date', $today)
             ->whereIn('status', ['confirmed', 'completed'])
             ->whereHas('court.venue', fn ($query) => $query->where('owner_id', $ownerId))
+            ->when($filters['venue_id'] ?? null, function ($query, $venueId) {
+                $query->whereHas('court', fn ($courtQuery) => $courtQuery->where('venue_id', $venueId));
+            })
+            ->when($filters['court_id'] ?? null, fn ($query, $courtId) => $query->where('court_id', $courtId))
+            ->when($filters['checkin_status'] ?? null, function ($query, $status) {
+                match ($status) {
+                    'checked_in' => $query->whereNotNull('checked_in_at'),
+                    'no_show' => $query->whereNotNull('no_show_at'),
+                    default => $query->whereNull('checked_in_at')->whereNull('no_show_at'),
+                };
+            })
+            ->when($filters['q'] ?? null, function ($query, $keyword) {
+                $query->whereHas('user', function ($userQuery) use ($keyword) {
+                    $userQuery->where('name', 'like', "%{$keyword}%")
+                        ->orWhere('email', 'like', "%{$keyword}%")
+                        ->orWhere('phone', 'like', "%{$keyword}%");
+                });
+            })
             ->orderBy('start_time')
             ->orderBy('id')
             ->get();
@@ -38,8 +69,10 @@ class OwnerBookingCheckinController extends Controller
 
         return view('owner.checkins.index', [
             'bookings' => $bookings,
+            'filters' => $filters,
             'stats' => $stats,
             'today' => $today,
+            'venues' => $venues,
         ]);
     }
 

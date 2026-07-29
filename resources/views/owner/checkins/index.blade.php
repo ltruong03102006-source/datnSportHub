@@ -73,6 +73,50 @@
             </div>
         @endif
 
+        <form method="GET" action="{{ route('owner.web.checkins.index') }}" class="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="grid grid-cols-1 gap-4 lg:grid-cols-5">
+                <div>
+                    <label class="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">Cơ sở</label>
+                    <select name="venue_id" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500">
+                        <option value="">Tất cả cơ sở</option>
+                        @foreach($venues as $venue)
+                            <option value="{{ $venue->id }}" @selected(($filters['venue_id'] ?? '') == $venue->id)>{{ $venue->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">Sân</label>
+                    <select name="court_id" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500">
+                        <option value="">Tất cả sân</option>
+                        @foreach($venues as $venue)
+                            @foreach($venue->courts as $court)
+                                <option value="{{ $court->id }}" @selected(($filters['court_id'] ?? '') == $court->id)>
+                                    {{ $venue->name }} - {{ $court->name }}
+                                </option>
+                            @endforeach
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">Trạng thái</label>
+                    <select name="checkin_status" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="waiting" @selected(($filters['checkin_status'] ?? '') === 'waiting')>Đang chờ</option>
+                        <option value="checked_in" @selected(($filters['checkin_status'] ?? '') === 'checked_in')>Đã check-in</option>
+                        <option value="no_show" @selected(($filters['checkin_status'] ?? '') === 'no_show')>Không đến</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">Tìm khách</label>
+                    <input name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Tên, email, SĐT" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-500">
+                </div>
+                <div class="flex items-end gap-2">
+                    <button type="submit" class="flex-1 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-emerald-700">Lọc</button>
+                    <a href="{{ route('owner.web.checkins.index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold text-slate-600 transition hover:bg-slate-50">Xóa</a>
+                </div>
+            </div>
+        </form>
+
         <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div class="border-b border-slate-200 px-5 py-4">
                 <h2 class="text-lg font-extrabold text-slate-900">Booking hôm nay</h2>
