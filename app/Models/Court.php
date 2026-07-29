@@ -66,6 +66,14 @@ class Court extends Model
     }
 
     /**
+     * Scope: Sắp xếp sân con theo tên (dùng cho dropdown chọn sân)
+     */
+    public function scopeOrderedByName(Builder $query): Builder
+    {
+        return $query->orderBy('name');
+    }
+
+    /**
      * Kiểm tra sân có thể đặt trực tuyến không
      */
     public function canBeBooked(): bool
