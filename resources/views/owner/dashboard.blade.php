@@ -339,6 +339,71 @@
             </div>
 
         </div>
+
+        <!-- Thống kê chi tiết từng sân con -->
+        <div class="glass-card rounded-2xl p-6 mt-6">
+            <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
+                <h3 class="text-lg font-bold text-slate-800">Thống kê theo sân con</h3>
+                @if ($selectedVenueId === 'all')
+                    <span class="text-xs text-slate-500">Chọn một cơ sở để xem chi tiết từng sân con</span>
+                @endif
+            </div>
+
+            @if ($courtStats->isEmpty())
+                <div class="px-4 py-10 text-center text-slate-500 text-sm">
+                    @if ($selectedVenueId === 'all')
+                        Hãy chọn một cơ sở ở bộ lọc phía trên để xem dữ liệu từng sân con.
+                    @else
+                        Cơ sở này chưa có sân con nào.
+                    @endif
+                </div>
+            @else
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
+                            <tr>
+                                <th class="px-4 py-3 rounded-tl-lg">Sân con</th>
+                                <th class="px-4 py-3 text-center">Lượt đặt</th>
+                                <th class="px-4 py-3 text-center">Khách</th>
+                                <th class="px-4 py-3 text-center">Giờ đặt</th>
+                                <th class="px-4 py-3 text-center">Tỷ lệ lấp đầy</th>
+                                <th class="px-4 py-3 text-center">Khung giờ cao điểm</th>
+                                <th class="px-4 py-3 text-right rounded-tr-lg">Doanh thu</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($courtStats as $court)
+                                <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                                    <td class="px-4 py-3">
+                                        <div class="font-medium text-slate-800">{{ $court['name'] }}</div>
+                                        @if ($court['status'] !== 'active')
+                                            <span class="text-xs text-amber-600">Đang tạm ẩn</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full text-xs font-semibold">{{ $court['bookings_count'] }}</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-center text-slate-600">{{ $court['customers_count'] }}</td>
+                                    <td class="px-4 py-3 text-center text-slate-600">{{ $court['hours'] }}h</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <div class="flex items-center justify-center gap-2">
+                                            <div class="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                <div class="h-full bg-emerald-500" style="width: {{ min(100, $court['occupancy_rate']) }}%"></div>
+                                            </div>
+                                            <span class="text-xs font-semibold text-slate-600">{{ $court['occupancy_rate'] }}%</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3 text-center text-xs text-slate-500">
+                                        {{ $court['peak_hours'] ? implode(', ', $court['peak_hours']) : '—' }}
+                                    </td>
+                                    <td class="px-4 py-3 text-right font-bold text-emerald-600">{{ number_format($court['revenue'], 0, ',', '.') }} đ</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
     </div>
 
     <!-- Chart Setup Scripts -->
