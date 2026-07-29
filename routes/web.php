@@ -172,6 +172,8 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
     Route::get('/checkins', [OwnerBookingCheckinController::class, 'index'])->name('checkins.index');
     Route::post('/checkins/{booking}/check-in', [OwnerBookingCheckinController::class, 'checkIn'])
         ->name('checkins.check-in');
+    Route::post('/checkins/{booking}/no-show', [OwnerBookingCheckinController::class, 'markNoShow'])
+        ->name('checkins.no-show');
 
     Route::get('/venues', [OwnerVenueController::class, 'index'])->name('venues.index');
     Route::get('/venues/create', [OwnerVenueController::class, 'create'])->name('venues.create');

@@ -72,6 +72,35 @@ class OwnerBookingCheckinController extends Controller
         return back()->with('success', "Đã check-in booking #{$booking->id}.");
     }
 
+    public function markNoShow(Request $request, Booking $booking): RedirectResponse
+    {
+        $this->ensureOwnerBooking($booking);
+
+        if (! in_array($booking->status, ['confirmed', 'completed'], true)) {
+            return back()->with('error', 'Chỉ có thể đánh dấu không đến cho booking đã xác nhận hoặc đã hoàn thành.');
+        }
+
+        if ($booking->checked_in_at !== null) {
+            return back()->with('error', 'Booking này đã check-in nên không thể đánh dấu không đến.');
+        }
+
+        if ($booking->no_show_at !== null) {
+            return back()->with('success', 'Booking này đã được đánh dấu khách không đến trước đó.');
+        }
+
+        $validated = $request->validate([
+            'checkin_note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $booking->update([
+            'no_show_at' => now('Asia/Ho_Chi_Minh'),
+            'no_show_by' => $request->user()->id,
+            'checkin_note' => $validated['checkin_note'] ?? $booking->checkin_note,
+        ]);
+
+        return back()->with('success', "Đã đánh dấu khách không đến cho booking #{$booking->id}.");
+    }
+
     private function ensureOwnerBooking(Booking $booking): void
     {
         abort_unless(
