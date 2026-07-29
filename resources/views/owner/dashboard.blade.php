@@ -357,6 +357,59 @@
                 </div>
             @endif
 
+            {{-- Ma trận nhiệt: sân con x khung giờ --}}
+            @if (!empty($courtHeatmap['rows']))
+                <div class="mb-6 border-t border-slate-100 pt-5">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <h4 class="text-sm font-bold text-slate-700">Khung giờ đông khách của từng sân</h4>
+                        <div class="flex items-center gap-1.5 text-[11px] text-slate-500">
+                            <span>Ít</span>
+                            <span class="w-4 h-3 rounded-sm bg-slate-100 border border-slate-200"></span>
+                            <span class="w-4 h-3 rounded-sm bg-emerald-200"></span>
+                            <span class="w-4 h-3 rounded-sm bg-emerald-400"></span>
+                            <span class="w-4 h-3 rounded-sm bg-emerald-600"></span>
+                            <span>Nhiều</span>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="text-xs border-separate" style="border-spacing: 3px;">
+                            <thead>
+                                <tr>
+                                    <th class="text-left font-semibold text-slate-500 pr-2"></th>
+                                    @foreach($courtHeatmap['hours'] as $hour)
+                                        <th class="font-medium text-slate-400 text-center w-8">{{ str_pad($hour, 2, '0', STR_PAD_LEFT) }}</th>
+                                    @endforeach
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($courtHeatmap['rows'] as $row)
+                                    <tr>
+                                        <td class="pr-2 whitespace-nowrap font-medium {{ (string) $selectedCourtId === (string) $row['id'] ? 'text-emerald-700' : 'text-slate-600' }}">
+                                            {{ $row['name'] }}
+                                        </td>
+                                        @foreach($row['cells'] as $count)
+                                            @php
+                                                $max = max(1, $courtHeatmap['max']);
+                                                $ratio = $count / $max;
+                                                $bg = $count === 0
+                                                    ? 'bg-slate-100'
+                                                    : ($ratio <= 0.34 ? 'bg-emerald-200' : ($ratio <= 0.67 ? 'bg-emerald-400' : 'bg-emerald-600'));
+                                                $text = $ratio > 0.34 ? 'text-white' : 'text-slate-600';
+                                            @endphp
+                                            <td class="w-8 h-7 text-center rounded-sm {{ $bg }} {{ $text }}"
+                                                title="{{ $row['name'] }} · {{ str_pad($loop->index + $courtHeatmap['hours'][0], 2, '0', STR_PAD_LEFT) }}:00 · {{ $count }} lượt đặt">
+                                                {{ $count > 0 ? $count : '' }}
+                                            </td>
+                                        @endforeach
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endif
+
             @if ($courtStats->isEmpty())
                 <div class="px-4 py-10 text-center text-slate-500 text-sm">
                     @if ($selectedVenueId === 'all')
