@@ -15,6 +15,15 @@ class Booking extends Model
 
     protected $table = 'bookings';
 
+    /** Trạng thái được tính vào thống kê doanh thu/lượt đặt */
+    public const VALID_STATUSES = ['confirmed', 'completed'];
+
+    /** Trạng thái thanh toán được coi là đã thu tiền */
+    public const PAID_STATUSES = ['paid', 'completed', 'success'];
+
+    /** Hình thức thanh toán coi như đã thu tiền (trả tại sân, gói) */
+    public const PAID_METHODS = ['cod', 'cash', 'offline', 'package'];
+
     // ĐÂY LÀ CHUẨN CỦA LARAVEL
     protected $fillable = [
         'court_id',
@@ -77,6 +86,14 @@ class Booking extends Model
             $startDate instanceof \DateTimeInterface ? $startDate->format('Y-m-d') : $startDate,
             $endDate instanceof \DateTimeInterface ? $endDate->format('Y-m-d') : $endDate,
         ]);
+    }
+
+    /**
+     * Scope: Chỉ lấy lịch đặt được tính vào thống kê (đã xác nhận hoặc hoàn tất)
+     */
+    public function scopeCountedAsValid(Builder $query): Builder
+    {
+        return $query->whereIn('status', self::VALID_STATUSES);
     }
 
     public function user(): BelongsTo
