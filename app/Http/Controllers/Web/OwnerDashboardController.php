@@ -93,6 +93,8 @@ class OwnerDashboardController extends Controller
             ->whereHas('court', function ($query) use ($venueIds) {
                 $query->whereIn('venue_id', $venueIds);
             })
+            // Khi chọn 1 sân con cụ thể thì toàn bộ chỉ số chỉ tính trên sân đó
+            ->when($selectedCourtId !== 'all', fn ($query) => $query->forCourts([$selectedCourtId]))
             ->whereBetween('slot_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
             ->get();
 
@@ -171,7 +173,9 @@ class OwnerDashboardController extends Controller
         // Calculate Occupancy Rate (Tỷ lệ lấp đầy)
         // Find total available hours in the period
         $daysInPeriod = max(1, $startDate->diffInDays($endDate) + 1); // at least 1 day
-        $courtIds = Court::whereIn('venue_id', $venueIds)->pluck('id');
+        $courtIds = Court::whereIn('venue_id', $venueIds)
+            ->when($selectedCourtId !== 'all', fn ($query) => $query->where('id', $selectedCourtId))
+            ->pluck('id');
         
         // Calculate daily capacity across all filtered courts based on time_slots
         $totalDailyMinutesCapacity = TimeSlot::whereIn('court_id', $courtIds)->sum('duration_minutes');
@@ -191,6 +195,7 @@ class OwnerDashboardController extends Controller
         $prevRevenue = Booking::whereHas('court', function ($query) use ($venueIds) {
                 $query->whereIn('venue_id', $venueIds);
             })
+            ->when($selectedCourtId !== 'all', fn ($query) => $query->forCourts([$selectedCourtId]))
             ->where('status', 'completed')
             ->where(function ($query) {
                 $query->whereIn('payment_status', ['paid', 'completed', 'success'])
