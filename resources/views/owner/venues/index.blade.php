@@ -47,10 +47,12 @@
     <div class="flex-1 p-6 lg:p-10 max-w-7xl mx-auto w-full">
         <!-- QUÉT VÀ HIỂN THỊ LỜI MỜI CHUYỂN NHƯỢNG ĐANG CHỜ CHỦ MỚI -->
         @php
-            $pendingTransfers = \App\Models\VenueTransferRequest::with('venue')
-                ->where('to_owner_id', auth()->id())
-                ->where('status', 'pending')
-                ->get();
+            $pendingTransfers = \Illuminate\Support\Facades\Schema::hasTable('venue_transfer_requests')
+                ? \App\Models\VenueTransferRequest::with('venue')
+                    ->where('to_owner_id', auth()->id())
+                    ->where('status', 'pending')
+                    ->get()
+                : collect();
         @endphp
 
         @if($pendingTransfers->isNotEmpty())
@@ -237,9 +239,10 @@
 @if(in_array($venue->status, ['approved', 'inactive']))
     @php
         // Kiểm tra xem sân này có đang bị pending chuyển nhượng không
-        $hasPendingTransfer = \App\Models\VenueTransferRequest::where('venue_id', $venue->id)
-            ->where('status', 'pending')
-            ->exists();
+        $hasPendingTransfer = \Illuminate\Support\Facades\Schema::hasTable('venue_transfer_requests')
+            && \App\Models\VenueTransferRequest::where('venue_id', $venue->id)
+                ->where('status', 'pending')
+                ->exists();
     @endphp
 
     <div class="mt-2">
