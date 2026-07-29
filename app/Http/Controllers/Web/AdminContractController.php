@@ -69,4 +69,53 @@ class AdminContractController extends Controller
         return Redirect::route('admin.contracts.index')
             ->with('success', 'Tạo hợp đồng thành công.');
     }
+
+    /**
+     * Show the form to edit an existing contract.
+     *
+     * @param Contract $contract
+     * @return View
+     */
+    public function edit(Contract $contract): View
+    {
+        if (!in_array($contract->status, ['draft', 'rejected'], true)) {
+            return Redirect::route('admin.contracts.index')
+                ->with('error', 'Hợp đồng này không thể chỉnh sửa.');
+        }
+
+        $owners = User::where('role', 'owner')->get();
+
+        return view('admin.contracts.edit', compact('contract', 'owners'));
+    }
+
+    /**
+     * Update an existing contract if it is editable.
+     *
+     * @param Request $request
+     * @param Contract $contract
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function update(Request $request, Contract $contract)
+    {
+        if (!in_array($contract->status, ['draft', 'rejected'], true)) {
+            return Redirect::route('admin.contracts.index')
+                ->with('error', 'Hợp đồng này không thể chỉnh sửa.');
+        }
+
+        $data = $request->validate([
+            'owner_id' => ['required', 'exists:users,id'],
+            'title' => ['required', 'max:255'],
+            'content' => ['required'],
+            'commission_rate' => ['required', 'numeric', 'min:0', 'max:100'],
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after:start_date'],
+            'note' => ['nullable'],
+        ]);
+
+        // Preserve immutable fields and update editable values only.
+        $contract->update($data);
+
+        return Redirect::route('admin.contracts.index')
+            ->with('success', 'Cập nhật hợp đồng thành công.');
+    }
 }
