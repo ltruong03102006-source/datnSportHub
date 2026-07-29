@@ -89,25 +89,6 @@ class Booking extends Model
     }
 
     /**
-     * Scope: Chỉ lấy lịch đặt được tính vào thống kê (đã xác nhận hoặc hoàn tất)
-     */
-    public function scopeCountedAsValid(Builder $query): Builder
-    {
-        return $query->whereIn('status', self::VALID_STATUSES);
-    }
-
-    /**
-     * Scope: Chỉ lấy lịch đặt đã thu được tiền (theo trạng thái hoặc hình thức thanh toán)
-     */
-    public function scopePaid(Builder $query): Builder
-    {
-        return $query->where(function (Builder $sub) {
-            $sub->whereIn('payment_status', self::PAID_STATUSES)
-                ->orWhereIn('payment_method', self::PAID_METHODS);
-        });
-    }
-
-    /**
      * Lịch đặt này đã được coi là thu tiền chưa
      */
     public function isPaid(): bool
