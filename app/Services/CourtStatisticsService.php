@@ -183,9 +183,13 @@ class CourtStatisticsService
 
         $max = 0;
         $rows = $courts->map(function ($court) use ($valid, $hours, &$max) {
-            $countsByHour = ($valid[$court->id] ?? collect())
-                ->groupBy(fn (Booking $b) => (int) Carbon::parse($b->start_time)->format('H'))
-                ->map(fn (Collection $slot) => $slot->count());
+            // Một ca chơi 18:00-21:00 làm sân bận ở cả 18h, 19h và 20h
+            $countsByHour = collect();
+            foreach ($valid[$court->id] ?? [] as $booking) {
+                foreach ($this->occupiedHoursOf($booking) as $hour) {
+                    $countsByHour[$hour] = ($countsByHour[$hour] ?? 0) + 1;
+                }
+            }
 
             $cells = [];
             foreach ($hours as $hour) {
@@ -205,6 +209,26 @@ class CourtStatisticsService
         }
 
         return ['hours' => $hours, 'rows' => $rows, 'max' => $max];
+    }
+
+    /**
+     * Các giờ trong ngày mà một lịch đặt chiếm dụng sân.
+     * Ca 18:00-21:00 trả về [18, 19, 20]; ca qua nửa đêm quay vòng về 0h.
+     *
+     * @return array<int>
+     */
+    public function occupiedHoursOf(Booking $booking): array
+    {
+        $startHour = (int) Carbon::parse($booking->start_time)->format('H');
+        $length = (int) ceil($this->bookedHoursOf($booking));
+        $length = max(1, min(24, $length));
+
+        $hours = [];
+        for ($i = 0; $i < $length; $i++) {
+            $hours[] = ($startHour + $i) % 24;
+        }
+
+        return $hours;
     }
 
     /**
