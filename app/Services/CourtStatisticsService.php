@@ -46,4 +46,31 @@ class CourtStatisticsService
             ->groupBy('court_id')
             ->map(fn (Collection $courtBookings) => $courtBookings->sum(fn (Booking $b) => $this->revenueOf($b)));
     }
+
+    /**
+     * Các lịch đặt hợp lệ (đã xác nhận/hoàn tất) gom theo sân con.
+     */
+    public function validBookingsByCourt(Collection $bookings): Collection
+    {
+        return $bookings
+            ->filter(fn (Booking $booking) => in_array($booking->status, Booking::VALID_STATUSES, true))
+            ->groupBy('court_id');
+    }
+
+    /**
+     * Số lượt đặt của từng sân con.
+     */
+    public function bookingCountByCourt(Collection $bookings): Collection
+    {
+        return $this->validBookingsByCourt($bookings)->map(fn (Collection $courtBookings) => $courtBookings->count());
+    }
+
+    /**
+     * Số khách hàng khác nhau đã đặt từng sân con.
+     */
+    public function customerCountByCourt(Collection $bookings): Collection
+    {
+        return $this->validBookingsByCourt($bookings)
+            ->map(fn (Collection $courtBookings) => $courtBookings->pluck('user_id')->unique()->count());
+    }
 }
