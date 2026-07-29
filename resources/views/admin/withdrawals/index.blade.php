@@ -199,6 +199,82 @@
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
     }
+    .alert-success { background: #eafaf1; color: #2ecc71; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; }
+    .alert-error { background: #fdedec; color: #e74c3c; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; }
+
+    /* Custom File Upload */
+    .upload-zone {
+        border: 2px dashed #cbd5e1;
+        border-radius: 12px;
+        padding: 32px 24px;
+        text-align: center;
+        background: #f8fafc;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+        border-color: var(--primary, #10b981);
+        background: #f0fdf4;
+    }
+    .upload-icon {
+        font-size: 32px;
+        color: #64748b;
+        margin-bottom: 12px;
+    }
+    .upload-text {
+        font-size: 14px;
+        color: #334155;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+    .upload-hint {
+        font-size: 12px;
+        color: #94a3b8;
+    }
+    .upload-zone input[type="file"] {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        opacity: 0;
+        cursor: pointer;
+        width: 100%;
+    }
+    
+    .image-preview-container {
+        display: none;
+        margin-top: 12px;
+        position: relative;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+    }
+    .image-preview-container img {
+        width: 100%;
+        max-height: 200px;
+        object-fit: contain;
+        display: block;
+        background: #f1f5f9;
+    }
+    .remove-image-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(0,0,0,0.6);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .remove-image-btn:hover {
+        background: rgba(220, 38, 38, 0.9);
+    }
 </style>
 @endpush
 
@@ -349,303 +425,37 @@
                     
                     <div class="radio-group">
                         <label class="radio-item">
-                            <input type="radio" name="status" value="approved" checked onchange="toggleProofInput()">
+                            <input type="radio" name="status" value="approved" checked onchange="toggleProofUpload()">
                             <span style="color: #2ecc71; font-weight: 500;">Đã chuyển khoản (Duyệt)</span>
                         </label>
                         <label class="radio-item">
-                            <input type="radio" name="status" value="rejected" onchange="toggleProofInput()">
+                            <input type="radio" name="status" value="rejected" onchange="toggleProofUpload()">
                             <span style="color: #e74c3c; font-weight: 500;">Từ chối (Hoàn tiền)</span>
                         </label>
                     </div>
                 </div>
-                <div class="form-group" id="proofImageGroup">
-    <label for="proof_image" class="form-label">
-        <span class="label-icon"></span>
-        Ảnh minh chứng <span class="required-star">*</span>
-        <span class="label-sub">(Bắt buộc khi duyệt)</span>
-    </label>
-    
-    <div class="upload-wrapper">
-        <div class="upload-area" id="uploadArea">
-            <input type="file" 
-                   id="proof_image" 
-                   name="proof_image" 
-                   accept="image/*"
-                   class="upload-input">
-            
-            <div class="upload-content">
-                <div class="upload-icon">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 16V8M12 8L9 11M12 8L15 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M20 16.7428C21.2215 15.7349 22 14.2079 22 12.5C22 9.46243 19.5376 7 16.5 7H16.1973C14.8916 5.33437 13.0327 4 10.8571 4C7.14873 4 4 6.98716 4 10.5C4 11.0831 4.08347 11.6471 4.23853 12.1811" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                        <path d="M15 16L16 17L19 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M12 16V21M12 21L10 19M12 21L14 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
+
+                <div class="form-group" id="proofUploadGroup">
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-camera" style="color: #475569;"></i> 
+                        Ảnh minh chứng <span style="color: #e74c3c;">*</span> 
+                        <span style="color: #94a3b8; font-weight: normal;">(Bắt buộc khi duyệt)</span>
+                    </label>
+                    
+                    <div class="upload-zone" id="uploadZone">
+                        <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                        <div class="upload-text">Kéo thả ảnh vào đây <br>hoặc <span style="color: var(--primary);">Chọn tệp</span> từ máy tính</div>
+                        <div class="upload-hint">PNG, JPG, JPEG, WEBP • Tối đa 5MB</div>
+                        <input type="file" id="proof_image" name="proof_image" accept="image/png, image/jpeg, image/jpg, image/webp" onchange="handleFileSelect(this)">
+                    </div>
+
+                    <div class="image-preview-container" id="imagePreviewContainer">
+                        <img id="imagePreview" src="" alt="Preview">
+                        <button type="button" class="remove-image-btn" onclick="removeImage()" title="Xóa ảnh">
+                            <i class="fa-solid fa-times"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="upload-text">
-                    <span class="main-text">Kéo thả ảnh vào đây</span>
-                    <span class="sub-text">hoặc <strong>Chọn tệp</strong> từ máy tính</span>
-                </div>
-                <div class="upload-formats">
-                    <span>PNG, JPG, JPEG, WEBP</span>
-                    <span>•</span>
-                    <span>Tối đa 5MB</span>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Preview ảnh -->
-        <div class="preview-container" id="previewContainer" style="display: none;">
-            <div class="preview-wrapper">
-                <img id="imagePreview" src="#" alt="Preview">
-                <button type="button" class="remove-image" id="removeImage">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M18 6L6 18M6 6L18 18" stroke="white" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                </button>
-            </div>
-            <span class="file-name" id="fileName">image.jpg</span>
-        </div>
-    </div>
-</div>
-
-<style>
-/* CSS cho upload đẹp - Đồng bộ màu sắc */
-:root {
-    --primary-color: #4F46E5;
-    --primary-hover: #4338CA;
-    --primary-light: #EEF2FF;
-    --border-color: #E5E7EB;
-    --text-color: #111827;
-    --text-secondary: #6B7280;
-    --bg-white: #FFFFFF;
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Form Group */
-.form-group {
-    margin-bottom: 24px;
-}
-
-.form-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 600;
-    font-size: 14px;
-    color: var(--text-color);
-    margin-bottom: 8px;
-}
-
-.label-icon {
-    font-size: 16px;
-}
-
-.required-star {
-    color: #EF4444;
-    margin-left: 2px;
-}
-
-.label-sub {
-    font-weight: 400;
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-left: 4px;
-}
-
-/* Upload Wrapper */
-.upload-wrapper {
-    position: relative;
-}
-
-/* Upload Area */
-.upload-area {
-    border: 2px dashed var(--border-color);
-    border-radius: var(--radius-lg);
-    padding: 40px 20px;
-    background: #FAFBFC;
-    cursor: pointer;
-    transition: var(--transition);
-    position: relative;
-    min-height: 200px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.upload-area:hover {
-    border-color: var(--primary-color);
-    background: var(--primary-light);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-}
-
-.upload-area.dragover {
-    border-color: var(--primary-color);
-    background: var(--primary-light);
-    transform: scale(1.01);
-    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
-}
-
-.upload-area.has-file {
-    border-color: #10B981;
-    background: #F0FDF4;
-}
-
-/* Input file ẩn */
-.upload-input {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    cursor: pointer;
-    z-index: 10;
-}
-
-/* Upload Content */
-.upload-content {
-    text-align: center;
-    pointer-events: none;
-}
-
-.upload-icon {
-    color: var(--text-secondary);
-    margin-bottom: 12px;
-    transition: var(--transition);
-}
-
-.upload-area:hover .upload-icon {
-    color: var(--primary-color);
-    transform: translateY(-4px);
-}
-
-.upload-text .main-text {
-    display: block;
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--text-color);
-    margin-bottom: 4px;
-}
-
-.upload-text .sub-text {
-    font-size: 14px;
-    color: var(--text-secondary);
-}
-
-.upload-text .sub-text strong {
-    color: var(--primary-color);
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.upload-formats {
-    margin-top: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    font-size: 12px;
-    color: var(--text-secondary);
-}
-
-/* Preview Container */
-.preview-container {
-    margin-top: 12px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    background: var(--bg-white);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    animation: slideDown 0.3s ease;
-}
-
-.preview-wrapper {
-    position: relative;
-    width: 64px;
-    height: 64px;
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    flex-shrink: 0;
-    border: 1px solid var(--border-color);
-}
-
-.preview-wrapper img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.remove-image {
-    position: absolute;
-    top: -6px;
-    right: -6px;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #EF4444;
-    color: white;
-    border: 2px solid white;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-    transition: var(--transition);
-    box-shadow: var(--shadow-sm);
-}
-
-.remove-image:hover {
-    background: #DC2626;
-    transform: scale(1.1);
-}
-
-.file-name {
-    font-size: 14px;
-    color: var(--text-color);
-    font-weight: 500;
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* Animations */
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Responsive */
-@media (max-width: 640px) {
-    .upload-area {
-        padding: 24px 16px;
-        min-height: 150px;
-    }
-    
-    .upload-icon svg {
-        width: 36px;
-        height: 36px;
-    }
-    
-    .upload-text .main-text {
-        font-size: 14px;
-    }
-}
-</style>
                 <div class="form-group">
                     <label for="admin_note">Ghi chú (Tùy chọn)</label>
                     <textarea id="admin_note" name="admin_note" rows="3" placeholder="Lý do từ chối hoặc mã giao dịch ngân hàng..."></textarea>
@@ -672,11 +482,14 @@
 
     function closeProcessModal() {
         document.getElementById('processModal').style.display = 'none';
+        // Reset form khi đóng
+        document.getElementById('processForm').reset();
+        removeImage();
     }
 
-    function toggleProofInput() {
+    function toggleProofUpload() {
         const isApproved = document.querySelector('input[name="status"][value="approved"]').checked;
-        const proofGroup = document.getElementById('proofImageGroup');
+        const proofGroup = document.getElementById('proofUploadGroup');
         const proofInput = document.getElementById('proof_image');
         
         if (isApproved) {
@@ -688,9 +501,63 @@
         }
     }
 
-    // Khởi tạo trạng thái ban đầu khi load trang
+    function handleFileSelect(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                document.getElementById('imagePreview').src = e.target.result;
+                document.getElementById('imagePreviewContainer').style.display = 'block';
+                document.getElementById('uploadZone').style.display = 'none';
+            }
+            
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function removeImage() {
+        document.getElementById('proof_image').value = '';
+        document.getElementById('imagePreview').src = '';
+        document.getElementById('imagePreviewContainer').style.display = 'none';
+        document.getElementById('uploadZone').style.display = 'block';
+    }
+
+    // Xử lý kéo thả file
+    const uploadZone = document.getElementById('uploadZone');
+    
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, () => {
+            uploadZone.classList.add('dragover');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, () => {
+            uploadZone.classList.remove('dragover');
+        }, false);
+    });
+
+    uploadZone.addEventListener('drop', (e) => {
+        let dt = e.dataTransfer;
+        let files = dt.files;
+        
+        if (files.length) {
+            document.getElementById('proof_image').files = files;
+            handleFileSelect(document.getElementById('proof_image'));
+        }
+    }, false);
+
     document.addEventListener('DOMContentLoaded', function() {
-        toggleProofInput();
+        toggleProofUpload();
     });
 </script>
 @endpush
