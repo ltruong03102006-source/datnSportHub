@@ -41,4 +41,30 @@ class OwnerContractController extends Controller
 
         return view('owner.contracts.show', compact('contract'));
     }
+
+    /**
+     * Accept a sent contract by the authenticated owner.
+     *
+     * @param Contract $contract
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function accept(Contract $contract)
+    {
+        if ($contract->owner_id !== Auth::id()) {
+            abort(403);
+        }
+
+        if ($contract->status !== 'sent') {
+            return redirect()->route('owner.contracts.index')
+                ->with('error', 'Hợp đồng này không thể xác nhận.');
+        }
+
+        $contract->update([
+            'status' => 'accepted',
+            'signed_at' => now(),
+        ]);
+
+        return redirect()->route('owner.contracts.show', $contract)
+            ->with('success', 'Bạn đã xác nhận hợp đồng thành công.');
+    }
 }

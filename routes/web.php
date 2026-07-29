@@ -380,4 +380,5 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.')->group(function () {
     Route::get('/contracts', [\App\Http\Controllers\Web\OwnerContractController::class, 'index'])->name('contracts.index');
     Route::get('/contracts/{contract}', [\App\Http\Controllers\Web\OwnerContractController::class, 'show'])->name('contracts.show');
+    Route::post('/contracts/{contract}/accept', [\App\Http\Controllers\Web\OwnerContractController::class, 'accept'])->name('contracts.accept');
 });
