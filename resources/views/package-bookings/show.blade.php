@@ -22,12 +22,9 @@
         || filled($bookingPackage->paid_at)
         || $isPaidTransaction;
 
-    $owner = $bookingPackage->venue?->owner;
-    $legalDoc = $bookingPackage->venue?->legalDocument;
-
-    $bankName = $owner?->bank_name ?? $legalDoc?->bank_name;
-    $bankAccountNo = $owner?->bank_account_no ?? $legalDoc?->bank_account_number;
-    $bankAccountName = $owner?->bank_account_name ?? $legalDoc?->bank_account_holder ?? 'CHU SAN';
+    $bankName = \App\Models\Setting::get('payment_qr_bank_name');
+    $bankAccountNo = \App\Models\Setting::get('payment_qr_account_no');
+    $bankAccountName = \App\Models\Setting::get('payment_qr_account_name') ?: 'SPORTHUB';
 
     $hasBankInfo = $bankName && $bankAccountNo;
 
@@ -736,50 +733,20 @@
 
                         @if(! $packageHoldExpired)
                         <div data-package-payment-live-area>
-                        <div class="mt-5 rounded-3xl border border-amber-100 bg-amber-50 p-4">
-                            @if($qrUrl)
-                                <img src="{{ $qrUrl }}"
-                                     alt="QR thanh toán gói"
-                                     class="mx-auto h-52 w-52 rounded-2xl bg-white object-contain p-2 shadow-sm">
-                            @else
-                                <div class="grid h-52 place-items-center rounded-2xl border border-dashed border-amber-300 bg-white text-center text-sm font-bold text-amber-700">
-                                    Chưa có thông tin ngân hàng
-                                </div>
-                            @endif
+                            <div class="mt-5 rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+                                <p class="text-sm font-semibold text-slate-700">Số tiền cần thanh toán</p>
+                                <p class="mt-3 text-4xl font-black text-zinc-900">{{ $formatMoney($finalAmount) }}</p>
 
-                            <div class="mt-4 text-center">
-                                <p class="text-xs font-black uppercase tracking-wider text-amber-700">
-                                    Số tiền
-                                </p>
+                                <a href="{{ route('package-bookings.payment.vnpay', $bookingPackage) }}" class="mt-6 inline-flex w-full items-center justify-center gap-3 rounded-3xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 active:scale-[0.98]">
+                                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M12 2C7.58172 2 4 5.58172 4 10V14C4 18.4183 7.58172 22 12 22C16.4183 22 20 18.4183 20 14V10C20 5.58172 16.4183 2 12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                        <path d="M12 7V12L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                    Thanh toán bằng VNPay
+                                </a>
 
-                                <p class="mt-1 text-2xl font-black text-zinc-900">
-                                    {{ $formatMoney($finalAmount) }}
-                                </p>
+                                <p class="mt-3 text-sm text-slate-500">Nhấn để thanh toán và kích hoạt gói ngay khi thành công.</p>
                             </div>
-                        </div>
-
-                        <div class="mt-4 space-y-2 text-sm text-slate-700">
-                            <p>
-                                <span class="font-black">Ngân hàng:</span>
-                                {{ $bankName ?: 'Chưa cập nhật' }}
-                            </p>
-
-                            <p>
-                                <span class="font-black">Số tài khoản:</span>
-                                {{ $bankAccountNo ?: 'Chưa cập nhật' }}
-                            </p>
-
-                            <p>
-                                <span class="font-black">Chủ tài khoản:</span>
-                                {{ $bankAccountName ?: 'Chưa cập nhật' }}
-                            </p>
-
-                            <p>
-                                <span class="font-black">Nội dung:</span>
-                                THANH TOAN GOI PKG{{ $bookingPackage->id }}
-                            </p>
-                        </div>
-
                         </div>
                         @endif
 

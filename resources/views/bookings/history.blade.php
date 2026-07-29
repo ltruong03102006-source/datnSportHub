@@ -274,6 +274,7 @@
 
                                         $slotDate = $booking->slot_date_label;
                                         $mergedTimeStrings = $booking->merged_time_strings ?? [];
+                                        $historyScheduleGroups = $booking->history_schedule_groups ?? [];
                                         $ownerPhone = $booking->owner_phone;
                                         $isEligibleStatus = (bool) $booking->is_eligible_status;
                                         $isPastStartTime = (bool) $booking->is_past_start_time;
@@ -307,11 +308,30 @@
                                                 {{ $slotDate }}
                                             </p>
 
-                                            <div class="mt-1 space-y-1 text-sm font-semibold text-slate-600">
-                                                @forelse($mergedTimeStrings as $timeStr)
-                                                    <p>{{ $timeStr }}</p>
+                                            <div class="mt-1 space-y-1.5 text-sm font-semibold text-slate-600">
+                                                @forelse($historyScheduleGroups as $scheduleGroup)
+                                                    @if(! $loop->first)
+                                                        <p class="pt-1 text-sm font-black text-zinc-900">{{ $scheduleGroup['date'] }}</p>
+                                                    @endif
+
+                                                    @foreach($scheduleGroup['slots'] as $slotLine)
+                                                        <p class="group relative flex items-center gap-2 {{ $slotLine['text_class'] ?? ($slotLine['is_rescheduled'] ? 'text-emerald-700' : 'text-slate-700') }}"
+                                                           @if($slotLine['tooltip']) title="{{ $slotLine['tooltip'] }}" @endif>
+                                                            <span>{{ $slotLine['text'] }}</span>
+
+                                                            @if($slotLine['badge_label'] ?? null)
+                                                                <span class="rounded-full px-2 py-0.5 text-[10px] font-black uppercase ring-1 {{ $slotLine['badge_class'] }}">
+                                                                    {{ $slotLine['badge_label'] }}
+                                                                </span>
+                                                            @endif
+                                                        </p>
+                                                    @endforeach
                                                 @empty
-                                                    <p>—</p>
+                                                    @forelse($mergedTimeStrings as $timeStr)
+                                                        <p>{{ $timeStr }}</p>
+                                                    @empty
+                                                        <p>—</p>
+                                                    @endforelse
                                                 @endforelse
                                             </div>
                                         </td>
@@ -396,6 +416,7 @@
 
                                 $slotDate = $booking->slot_date_label;
                                 $mergedTimeStrings = $booking->merged_time_strings ?? [];
+                                $historyScheduleGroups = $booking->history_schedule_groups ?? [];
                                 $ownerPhone = $booking->owner_phone;
 
                                 if (! $ownerPhone) {
@@ -438,11 +459,30 @@
                                             {{ $slotDate }}
                                         </p>
 
-                                        <div class="mt-1 space-y-1 font-semibold text-slate-600">
-                                            @forelse($mergedTimeStrings as $timeStr)
-                                                <p>{{ $timeStr }}</p>
+                                        <div class="mt-1 space-y-1.5 font-semibold text-slate-600">
+                                            @forelse($historyScheduleGroups as $scheduleGroup)
+                                                @if(! $loop->first)
+                                                    <p class="pt-1 font-black text-zinc-900">{{ $scheduleGroup['date'] }}</p>
+                                                @endif
+
+                                                @foreach($scheduleGroup['slots'] as $slotLine)
+                                                    <p class="flex flex-wrap items-center gap-2 {{ $slotLine['text_class'] ?? ($slotLine['is_rescheduled'] ? 'text-emerald-700' : 'text-slate-700') }}"
+                                                       @if($slotLine['tooltip']) title="{{ $slotLine['tooltip'] }}" @endif>
+                                                        <span>{{ $slotLine['text'] }}</span>
+
+                                                        @if($slotLine['badge_label'] ?? null)
+                                                            <span class="rounded-full px-2 py-0.5 text-[10px] font-black uppercase ring-1 {{ $slotLine['badge_class'] }}">
+                                                                {{ $slotLine['badge_label'] }}
+                                                            </span>
+                                                        @endif
+                                                    </p>
+                                                @endforeach
                                             @empty
-                                                <p>—</p>
+                                                @forelse($mergedTimeStrings as $timeStr)
+                                                    <p>{{ $timeStr }}</p>
+                                                @empty
+                                                    <p>—</p>
+                                                @endforelse
                                             @endforelse
                                         </div>
                                     </div>

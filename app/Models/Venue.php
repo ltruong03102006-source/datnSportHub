@@ -32,12 +32,17 @@ class Venue extends Model
         'rules',
         'banner', 
         'status',
+        'debt_suspended_at',
+        'suspended_reason',
+        'status_before_debt_suspension',
+        'auto_suspend_enabled',
         'phone',
         'email',
         'open_hours',
         'close_hours',
         'google_maps_address',
         'allow_package_booking',
+        'commission_rate',
     ];
 
     // Ép kiểu (Casts) tọa độ sang số thực để tránh lỗi hiển thị bản đồ
@@ -45,6 +50,9 @@ class Venue extends Model
         'lat' => 'float',
         'lng' => 'float',
         'allow_package_booking' => 'boolean',
+        'auto_suspend_enabled' => 'boolean',
+        'debt_suspended_at' => 'datetime',
+        'commission_rate' => 'decimal:2',
     ];
 
     public function owner(): BelongsTo
@@ -224,5 +232,11 @@ class Venue extends Model
     public function services(): HasMany
     {
         return $this->hasMany(Service::class);
+    }
+
+    public function vouchers(): BelongsToMany
+    {
+        return $this->belongsToMany(Voucher::class, 'venue_voucher')
+            ->withTimestamps();
     }
 }
