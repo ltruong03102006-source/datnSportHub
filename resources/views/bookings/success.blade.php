@@ -80,48 +80,37 @@
 
             <div class="space-y-3">
                 <div class="flex items-start gap-x-4">
-    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Ngày chơi:</p>
-    <div class="flex-1">
-        <p class="text-sm font-bold text-zinc-900 mb-1.5">{{ $slotDate }}</p>
-        @php
-            // 1. Sắp xếp mảng ca theo giờ bắt đầu
-            $sortedGroup = collect($bookingGroup)->sortBy('start_time')->values();
-            $mergedSlots = [];
+                    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Ngày chơi:</p>
+                    <div class="flex-1 space-y-3">
+                        @php
+                            $scheduleGroups = collect($bookingGroup)
+                                ->sortBy(fn ($slot) => ($slot->slot_date?->format('Y-m-d') ?? '') . ' ' . $slot->start_time)
+                                ->groupBy(fn ($slot) => $slot->slot_date?->format('Y-m-d') ?? $booking->slot_date?->format('Y-m-d'));
+                        @endphp
 
-            if ($sortedGroup->count() > 0) {
-                // 2. Khởi tạo mốc thời gian của ca đầu tiên
-                $currentCourt = $sortedGroup[0]->court->name;
-                $currentStart = substr((string) $sortedGroup[0]->start_time, 0, 5);
-                $currentEnd = substr((string) $sortedGroup[0]->end_time, 0, 5);
+                        @foreach($scheduleGroups as $dateValue => $slots)
+                            <div class="rounded-xl border border-stone-100 bg-stone-50/70 px-3 py-2.5">
+                                <p class="text-sm font-black text-zinc-900">
+                                    {{ \Carbon\Carbon::parse($dateValue)->format('d/m/Y') }}
+                                </p>
 
-                // 3. Duyệt từ ca thứ 2 để gộp
-                for ($i = 1; $i < $sortedGroup->count(); $i++) {
-                    $nextCourt = $sortedGroup[$i]->court->name;
-                    $nextStart = substr((string) $sortedGroup[$i]->start_time, 0, 5);
-                    $nextEnd = substr((string) $sortedGroup[$i]->end_time, 0, 5);
+                                <div class="mt-1.5 space-y-1">
+                                    @foreach($slots->sortBy('start_time') as $slot)
+                                        @php
+                                            $isRescheduled = $slot->relationLoaded('rescheduleRequests')
+                                                && $slot->rescheduleRequests->where('status', 'approved')->isNotEmpty();
+                                        @endphp
 
-                    // ĐIỀU KIỆN GỘP: Cùng tên sân VÀ Giờ kết thúc ca trước == Giờ bắt đầu ca sau
-                    if ($currentCourt === $nextCourt && $currentEnd === $nextStart) {
-                        $currentEnd = $nextEnd; // Kéo dài thời gian kết thúc
-                    } else {
-                        // Nếu bị ngắt quãng, lưu lại dải thời gian vừa gộp và làm mới biến
-                        $mergedSlots[] = "- Sân $currentCourt: $currentStart - $currentEnd";
-                        $currentCourt = $nextCourt;
-                        $currentStart = $nextStart;
-                        $currentEnd = $nextEnd;
-                    }
-                }
-                // Nhớ lưu lại dải thời gian của ca cuối cùng
-                $mergedSlots[] = "- Sân $currentCourt: $currentStart - $currentEnd";
-            }
-        @endphp
-
-        {{-- 4. In danh sách ca đã được gộp đẹp mắt --}}
-        @foreach($mergedSlots as $slotInfo)
-            <p class="text-sm font-semibold text-zinc-700">{{ $slotInfo }}</p>
-        @endforeach
-    </div>
-</div>
+                                        <p class="text-sm font-semibold {{ $isRescheduled ? 'text-emerald-700' : 'text-zinc-700' }}">
+                                            {{ $isRescheduled ? '' : '' }}
+                                            {{ substr((string) $slot->start_time, 0, 5) }} - {{ substr((string) $slot->end_time, 0, 5) }}
+                                        </p>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
                 <div class="flex items-start gap-x-4">
                     <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Tổng giờ:</p>
                     <p class="text-sm font-bold text-zinc-900">{{ $totalDurationStr }}</p>
@@ -218,54 +207,15 @@
                         </div>
                     @endif
                     
-                    <div class="flex flex-col md:flex-row gap-6 items-center md:items-start justify-center">
-                        <!-- VietQR Section -->
-                        <div class="flex flex-col items-center p-4 bg-white rounded-xl shadow-sm border border-stone-100 w-full max-w-xs">
-                            <p class="text-xs font-bold text-stone-500 mb-2 uppercase">Quét mã QR (VietQR)</p>
-                            @php
-                                $owner = $booking->court?->venue?->owner;
-                                $legalDoc = $booking->court?->venue?->legalDocument;
-                                
-                                // Ưu tiên cấu hình bank ở User Profile, sau đó mới đến LegalDocument
-                                $bankName = $owner->bank_name ?? $legalDoc?->bank_name;
-                                $bankAccountNo = $owner->bank_account_no ?? $legalDoc?->bank_account_number;
-                                $bankAccountName = $owner->bank_account_name ?? $legalDoc?->bank_account_holder ?? 'CHU SAN';
-                                
-                                $hasBankInfo = $bankName && $bankAccountNo;
-                                
-                                if ($hasBankInfo) {
-                                    $bankId = trim($bankName); 
-                                    $accountNo = trim($bankAccountNo);
-                                    $accountName = trim($bankAccountName);
-                                    
-                                    // Tạo chuỗi nội dung chuyển khoản không dấu
-                                    $userName = strtoupper(\Illuminate\Support\Str::slug(Auth::user()->name, ' '));
-                                    $addInfo = 'THANH TOAN SAN ' . $booking->id . ' KH ' . $userName;
-                                    
-                                    $qrUrl = "https://img.vietqr.io/image/{$bankId}-{$accountNo}-compact2.png?amount={$totalGroupPrice}&addInfo=" . urlencode($addInfo) . "&accountName=" . urlencode($accountName);
-                                }
-                            @endphp
-                            
-                            @if($hasBankInfo)
-                                <img src="{{ $qrUrl }}" alt="VietQR Payment" class="w-48 h-48 rounded-lg mb-3">
-                                <p class="text-center text-xs text-stone-500">Sử dụng App ngân hàng để quét mã.<br>Số tiền: <strong class="text-emerald-600">{{ number_format($totalGroupPrice, 0, ',', '.') }} đ</strong></p>
-                            @else
-                                <div class="flex h-48 w-48 items-center justify-center rounded-lg border-2 border-dashed border-stone-200 bg-stone-50 mb-3">
-                                    <p class="text-center text-xs text-stone-400 px-4">Chủ sân chưa cấu hình tài khoản ngân hàng</p>
-                                </div>
-                                <p class="text-center text-xs text-stone-500">Vui lòng sử dụng VNPay hoặc thanh toán tại sân.</p>
-                            @endif
-                        </div>
-
-                        <!-- VNPay Section -->
-                        <div class="flex flex-col justify-center items-center h-full w-full max-w-xs">
-                            <p class="text-sm font-medium text-stone-500 mb-4">Hoặc thanh toán qua cổng</p>
-                            <a href="{{ route('vnpay.payment', $booking->id) }}" class="flex items-center justify-center gap-2 w-full rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-black text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 active:scale-[0.98]">
+                    <div class="flex items-center justify-center">
+                        <div class="flex w-full max-w-sm flex-col items-center justify-center rounded-2xl border border-stone-100 bg-white p-5 shadow-sm">
+                            <p class="mb-4 text-center text-sm font-medium text-stone-500">Thanh toán an toàn qua cổng VNPay</p>
+                            <a href="{{ route('bookings.payment.vnpay_qr', $booking->id) }}" class="flex items-center justify-center gap-2 w-full rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-black text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 active:scale-[0.98]">
                                 <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M4 10V14C4 18.4183 7.58172 22 12 22C16.4183 22 20 18.4183 20 14V10C20 5.58172 16.4183 2 12 2C7.58172 2 4 5.58172 4 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                     <path d="M12 6V11L15 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                                 </svg>
-                                Thanh toán VNPay
+                                Tiếp tục thanh toán VNPay
                             </a>
                             <p class="text-center text-xs text-stone-400 mt-3">Hỗ trợ quét mã VNPay, thẻ ATM nội địa, thẻ quốc tế.</p>
                         </div>

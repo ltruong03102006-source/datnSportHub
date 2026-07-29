@@ -48,8 +48,11 @@ class AdminVenueController extends Controller
         if ($search = $request->input('search')) {
             $query->where(function($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('address', 'like', "%{$search}%")
                   ->orWhereHas('owner', function($oq) use ($search) {
-                      $oq->where('name', 'like', "%{$search}%");
+                      $oq->where('name', 'like', "%{$search}%")
+                         ->orWhere('email', 'like', "%{$search}%")
+                         ->orWhere('phone', 'like', "%{$search}%");
                   });
             });
         }
@@ -188,5 +191,75 @@ class AdminVenueController extends Controller
             'admin.venues.documents',
             compact('venue', 'hasLegalDocumentsTable')
         );
+    }
+    /**
+     * Admin duyệt yêu cầu thay đổi thông tin
+     */
+    public function approveUpdateReq(Request $request, \App\Models\VenueUpdateRequest $updateRequest)
+    {
+        if ($updateRequest->status !== 'pending') {
+            return back()->with('error', 'Yêu cầu này đã được xử lý trước đó.');
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($updateRequest) {
+            $venue = $updateRequest->venue;
+            
+            // Lấy cục dữ liệu JSON (đã ép kiểu mảng trong Model VenueUpdateRequest)
+            $data = $updateRequest->requested_data; 
+
+            // 1. Tách lọc và cập nhật bảng `venues` (Các thông tin cơ bản)
+            $venueFields = ['name', 'address', 'province_code', 'ward_code', 'lat', 'lng', 'phone', 'email', 'description'];
+            $venueData = \Illuminate\Support\Arr::only($data, $venueFields);
+            if (!empty($venueData)) {
+                $venue->update($venueData);
+            }
+
+            // 2. Tách lọc và cập nhật bảng `venue_legal_documents` (Hồ sơ pháp lý)
+            $legalFields = [
+                'owner_name', 'citizen_id', 'business_license_number', 
+                'bank_name', 'bank_account_number', 'bank_account_holder', 
+                'citizen_front_image', 'citizen_back_image', 'business_license_file', 
+                'rental_contract_file', 'land_certificate_file'
+            ];
+            $legalData = \Illuminate\Support\Arr::only($data, $legalFields);
+            
+            if (!empty($legalData)) {
+                if ($venue->legalDocument) {
+                    // Nếu đã có hồ sơ -> Ghi đè cập nhật
+                    $venue->legalDocument->update($legalData);
+                } else {
+                    // Nếu chưa có (Cơ sở mới hoàn toàn) -> Tạo mới
+                    $venue->legalDocument()->create(array_merge($legalData, ['status' => 'approved']));
+                }
+            }
+
+            // 3. Đánh dấu Yêu cầu này đã được duyệt xong
+            $updateRequest->update(['status' => 'approved']);
+        });
+
+        return back()->with('success', 'Đã phê duyệt và ghi đè thông tin mới cho sân thành công!');
+    }
+
+    /**
+     * Admin từ chối yêu cầu thay đổi thông tin
+     */
+    public function rejectUpdateReq(Request $request, \App\Models\VenueUpdateRequest $updateRequest)
+    {
+        if ($updateRequest->status !== 'pending') {
+            return back()->with('error', 'Yêu cầu này đã được xử lý trước đó.');
+        }
+
+        // Bắt buộc Admin phải nhập lý do từ chối để Chủ sân biết đường sửa
+        $request->validate(['admin_note' => 'required|string|min:5'], [
+            'admin_note.required' => 'Bắt buộc phải nhập lý do từ chối.',
+            'admin_note.min' => 'Lý do từ chối phải có ít nhất 5 ký tự.'
+        ]);
+
+        $updateRequest->update([
+            'status' => 'rejected',
+            'admin_note' => $request->admin_note
+        ]);
+
+        return back()->with('success', 'Đã từ chối bản nháp thay đổi thông tin của cơ sở này.');
     }
 }
