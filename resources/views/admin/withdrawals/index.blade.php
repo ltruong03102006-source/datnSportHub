@@ -360,38 +360,58 @@
             </tr>
         </thead>
         <tbody>
-            @forelse($withdrawals as $withdrawal)
-                @php
-                    $statusValue = $withdrawal->status instanceof \BackedEnum ? $withdrawal->status->value : $withdrawal->status;
-                    [$statusText, $statusClass] = $statusLabels[$statusValue] ?? [$statusValue, 'status-cancelled'];
-                @endphp
-                <tr>
-                    <td>
-                        <strong>{{ $withdrawal->code }}</strong>
-                        <div class="muted">#{{ $withdrawal->id }}</div>
-                    </td>
-                    <td>
-                        <strong>{{ $withdrawal->owner?->name ?? 'Không rõ' }}</strong>
-                        <div class="muted">{{ $withdrawal->owner?->email }}</div>
-                    </td>
-                    <td class="money">{{ number_format($withdrawal->amount, 0, ',', '.') }}đ</td>
-                    <td>
-                        <strong>{{ $withdrawal->bank_name }}</strong>
-                        <div class="muted">{{ $withdrawal->bank_account_number ?? $withdrawal->bank_account_no }}</div>
-                    </td>
-                    <td>
-                        <span class="badge-status {{ $statusClass }}">{{ $statusText }}</span>
-                    </td>
-                    <td>
-                        <strong>{{ $withdrawal->created_at?->format('d/m/Y') }}</strong>
-                        <div class="muted">{{ $withdrawal->created_at?->format('H:i') }}</div>
-                    </td>
-                    <td>
-                        <a class="btn-outline-soft" href="{{ route('admin.withdrawals.show', $withdrawal) }}">
-                            Xem chi tiết
-                        </a>
-                    </td>
-                </tr>
+            @forelse($withdrawals as $w)
+            <tr>
+                <td style="color: var(--text-muted); font-weight: 500;">#{{ $w->id }}</td>
+                <td>
+                    <div class="user-info">
+                        <img src="https://ui-avatars.com/api/?name={{ urlencode($w->user->name ?? 'User') }}&background=random" class="user-avatar" alt="Avatar">
+                        <div class="user-details">
+                            <h4>{{ $w->user->name ?? 'N/A' }}</h4>
+                            <p>{{ $w->user->email ?? '' }}</p>
+                            <span style="color: #2ecc71; font-weight: 600; font-size: 11px;">Số dư ví: {{ number_format($w->user->balance ?? 0) }}đ</span>
+                        </div>
+                    </div>
+                </td>
+                <td style="font-weight: 600; color: #e74c3c;">{{ number_format($w->amount) }}đ</td>
+                <td>
+                    <div class="user-details">
+                        <h4>{{ $w->bank_name }}</h4>
+                        <p>STK: <strong>{{ $w->bank_account_no }}</strong></p>
+                        <p>Tên: {{ $w->bank_account_name }}</p>
+                    </div>
+                </td>
+                <td>
+                    @if($w->status === 'pending')
+                        <span class="badge-status status-pending">Đang chờ</span>
+                    @elseif($w->status === 'approved')
+                        <span class="badge-status status-approved">Đã duyệt</span>
+                    @else
+                        <span class="badge-status status-rejected">Từ chối</span>
+                    @endif
+                    @if($w->admin_note)
+                        <div style="font-size: 10px; color: var(--text-muted); margin-top: 4px;" title="{{ $w->admin_note }}">Có ghi chú admin</div>
+                    @endif
+                </td>
+                <td style="color: var(--text-muted); font-size: 12px;">{{ $w->created_at->format('H:i d/m/Y') }}</td>
+                <td style="text-align: right; display: flex; justify-content: flex-end; gap: 8px;">
+                    @if($w->status === 'pending')
+                    <button onclick="openProcessModal({{ $w->id }}, {{ $w->amount }}, '{{ $w->user->name ?? '' }}')" class="btn-action" style="background: var(--primary); color: white; border: none; font-weight: 600;">Xử lý</button>
+                    @else
+                    <button onclick="openDetailModal({
+                        id: {{ $w->id }},
+                        amount: '{{ number_format($w->amount) }}đ',
+                        user: '{{ $w->user->name ?? '' }}',
+                        bankName: '{{ $w->bank_name }}',
+                        bankAccount: '{{ $w->bank_account_no }}',
+                        accountName: '{{ $w->bank_account_name }}',
+                        status: '{{ $w->status }}',
+                        note: '{{ e(str_replace(array("\r", "\n"), '', $w->admin_note)) }}',
+                        proof: '{{ $w->proof_image ? asset('storage/' . $w->proof_image) : '' }}'
+                    })" class="btn-action">Chi tiết</button>
+                    @endif
+                </td>
+            </tr>
             @empty
                 <tr>
                     <td colspan="7" style="padding: 42px; text-align: center;">
@@ -468,6 +488,32 @@
         </form>
     </div>
 </div>
+
+<!-- Modal xem chi tiết -->
+<div id="detailModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="detailTitle">Chi tiết rút tiền</h3>
+            <button type="button" onclick="closeDetailModal()" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body" style="font-size: 13px; line-height: 1.6;">
+            <div style="margin-bottom: 12px;"><strong>Người yêu cầu:</strong> <span id="detailUser"></span></div>
+            <div style="margin-bottom: 12px;"><strong>Số tiền:</strong> <span id="detailAmount" style="color: #e74c3c; font-weight: bold;"></span></div>
+            <div style="margin-bottom: 12px;"><strong>Ngân hàng:</strong> <span id="detailBank"></span></div>
+            <div style="margin-bottom: 12px;"><strong>Trạng thái:</strong> <span id="detailStatus"></span></div>
+            <div style="margin-bottom: 12px;"><strong>Ghi chú Admin:</strong> <span id="detailNote" style="color: #64748b;"></span></div>
+            
+            <div id="detailProofContainer" style="display: none; margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                <strong style="display: block; margin-bottom: 8px;">Ảnh minh chứng:</strong>
+                <img id="detailProofImage" src="" alt="Minh chứng" style="max-width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; max-height: 250px; object-fit: contain;">
+                <a id="detailProofDownload" href="" download class="btn-action" style="display: inline-block; margin-top: 8px; text-decoration: none; font-weight: 500;"><i class="fa-solid fa-download"></i> Tải ảnh về</a>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" onclick="closeDetailModal()" class="btn-action">Đóng</button>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -501,63 +547,32 @@
         }
     }
 
-    function handleFileSelect(input) {
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                document.getElementById('imagePreview').src = e.target.result;
-                document.getElementById('imagePreviewContainer').style.display = 'block';
-                document.getElementById('uploadZone').style.display = 'none';
-            }
-            
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
-
-    function removeImage() {
-        document.getElementById('proof_image').value = '';
-        document.getElementById('imagePreview').src = '';
-        document.getElementById('imagePreviewContainer').style.display = 'none';
-        document.getElementById('uploadZone').style.display = 'block';
-    }
-
-    // Xử lý kéo thả file
-    const uploadZone = document.getElementById('uploadZone');
-    
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        uploadZone.addEventListener(eventName, preventDefaults, false);
-    });
-
-    function preventDefaults (e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-
-    ['dragenter', 'dragover'].forEach(eventName => {
-        uploadZone.addEventListener(eventName, () => {
-            uploadZone.classList.add('dragover');
-        }, false);
-    });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-        uploadZone.addEventListener(eventName, () => {
-            uploadZone.classList.remove('dragover');
-        }, false);
-    });
-
-    uploadZone.addEventListener('drop', (e) => {
-        let dt = e.dataTransfer;
-        let files = dt.files;
+    function openDetailModal(data) {
+        document.getElementById('detailTitle').innerText = 'Chi tiết rút tiền #' + data.id;
+        document.getElementById('detailUser').innerText = data.user;
+        document.getElementById('detailAmount').innerText = data.amount;
+        document.getElementById('detailBank').innerText = `${data.bankName} - ${data.bankAccount} (${data.accountName})`;
+        document.getElementById('detailNote').innerText = data.note || 'Không có ghi chú';
         
-        if (files.length) {
-            document.getElementById('proof_image').files = files;
-            handleFileSelect(document.getElementById('proof_image'));
-        }
-    }, false);
+        let statusHtml = '';
+        if (data.status === 'approved') statusHtml = '<span class="badge-status status-approved">Đã duyệt</span>';
+        else if (data.status === 'rejected') statusHtml = '<span class="badge-status status-rejected">Từ chối</span>';
+        document.getElementById('detailStatus').innerHTML = statusHtml;
 
-    document.addEventListener('DOMContentLoaded', function() {
-        toggleProofUpload();
-    });
+        const proofContainer = document.getElementById('detailProofContainer');
+        if (data.proof) {
+            document.getElementById('detailProofImage').src = data.proof;
+            document.getElementById('detailProofDownload').href = data.proof;
+            proofContainer.style.display = 'block';
+        } else {
+            proofContainer.style.display = 'none';
+        }
+
+        document.getElementById('detailModal').style.display = 'flex';
+    }
+
+    function closeDetailModal() {
+        document.getElementById('detailModal').style.display = 'none';
+    }
 </script>
 @endpush
