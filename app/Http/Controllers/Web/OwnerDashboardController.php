@@ -240,10 +240,20 @@ class OwnerDashboardController extends Controller
         })->sortByDesc('revenue')->take(5)->values();
 
 
-        // 11. Thống kê chi tiết từng sân con của cơ sở đang chọn
-        $courtStats = $courtsOfVenue->isNotEmpty()
-            ? $courtStatistics->statsByCourt($courtsOfVenue, $bookings, $daysInPeriod)
-            : collect();
+        // 11. Thống kê chi tiết từng sân con của cơ sở đang chọn.
+        // Bảng này luôn tính trên toàn bộ sân con để so sánh được với nhau,
+        // kể cả khi phía trên đang lọc riêng một sân.
+        $courtStats = collect();
+        if ($courtsOfVenue->isNotEmpty()) {
+            $venueBookings = $selectedCourtId === 'all'
+                ? $bookings
+                : Booking::with('court')
+                    ->forCourts($courtsOfVenue->pluck('id'))
+                    ->inPeriod($startDate, $endDate)
+                    ->get();
+
+            $courtStats = $courtStatistics->statsByCourt($courtsOfVenue, $venueBookings, $daysInPeriod);
+        }
 
         $chartData = [
             'revenueDates' => $revenueByDay->keys()->toArray(),
