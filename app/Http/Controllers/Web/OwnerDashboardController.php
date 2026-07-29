@@ -34,6 +34,16 @@ class OwnerDashboardController extends Controller
             $selectedVenueId = 'all';
         }
         
+        // Court Filter: chỉ chọn được sân con khi đã chọn 1 cơ sở cụ thể
+        $courtsOfVenue = $selectedVenueId !== 'all'
+            ? Court::forVenues([$selectedVenueId])->orderedByName()->get()
+            : collect();
+
+        $selectedCourtId = $request->query('court_id', 'all');
+        if ($selectedCourtId === 'all' || ! $courtsOfVenue->contains('id', (int) $selectedCourtId)) {
+            $selectedCourtId = 'all';
+        }
+
         // Date Period Filter
         $period = $request->query('period', 'month');
         $customStart = $request->query('start_date');
