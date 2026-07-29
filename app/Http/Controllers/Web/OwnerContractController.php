@@ -67,4 +67,35 @@ class OwnerContractController extends Controller
         return redirect()->route('owner.contracts.show', $contract)
             ->with('success', 'Bạn đã xác nhận hợp đồng thành công.');
     }
+
+    /**
+     * Reject a sent contract by the authenticated owner.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param Contract $contract
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function reject(Request $request, Contract $contract)
+    {
+        if ($contract->owner_id !== Auth::id()) {
+            abort(403);
+        }
+
+        if ($contract->status !== 'sent') {
+            return redirect()->route('owner.contracts.index')
+                ->with('error', 'Hợp đồng này không thể từ chối.');
+        }
+
+        $data = $request->validate([
+            'rejection_reason' => ['required', 'string', 'min:10', 'max:1000'],
+        ]);
+
+        $contract->update([
+            'status' => 'rejected',
+            'rejection_reason' => $data['rejection_reason'],
+        ]);
+
+        return redirect()->route('owner.contracts.show', $contract)
+            ->with('success', 'Bạn đã từ chối hợp đồng.');
+    }
 }

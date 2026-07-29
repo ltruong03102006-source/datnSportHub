@@ -37,7 +37,47 @@
                         @csrf
                         <button type="submit" class="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">Đồng ý hợp đồng</button>
                     </form>
+
+                    <button type="button" class="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700" data-bs-toggle="modal" data-bs-target="#rejectContractModal">
+                        Từ chối hợp đồng
+                    </button>
                 @endif
+            </div>
+        </div>
+
+        @if($contract->status === 'rejected' && $contract->rejection_reason)
+            <div class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+                <p class="font-semibold">Lý do từ chối:</p>
+                <p class="whitespace-pre-line mt-2">{{ $contract->rejection_reason }}</p>
+            </div>
+        @endif
+
+        <!-- Reject contract modal -->
+        <div class="modal fade" id="rejectContractModal" tabindex="-1" aria-labelledby="rejectContractModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="rejectContractModalLabel">Từ chối hợp đồng</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form method="POST" action="{{ route('owner.contracts.reject', $contract->id) }}">
+                        @csrf
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="rejection_reason" class="form-label">Lý do từ chối</label>
+                                <textarea id="rejection_reason" name="rejection_reason" rows="5" class="form-control @error('rejection_reason') is-invalid @enderror">{{ old('rejection_reason') }}</textarea>
+                                @error('rejection_reason')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                                <div class="form-text">Mô tả chi tiết lý do từ chối tối thiểu 10 ký tự.</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" class="btn btn-danger">Xác nhận từ chối</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
 

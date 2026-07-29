@@ -381,4 +381,5 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.')->group(fun
     Route::get('/contracts', [\App\Http\Controllers\Web\OwnerContractController::class, 'index'])->name('contracts.index');
     Route::get('/contracts/{contract}', [\App\Http\Controllers\Web\OwnerContractController::class, 'show'])->name('contracts.show');
     Route::post('/contracts/{contract}/accept', [\App\Http\Controllers\Web\OwnerContractController::class, 'accept'])->name('contracts.accept');
+    Route::post('/contracts/{contract}/reject', [\App\Http\Controllers\Web\OwnerContractController::class, 'reject'])->name('contracts.reject');
 });
