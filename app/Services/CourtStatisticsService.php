@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Booking;
+use App\Models\TimeSlot;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -12,6 +13,9 @@ use Illuminate\Support\Collection;
  */
 class CourtStatisticsService
 {
+    /** Số giờ mở cửa mặc định mỗi ngày khi sân chưa cấu hình khung giờ */
+    private const FALLBACK_DAILY_HOURS = 14;
+
     /**
      * Doanh thu chủ sân nhận được từ một lịch đặt.
      * Booking từ gói chỉ tính phần owner_earnings, còn lại ưu tiên owner_earnings
@@ -93,5 +97,43 @@ class CourtStatisticsService
     {
         return $this->validBookingsByCourt($bookings)
             ->map(fn (Collection $courtBookings) => $courtBookings->sum(fn (Booking $b) => $this->bookedHoursOf($b)));
+    }
+
+    /**
+     * Số giờ có thể cho thuê mỗi ngày của từng sân con, lấy từ khung giờ đã cấu hình.
+     * Sân chưa cấu hình khung giờ thì tạm tính 14 giờ/ngày.
+     */
+    public function dailyCapacityHoursByCourt($courtIds): Collection
+    {
+        $minutes = TimeSlot::forCourts($courtIds)
+            ->selectRaw('court_id, SUM(duration_minutes) as total_minutes')
+            ->groupBy('court_id')
+            ->pluck('total_minutes', 'court_id');
+
+        return collect($courtIds)->mapWithKeys(function ($courtId) use ($minutes) {
+            $hours = ((float) ($minutes[$courtId] ?? 0)) / 60;
+
+            return [$courtId => $hours > 0 ? $hours : self::FALLBACK_DAILY_HOURS];
+        });
+    }
+
+    /**
+     * Tỷ lệ lấp đầy (%) của từng sân con trong kỳ.
+     */
+    public function occupancyRateByCourt(Collection $bookings, $courtIds, int $daysInPeriod): Collection
+    {
+        $bookedHours = $this->bookedHoursByCourt($bookings);
+        $capacity = $this->dailyCapacityHoursByCourt($courtIds);
+        $days = max(1, $daysInPeriod);
+
+        return $capacity->map(function (float $dailyHours, $courtId) use ($bookedHours, $days) {
+            $available = $dailyHours * $days;
+
+            if ($available <= 0) {
+                return 0.0;
+            }
+
+            return min(100, ((float) ($bookedHours[$courtId] ?? 0) / $available) * 100);
+        });
     }
 }
