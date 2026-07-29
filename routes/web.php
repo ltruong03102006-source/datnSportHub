@@ -376,3 +376,8 @@ Route::middleware('auth')->group(function () {
     });
 
 }); // <-- NGOáº¶C ÄÃ“NG Cá»¦A GROUP AUTH Bá»Š THIáº¾U Cá»¦A Báº N CHÃNH LÃ€ ÄÃ‚Y!
+
+Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.')->group(function () {
+    Route::get('/contracts', [\App\Http\Controllers\Web\OwnerContractController::class, 'index'])->name('contracts.index');
+    Route::get('/contracts/{contract}', [\App\Http\Controllers\Web\OwnerContractController::class, 'show'])->name('contracts.show');
+});
