@@ -164,11 +164,7 @@
             </h1>
         </div>
         <div class="flex items-center gap-4">
-            <a href="{{ route('owner.web.venues.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Quản lý cơ sở</a>
-            <a href="{{ route('owner.web.calendar.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Lịch đặt sân</a>
-            <a href="{{ route('owner.web.checkins.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Check-in</a>
-            <a href="{{ route('owner.web.packages.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Quản lý gói</a>
-            <a href="{{ route('owner.web.settings.bank') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Thanh toán (Bank)</a>
+            @include('owner.partials.navigation-menu')
         </div>
     </nav>
 

@@ -108,10 +108,7 @@
             </h1>
         </div>
         <div class="flex flex-wrap gap-3">
-            <a href="{{ route('owner.dashboard') }}" class="owner-pill text-sm font-medium">Dashboard</a>
-            <a href="{{ route('owner.web.venues.index') }}" class="owner-pill text-sm font-medium">Quản lý cơ sở</a>
-            <a href="{{ route('owner.web.calendar.index') }}" class="owner-pill text-sm font-medium">Lịch đặt sân</a>
-            <a href="{{ route('owner.web.packages.index') }}" class="owner-pill text-sm font-medium">Quản lý gói</a>
+            @include('owner.partials.navigation-menu')
         </div>
     </nav>
 

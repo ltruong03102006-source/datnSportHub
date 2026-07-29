@@ -113,9 +113,7 @@
             </div>
         </div>
         <div class="flex items-center gap-4">
-            <a href="{{ route('owner.dashboard') }}" class="owner-pill text-sm font-medium">Tổng quan</a>
-            <a href="{{ route('owner.web.calendar.index') }}" class="owner-pill text-sm font-medium">Lịch đặt sân</a>
-            <a href="{{ route('owner.web.packages.index') }}" class="owner-pill text-sm font-medium">Quản lý gói</a>
+            @include('owner.partials.navigation-menu')
             @include('owner.partials.notification-bell')
         </div>
     </nav>

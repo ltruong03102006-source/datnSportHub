@@ -123,14 +123,7 @@
         </div>
 
         <div class="flex items-center gap-4">
-            <a href="{{ route('owner.web.venues.index') }}" class="owner-pill text-sm font-semibold">
-                Cơ sở sân
-            </a>
-
-            <a href="{{ route('owner.web.calendar.index') }}" class="owner-pill text-sm font-semibold">
-                Lịch đặt
-            </a>
-
+            @include('owner.partials.navigation-menu')
             @include('owner.partials.notification-bell')
         </div>
     </nav>

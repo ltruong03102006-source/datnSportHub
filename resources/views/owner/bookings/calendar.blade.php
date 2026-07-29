@@ -747,29 +747,7 @@
 
     <div class="sporthub-nav-right">
         @include('owner.partials.notification-bell')
-
-        <a href="{{ route('owner.dashboard') }}">
-            Tổng quan
-        </a>
-
-        <a href="{{ route('owner.web.venues.index') }}">
-            Cơ sở sân
-        </a>
-
-        <a href="{{ route('owner.web.calendar.index') }}">
-            Lịch đặt sân
-        </a>
-
-        <a href="{{ route('owner.web.checkins.index') }}">
-            Check-in
-        </a>
-
-        <a href="{{ route('owner.web.reschedule.index') }}">
-            Yêu cầu đổi lịch
-        </a>
-        <a href="{{ route('owner.web.packages.index') }}">
-            Quản lý gói
-        </a>
+        @include('owner.partials.navigation-menu')
     </div>
 </nav>
 

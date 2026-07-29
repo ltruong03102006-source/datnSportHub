@@ -13,15 +13,12 @@
 </head>
 <body class="text-slate-800 antialiased min-h-screen flex flex-col">
 
-    <nav class="bg-white shadow-sm border-b border-slate-200 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+    <nav class="owner-light-nav bg-white shadow-sm border-b border-slate-200 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
         <div class="flex items-center gap-4">
             <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-teal-500">SportHub</h1>
         </div>
         <div class="flex items-center gap-4">
-            <a href="{{ route('owner.dashboard') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Tổng quan</a>
-            <a href="{{ route('owner.web.venues.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Quản lý cơ sở</a>
-            <a href="{{ route('owner.web.calendar.index') }}" class="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors py-2">Lịch đặt</a>
-            <a href="{{ route('owner.web.reviews.index') }}" class="text-sm font-medium text-emerald-600 border-b-2 border-emerald-600 py-2">Đánh giá</a>
+            @include('owner.partials.navigation-menu')
             @include('owner.partials.notification-bell')
         </div>
     </nav>

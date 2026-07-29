@@ -232,14 +232,7 @@
 
     <div class="sporthub-nav-right">
         @include('owner.partials.notification-bell')
-
-        <a href="{{ route('owner.dashboard') }}">
-            Tổng quan
-        </a>
-
-        <a href="{{ route('owner.web.calendar.index') }}">
-            Lịch đặt sân
-        </a>
+        @include('owner.partials.navigation-menu')
     </div>
 </nav>
 
