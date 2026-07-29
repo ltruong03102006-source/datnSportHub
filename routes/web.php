@@ -170,6 +170,8 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
     Route::patch('/calendar/bookings/{booking}/cancel', [OwnerBookingCalendarController::class, 'cancel'])
         ->name('calendar.bookings.cancel');
     Route::get('/checkins', [OwnerBookingCheckinController::class, 'index'])->name('checkins.index');
+    Route::post('/checkins/{booking}/check-in', [OwnerBookingCheckinController::class, 'checkIn'])
+        ->name('checkins.check-in');
 
     Route::get('/venues', [OwnerVenueController::class, 'index'])->name('venues.index');
     Route::get('/venues/create', [OwnerVenueController::class, 'create'])->name('venues.create');
