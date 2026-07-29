@@ -248,8 +248,7 @@ class OwnerDashboardController extends Controller
         if ($courtsOfVenue->isNotEmpty()) {
             $venueBookings = $selectedCourtId === 'all'
                 ? $bookings
-                : Booking::with('court')
-                    ->forCourts($courtsOfVenue->pluck('id'))
+                : Booking::forCourts($courtsOfVenue->pluck('id'))
                     ->inPeriod($startDate, $endDate)
                     ->get();
 
