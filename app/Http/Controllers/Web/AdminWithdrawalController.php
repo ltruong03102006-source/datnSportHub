@@ -71,70 +71,64 @@ class AdminWithdrawalController extends Controller
 
     public function show(WithdrawalRequest $withdrawal): View
     {
-        $withdrawal->load(['owner', 'wallet', 'approver']);
+        $request->validate([
+            'status' => 'required|in:approved,rejected',
+            'admin_note' => 'nullable|string|max:500',
+            'proof_image' => 'required_if:status,approved|image|mimes:jpeg,png,jpg,webp|max:5120'
+        ]);
 
         return view('admin.withdrawals.show', compact('withdrawal'));
     }
 
-    public function approve(
-        WithdrawalRequest $withdrawal,
-        WalletService $walletService,
-        PlatformWalletService $platformWalletService
-    ): RedirectResponse
-    {
-        DB::transaction(function () use ($withdrawal, $walletService, $platformWalletService): void {
-            $lockedWithdrawal = WithdrawalRequest::query()
-                ->whereKey($withdrawal->id)
-                ->lockForUpdate()
-                ->firstOrFail();
+        $newStatus = $request->input('status');
+        $adminNote = $request->input('admin_note');
 
-            if ($this->statusValue($lockedWithdrawal) !== 'pending') {
-                throw ValidationException::withMessages([
-                    'withdrawal' => 'Yêu cầu rút tiền này đã được xử lý.',
-                ]);
+        $proofImagePath = null;
+        if ($newStatus === 'approved' && $request->hasFile('proof_image')) {
+            $proofImagePath = $request->file('proof_image')->store('withdrawals', 'public');
+        }
+
+        try {
+            DB::transaction(function () use ($withdrawal, $newStatus, $adminNote, $proofImagePath) {
+                $withdrawal->status = $newStatus;
+                $withdrawal->admin_note = $adminNote;
+                if ($proofImagePath) {
+                    $withdrawal->proof_image = $proofImagePath;
+                }
+                $withdrawal->save();
+
+                if ($newStatus === 'rejected') {
+                    // Hoàn lại tiền cho user
+                    $user = $withdrawal->user;
+                    $user->balance += $withdrawal->amount;
+                    $user->save();
+
+                    // Log transaction
+                    WalletTransaction::create([
+                        'user_id' => $user->id,
+                        'type' => 'refund',
+                        'amount' => $withdrawal->amount,
+                        'balance_after' => $user->balance,
+                        'description' => 'Hoàn tiền do yêu cầu rút tiền bị từ chối. #' . $withdrawal->id,
+                    ]);
+                }
+            });
+
+            // Gửi thông báo cho user
+            $title = $newStatus === 'approved' ? 'Yêu cầu rút tiền thành công' : 'Yêu cầu rút tiền bị từ chối';
+            $message = $newStatus === 'approved' 
+                ? 'Yêu cầu rút ' . number_format($withdrawal->amount) . 'đ của bạn đã được chuyển khoản. Vui lòng kiểm tra tài khoản ngân hàng.' 
+                : 'Yêu cầu rút ' . number_format($withdrawal->amount) . 'đ bị từ chối. Số tiền đã được hoàn lại vào ví. Lý do: ' . $adminNote;
+
+            if ($newStatus === 'approved' && $withdrawal->proof_image) {
+                $message .= ' (Minh chứng: ' . asset('storage/' . $withdrawal->proof_image) . ')';
             }
-
-            $wallet = Wallet::query()
-                ->whereKey($lockedWithdrawal->wallet_id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            if ((float) $wallet->balance < (float) $lockedWithdrawal->amount) {
-                throw ValidationException::withMessages([
-                    'amount' => 'Số dư ví không đủ để duyệt yêu cầu rút tiền.',
-                ]);
-            }
-
-            $walletService->processTransaction(
-                wallet: $wallet,
-                type: TransactionType::WITHDRAWAL_DEBIT,
-                amount: (float) $lockedWithdrawal->amount,
-                description: 'Admin duyệt yêu cầu rút tiền: ' . $lockedWithdrawal->code,
-                withdrawalRequestId: $lockedWithdrawal->id,
-                metadata: [
-                    'reference_type' => 'withdrawal_request',
-                    'reference_id' => $lockedWithdrawal->id,
-                    'withdrawal_code' => $lockedWithdrawal->code,
-                    'approved_by' => auth()->id(),
-                ],
-                reference: $lockedWithdrawal->code
-            );
-
-            $platformWalletService->debit(
-                amount: (float) $lockedWithdrawal->amount,
-                type: 'owner_withdrawal_out',
-                description: 'Admin duyệt rút tiền cho owner: ' . $lockedWithdrawal->code,
-                referenceType: 'withdrawal_request',
-                referenceId: $lockedWithdrawal->id,
-                reference: $lockedWithdrawal->code,
-                performedBy: auth()->id(),
-                metadata: [
-                    'owner_id' => $lockedWithdrawal->owner_id,
-                    'wallet_id' => $lockedWithdrawal->wallet_id,
-                    'bank_name' => $lockedWithdrawal->bank_name,
-                    'bank_account_number' => $lockedWithdrawal->bank_account_number ?? $lockedWithdrawal->bank_account_no,
-                    'bank_account_holder' => $lockedWithdrawal->bank_account_holder ?? $lockedWithdrawal->bank_account_name,
-                ]
+            app(\App\Services\NotificationService::class)->create(
+                $withdrawal->user_id,
+                $title,
+                $message,
+                route('account.profile.show'), 
+                'withdrawal_update'
             );
 
             $lockedWithdrawal->update([
