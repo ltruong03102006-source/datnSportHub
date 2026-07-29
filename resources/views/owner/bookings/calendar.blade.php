@@ -9,10 +9,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --owner-bg: #f6f8fb;
-            --owner-card: #ffffff;
-            --owner-border: #e5e7eb;
-            --owner-text: #0f172a;
+            --owner-bg: #f8fafc;
+            --owner-card: rgba(255, 255, 255, 0.82);
+            --owner-border: rgba(255, 255, 255, 0.56);
+            --owner-text: #172033;
             --owner-muted: #64748b;
             --owner-soft: #f1f5f9;
             --owner-green: #059669;
@@ -27,17 +27,33 @@
         }
 
         body {
-            background: var(--owner-bg);
+            min-height: 100vh;
+            background:
+                linear-gradient(115deg, rgba(16, 185, 129, 0.16) 0%, transparent 28%),
+                linear-gradient(245deg, rgba(59, 130, 246, 0.14) 0%, transparent 34%),
+                linear-gradient(135deg, #f7fee7 0%, #ecfeff 36%, #fdf2f8 72%, #fff7ed 100%);
             color: var(--owner-text);
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.42) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.36) 1px, transparent 1px);
+            background-size: 42px 42px;
+            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.78), transparent 82%);
         }
 
         a {
             text-decoration: none;
         }
         .sporthub-nav {
-    background: #ffffff;
-    border-bottom: 1px solid #e2e8f0;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    background: linear-gradient(120deg, rgba(15, 23, 42, 0.92), rgba(5, 150, 105, 0.88), rgba(37, 99, 235, 0.86));
+    border-bottom: 1px solid rgba(255, 255, 255, 0.24);
+    box-shadow: 0 18px 50px rgba(15, 23, 42, 0.22);
     padding: 16px 24px;
     display: flex;
     align-items: center;
@@ -57,10 +73,7 @@
     font-size: 28px;
     line-height: 1;
     font-weight: 800;
-    background: linear-gradient(to right, #059669, #14b8a6);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: #fff;
     white-space: nowrap;
 }
 
@@ -69,27 +82,33 @@
     align-items: center;
     gap: 10px;
     padding-left: 20px;
-    border-left: 1px solid #e2e8f0;
+    border-left: 1px solid rgba(255, 255, 255, 0.28);
     font-size: 14px;
-    color: #64748b;
+    color: rgba(255, 255, 255, 0.78);
 }
 
 .sporthub-breadcrumb a,
 .sporthub-nav-right a {
-    color: #475569;
+    color: #fff;
     text-decoration: none;
     font-weight: 600;
-    transition: color .2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    padding: 0.55rem 0.9rem;
+    transition: background .2s ease, transform .2s ease;
 }
 
 .sporthub-breadcrumb a:hover,
 .sporthub-nav-right a:hover {
-    color: #059669;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.24);
+    transform: translateY(-1px);
     text-decoration: none;
 }
 
 .sporthub-breadcrumb span:last-child {
-    color: #1e293b;
+    color: #fff;
     font-weight: 700;
 }
 
@@ -127,6 +146,8 @@
 
         .page-shell {
             max-width: 1560px;
+            position: relative;
+            z-index: 1;
         }
 
         .topbar {
@@ -164,15 +185,23 @@
         }
 
         .page-hero {
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(240, 253, 250, 0.82)),
+                linear-gradient(120deg, rgba(16, 185, 129, 0.16), rgba(59, 130, 246, 0.12));
+            border: 1px solid rgba(255, 255, 255, 0.72);
+            border-radius: 24px;
+            box-shadow: 0 18px 55px rgba(15, 23, 42, 0.13);
             display: grid;
             grid-template-columns: minmax(0, 1fr) auto;
             gap: 20px;
             align-items: end;
             margin-bottom: 22px;
+            padding: 24px;
         }
 
         .page-hero h1 {
-            font-size: 28px;
+            color: var(--owner-text);
+            font-size: 32px;
             font-weight: 800;
             margin-bottom: 6px;
             letter-spacing: 0;
@@ -204,14 +233,15 @@
         }
 
         .btn-owner {
-            background: var(--owner-green);
+            background: linear-gradient(120deg, #059669, #2563eb);
             color: #fff;
+            box-shadow: 0 12px 28px rgba(5, 150, 105, 0.24);
         }
 
         .btn-owner-outline {
-            background: #fff;
+            background: rgba(255, 255, 255, 0.86);
             color: var(--owner-text);
-            border-color: var(--owner-border);
+            border-color: rgba(148, 163, 184, 0.42);
         }
 
         .stats-grid {
@@ -222,15 +252,57 @@
         }
 
         .stat-card {
+            position: relative;
             background: var(--owner-card);
             border: 1px solid var(--owner-border);
-            border-radius: 8px;
+            border-radius: 22px;
             padding: 18px;
             min-height: 112px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.04);
+            overflow: hidden;
+            backdrop-filter: blur(18px) saturate(145%);
+            -webkit-backdrop-filter: blur(18px) saturate(145%);
+            box-shadow: 0 20px 55px rgba(15, 23, 42, 0.12);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card::before,
+        .filter-panel::before,
+        .calendar-card::before,
+        .agenda-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.46), rgba(59, 130, 246, 0.36), rgba(244, 114, 182, 0.34));
+            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 28px 68px rgba(15, 23, 42, 0.18);
+        }
+
+        .stat-card:nth-child(1) {
+            background: linear-gradient(145deg, rgba(236, 253, 245, 0.92), rgba(255, 255, 255, 0.84));
+        }
+
+        .stat-card:nth-child(2) {
+            background: linear-gradient(145deg, rgba(239, 246, 255, 0.94), rgba(255, 255, 255, 0.84));
+        }
+
+        .stat-card:nth-child(3) {
+            background: linear-gradient(145deg, rgba(238, 242, 255, 0.94), rgba(255, 255, 255, 0.84));
+        }
+
+        .stat-card:nth-child(4) {
+            background: linear-gradient(145deg, rgba(255, 247, 237, 0.94), rgba(255, 255, 255, 0.84));
         }
 
         .stat-card .label {
@@ -254,14 +326,20 @@
         .filter-panel,
         .calendar-card,
         .agenda-card {
+            position: relative;
             background: var(--owner-card);
             border: 1px solid var(--owner-border);
-            border-radius: 8px;
-            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.04);
+            border-radius: 22px;
+            backdrop-filter: blur(18px) saturate(145%);
+            -webkit-backdrop-filter: blur(18px) saturate(145%);
+            box-shadow: 0 20px 55px rgba(15, 23, 42, 0.12);
         }
 
         .filter-panel {
-            padding: 16px;
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(240, 253, 250, 0.82)),
+                linear-gradient(120deg, rgba(16, 185, 129, 0.16), rgba(59, 130, 246, 0.12));
+            padding: 18px;
             margin-bottom: 18px;
         }
 
@@ -283,10 +361,12 @@
 
         .filter-panel .form-select,
         .filter-panel .form-control {
-            border-color: var(--owner-border);
-            border-radius: 8px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-color: rgba(148, 163, 184, 0.5);
+            border-radius: 12px;
             font-size: 14px;
             min-height: 42px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
         }
 
         .filter-panel .form-select:focus,
@@ -310,7 +390,8 @@
             align-items: center;
             gap: 7px;
             padding: 6px 10px;
-            background: var(--owner-soft);
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(148, 163, 184, 0.2);
             border-radius: 999px;
         }
 
@@ -332,6 +413,7 @@
             min-height: 760px;
             padding: 16px;
             overflow: hidden;
+            background: rgba(255, 255, 255, 0.88);
         }
 
         .agenda-card {
@@ -341,6 +423,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            background: rgba(255, 255, 255, 0.88);
         }
 
         .agenda-header {
@@ -366,12 +449,12 @@
         }
 
         .agenda-item {
-            border: 1px solid var(--owner-border);
+            border: 1px solid rgba(226, 232, 240, 0.9);
             border-left-width: 4px;
-            border-radius: 8px;
+            border-radius: 14px;
             padding: 12px;
             margin-bottom: 10px;
-            background: #fff;
+            background: rgba(255, 255, 255, 0.9);
             cursor: pointer;
             transition: transform .16s ease, box-shadow .16s ease;
         }
@@ -424,8 +507,8 @@
         .status-rejected { background: #fef2f2; color: var(--owner-red); }
 
         .fc {
-            --fc-border-color: #e5e7eb;
-            --fc-today-bg-color: #ecfdf5;
+            --fc-border-color: rgba(226, 232, 240, 0.92);
+            --fc-today-bg-color: rgba(236, 253, 245, 0.8);
             color: var(--owner-text);
         }
 
@@ -441,9 +524,9 @@
         }
 
         .fc .fc-button-primary {
-            background: #fff;
-            border-color: var(--owner-border);
-            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            border-color: rgba(148, 163, 184, 0.46);
+            border-radius: 999px;
             color: var(--owner-text);
             font-size: 13px;
             font-weight: 700;
@@ -454,7 +537,7 @@
 
         .fc .fc-button-primary:hover,
         .fc .fc-button-primary:focus {
-            background: var(--owner-soft);
+            background: rgba(240, 253, 250, 0.92);
             border-color: #cbd5e1;
             color: var(--owner-text);
             box-shadow: none;
@@ -462,9 +545,20 @@
 
         .fc .fc-button-primary:not(:disabled).fc-button-active,
         .fc .fc-button-primary:not(:disabled):active {
-            background: var(--owner-green);
-            border-color: var(--owner-green);
+            background: linear-gradient(120deg, #059669, #2563eb);
+            border-color: transparent;
             color: #fff;
+        }
+
+        .fc .fc-scrollgrid,
+        .fc .fc-list {
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .fc-theme-standard td,
+        .fc-theme-standard th {
+            background: rgba(255, 255, 255, 0.56);
         }
 
         .fc .fc-col-header-cell-cushion,
@@ -475,13 +569,13 @@
         }
 
         .fc-event {
-            border-radius: 6px;
+            border-radius: 10px;
             border: 0 !important;
             cursor: pointer;
             max-width: 100%;
             overflow: hidden;
             padding: 2px 4px;
-            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
             pointer-events: auto !important; /* FIX LỖI KHÔNG CLICK ĐƯỢC */
             z-index: 5 !important; /* FIX LỖI KHÔNG CLICK ĐƯỢC */
         }
@@ -545,8 +639,22 @@
 
         .modal-content {
             border: 0;
-            border-radius: 12px;
+            border-radius: 22px;
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(240, 253, 250, 0.9)),
+                linear-gradient(120deg, rgba(16, 185, 129, 0.12), rgba(59, 130, 246, 0.1));
             box-shadow: 0 25px 60px rgba(15, 23, 42, 0.2);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            background: rgba(255, 255, 255, 0.65);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+        }
+
+        .modal-footer {
+            background: rgba(255, 255, 255, 0.55);
+            border-top: 1px solid rgba(226, 232, 240, 0.9);
         }
 
         .detail-grid {
@@ -620,7 +728,7 @@
         }
     </style>
 </head>
-<body>
+<body class="antialiased min-h-screen">
 <!-- Top Navigation -->
 <nav class="sporthub-nav">
     <div class="sporthub-nav-left">
@@ -652,6 +760,10 @@
             Lịch đặt sân
         </a>
 
+        <a href="{{ route('owner.web.checkins.index') }}">
+            Check-in
+        </a>
+
         <a href="{{ route('owner.web.reschedule.index') }}">
             Yêu cầu đổi lịch
         </a>
@@ -661,7 +773,7 @@
     </div>
 </nav>
 
-<main class="container-fluid page-shell py-4">
+<main class="container-fluid page-shell py-4 py-lg-5">
     <section class="page-hero">
         <div>
             <h1>Lịch trình đặt sân</h1>
