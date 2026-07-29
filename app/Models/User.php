@@ -62,23 +62,8 @@ class User extends Authenticatable
         return $this->hasMany(BookingPackage::class);
     }
 
-    public function topupTransactions(): HasMany
+    public function createdVouchers(): HasMany
     {
-        return $this->hasMany(TopupTransaction::class, 'owner_id');
-    }
-
-    public function withdrawalRequests(): HasMany
-    {
-        return $this->hasMany(WithdrawalRequest::class, 'owner_id');
-    }
-
-    public function performedPlatformWalletTransactions(): HasMany
-    {
-        return $this->hasMany(PlatformWalletTransaction::class, 'performed_by');
-    }
-
-    public function wallet(): HasOne
-    {
-        return $this->hasOne(Wallet::class, 'owner_id');
+        return $this->hasMany(Voucher::class, 'created_by_id');
     }
 }

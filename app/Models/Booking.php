@@ -73,6 +73,11 @@ class Booking extends Model
     public function bookingPackage(): BelongsTo { return $this->belongsTo(BookingPackage::class); }
     public function items(): HasMany { return $this->hasMany(BookingItem::class); }
     public function rescheduleRequests(): HasMany { return $this->hasMany(BookingRescheduleRequest::class); }
+    
+    public function voucher(): BelongsTo
+    {
+        return $this->belongsTo(Voucher::class);
+    }
 
     public function recordStatusChange(int $changedBy, string $oldStatus, string $newStatus, ?string $note = null, $createdAt = null): BookingLog
     {
