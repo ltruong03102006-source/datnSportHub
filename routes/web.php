@@ -195,6 +195,10 @@ Route::get('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingC
 
 //chu san
 Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group(function () {
+    // Danh sách sân con của 1 cơ sở, dùng cho bộ lọc thống kê
+    Route::get('/venues/{venue}/courts-lookup', [\App\Http\Controllers\Web\OwnerCourtLookupController::class, 'index'])
+        ->name('venues.courts_lookup');
+
     Route::get('/wallet', [OwnerWalletController::class, 'index'])->name('wallet.index');
     Route::get('/wallet/topup', [OwnerWalletTopupController::class, 'create'])->name('wallet.topup.create');
     Route::post('/wallet/topup', [OwnerWalletTopupController::class, 'store'])->name('wallet.topup.store');

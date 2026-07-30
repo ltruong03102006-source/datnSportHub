@@ -32,7 +32,35 @@
     }
 </style>
 
-<div class="flex-1 p-6 lg:p-10 max-w-7xl mx-auto w-full" x-data="{ filterType: '{{ $period == "custom" ? "custom" : "quick" }}' }">
+                    <!-- Court Filter: chỉ bật khi đã chọn 1 cơ sở cụ thể -->
+                    <div class="w-full lg:w-48">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Sân con</label>
+                        <select name="court_id" id="courtSelect"
+                                @disabled($courtsOfVenue->isEmpty())
+                                class="w-full rounded-lg border-slate-300 text-sm focus:border-emerald-500 focus:ring-emerald-500 shadow-sm py-2 px-3 outline-none border transition-colors bg-slate-50 hover:bg-white disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed">
+                            @if ($courtsOfVenue->isEmpty())
+                                <option value="all">Chọn cơ sở trước</option>
+                            @else
+                                <option value="all">Tất cả sân con</option>
+                                @foreach($courtsOfVenue as $court)
+                                    <option value="{{ $court->id }}" {{ (string) $selectedCourtId === (string) $court->id ? 'selected' : '' }}>{{ $court->name }}</option>
+                                @endforeach
+                            @endif
+                        </select>
+                    </div>
+
+                    <!-- Period Type Selection -->
+                    <div class="w-full lg:w-auto">
+                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Thời gian</label>
+                        <div class="flex rounded-lg border border-slate-300 p-0.5 bg-slate-50 shadow-sm">
+                            <button type="button" @click="filterType = 'quick'; $nextTick(() => { document.getElementById('periodSelect').value = 'month'; document.getElementById('filterFormBtn').click() })" 
+                                    :class="filterType === 'quick' ? 'bg-white shadow text-emerald-700 font-medium' : 'text-slate-500 hover:text-slate-700'" 
+                                    class="px-4 py-1.5 text-sm rounded-md transition-all">Lọc nhanh</button>
+                            <button type="button" @click="filterType = 'custom'" 
+                                    :class="filterType === 'custom' ? 'bg-white shadow text-emerald-700 font-medium' : 'text-slate-500 hover:text-slate-700'" 
+                                    class="px-4 py-1.5 text-sm rounded-md transition-all">Tùy chọn</button>
+                        </div>
+                    </div>
 
     {{-- @include('owner.partials.debt-warning') --}}
     @include('owner.partials.wallet-summary')
@@ -305,6 +333,135 @@
             </div>
         </div>
 
+        <!-- Thống kê chi tiết từng sân con -->
+        <div class="glass-card rounded-2xl p-6 mt-6">
+            <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
+                <h3 class="text-lg font-bold text-slate-800">Thống kê theo sân con</h3>
+                @if ($selectedVenueId === 'all')
+                    <span class="text-xs text-slate-500">Chọn một cơ sở để xem chi tiết từng sân con</span>
+                @elseif ($selectedCourtId !== 'all')
+                    <span class="text-xs text-slate-500">Số liệu phía trên đang lọc riêng sân được tô sáng, bảng dưới hiển thị cả cơ sở để so sánh</span>
+                @endif
+            </div>
+
+            @if ($courtStats->isNotEmpty())
+                <div class="h-64 mb-6">
+                    <canvas id="courtRevenueChart"></canvas>
+                </div>
+            @endif
+
+            {{-- Ma trận nhiệt: sân con x khung giờ --}}
+            @if (!empty($courtHeatmap['rows']))
+                <div class="mb-6 border-t border-slate-100 pt-5">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <h4 class="text-sm font-bold text-slate-700">Khung giờ đông khách của từng sân</h4>
+                        <div class="flex items-center gap-1.5 text-[11px] text-slate-500">
+                            <span>Ít</span>
+                            <span class="w-4 h-3 rounded-sm bg-slate-100 border border-slate-200"></span>
+                            <span class="w-4 h-3 rounded-sm bg-emerald-200"></span>
+                            <span class="w-4 h-3 rounded-sm bg-emerald-400"></span>
+                            <span class="w-4 h-3 rounded-sm bg-emerald-600"></span>
+                            <span>Nhiều</span>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="text-xs border-separate" style="border-spacing: 3px;">
+                            <thead>
+                                <tr>
+                                    <th class="text-left font-semibold text-slate-500 pr-2"></th>
+                                    @foreach($courtHeatmap['hours'] as $hour)
+                                        <th class="font-medium text-slate-400 text-center w-8">{{ str_pad($hour, 2, '0', STR_PAD_LEFT) }}</th>
+                                    @endforeach
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($courtHeatmap['rows'] as $row)
+                                    <tr>
+                                        <td class="pr-2 whitespace-nowrap font-medium {{ (string) $selectedCourtId === (string) $row['id'] ? 'text-emerald-700' : 'text-slate-600' }}">
+                                            {{ $row['name'] }}
+                                        </td>
+                                        @foreach($row['cells'] as $cell)
+                                            <td @class([
+                                                    'w-8 h-7 text-center rounded-sm',
+                                                    'bg-slate-100 text-slate-400' => $cell['level'] === 0,
+                                                    'bg-emerald-200 text-slate-700' => $cell['level'] === 1,
+                                                    'bg-emerald-400 text-white' => $cell['level'] === 2,
+                                                    'bg-emerald-600 text-white' => $cell['level'] === 3,
+                                                ])
+                                                title="{{ $row['name'] }} · {{ str_pad($cell['hour'], 2, '0', STR_PAD_LEFT) }}:00 · {{ $cell['count'] }} lượt đặt">
+                                                {{ $cell['count'] ?: '' }}
+                                            </td>
+                                        @endforeach
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endif
+
+            @if ($courtStats->isEmpty())
+                <div class="px-4 py-10 text-center text-slate-500 text-sm">
+                    @if ($selectedVenueId === 'all')
+                        Hãy chọn một cơ sở ở bộ lọc phía trên để xem dữ liệu từng sân con.
+                    @else
+                        Cơ sở này chưa có sân con nào.
+                    @endif
+                </div>
+            @else
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
+                            <tr>
+                                <th class="px-4 py-3 rounded-tl-lg">Sân con</th>
+                                <th class="px-4 py-3 text-center">Lượt đặt</th>
+                                <th class="px-4 py-3 text-center">Khách</th>
+                                <th class="px-4 py-3 text-center">Giờ đặt</th>
+                                <th class="px-4 py-3 text-center">Tỷ lệ lấp đầy</th>
+                                <th class="px-4 py-3 text-center">Khung giờ cao điểm</th>
+                                <th class="px-4 py-3 text-right rounded-tr-lg">Doanh thu</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($courtStats as $court)
+                                @php($isSelectedCourt = (string) $selectedCourtId === (string) $court['id'])
+                                <tr class="border-b border-slate-50 transition-colors {{ $isSelectedCourt ? 'bg-emerald-50/70' : 'hover:bg-slate-50' }}">
+                                    <td class="px-4 py-3">
+                                        <div class="font-medium text-slate-800">
+                                            {{ $court['name'] }}
+                                            @if ($isSelectedCourt)
+                                                <span class="ml-1 align-middle text-[10px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">đang xem</span>
+                                            @endif
+                                        </div>
+                                        @if ($court['status'] !== 'active')
+                                            <span class="text-xs text-amber-600">Đang tạm ẩn</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full text-xs font-semibold">{{ $court['bookings_count'] }}</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-center text-slate-600">{{ $court['customers_count'] }}</td>
+                                    <td class="px-4 py-3 text-center text-slate-600">{{ $court['hours'] }}h</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <div class="flex items-center justify-center gap-2">
+                                            <div class="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                <div class="h-full bg-emerald-500" style="width: {{ min(100, $court['occupancy_rate']) }}%"></div>
+                                            </div>
+                                            <span class="text-xs font-semibold text-slate-600">{{ $court['occupancy_rate'] }}%</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3 text-center text-xs text-slate-500">
+                                        {{ $court['peak_hours'] ? implode(', ', $court['peak_hours']) : '—' }}
+                                    </td>
+                                    <td class="px-4 py-3 text-right font-bold text-emerald-600">{{ number_format($court['revenue'], 0, ',', '.') }} đ</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
     </div>
 </div>
 
@@ -386,6 +543,93 @@
                 scales: { x: { grid: { display: false, drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b' } }, y: { grid: { color: '#f1f5f9', drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b', stepSize: 1 } } }
             }
         });
-    });
-</script>
-@endpush
+
+        // Biểu đồ doanh thu theo từng sân con
+        document.addEventListener('DOMContentLoaded', function () {
+            const courtCanvas = document.getElementById('courtRevenueChart');
+
+            if (!courtCanvas) {
+                return;
+            }
+
+            new Chart(courtCanvas, {
+                type: 'bar',
+                data: {
+                    labels: @json($courtStats->pluck('name')),
+                    datasets: [{
+                        label: 'Doanh thu',
+                        data: @json($courtStats->pluck('revenue')),
+                        backgroundColor: '#10b981',
+                        borderRadius: 6,
+                        barPercentage: 0.6,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => new Intl.NumberFormat('vi-VN').format(context.parsed.y) + ' đ'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false, drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b' } },
+                        y: {
+                            grid: { color: '#f1f5f9', drawBorder: false },
+                            ticks: {
+                                font: { family: 'Inter' },
+                                color: '#64748b',
+                                callback: (value) => new Intl.NumberFormat('vi-VN', { notation: 'compact' }).format(value)
+                            }
+                        }
+                    }
+                }
+            });
+        });
+
+        // Đổi cơ sở thì nạp lại danh sách sân con tương ứng
+        (function () {
+            const venueSelect = document.querySelector('select[name="venue_id"]');
+            const courtSelect = document.getElementById('courtSelect');
+
+            if (!venueSelect || !courtSelect) {
+                return;
+            }
+
+            venueSelect.addEventListener('change', async function () {
+                const venueId = this.value;
+
+                if (venueId === 'all') {
+                    courtSelect.innerHTML = '<option value="all">Chọn cơ sở trước</option>';
+                    courtSelect.disabled = true;
+                    return;
+                }
+
+                courtSelect.disabled = true;
+                courtSelect.innerHTML = '<option value="all">Đang tải...</option>';
+
+                try {
+                    const res = await fetch(`/owner/venues/${venueId}/courts-lookup`, {
+                        headers: { Accept: 'application/json' },
+                    });
+                    const json = await res.json();
+
+                    const options = ['<option value="all">Tất cả sân con</option>'];
+                    for (const court of json.data) {
+                        options.push(`<option value="${court.id}">${court.name}</option>`);
+                    }
+
+                    courtSelect.innerHTML = options.join('');
+                    courtSelect.disabled = json.data.length === 0;
+                } catch (error) {
+                    courtSelect.innerHTML = '<option value="all">Không tải được danh sách</option>';
+                }
+            });
+        })();
+    </script>
+    @include('owner.partials.notification-script')
+</body>
+</html>
