@@ -60,8 +60,16 @@
                                     'terminated' => 'dark',
                                     default => 'secondary',
                                 };
+                                $statusLabels = [
+                                    'draft' => 'Bản nháp',
+                                    'sent' => 'Đã gửi',
+                                    'accepted' => 'Đã chấp nhận',
+                                    'rejected' => 'Đã từ chối',
+                                    'expired' => 'Hết hạn',
+                                    'terminated' => 'Chấm dứt',
+                                ];
                             @endphp
-                            <span class="badge bg-{{ $badge }} text-capitalize">{{ $contract->status }}</span>
+                            <span class="badge bg-{{ $badge }}">{{ $statusLabels[$contract->status] ?? $contract->status }}</span>
                         </dd>
 
                         <dt class="col-sm-4">Hoa hồng (%)</dt>

@@ -36,12 +36,12 @@
                                 <label class="form-label">Trạng thái</label>
                                 <select name="status" class="form-select">
                                     <option value="">Tất cả</option>
-                                    <option value="draft" {{ request('status') === 'draft' ? 'selected' : '' }}>Draft</option>
-                                    <option value="sent" {{ request('status') === 'sent' ? 'selected' : '' }}>Sent</option>
-                                    <option value="accepted" {{ request('status') === 'accepted' ? 'selected' : '' }}>Accepted</option>
-                                    <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>Rejected</option>
-                                    <option value="expired" {{ request('status') === 'expired' ? 'selected' : '' }}>Expired</option>
-                                    <option value="terminated" {{ request('status') === 'terminated' ? 'selected' : '' }}>Terminated</option>
+                                    <option value="draft" {{ request('status') === 'draft' ? 'selected' : '' }}>Bản nháp</option>
+                                    <option value="sent" {{ request('status') === 'sent' ? 'selected' : '' }}>Đã gửi</option>
+                                    <option value="accepted" {{ request('status') === 'accepted' ? 'selected' : '' }}>Đã chấp nhận</option>
+                                    <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>Đã từ chối</option>
+                                    <option value="expired" {{ request('status') === 'expired' ? 'selected' : '' }}>Hết hạn</option>
+                                    <option value="terminated" {{ request('status') === 'terminated' ? 'selected' : '' }}>Chấm dứt</option>
                                 </select>
                             </div>
                             <div class="col-6 col-md-2">
@@ -133,8 +133,16 @@
                                                         'terminated' => 'dark',
                                                         default => 'secondary',
                                                     };
+                                                    $statusLabels = [
+                                                        'draft' => 'Bản nháp',
+                                                        'sent' => 'Đã gửi',
+                                                        'accepted' => 'Đã chấp nhận',
+                                                        'rejected' => 'Đã từ chối',
+                                                        'expired' => 'Hết hạn',
+                                                        'terminated' => 'Chấm dứt',
+                                                    ];
                                                 @endphp
-                                                <span class="badge bg-{{ $badge }} text-capitalize">{{ $contract->status }}</span>
+                                                <span class="badge bg-{{ $badge }}">{{ $statusLabels[$contract->status] ?? $contract->status }}</span>
                                             </td>
                                             <td>{{ $contract->created_at->format('Y-m-d H:i') }}</td>
                                             <td class="text-nowrap">
