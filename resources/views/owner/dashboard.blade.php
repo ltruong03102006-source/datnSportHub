@@ -1,12 +1,9 @@
-{{-- ĐỔI dòng dưới thành đúng tên blade view của layout bạn đang có (bỏ đuôi .blade.php, thay / bằng .) --}}
 @extends('owner.layoutOwner.app')
 
-{{-- ĐỔI dòng dưới thành đúng tên route của trang dashboard --}}
 @section('title', 'Dashboard')
 
 @section('content')
 
-{{-- CSS/JS riêng cho trang dashboard, layout hiện tại không có @stack('styles') nên đặt trực tiếp ở đây --}}
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
@@ -32,35 +29,7 @@
     }
 </style>
 
-                    <!-- Court Filter: chỉ bật khi đã chọn 1 cơ sở cụ thể -->
-                    <div class="w-full lg:w-48">
-                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Sân con</label>
-                        <select name="court_id" id="courtSelect"
-                                @disabled($courtsOfVenue->isEmpty())
-                                class="w-full rounded-lg border-slate-300 text-sm focus:border-emerald-500 focus:ring-emerald-500 shadow-sm py-2 px-3 outline-none border transition-colors bg-slate-50 hover:bg-white disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed">
-                            @if ($courtsOfVenue->isEmpty())
-                                <option value="all">Chọn cơ sở trước</option>
-                            @else
-                                <option value="all">Tất cả sân con</option>
-                                @foreach($courtsOfVenue as $court)
-                                    <option value="{{ $court->id }}" {{ (string) $selectedCourtId === (string) $court->id ? 'selected' : '' }}>{{ $court->name }}</option>
-                                @endforeach
-                            @endif
-                        </select>
-                    </div>
-
-                    <!-- Period Type Selection -->
-                    <div class="w-full lg:w-auto">
-                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Thời gian</label>
-                        <div class="flex rounded-lg border border-slate-300 p-0.5 bg-slate-50 shadow-sm">
-                            <button type="button" @click="filterType = 'quick'; $nextTick(() => { document.getElementById('periodSelect').value = 'month'; document.getElementById('filterFormBtn').click() })" 
-                                    :class="filterType === 'quick' ? 'bg-white shadow text-emerald-700 font-medium' : 'text-slate-500 hover:text-slate-700'" 
-                                    class="px-4 py-1.5 text-sm rounded-md transition-all">Lọc nhanh</button>
-                            <button type="button" @click="filterType = 'custom'" 
-                                    :class="filterType === 'custom' ? 'bg-white shadow text-emerald-700 font-medium' : 'text-slate-500 hover:text-slate-700'" 
-                                    class="px-4 py-1.5 text-sm rounded-md transition-all">Tùy chọn</button>
-                        </div>
-                    </div>
+<div class="flex-1 p-6 lg:p-10 max-w-7xl mx-auto w-full" x-data="{ filterType: '{{ $period == "custom" ? "custom" : "quick" }}' }">
 
     {{-- @include('owner.partials.debt-warning') --}}
     @include('owner.partials.wallet-summary')
@@ -83,6 +52,23 @@
                         @foreach($allVenues as $v)
                             <option value="{{ $v->id }}" {{ $selectedVenueId == $v->id ? 'selected' : '' }}>{{ $v->name }}</option>
                         @endforeach
+                    </select>
+                </div>
+
+                <!-- Court Filter: chỉ bật khi đã chọn 1 cơ sở cụ thể -->
+                <div class="w-full lg:w-48">
+                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Sân con</label>
+                    <select name="court_id" id="courtSelect"
+                            @disabled($courtsOfVenue->isEmpty())
+                            class="w-full rounded-lg border-slate-300 text-sm focus:border-emerald-500 focus:ring-emerald-500 shadow-sm py-2 px-3 outline-none border transition-colors bg-slate-50 hover:bg-white disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed">
+                        @if ($courtsOfVenue->isEmpty())
+                            <option value="all">Chọn cơ sở trước</option>
+                        @else
+                            <option value="all">Tất cả sân con</option>
+                            @foreach($courtsOfVenue as $court)
+                                <option value="{{ $court->id }}" {{ (string) $selectedCourtId === (string) $court->id ? 'selected' : '' }}>{{ $court->name }}</option>
+                            @endforeach
+                        @endif
                     </select>
                 </div>
 
@@ -334,7 +320,7 @@
         </div>
 
         <!-- Thống kê chi tiết từng sân con -->
-        <div class="glass-card rounded-2xl p-6 mt-6">
+        <div class="glass-card rounded-2xl p-6 mt-6 lg:col-span-2">
             <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
                 <h3 class="text-lg font-bold text-slate-800">Thống kê theo sân con</h3>
                 @if ($selectedVenueId === 'all')
@@ -467,169 +453,187 @@
 
 @endsection
 
-{{-- Layout hiện tại có sẵn @stack('scripts') ở cuối body nên đẩy script vào đây --}}
 @push('scripts')
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const chartData = @json($chartData);
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/locales-all.global.min.js"></script>
 
-        // 1. Revenue Chart
-        const revCtx = document.getElementById('revenueChart').getContext('2d');
-        let gradient = revCtx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, 'rgba(16, 185, 129, 0.5)');
-        gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const chartData = @json($chartData);
 
-        new Chart(revCtx, {
-            type: 'line',
-            data: {
-                labels: chartData.revenueDates,
-                datasets: [{
-                    label: 'Doanh thu (VNĐ)',
-                    data: chartData.revenueValues,
-                    borderColor: '#10b981',
-                    backgroundColor: gradient,
-                    borderWidth: 3,
-                    pointBackgroundColor: '#ffffff',
-                    pointBorderColor: '#10b981',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-                scales: {
-                    x: { grid: { display: false, drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b' } },
-                    y: { grid: { color: '#f1f5f9', drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b', callback: function(value) { return value >= 1000 ? (value/1000) + 'k' : value; } } }
-                }
-            }
-        });
+            // 1. Revenue Chart
+            const revCanvas = document.getElementById('revenueChart');
+            if (revCanvas) {
+                const revCtx = revCanvas.getContext('2d');
+                let gradient = revCtx.createLinearGradient(0, 0, 0, 400);
+                gradient.addColorStop(0, 'rgba(16, 185, 129, 0.5)');
+                gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
 
-        // 2. Status Doughnut Chart
-        const statusCtx = document.getElementById('statusChart').getContext('2d');
-        new Chart(statusCtx, {
-            type: 'doughnut',
-            data: {
-                labels: chartData.statusLabels,
-                datasets: [{
-                    data: chartData.statusValues,
-                    backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
-                    borderWidth: 0,
-                    hoverOffset: 4
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, font: { family: 'Inter', size: 12 }, color: '#475569' } } } }
-        });
-
-        // 3. Peak Hours Bar Chart
-        const peakCtx = document.getElementById('peakChart').getContext('2d');
-        new Chart(peakCtx, {
-            type: 'bar',
-            data: {
-                labels: chartData.peakHourLabels,
-                datasets: [{
-                    label: 'Số lượt đặt',
-                    data: chartData.peakHourValues,
-                    backgroundColor: '#6366f1',
-                    borderRadius: 6,
-                    barPercentage: 0.6,
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { x: { grid: { display: false, drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b' } }, y: { grid: { color: '#f1f5f9', drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b', stepSize: 1 } } }
-            }
-        });
-
-        // Biểu đồ doanh thu theo từng sân con
-        document.addEventListener('DOMContentLoaded', function () {
-            const courtCanvas = document.getElementById('courtRevenueChart');
-
-            if (!courtCanvas) {
-                return;
-            }
-
-            new Chart(courtCanvas, {
-                type: 'bar',
-                data: {
-                    labels: @json($courtStats->pluck('name')),
-                    datasets: [{
-                        label: 'Doanh thu',
-                        data: @json($courtStats->pluck('revenue')),
-                        backgroundColor: '#10b981',
-                        borderRadius: 6,
-                        barPercentage: 0.6,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: (context) => new Intl.NumberFormat('vi-VN').format(context.parsed.y) + ' đ'
-                            }
-                        }
+                new Chart(revCtx, {
+                    type: 'line',
+                    data: {
+                        labels: chartData.revenueDates,
+                        datasets: [{
+                            label: 'Doanh thu (VNĐ)',
+                            data: chartData.revenueValues,
+                            borderColor: '#10b981',
+                            backgroundColor: gradient,
+                            borderWidth: 3,
+                            pointBackgroundColor: '#ffffff',
+                            pointBorderColor: '#10b981',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            fill: true,
+                            tension: 0.4
+                        }]
                     },
-                    scales: {
-                        x: { grid: { display: false, drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b' } },
-                        y: {
-                            grid: { color: '#f1f5f9', drawBorder: false },
-                            ticks: {
-                                font: { family: 'Inter' },
-                                color: '#64748b',
-                                callback: (value) => new Intl.NumberFormat('vi-VN', { notation: 'compact' }).format(value)
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { grid: { display: false, drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b' } },
+                            y: { grid: { color: '#f1f5f9', drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b', callback: function(value) { return value >= 1000 ? (value/1000) + 'k' : value; } } }
+                        }
+                    }
+                });
+            }
+
+            // 2. Status Doughnut Chart
+            const statusCanvas = document.getElementById('statusChart');
+            if (statusCanvas) {
+                const statusCtx = statusCanvas.getContext('2d');
+                new Chart(statusCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: chartData.statusLabels,
+                        datasets: [{
+                            data: chartData.statusValues,
+                            backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        cutout: '75%', 
+                        plugins: { 
+                            legend: { 
+                                position: 'bottom', 
+                                labels: { padding: 20, usePointStyle: true, font: { family: 'Inter', size: 12 }, color: '#475569' } 
+                            } 
+                        } 
+                    }
+                });
+            }
+
+            // 3. Peak Hours Bar Chart
+            const peakCanvas = document.getElementById('peakChart');
+            if (peakCanvas) {
+                const peakCtx = peakCanvas.getContext('2d');
+                new Chart(peakCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: chartData.peakHourLabels,
+                        datasets: [{
+                            label: 'Số lượt đặt',
+                            data: chartData.peakHourValues,
+                            backgroundColor: '#6366f1',
+                            borderRadius: 6,
+                            barPercentage: 0.6,
+                        }]
+                    },
+                    options: {
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { 
+                            x: { grid: { display: false, drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b' } }, 
+                            y: { grid: { color: '#f1f5f9', drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b', stepSize: 1 } } 
+                        }
+                    }
+                });
+            }
+
+            // 4. Biểu đồ doanh thu theo từng sân con
+            const courtCanvas = document.getElementById('courtRevenueChart');
+            if (courtCanvas) {
+                new Chart(courtCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: @json($courtStats->pluck('name')),
+                        datasets: [{
+                            label: 'Doanh thu',
+                            data: @json($courtStats->pluck('revenue')),
+                            backgroundColor: '#10b981',
+                            borderRadius: 6,
+                            barPercentage: 0.6,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => new Intl.NumberFormat('vi-VN').format(context.parsed.y) + ' đ'
+                                }
+                            }
+                        },
+                        scales: {
+                            x: { grid: { display: false, drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b' } },
+                            y: {
+                                grid: { color: '#f1f5f9', drawBorder: false },
+                                ticks: {
+                                    font: { family: 'Inter' },
+                                    color: '#64748b',
+                                    callback: (value) => new Intl.NumberFormat('vi-VN', { notation: 'compact' }).format(value)
+                                }
                             }
                         }
                     }
-                }
-            });
-        });
+                });
+            }
 
-        // Đổi cơ sở thì nạp lại danh sách sân con tương ứng
-        (function () {
+            // 5. Đổi cơ sở thì nạp lại danh sách sân con tương ứng
             const venueSelect = document.querySelector('select[name="venue_id"]');
             const courtSelect = document.getElementById('courtSelect');
 
-            if (!venueSelect || !courtSelect) {
-                return;
-            }
+            if (venueSelect && courtSelect) {
+                venueSelect.addEventListener('change', async function () {
+                    const venueId = this.value;
 
-            venueSelect.addEventListener('change', async function () {
-                const venueId = this.value;
-
-                if (venueId === 'all') {
-                    courtSelect.innerHTML = '<option value="all">Chọn cơ sở trước</option>';
-                    courtSelect.disabled = true;
-                    return;
-                }
-
-                courtSelect.disabled = true;
-                courtSelect.innerHTML = '<option value="all">Đang tải...</option>';
-
-                try {
-                    const res = await fetch(`/owner/venues/${venueId}/courts-lookup`, {
-                        headers: { Accept: 'application/json' },
-                    });
-                    const json = await res.json();
-
-                    const options = ['<option value="all">Tất cả sân con</option>'];
-                    for (const court of json.data) {
-                        options.push(`<option value="${court.id}">${court.name}</option>`);
+                    if (venueId === 'all') {
+                        courtSelect.innerHTML = '<option value="all">Chọn cơ sở trước</option>';
+                        courtSelect.disabled = true;
+                        return;
                     }
 
-                    courtSelect.innerHTML = options.join('');
-                    courtSelect.disabled = json.data.length === 0;
-                } catch (error) {
-                    courtSelect.innerHTML = '<option value="all">Không tải được danh sách</option>';
-                }
-            });
-        })();
+                    courtSelect.disabled = true;
+                    courtSelect.innerHTML = '<option value="all">Đang tải...</option>';
+
+                    try {
+                        const res = await fetch(`/owner/venues/${venueId}/courts-lookup`, {
+                            headers: { Accept: 'application/json' },
+                        });
+                        const json = await res.json();
+
+                        const options = ['<option value="all">Tất cả sân con</option>'];
+                        for (const court of json.data) {
+                            options.push(`<option value="${court.id}">${court.name}</option>`);
+                        }
+
+                        courtSelect.innerHTML = options.join('');
+                        courtSelect.disabled = json.data.length === 0;
+                    } catch (error) {
+                        courtSelect.innerHTML = '<option value="all">Không tải được danh sách</option>';
+                    }
+                });
+            }
+        });
     </script>
-    @include('owner.partials.notification-script')
-</body>
-</html>
+@endpush
