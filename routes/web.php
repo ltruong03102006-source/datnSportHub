@@ -191,7 +191,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 });
 
 Route::get('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingController::class, 'index'])->name('financial-settings.index');
-    Route::post('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingController::class, 'update'])->name('financial-settings.update');
+Route::post('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingController::class, 'update'])->name('financial-settings.update');
 
 //chu san
 Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group(function () {
@@ -202,6 +202,8 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
     Route::get('/wallet', [OwnerWalletController::class, 'index'])->name('wallet.index');
     Route::get('/wallet/topup', [OwnerWalletTopupController::class, 'create'])->name('wallet.topup.create');
     Route::post('/wallet/topup', [OwnerWalletTopupController::class, 'store'])->name('wallet.topup.store');
+    Route::get('/wallet/bank', [OwnerWalletController::class, 'editBank'])->name('wallet.bank.edit');
+    Route::put('/wallet/bank', [OwnerWalletController::class, 'updateBank'])->name('wallet.bank.update');
     Route::get('/withdrawals', [OwnerWithdrawalController::class, 'index'])->name('withdrawals.index');
     Route::get('/withdrawals/create', [OwnerWithdrawalController::class, 'create'])->name('withdrawals.create');
     Route::post('/withdrawals', [OwnerWithdrawalController::class, 'store'])->name('withdrawals.store');
@@ -256,7 +258,7 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
     Route::put('/venues/{venue}/packages/{package}', [OwnerVenuePackageController::class, 'update'])->name('venues.packages.update');
     Route::delete('/venues/{venue}/packages/{package}', [OwnerVenuePackageController::class, 'destroy'])->name('venues.packages.destroy');
     Route::patch('/venues/{venue}/packages/{package}/toggle', [OwnerVenuePackageController::class, 'togglePackage'])->name('venues.packages.toggle');
-// Quáº£n lÃ½ Dá»‹ch vá»¥ Ä‘i kÃ¨m
+    // Quáº£n lÃ½ Dá»‹ch vá»¥ Ä‘i kÃ¨m
     Route::get('/services', [\App\Http\Controllers\Web\OwnerServiceController::class, 'index'])->name('services.index');
     Route::post('/services', [\App\Http\Controllers\Web\OwnerServiceController::class, 'store'])->name('services.store');
     Route::put('/services/{service}', [\App\Http\Controllers\Web\OwnerServiceController::class, 'update'])->name('services.update');
@@ -270,12 +272,12 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
     Route::post('/venues/{venue}/transfer', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'store'])->name('venues.transfer.store');
     Route::get('/venues/transfers/history', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'history'])->name('venues.transfers.history');
     // Hiển thị form điền pháp lý cho chủ mới
-Route::get('venues/transfers/{transfer}/accept', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'showAcceptForm'])
-    ->name('venues.transfers.accept');
+    Route::get('venues/transfers/{transfer}/accept', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'showAcceptForm'])
+        ->name('venues.transfers.accept');
 
-// Xử lý nộp form pháp lý
-Route::post('venues/transfers/{transfer}/accept', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'submitAcceptForm'])
-    ->name('venues.transfers.accept.submit');
+    // Xử lý nộp form pháp lý
+    Route::post('venues/transfers/{transfer}/accept', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'submitAcceptForm'])
+        ->name('venues.transfers.accept.submit');
 });
 
 Route::middleware('auth')->group(function () {
@@ -365,7 +367,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('community')->name('community.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Web\MatchPostController::class, 'index'])->name('index');
         Route::post('/store', [\App\Http\Controllers\Web\MatchPostController::class, 'store'])->name('store');
-        
+
         Route::get('/my-posts', [\App\Http\Controllers\Web\MatchPostController::class, 'myPosts'])->name('my_posts');
         Route::patch('/{matchPost}/close', [\App\Http\Controllers\Web\MatchPostController::class, 'closePost'])->name('close');
         Route::delete('/{matchPost}', [\App\Http\Controllers\Web\MatchPostController::class, 'destroy'])->name('destroy');
@@ -373,13 +375,12 @@ Route::middleware('auth')->group(function () {
         // CHá»¨C NÄ‚NG TÃŒM Äá»I 2.0 (XIN JOIN, DUYá»†T & Tá»ª CHá»I)
         Route::post('/{matchPost}/join', [\App\Http\Controllers\Web\MatchPostController::class, 'join'])->name('join');
         Route::patch('/participant/{participant}/approve', [\App\Http\Controllers\Web\MatchPostController::class, 'approveParticipant'])->name('approve');
-        
+
         // THÃŠM ÄÃšNG DÃ’NG NÃ€Y VÃ€O LÃ€ Háº¾T Lá»–I 500 NAY:
         Route::patch('/participant/{participant}/reject', [\App\Http\Controllers\Web\MatchPostController::class, 'rejectParticipant'])->name('reject');
         // RÃºt lui khá»i kÃ¨o (NgÆ°á»i xin tham gia tá»± há»§y)
         Route::delete('/{matchPost}/cancel-join', [\App\Http\Controllers\Web\MatchPostController::class, 'cancelJoin'])->name('cancel_join');
     });
-
 }); // <-- NGOáº¶C ÄÃ“NG Cá»¦A GROUP AUTH Bá»Š THIáº¾U Cá»¦A Báº N CHÃNH LÃ€ ÄÃ‚Y!
 
 Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.')->group(function () {

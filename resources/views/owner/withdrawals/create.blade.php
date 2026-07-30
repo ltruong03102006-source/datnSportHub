@@ -144,75 +144,97 @@
 
                     <!-- 2. NGÂN HÀNG & SỐ TÀI KHOẢN -->
                     <div class="mt-5 grid gap-5 md:grid-cols-2">
-                        <div>
-                            <label for="bank_name" class="mb-2 block text-sm font-bold text-slate-900">
-                                Ngân hàng
+                        @if($bankConfigured)
+                            <div class="space-y-3">
+                                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Ngân hàng</p>
+                                    <p class="mt-2 font-bold text-slate-900">{{ $owner->bank_name }}</p>
+                                </div>
+                                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Số tài khoản</p>
+                                    <p class="mt-2 font-bold text-slate-900">{{ $owner->bank_account_no }}</p>
+                                </div>
+                                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Chủ tài khoản</p>
+                                    <p class="mt-2 font-bold text-slate-900">{{ $owner->bank_account_name }}</p>
+                                </div>
+                                <div class="mt-4">
+                                    <a href="{{ route('owner.web.wallet.bank.edit') }}" class="inline-flex items-center justify-center rounded-2xl border border-emerald-600 bg-white px-5 py-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">
+                                        Thay đổi STK khác
+                                    </a>
+                                </div>
+                            </div>
+                        @else
+                            <div>
+                                <label for="bank_name" class="mb-2 block text-sm font-bold text-slate-900">
+                                    Ngân hàng
+                                </label>
+                                <select id="bank_name"
+                                       name="bank_name"
+                                       class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
+                                       @disabled($availableBalance <= 0)
+                                       required>
+                                    <option value="" disabled selected>-- Chọn ngân hàng --</option>
+                                    <option value="Vietcombank" @selected(old('bank_name') == 'Vietcombank')>Vietcombank (VCB)</option>
+                                    <option value="Techcombank" @selected(old('bank_name') == 'Techcombank')>Techcombank (TCB)</option>
+                                    <option value="MBBank" @selected(old('bank_name') == 'MBBank')>MBBank (MB)</option>
+                                    <option value="VietinBank" @selected(old('bank_name') == 'VietinBank')>VietinBank (CTG)</option>
+                                    <option value="BIDV" @selected(old('bank_name') == 'BIDV')>BIDV</option>
+                                    <option value="ACB" @selected(old('bank_name') == 'ACB')>ACB</option>
+                                    <option value="VPBank" @selected(old('bank_name') == 'VPBank')>VPBank (VPB)</option>
+                                    <option value="Agribank" @selected(old('bank_name') == 'Agribank')>Agribank</option>
+                                    <option value="TPBank" @selected(old('bank_name') == 'TPBank')>TPBank (TPB)</option>
+                                    <option value="Sacombank" @selected(old('bank_name') == 'Sacombank')>Sacombank (STB)</option>
+                                </select>
+                                @error('bank_name')
+                                    <p class="mt-2 text-sm font-bold text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div>
+                                <label for="bank_account_number" class="mb-2 block text-sm font-bold text-slate-900">
+                                    Số tài khoản
+                                </label>
+                                <input type="text"
+                                       id="bank_account_number"
+                                       name="bank_account_number"
+                                       value="{{ old('bank_account_number') }}"
+                                       placeholder="Ví dụ: 123456789"
+                                       class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
+                                       @disabled($availableBalance <= 0)
+                                       required>
+                                @error('bank_account_number')
+                                    <p class="mt-2 text-sm font-bold text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <label for="bank_account_holder" class="mb-2 block text-sm font-bold text-slate-900">
+                                    Chủ tài khoản
+                                </label>
+                                <input type="text"
+                                       id="bank_account_holder"
+                                       name="bank_account_holder"
+                                       value="{{ old('bank_account_holder') }}"
+                                       placeholder="Ví dụ: NGUYEN VAN A"
+                                       class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-900 uppercase outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
+                                       @disabled($availableBalance <= 0)
+                                       required>
+                                @error('bank_account_holder')
+                                    <p class="mt-2 text-sm font-bold text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        @endif
+                    </div>
+
+                    @unless($bankConfigured)
+                        <div class="mt-4 flex items-center gap-2">
+                            <input type="checkbox" id="save_bank_info" name="save_bank_info" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" @checked(old('save_bank_info'))>
+                            <label for="save_bank_info" class="text-sm font-semibold text-slate-600 cursor-pointer">
+                                Lưu thông tin nhận tiền cho lần rút sau
                             </label>
-                            <!-- Chuyển thành Select Dropdown -->
-                            <select id="bank_name"
-                                   name="bank_name"
-                                   class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-                                   @disabled($availableBalance <= 0)
-                                   required>
-                                <option value="" disabled selected>-- Chọn ngân hàng --</option>
-                                <option value="Vietcombank" @selected(old('bank_name') == 'Vietcombank')>Vietcombank (VCB)</option>
-                                <option value="Techcombank" @selected(old('bank_name') == 'Techcombank')>Techcombank (TCB)</option>
-                                <option value="MBBank" @selected(old('bank_name') == 'MBBank')>MBBank (MB)</option>
-                                <option value="VietinBank" @selected(old('bank_name') == 'VietinBank')>VietinBank (CTG)</option>
-                                <option value="BIDV" @selected(old('bank_name') == 'BIDV')>BIDV</option>
-                                <option value="ACB" @selected(old('bank_name') == 'ACB')>ACB</option>
-                                <option value="VPBank" @selected(old('bank_name') == 'VPBank')>VPBank (VPB)</option>
-                                <option value="Agribank" @selected(old('bank_name') == 'Agribank')>Agribank</option>
-                                <option value="TPBank" @selected(old('bank_name') == 'TPBank')>TPBank (TPB)</option>
-                                <option value="Sacombank" @selected(old('bank_name') == 'Sacombank')>Sacombank (STB)</option>
-                            </select>
-                            @error('bank_name')
-                                <p class="mt-2 text-sm font-bold text-red-600">{{ $message }}</p>
-                            @enderror
                         </div>
-
-                        <div>
-                            <label for="bank_account_number" class="mb-2 block text-sm font-bold text-slate-900">
-                                Số tài khoản
-                            </label>
-                            <input type="text"
-                                   id="bank_account_number"
-                                   name="bank_account_number"
-                                   value="{{ old('bank_account_number') }}"
-                                   placeholder="Ví dụ: 123456789"
-                                   class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-                                   @disabled($availableBalance <= 0)
-                                   required>
-                            @error('bank_account_number')
-                                <p class="mt-2 text-sm font-bold text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-                    </div>
-
-                    <div class="mt-5">
-                        <label for="bank_account_holder" class="mb-2 block text-sm font-bold text-slate-900">
-                            Chủ tài khoản
-                        </label>
-                        <input type="text"
-                               id="bank_account_holder"
-                               name="bank_account_holder"
-                               value="{{ old('bank_account_holder') }}"
-                               placeholder="Ví dụ: NGUYEN VAN A"
-                               class="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-900 uppercase outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-                               @disabled($availableBalance <= 0)
-                               required>
-                        @error('bank_account_holder')
-                            <p class="mt-2 text-sm font-bold text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <!-- 3. CHECKBOX LƯU TÀI KHOẢN -->
-                    <div class="mt-4 flex items-center gap-2">
-                        <input type="checkbox" id="save_bank_info" class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
-                        <label for="save_bank_info" class="text-sm font-semibold text-slate-600 cursor-pointer">
-                            Lưu thông tin nhận tiền cho lần rút sau
-                        </label>
-                    </div>
+                    @endunless
 
                     <div class="mt-5">
                         <label for="owner_note" class="mb-2 block text-sm font-bold text-slate-900">

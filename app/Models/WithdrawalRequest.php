@@ -18,6 +18,7 @@ class WithdrawalRequest extends Model
         'bank_account_holder',
         'bank_account_no',
         'bank_account_name',
+        'owner_note',
         'status',
         'admin_note',
         'proof_image'

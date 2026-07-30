@@ -72,9 +72,21 @@ class AdminWithdrawalController extends Controller
 
     public function show(WithdrawalRequest $withdrawal): View
     {
-        return view('admin.withdrawals.show', compact('withdrawal'));
+        $withdrawal->load('owner');
+
+        $withdrawal->loadMissing('owner', 'wallet');
+
+        $wallet = $withdrawal->wallet ?? $withdrawal->owner?->getOrCreateWallet();
+        $walletBalance = (float) ($wallet?->balance ?? 0);
+
+        // Resolve owner's phone: user.phone -> ownerRegistration.phone -> first venue phone
+        $ownerPhone = $withdrawal->owner?->phone
+            ?? $withdrawal->owner?->ownerRegistration?->phone
+            ?? optional($withdrawal->owner?->venues()->first())->phone;
+
+        return view('admin.withdrawals.show', compact('withdrawal', 'walletBalance', 'ownerPhone'));
     }
-    
+
     public function approve(Request $request, WithdrawalRequest $withdrawal): RedirectResponse
     {
         $data = $request->validate([
@@ -102,27 +114,28 @@ class AdminWithdrawalController extends Controller
                 }
 
                 if ($newStatus === 'approved') {
-                    $withdrawal->approved_by = auth()->id();
+                    $withdrawal->approved_by = \Illuminate\Support\Facades\Auth::id();
                     $withdrawal->approved_at = now();
+
+                    $ownerWallet = $withdrawal->wallet;
+                    if (! $ownerWallet) {
+                        throw new \Exception('Không tìm thấy ví của chủ sân.');
+                    }
+
+                    app(WalletService::class)->processTransaction(
+                        wallet: $ownerWallet,
+                        type: TransactionType::WITHDRAWAL_DEBIT,
+                        amount: (float) $withdrawal->amount,
+                        description: 'Rút tiền chủ sân #' . $withdrawal->code,
+                        withdrawalRequestId: $withdrawal->id,
+                        metadata: [
+                            'reference_type' => 'withdrawal_request',
+                            'reference_id' => $withdrawal->id,
+                        ],
+                    );
                 }
 
                 $withdrawal->save();
-
-                if ($newStatus === 'rejected') {
-                    // Hoàn lại tiền cho user
-                    $user = $withdrawal->user;
-                    $user->balance += $withdrawal->amount;
-                    $user->save();
-
-                    // Log transaction
-                    WalletTransaction::create([
-                        'user_id' => $user->id,
-                        'type' => 'refund',
-                        'amount' => $withdrawal->amount,
-                        'balance_after' => $user->balance,
-                        'description' => 'Hoàn tiền do yêu cầu rút tiền bị từ chối. #' . $withdrawal->id,
-                    ]);
-                }
             });
 
             // Gửi thông báo cho user
@@ -134,8 +147,14 @@ class AdminWithdrawalController extends Controller
             if ($newStatus === 'approved' && $withdrawal->proof_image) {
                 $message .= ' (Minh chứng: ' . asset('storage/' . $withdrawal->proof_image) . ')';
             }
+
+            $ownerId = $withdrawal->owner_id ?? $withdrawal->owner?->id;
+            if (! $ownerId) {
+                throw new \Exception('Không tìm thấy chủ sân để gửi thông báo.');
+            }
+
             app(\App\Services\NotificationService::class)->create(
-                $withdrawal->user_id,
+                (int) $ownerId,
                 $title,
                 $message,
                 route('account.profile.show'),
