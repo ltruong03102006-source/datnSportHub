@@ -177,12 +177,21 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // 👇 THÊM 2 DÒNG NÀY VÀO ĐỂ XỬ LÝ YÊU CẦU THAY ĐỔI THÔNG TIN (BẢN NHÁP) 👇
         Route::post('/venues/update-requests/{updateRequest}/approve', [AdminVenueController::class, 'approveUpdateReq'])->name('venues.update-requests.approve');
         Route::post('/venues/update-requests/{updateRequest}/reject', [AdminVenueController::class, 'rejectUpdateReq'])->name('venues.update-requests.reject');
+        // Cập nhật tỷ lệ hoa hồng cho cơ sở (Admin)
+        Route::put('/venues/{venue}/commission', [\App\Http\Controllers\Admin\VenueCommissionController::class, 'update'])->name('venues.commission.update');
+        Route::get('/contracts', [\App\Http\Controllers\Web\AdminContractController::class, 'index'])->name('contracts.index');
+        Route::get('/contracts/create', [\App\Http\Controllers\Web\AdminContractController::class, 'create'])->name('contracts.create');
+        Route::post('/contracts', [\App\Http\Controllers\Web\AdminContractController::class, 'store'])->name('contracts.store');
+        Route::get('/contracts/{contract}/edit', [\App\Http\Controllers\Web\AdminContractController::class, 'edit'])->name('contracts.edit');
+        Route::put('/contracts/{contract}', [\App\Http\Controllers\Web\AdminContractController::class, 'update'])->name('contracts.update');
+        Route::post('/contracts/{contract}/send', [\App\Http\Controllers\Web\AdminContractController::class, 'send'])->name('contracts.send');
+        Route::get('/contracts/{contract}/pdf', [\App\Http\Controllers\Web\AdminContractController::class, 'exportPdf'])->name('contracts.pdf');
+        Route::get('/contracts/{contract}', [\App\Http\Controllers\Web\AdminContractController::class, 'show'])->name('contracts.show');
     });
 });
 
 Route::get('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingController::class, 'index'])->name('financial-settings.index');
-        Route::post('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingController::class, 'update'])->name('financial-settings.update');
-        Route::put('/venues/{venue}/commission', [\App\Http\Controllers\Admin\VenueCommissionController::class, 'update'])->name('venues.commission.update');
+    Route::post('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingController::class, 'update'])->name('financial-settings.update');
 
 //chu san
 Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group(function () {
@@ -372,3 +381,11 @@ Route::middleware('auth')->group(function () {
     });
 
 }); // <-- NGOáº¶C ÄÃ“NG Cá»¦A GROUP AUTH Bá»Š THIáº¾U Cá»¦A Báº N CHÃNH LÃ€ ÄÃ‚Y!
+
+Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.')->group(function () {
+    Route::get('/contracts', [\App\Http\Controllers\Web\OwnerContractController::class, 'index'])->name('contracts.index');
+    Route::get('/contracts/{contract}', [\App\Http\Controllers\Web\OwnerContractController::class, 'show'])->name('contracts.show');
+    Route::get('/contracts/{contract}/download', [\App\Http\Controllers\Web\OwnerContractController::class, 'download'])->name('contracts.download');
+    Route::post('/contracts/{contract}/accept', [\App\Http\Controllers\Web\OwnerContractController::class, 'accept'])->name('contracts.accept');
+    Route::post('/contracts/{contract}/reject', [\App\Http\Controllers\Web\OwnerContractController::class, 'reject'])->name('contracts.reject');
+});

@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('owner.layoutOwner.app')
 
 @section('title', 'Yêu cầu đổi lịch | Chủ sân')
 

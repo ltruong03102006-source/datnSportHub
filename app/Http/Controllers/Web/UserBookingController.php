@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Enums\TransactionType;
 use App\Models\Booking;
 use App\Models\BookingPackage;
 use App\Models\BookingLog;
+use App\Models\PlatformWalletTransaction;
 use App\Models\User;
 use App\Models\WalletTransaction;
 use App\Services\BookingCompletionService;
+use App\Services\PlatformWalletService;
+use App\Services\WalletService;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -366,7 +370,7 @@ class UserBookingController extends Controller
         try {
             DB::transaction(function () use ($booking, $reason): void {
                 // SỬA: Thêm with('services') để load dữ liệu dịch vụ từ bảng trung gian
-                $groupBookings = Booking::with('services')->where('user_id', Auth::id())
+                $groupBookings = Booking::with(['services', 'court.venue.owner'])->where('user_id', Auth::id())
                     ->where('court_id', $booking->court_id)->where('slot_date', $booking->slot_date)
                     ->where('created_at', $booking->created_at)
                     ->whereIn('status', self::CANCELLABLE_STATUSES)->lockForUpdate()->get();
@@ -395,43 +399,54 @@ class UserBookingController extends Controller
                         $fee = ($bCourtPrice * $feePercent) / 100; // Chỉ tính phạt trên tiền sân
                         $refund = $b->total_price - $fee; // Tiền hoàn lại = Tổng đơn - Phạt (Tự động hoàn 100% DV)
                         
-                        if ($refund > 0) {
-    $refundStatus = 'refunded';
-    
-    // 1. Lấy hoặc tạo Ví điện tử cho Khách hàng
-    $wallet = $user->getOrCreateWallet();
-    $balanceBefore = $wallet->balance;
-    
-    // 2. Cộng tiền hoàn vào Ví của Khách
-    $wallet->balance += $refund;
-    $wallet->save();
+                                if ($refund > 0) {
+                            $refundStatus = 'refunded';
 
-    // 3. Ghi Log giao dịch cho Khách (Sử dụng đúng wallet_id)
-    // 3. Ghi Log giao dịch cho Khách (Đã bổ sung reference)
-    WalletTransaction::create([
-        'wallet_id' => $wallet->id,
-        'booking_id' => $b->id,
-        'reference' => 'REFUND-B' . $b->id . '-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(5)), // Thêm dòng này
-        'type' => 'refund', 
-        'amount' => $refund,
-        'balance_before' => $balanceBefore,
-        'balance_after' => $wallet->balance,
-        'description' => 'Hoàn tiền sau khi trừ phí hủy cho đơn đặt sân #' . $b->id,
-    ]);
+                            $wallet = $user->getOrCreateWallet();
+                            $balanceBefore = $wallet->balance;
 
-    // 4. BẮT BUỘC: Trừ tiền từ Két sắt của Admin (Ví nền tảng)
-    if (class_exists(\App\Services\PlatformWalletService::class)) {
-        app(\App\Services\PlatformWalletService::class)->debit(
-            amount: $refund,
-            type: 'customer_refund_out',
-            description: 'Hoàn tiền cho khách hủy đơn #' . $b->id,
-            referenceType: 'booking',
-            referenceId: $b->id,
-            reference: 'REFUND-' . $b->id,
-            performedBy: Auth::id()
-        );
-    }
-}
+                            $wallet->balance += $refund;
+                            $wallet->save();
+
+                            WalletTransaction::create([
+                                'wallet_id' => $wallet->id,
+                                'booking_id' => $b->id,
+                                'reference' => 'REFUND-B' . $b->id . '-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(5)),
+                                'type' => TransactionType::REFUND,
+                                'amount' => $refund,
+                                'balance_before' => $balanceBefore,
+                                'balance_after' => $wallet->balance,
+                                'description' => 'Hoàn tiền sau khi trừ phí hủy cho đơn đặt sân #' . $b->id,
+                            ]);
+
+                            if ($fee > 0 && $b->court?->venue?->owner) {
+                                app(WalletService::class)->processTransaction(
+                                    wallet: $b->court->venue->owner->getOrCreateWallet(),
+                                    type: TransactionType::BOOKING_INCOME,
+                                    amount: $fee,
+                                    description: 'Phí hủy booking #'.$b->id.' do khách hủy',
+                                    bookingId: $b->id,
+                                    metadata: [
+                                        'payment_method' => $b->payment_method,
+                                        'fee_percent' => $feePercent,
+                                        'court_amount' => $bCourtPrice,
+                                    ],
+                                    reference: 'CANCEL-FEE-B'.$b->id
+                                );
+                            }
+
+                            if ($this->isPlatformOnlinePayment($b) && class_exists(PlatformWalletService::class)) {
+                                app(PlatformWalletService::class)->debit(
+                                    amount: $refund,
+                                    type: PlatformWalletTransaction::TYPE_CUSTOMER_REFUND_OUT,
+                                    description: 'Hoàn tiền cho khách hủy đơn #' . $b->id,
+                                    referenceType: 'booking',
+                                    referenceId: $b->id,
+                                    reference: 'REFUND-' . $b->id,
+                                    performedBy: Auth::id()
+                                );
+                            }
+                        }
                     }
 
                     $oldStatus = $b->status;
@@ -560,6 +575,16 @@ class UserBookingController extends Controller
             "{$slotDate} {$startTime}",
             'Asia/Ho_Chi_Minh'
         );
+    }
+
+    private function isPlatformOnlinePayment(Booking $booking): bool
+    {
+        return in_array(strtolower((string) $booking->payment_method), [
+            'vnpay',
+            'online',
+            'bank_transfer',
+            'platform_transfer',
+        ], true);
     }
 
     private function cancelErrorResponse(
