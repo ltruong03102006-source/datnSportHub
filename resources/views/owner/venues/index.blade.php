@@ -136,19 +136,32 @@
     @elseif(isset($venues))
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             @foreach($venues as $venue)
+                
+                {{-- BƯỚC 1: TÌM HỢP ĐỒNG ĐI KÈM CỦA CƠ SỞ --}}
+                @php
+                    $activeContract = \App\Models\Contract::where('venue_id', $venue->id)
+                        ->whereIn('status', ['draft', 'sent', 'accepted', 'terminated'])
+                        ->orderBy('id', 'desc')
+                        ->first();
+                @endphp
+
                 <div class="glass-card rounded-2xl overflow-hidden flex flex-col group relative">
- 
-                    <!-- Image Container -->
+                    
+                    <!-- Hình ảnh và Trạng thái -->
                     <div class="relative h-48 w-full bg-slate-100 overflow-hidden">
+                       {{-- CHỈ HIỂN THỊ KHI ĐÃ CÓ HỢP ĐỒNG (GỬI ĐI, ĐÃ KÝ, HOẶC CHẤM DỨT) --}}
+                        @if($activeContract && in_array($activeContract->status, ['sent', 'accepted', 'terminated']))
+                            <div class="absolute top-4 left-4 z-10">
+                                <span class="px-2.5 py-1 text-xs font-bold rounded-md bg-black/60 text-white backdrop-blur-md shadow-sm border border-white/10 flex items-center gap-1" 
+                                      title="Mức phí hoa hồng theo Hợp đồng">
+                                    Phí: <span class="text-amber-400">
+                                        {{ $activeContract->commission_rate + 0 }}%
+                                    </span>
+                                </span>
+                            </div>
+                        @endif
                         @if($venue->banner)
-                            <!-- Hình ảnh chính -->
-                            <img
-                                src="{{ asset('storage/' . $venue->banner) }}"
-                                alt="{{ $venue->name }}"
-                                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                            >
-                            <!-- Fallback nếu ảnh lỗi -->
+                            <img src="{{ asset('storage/' . $venue->banner) }}" alt="{{ $venue->name }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                             <div class="hidden absolute inset-0 bg-slate-100 flex-col items-center justify-center text-slate-400">
                                 <svg class="w-10 h-10 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                 <span class="text-xs font-medium">Lỗi tải ảnh</span>
@@ -161,33 +174,45 @@
                         @endif
  
                         <!-- Status Badge -->
-                        <div class="absolute top-4 right-4">
-@if($venue->status === 'pending')
-    <span class="px-3 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-700 border border-amber-200 backdrop-blur-md">
-        Chờ duyệt
-    </span>
- 
-@elseif(in_array($venue->status, ['approved']))
-    <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700 border border-green-200 backdrop-blur-md">
-        Hoạt động
-    </span>
- 
-@elseif($venue->status === 'inactive')
-    <span class="px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700 border border-red-200 backdrop-blur-md">
-        Ngừng hoạt động
-    </span>
- 
-@elseif($venue->status === 'suspended')
-    <span class="px-3 py-1 text-xs font-semibold rounded-full bg-red-900 text-white border border-red-900 backdrop-blur-md">
-        Bị khóa
-    </span>
- 
-@else
-    <span class="px-3 py-1 text-xs font-semibold rounded-full bg-slate-100 text-slate-700 border border-slate-200 backdrop-blur-md">
-        {{ ucfirst($venue->status) }}
-    </span>
-@endif
-</div>
+                        <div class="absolute top-4 right-4 z-10">
+                            @if($venue->status === 'active')
+                                <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 shadow-sm flex items-center gap-1.5 backdrop-blur-md">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Hoạt động
+                                </span>
+                            @elseif($venue->status === 'approved')
+                                @if($activeContract && $activeContract->status === 'sent')
+                                    <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-purple-100 text-purple-700 border border-purple-200 shadow-sm flex items-center gap-1.5 backdrop-blur-md">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg> Chờ ký HĐ
+                                    </span>
+                                @elseif($activeContract && $activeContract->status === 'draft')
+                                    <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-200 text-slate-700 border border-slate-300 shadow-sm flex items-center gap-1.5 backdrop-blur-md">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> Đang nháp HĐ
+                                    </span>
+                                @elseif($activeContract && $activeContract->status === 'accepted')
+                                    <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-teal-100 text-teal-700 border border-teal-200 shadow-sm flex items-center gap-1.5 backdrop-blur-md" title="Đã ký hợp đồng nhưng đang chờ hiệu lực / chờ Admin duyệt lại">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Đã ký HĐ
+                                    </span>
+                                @else
+                                    <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-sky-100 text-sky-700 border border-sky-200 shadow-sm flex items-center gap-1.5 backdrop-blur-md">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Đã duyệt
+                                    </span>
+                                @endif
+                            @elseif($venue->status === 'pending')
+                                <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-700 border border-amber-200 shadow-sm flex items-center gap-1.5 backdrop-blur-md">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Chờ duyệt
+                                </span>
+                            @elseif($venue->status === 'rejected')
+                                <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-red-100 text-red-700 border border-red-200 shadow-sm flex items-center gap-1.5 backdrop-blur-md">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg> Từ chối
+                                </span>
+                            @elseif($venue->status === 'inactive')
+                                <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-600 border border-slate-200 shadow-sm flex items-center gap-1.5 backdrop-blur-md">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg> Tạm ngừng
+                                </span>
+                            @else
+                                <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-700 border border-slate-200 shadow-sm backdrop-blur-md">{{ ucfirst($venue->status) }}</span>
+                            @endif
+                        </div>
                     </div>
  
                     <!-- Content -->
@@ -201,97 +226,85 @@
  
                         <hr class="border-slate-100 my-4 -mx-5">
  
- 
                         <!-- Actions -->
-<div class="grid grid-cols-2 gap-2 mt-auto">
-    <a href="{{ route('owner.web.venues.show', $venue->id) }}"
-       class="col-span-2 inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
-        Chi tiết & Quản lý sân con
-    </a>
-    <!-- Nút chuyển nhượng: Chỉ hiện khi sân đã duyệt hoặc đang tạm ngừng -->
-@if(in_array($venue->status, ['approved', 'inactive']))
-    @php
-        // Kiểm tra xem sân này có đang bị pending chuyển nhượng không
-        $hasPendingTransfer = \App\Models\VenueTransferRequest::where('venue_id', $venue->id)
-            ->where('status', 'pending')
-            ->exists();
-    @endphp
- 
-    <div class="mt-2">
-        @if($hasPendingTransfer)
-            <!-- Trạng thái: Nút bị vô hiệu hóa khi đang chờ duyệt -->
-            <button disabled class="w-full inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-slate-500 bg-slate-100 border border-slate-200 rounded-lg cursor-not-allowed shadow-sm">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                Đang chờ duyệt chuyển nhượng
-            </button>
-        @else
-            <!-- Trạng thái: Nút hoạt động bình thường -->
-            <a href="{{ route('owner.web.venues.transfer.create', $venue->id) }}"
-               class="w-full inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors shadow-sm">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-                Chuyển nhượng cơ sở
-            </a>
-        @endif
-    </div>
-@endif
-    <a href="{{ route('owner.web.venues.edit', $venue->id) }}"
-       class="inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
-        Sửa
-    </a>
- 
-    {{-- Chờ duyệt hoặc bị từ chối -> cho xóa --}}
-    @if(in_array($venue->status, ['pending', 'rejected']))
-        <form action="{{ route('owner.web.venues.destroy', $venue->id) }}"
-              method="POST"
-              class="inline-block w-full"
-              onsubmit="return confirm('Bạn có chắc muốn xóa cơ sở này?');">
-            @csrf
-            @method('DELETE')
- 
-            <button type="submit"
-                    class="w-full inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-100 rounded-lg transition-colors">
-                Xóa
-            </button>
-        </form>
- 
-    {{-- Đã duyệt và đang hoạt động -> chỉ cho tạm ngừng --}}
-    @elseif(in_array($venue->status, ['approved']))
-        <form action="{{ route('owner.web.venues.destroy', $venue->id) }}"
-              method="POST"
-              class="inline-block w-full"
-              onsubmit="return confirm('Tạm ngừng hoạt động cơ sở này?');">
-            @csrf
-            @method('DELETE')
- 
-            <button type="submit"
-                    class="w-full inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-100 rounded-lg transition-colors">
-                Tạm ngừng
-            </button>
-        </form>
- 
-    {{-- Đang tạm ngừng -> cho mở lại --}}
-    @elseif($venue->status === 'inactive')
-        <form action="{{ route('owner.web.venues.restore', $venue->id) }}"
-              method="POST"
-              class="inline-block w-full"
-              onsubmit="return confirm('Xác nhận mở lại cơ sở này?');">
-            @csrf
-            @method('PATCH')
- 
-            <button type="submit"
-                    class="w-full inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 rounded-lg transition-colors">
-                Mở lại
-            </button>
-        </form>
- 
-    {{-- Bị khóa --}}
-    @elseif($venue->status === 'suspended')
-        <button disabled
-                class="w-full px-4 py-2 text-sm font-medium text-gray-500 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed">
-            Đã bị khóa
-        </button>
-    @endif
-</div>
+                        <div class="grid grid-cols-2 gap-2 mt-auto">
+                            <!-- 1. NÚT CHI TIẾT SÂN CON -->
+                            <a href="{{ route('owner.web.venues.show', $venue->id) }}" class="col-span-2 inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors">
+                                Chi tiết & Quản lý sân con
+                            </a>
+
+                            <!-- 2. NÚT XEM HỢP ĐỒNG -->
+                            @if($activeContract && in_array($activeContract->status, ['sent', 'accepted', 'terminated']))
+                                <a href="{{ route('owner.contracts.show', $activeContract->id) }}" class="col-span-2 inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-white {{ $activeContract->status === 'terminated' ? 'bg-slate-500 hover:bg-slate-600' : 'bg-purple-600 hover:bg-purple-700' }} rounded-lg transition-colors shadow-sm">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    {{ $activeContract->status === 'terminated' ? 'Xem HĐ cũ' : 'Xem hợp đồng' }}
+                                </a>
+                            @endif
+                            
+                            <!-- 3. NÚT CHUYỂN NHƯỢNG VÀ NÚT SỬA -->
+                            @if(in_array($venue->status, ['approved', 'active', 'inactive']))
+                                @php
+                                    $hasPendingTransfer = \App\Models\VenueTransferRequest::where('venue_id', $venue->id)->where('status', 'pending')->exists();
+                                @endphp
+                            
+                                @if($hasPendingTransfer)
+                                    <button disabled class="w-full inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-slate-500 bg-slate-100 border border-slate-200 rounded-lg cursor-not-allowed shadow-sm" title="Đang chờ duyệt">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    </button>
+                                @else
+                                    <a href="{{ route('owner.web.venues.transfer.create', $venue->id) }}" class="w-full inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors shadow-sm">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                                        Chuyển nhượng
+                                    </a>
+                                @endif
+                            @else
+                                <div></div>
+                            @endif
+                        
+                            <a href="{{ route('owner.web.venues.edit', $venue->id) }}" class="inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+                                Sửa
+                            </a>
+                        
+                            <!-- 4. NÚT XÓA / TẠM NGỪNG / MỞ LẠI -->
+                            @if(in_array($venue->status, ['pending', 'rejected']))
+                                <form action="{{ route('owner.web.venues.destroy', $venue->id) }}" method="POST" class="col-span-2 m-0" onsubmit="return confirm('Bạn có chắc muốn xóa cơ sở này?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="w-full inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-100 rounded-lg transition-colors">
+                                        Xóa
+                                    </button>
+                                </form>
+                            @elseif(in_array($venue->status, ['approved', 'active'])) 
+                                <form action="{{ route('owner.web.venues.destroy', $venue->id) }}" method="POST" class="col-span-2 m-0" onsubmit="return confirm('Tạm ngừng hoạt động cơ sở này?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="w-full inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 border border-red-100 rounded-lg transition-colors">
+                                        Tạm ngừng
+                                    </button>
+                                </form>
+                            @elseif($venue->status === 'inactive')
+
+                                {{-- LOGIC CHUẨN: CHỈ KHÓA NẾU BỊ ADMIN CHẤM DỨT HỢP ĐỒNG --}}
+                                @if($activeContract && $activeContract->status === 'terminated')
+                                    <button disabled class="col-span-2 w-full inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-slate-500 bg-slate-100 border border-slate-200 rounded-lg cursor-not-allowed shadow-sm" title="Vui lòng liên hệ Admin ký hợp đồng mới để có thể mở lại sân">
+                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                        Khóa do HĐ chấm dứt
+                                    </button>
+                                @else
+                                    <form action="{{ route('owner.web.venues.restore', $venue->id) }}" method="POST" class="col-span-2 m-0" onsubmit="return confirm('Xác nhận mở lại cơ sở này?');">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="w-full inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 rounded-lg transition-colors">
+                                            Mở lại
+                                        </button>
+                                    </form>
+                                @endif
+                            @elseif($venue->status === 'suspended')
+                                <button disabled class="col-span-2 px-4 py-2 text-sm font-medium text-gray-500 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed">
+                                    Đã bị khóa
+                                </button>
+                            @endif
+                        </div>
                     </div>
                 </div>
             @endforeach

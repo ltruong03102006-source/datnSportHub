@@ -78,14 +78,10 @@
             </div>
 
             <div class="flex flex-wrap gap-3">
-                {{-- ĐÃ ẨN: Nút Nạp tiền --}}
-                {{-- 
-                <a href="{{ route('owner.web.wallet.topup.create') }}"
-                   class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-emerald-700">
-                    Nạp tiền
-                </a> 
-                --}}
-                
+                <a href="{{ route('owner.web.wallet.bank.edit') }}"
+                   class="inline-flex items-center justify-center rounded-xl border border-emerald-600 bg-white px-5 py-3 text-sm font-extrabold text-emerald-700 transition hover:bg-emerald-50">
+                    Thiết lập STK
+                </a>
                 <a href="{{ route('owner.web.withdrawals.create') }}"
                    class="inline-flex items-center justify-center rounded-xl border border-emerald-600 bg-emerald-600 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-emerald-700">
                     Rút tiền
@@ -136,6 +132,22 @@
                 <p class="mt-4 text-sm font-semibold text-slate-500">
                     Tổng số tiền trong các yêu cầu rút tiền đang chờ admin duyệt.
                 </p>
+            </div>
+            <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-1">
+                <p class="text-xs font-black uppercase tracking-wider text-slate-400">STK đã lưu</p>
+                @if(filled($owner->bank_account_no) && filled($owner->bank_name) && filled($owner->bank_account_name))
+                    <p class="mt-3 text-lg font-bold text-slate-900">{{ $owner->bank_name }} - {{ $owner->bank_account_no }}</p>
+                    <p class="mt-2 text-sm text-slate-500">{{ $owner->bank_account_name }}</p>
+                    <a href="{{ route('owner.web.wallet.bank.edit') }}" class="mt-4 inline-flex rounded-xl border border-emerald-600 bg-white px-4 py-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">
+                        Chỉnh sửa STK
+                    </a>
+                @else
+                    <p class="mt-3 text-lg font-bold text-slate-900">Chưa cấu hình</p>
+                    <p class="mt-2 text-sm text-slate-500">Hãy thiết lập tài khoản ngân hàng trước khi rút tiền.</p>
+                    <a href="{{ route('owner.web.wallet.bank.edit') }}" class="mt-4 inline-flex rounded-xl border border-emerald-600 bg-white px-4 py-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-50">
+                        Thiết lập ngay
+                    </a>
+                @endif
             </div>
         </section>
 

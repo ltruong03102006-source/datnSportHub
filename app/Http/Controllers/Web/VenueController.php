@@ -21,16 +21,16 @@ class VenueController extends Controller
     {
         // --- 1. LOGIC LƯU SESSION SÂN ĐÃ XEM ---
         $recentlyViewed = session()->get('recently_viewed', []);
-        
+
         // Xóa ID nếu đã tồn tại để tránh trùng lặp
         $recentlyViewed = array_diff($recentlyViewed, [$id]);
-        
+
         // Đẩy ID sân vừa xem lên đầu danh sách
         array_unshift($recentlyViewed, $id);
-        
+
         // Chỉ giữ lại tối đa 8 sân gần nhất cho nhẹ Session
         $recentlyViewed = array_slice($recentlyViewed, 0, 8);
-        
+
         session()->put('recently_viewed', $recentlyViewed);
         // ----------------------------------------
         $venue = Venue::with([
@@ -39,14 +39,16 @@ class VenueController extends Controller
             // Lọc: Chỉ lấy các sân con đang hoạt động và cho đặt online
             'courts' => function ($query) {
                 $query->where('status', 'active')
-                      ->where('is_bookable_online', true);
+                    ->where('is_bookable_online', true);
             },
-            'packages' => fn ($query) => $query->where('status', 'active')->orderBy('type')->orderBy('duration'),
+            'packages' => fn($query) => $query->where('status', 'active')->orderBy('type')->orderBy('duration'),
         ])->findOrFail($id);
+
+        $ownerPhone = $venue->phone ?? $venue->ownerRegistration?->phone;
 
         return view('venues.show', [
             'venue' => $venue,
-            'ownerPhone' => $venue->ownerRegistration?->phone, 
+            'ownerPhone' => $ownerPhone,
         ]);
     }
 }

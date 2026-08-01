@@ -41,19 +41,18 @@
                             </div>
 
                             <div class="col-12 col-md-6">
-                                <label for="owner_id" class="form-label">Chủ sân</label>
-                                <select id="owner_id" name="owner_id" class="form-select @error('owner_id') is-invalid @enderror">
-                                    <option value="">Chọn chủ sân</option>
-                                    @foreach($owners as $owner)
-                                        <option value="{{ $owner->id }}" {{ old('owner_id', $contract->owner_id) == $owner->id ? 'selected' : '' }}>
-                                            {{ $owner->name }} ({{ $owner->email }})
-                                        </option>
-                                    @endforeach
-                                </select>
-                                @error('owner_id')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
+    <label class="form-label">Chủ sân <span class="text-danger">*</span> (Không thể thay đổi)</label>
+    <input type="text" class="form-control bg-light" value="{{ $contract->owner?->name }} ({{ $contract->owner?->email }})" readonly>
+    <!-- Thẻ hidden để giữ data khi submit form -->
+    <input type="hidden" name="owner_id" value="{{ $contract->owner_id }}">
+</div>
+
+<div class="col-12 col-md-6">
+    <label class="form-label">Cơ sở liên kết <span class="text-danger">*</span> (Không thể thay đổi)</label>
+    <input type="text" class="form-control bg-light" value="{{ $contract->venue?->name ?? 'Không gắn cơ sở cụ thể' }}" readonly>
+    <!-- Thẻ hidden để giữ data khi submit form -->
+    <input type="hidden" name="venue_id" value="{{ $contract->venue_id }}">
+</div>
 
                             <div class="col-12 col-md-6">
                                 <label for="title" class="form-label">Tiêu đề hợp đồng</label>
@@ -64,11 +63,10 @@
                             </div>
 
                             <div class="col-12">
-                                <label for="content" class="form-label">Nội dung hợp đồng</label>
-                                <textarea id="content" name="content" rows="6" class="form-control @error('content') is-invalid @enderror" placeholder="Mô tả chi tiết điều khoản hợp đồng...">{{ old('content', $contract->content) }}</textarea>
-                                @error('content')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                <div class="alert alert-info mb-0">
+                                    <div class="fw-semibold mb-1">Nội dung hợp đồng được sinh tự động</div>
+                                    <div class="small">Bạn chỉ chỉnh sửa các trường dữ liệu động như chủ sân, cơ sở, hoa hồng và thời hạn. Văn bản pháp lý sẽ được render lại từ mẫu chuẩn.</div>
+                                </div>
                             </div>
 
                             <div class="col-12 col-md-4">
@@ -117,3 +115,57 @@
     </div>
 </div>
 @endsection
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ownerSelect = document.getElementById('owner_id');
+        const venueSelect = document.getElementById('venue_id');
+        
+        // Tạo một mảng lưu trữ gốc để tránh bị lỗi mất data khi ẩn/hiện trên một số trình duyệt
+        const venueOptions = Array.from(venueSelect.querySelectorAll('option:not([value=""])'));
+
+        function filterVenues() {
+            const selectedOwnerId = ownerSelect.value;
+
+            // 1. NẾU CHƯA CHỌN CHỦ SÂN: Khóa ô Cơ sở và ẩn tất cả tùy chọn
+            if (!selectedOwnerId) {
+                venueSelect.value = ""; // Reset về "Không gắn..."
+                venueSelect.disabled = true; // Bôi xám, khóa ô select
+                
+                venueOptions.forEach(option => {
+                    option.hidden = true; 
+                    option.style.display = 'none';
+                });
+                return; // Dừng hàm tại đây
+            }
+
+            // 2. NẾU ĐÃ CHỌN CHỦ SÂN: Mở khóa và bắt đầu lọc
+            venueSelect.disabled = false;
+            
+            venueOptions.forEach(option => {
+                if (option.dataset.ownerId === selectedOwnerId) {
+                    option.hidden = false;
+                    option.style.display = ''; // Hiện cơ sở đúng của chủ sân
+                } else {
+                    option.hidden = true;
+                    option.style.display = 'none'; // Ẩn cơ sở của người khác
+                }
+            });
+
+            // 3. Xử lý trường hợp đang chọn Chủ A + Sân A, đổi sang Chủ B thì sân bị sai
+            const currentVenueOption = venueSelect.options[venueSelect.selectedIndex];
+            if (currentVenueOption && currentVenueOption.value !== "" && currentVenueOption.dataset.ownerId !== selectedOwnerId) {
+                venueSelect.value = ""; // Tự động trả về "Không gắn..."
+            }
+        }
+
+        // Kích hoạt sự kiện lắng nghe
+        if (ownerSelect && venueSelect) {
+            ownerSelect.addEventListener('change', filterVenues);
+            
+            // Chạy ngay lần đầu tiên để ẩn danh sách lúc vừa vào trang (hoặc lúc load form Edit)
+            filterVenues();
+        }
+    });
+</script>
+@endpush

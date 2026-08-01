@@ -294,9 +294,6 @@
             <a href="{{ route('admin.bookings.index') }}" class="nav-item {{ request()->routeIs('admin.bookings.*') ? 'active' : '' }}">
                 <i class="fa-regular fa-calendar-check"></i> Quản lý đặt sân
             </a>
-            <a href="{{ route('admin.contracts.index') }}" class="nav-item {{ request()->routeIs('admin.contracts.*') ? 'active' : '' }}">
-                <i class="fa-solid fa-file-contract"></i> Quản lý hợp đồng
-            </a>
             <a href="{{ route('admin.packages.index') }}" class="nav-item {{ request()->routeIs('admin.packages.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-layer-group"></i> Quản lý gói
             </a>
@@ -312,10 +309,9 @@
             <a href="{{ route('admin.withdrawals.index') }}" class="nav-item {{ request()->routeIs('admin.withdrawals.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-money-bill-transfer"></i> Yêu cầu rút tiền
             </a>
-            <!-- MENU MỚI: CHUYỂN NHƯỢNG CƠ SỞ -->
-            <a href="{{ route('admin.venue-transfers.index') }}" 
-               class="nav-item {{ request()->routeIs('admin.venue-transfers.*') ? 'active' : '' }}">
-                <i class="fa-solid fa-right-left"></i> Chuyển nhượng cơ sở
+            <!-- THÊM NÚT NÀY VÀO ĐÂY -->
+            <a href="{{ route('admin.financial-settings.index') }}" class="nav-item {{ request()->routeIs('admin.financial-settings.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-money-bill-transfer"></i> Cấu hình tài chính
             </a>
             <!-- Mock links matching the screenshot -->
             {{-- <a href="#" class="nav-item"><i class="fa-solid fa-wallet"></i> Thanh toán</a>

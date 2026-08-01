@@ -4,10 +4,18 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule; // Nhớ có dòng này
 use App\Models\MatchPost; // Nhớ có dòng này
+use App\Services\ContractLifecycleService;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote')->hourly();
+
+Artisan::command('contracts:sync-statuses', function () {
+    $result = app(ContractLifecycleService::class)->syncStatuses();
+
+    $this->info("Expired {$result['expired_contracts']} contract(s).");
+    $this->info("Activated {$result['activated_venues']} venue(s).");
+})->purpose('Sync contract expiration and scheduled venue activation.');
 
 // --- CODE AUTO-EXPIRED CHẠY NGẦM CỦA BẠN Ở ĐÂY ---
 Schedule::call(function () {
@@ -44,4 +52,5 @@ Schedule::call(function () {
         ]);
     }
 })->everyMinute();
+Schedule::command('contracts:sync-statuses')->hourly();
 // --------------------------------------------------

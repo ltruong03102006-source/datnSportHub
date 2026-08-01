@@ -22,10 +22,10 @@ class AdminVenueController extends Controller
     {
         // 1. Thống kê số liệu (Stat Cards)
         $totalVenues = Venue::count();
-        $activeVenues = Venue::where('status', 'approved')->count();
-        $maintenanceVenues = Venue::where('status', 'pending')->count(); // Dùng pending tạm cho 'Đang sửa chữa'
+        $activeVenues = Venue::where('status', 'active')->count(); // Đang kinh doanh (Đã ký HĐ)
+        $approvedVenues = Venue::where('status', 'approved')->count(); // Đã duyệt hồ sơ (Chờ ký HĐ)
+        $maintenanceVenues = Venue::where('status', 'pending')->count();
         $lockedVenues = Venue::where('status', 'inactive')->count();
-
         // 2. Lấy dữ liệu danh sách cùng khoảng giá
         $query = Venue::with(['owner', 'sport', 'images'])
             ->select('venues.*')
@@ -92,7 +92,7 @@ class AdminVenueController extends Controller
             'name' => 'required|string|max:255',
             'sport_id' => 'required|exists:sports,id',
             'address' => 'required|string|max:255',
-            'status' => 'required|in:pending,approved,rejected,inactive',
+            'status' => 'required|in:pending,approved,active,rejected,inactive',
         ], [
             'name.required' => 'Vui lòng nhập tên sân.',
             'sport_id.required' => 'Vui lòng chọn môn thể thao.',

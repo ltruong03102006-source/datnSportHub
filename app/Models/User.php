@@ -22,7 +22,7 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     // 3. Khai báo sử dụng trait HasApiTokens
-    use HasApiTokens, HasFactory, Notifiable, HasWallet;
+   use HasApiTokens, HasFactory, Notifiable, HasWallet, SoftDeletes;
 
     /**
      * Get the attributes that should be cast.

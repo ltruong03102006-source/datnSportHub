@@ -101,6 +101,7 @@
                                         <th scope="col">STT</th>
                                         <th scope="col">Mã hợp đồng</th>
                                         <th scope="col">Chủ sân</th>
+                                        <th scope="col">Cơ sở</th>
                                         <th scope="col">Admin tạo</th>
                                         <th scope="col">Tiêu đề</th>
                                         <th scope="col">Hoa hồng</th>
@@ -117,6 +118,7 @@
                                             <td>{{ $contracts->firstItem() + $index }}</td>
                                             <td class="text-nowrap">{{ $contract->contract_code }}</td>
                                             <td>{{ $contract->owner?->name ?? '-' }}</td>
+                                            <td>{{ $contract->venue?->name ?? '-' }}</td>
                                             <td>{{ $contract->creator?->name ?? '-' }}</td>
                                             <td>{{ $contract->title }}</td>
                                             <td>{{ number_format($contract->commission_rate, 2) }}%</td>
@@ -146,15 +148,61 @@
                                             </td>
                                             <td>{{ $contract->created_at->format('Y-m-d H:i') }}</td>
                                             <td class="text-nowrap">
-                                                <a href="{{ route('admin.contracts.show', $contract) }}" class="btn btn-sm btn-outline-primary me-1 mb-1">Xem</a>
-                                                <a href="{{ route('admin.contracts.edit', $contract) }}" class="btn btn-sm btn-outline-secondary me-1 mb-1">Sửa</a>
-                                                @if(in_array($contract->status, ['draft', 'rejected'], true))
-                                                    <form action="{{ route('admin.contracts.send', $contract) }}" method="POST" class="d-inline mb-1" onsubmit="return confirm('Bạn có chắc chắn muốn gửi hợp đồng này?');">
-                                                        @csrf
-                                                        <button type="submit" class="btn btn-sm btn-outline-success">Gửi</button>
-                                                    </form>
-                                                @endif
-                                            </td>
+    <a href="{{ route('admin.contracts.show', $contract) }}" class="btn btn-sm btn-outline-primary me-1 mb-1">Xem</a>
+    
+    @if(in_array($contract->status, ['draft', 'rejected'], true))
+        <a href="{{ route('admin.contracts.edit', $contract) }}" class="btn btn-sm btn-outline-secondary me-1 mb-1">Sửa</a>
+        <form action="{{ route('admin.contracts.send', $contract) }}" method="POST" class="d-inline mb-1" onsubmit="return confirm('Bạn có chắc chắn muốn gửi hợp đồng này?');">
+            @csrf
+            <button type="submit" class="btn btn-sm btn-outline-success">Gửi</button>
+        </form>
+    @endif
+
+    <!-- THÊM NÚT CHẤM DỨT Ở ĐÂY -->
+    <!-- THÊM NÚT CHẤM DỨT (MODAL) Ở ĐÂY -->
+    @if($contract->status === 'accepted')
+        <button type="button" class="btn btn-sm btn-outline-danger mb-1" data-bs-toggle="modal" data-bs-target="#terminateModal{{ $contract->id }}">
+            Chấm dứt
+        </button>
+
+        <!-- MODAL CHO TỪNG HỢP ĐỒNG -->
+        <div class="modal fade" id="terminateModal{{ $contract->id }}" tabindex="-1" aria-hidden="true" style="white-space: normal;">
+            <div class="modal-dialog">
+                <div class="modal-content border-0 shadow">
+                    <form action="{{ route('admin.contracts.terminate', $contract) }}" method="POST">
+                        @csrf
+                        <div class="modal-header bg-danger text-white border-0">
+                            <h5 class="modal-title fw-bold">Chấm dứt hợp đồng {{ $contract->contract_code }}</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body bg-light text-start">
+                            <div class="alert alert-warning small mb-3">
+                                <strong>Cảnh báo:</strong> Vô hiệu hóa cơ sở không thể hoàn tác!
+                            </div>
+                            <label class="form-label fw-semibold text-dark">Lý do chấm dứt <span class="text-danger">*</span></label>
+
+<!-- Thêm required, minlength="10" và hiển thị lỗi -->
+<textarea name="reason" 
+          rows="3" 
+          class="form-control @error('reason') is-invalid @enderror" 
+          placeholder="Nhập lý do chấm dứt (tối thiểu 10 ký tự)..." 
+          required 
+          minlength="10">{{ old('reason') }}</textarea>
+
+@error('reason')
+    <div class="invalid-feedback d-block small mt-1 fw-bold">{{ $message }}</div>
+@enderror
+                        </div>
+                        <div class="modal-footer bg-light border-0">
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" class="btn btn-danger btn-sm">Xác nhận chấm dứt</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
+</td>
                                         </tr>
                                     @endforeach
                                 </tbody>

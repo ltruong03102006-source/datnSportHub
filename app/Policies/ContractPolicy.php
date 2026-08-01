@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Contract;
 use App\Models\User;
+use App\Services\ContractLifecycleService;
 use Illuminate\Auth\Access\HandlesAuthorization;
 use Illuminate\Auth\Access\Response;
 
@@ -13,7 +14,9 @@ class ContractPolicy
 
     public function viewAny(User $user): Response
     {
-        return Response::allow();
+        return in_array($user->role, ['admin', 'owner'], true)
+            ? Response::allow()
+            : Response::deny('Bạn không có quyền thực hiện thao tác này.');
     }
 
     public function view(User $user, Contract $contract): Response
@@ -23,6 +26,7 @@ class ContractPolicy
         }
 
         return $contract->owner_id === $user->id
+            && in_array($contract->status, ContractLifecycleService::OWNER_VISIBLE_STATUSES, true)
             ? Response::allow()
             : Response::deny('Bạn không có quyền thực hiện thao tác này.');
     }
@@ -93,7 +97,19 @@ class ContractPolicy
         }
 
         return $contract->owner_id === $user->id
+            && in_array($contract->status, ContractLifecycleService::OWNER_VISIBLE_STATUSES, true)
             ? Response::allow()
             : Response::deny('Bạn không có quyền thực hiện thao tác này.');
+    }
+    public function terminate(User $user, Contract $contract): Response
+    {
+        if ($user->role !== 'admin') {
+            return Response::deny('Bạn không có quyền thực hiện thao tác này.');
+        }
+
+        // Chỉ cho phép chấm dứt khi hợp đồng đang ở trạng thái "Đã chấp nhận" (có hiệu lực)
+        return $contract->status === 'accepted'
+            ? Response::allow()
+            : Response::deny('Chỉ có thể chấm dứt hợp đồng đang có hiệu lực.');
     }
 }
