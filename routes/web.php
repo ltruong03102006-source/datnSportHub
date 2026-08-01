@@ -275,9 +275,17 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
     Route::get('/venues/{venue}/transfer', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'create'])->name('venues.transfer.create');
     Route::post('/venues/{venue}/transfer', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'store'])->name('venues.transfer.store');
     Route::get('/venues/transfers/history', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'history'])->name('venues.transfers.history');
+    // Hiển thị chi tiết Hợp đồng chuyển nhượng
+    Route::get('/venues/transfers/{transfer}/show', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'show'])
+        ->name('venues.transfers.show');
+
     // Hiển thị form điền pháp lý cho chủ mới
     Route::get('venues/transfers/{transfer}/accept', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'showAcceptForm'])
         ->name('venues.transfers.accept');
+
+    // Gửi thông báo hợp đồng chuyển nhượng đến Bên nhận
+    Route::post('venues/transfers/{transfer}/send', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'sendNotification'])
+        ->name('venues.transfers.send');
 
     // Xử lý nộp form pháp lý
     Route::post('venues/transfers/{transfer}/accept', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'submitAcceptForm'])

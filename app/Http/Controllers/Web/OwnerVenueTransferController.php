@@ -54,7 +54,7 @@ class OwnerVenueTransferController extends Controller
         ]);
 
         return redirect()->route('owner.web.venues.transfers.history')
-            ->with('success', 'Đã tạo hợp đồng chuyển nhượng thành công! Vui lòng chờ Chủ mới xác nhận.');
+            ->with('success', 'Đã tạo hợp đồng chuyển nhượng thành công! Hợp đồng đã được thêm vào trang quản lý.');
     }
 
     public function checkEmail(Request $request)
@@ -79,19 +79,104 @@ class OwnerVenueTransferController extends Controller
     }
 
     /**
-     * Hiển thị lịch sử chuyển nhượng (Của cả Chủ cũ và Chủ mới)
+     * Hiển thị trang Quản lý Hợp đồng chuyển nhượng (Của cả Chủ cũ và Chủ mới)
      */
-    public function history()
+    public function history(Request $request)
     {
         $userId = auth()->id();
         
-        $transfers = VenueTransferRequest::with(['venue', 'fromOwner', 'toOwner'])
-            ->where('from_owner_id', $userId)
-            ->orWhere('to_owner_id', $userId)
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        $query = VenueTransferRequest::with(['venue', 'fromOwner', 'toOwner'])
+            ->where(function ($q) use ($userId) {
+                $q->where('from_owner_id', $userId)
+                  ->orWhere('to_owner_id', $userId);
+            });
+
+        // Lọc theo Trạng thái
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        // Lọc theo Tìm kiếm
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $searchType = $request->input('search_type', 'all');
+
+            $query->where(function ($q) use ($search, $searchType) {
+                if ($searchType === 'code') {
+                    $cleanId = preg_replace('/[^0-9]/', '', $search);
+                    if ($cleanId !== '') {
+                        $q->where('id', $cleanId);
+                    } else {
+                        $q->where('id', $search);
+                    }
+                } elseif ($searchType === 'venue') {
+                    $q->whereHas('venue', function ($vq) use ($search) {
+                        $vq->where('name', 'like', "%{$search}%");
+                    });
+                } else {
+                    $cleanId = preg_replace('/[^0-9]/', '', $search);
+                    if ($cleanId !== '') {
+                        $q->where('id', $cleanId);
+                    }
+                    $q->orWhereHas('venue', function ($vq) use ($search) {
+                        $vq->where('name', 'like', "%{$search}%");
+                    });
+                }
+            });
+        }
+
+        $transfers = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
 
         return view('owner.venues.transfers.history', compact('transfers'));
+    }
+
+    /**
+     * Hiển thị Chi tiết văn bản Hợp đồng chuyển nhượng cơ sở thể thao
+     */
+    public function show(VenueTransferRequest $transfer)
+    {
+        $userId = auth()->id();
+        if ($transfer->from_owner_id !== $userId && $transfer->to_owner_id !== $userId && optional(auth()->user())->role !== 'admin') {
+            abort(403, 'Bạn không có quyền xem hợp đồng này.');
+        }
+
+        $transfer->load(['venue', 'fromOwner', 'toOwner']);
+
+        return view('owner.venues.transfers.show', compact('transfer'));
+    }
+
+    /**
+     * Gửi thông báo Hợp đồng chuyển nhượng đến Bên nhận
+     */
+    public function sendNotification(VenueTransferRequest $transfer)
+    {
+        // Chỉ Bên A (người tạo hợp đồng) mới được gửi
+        if ($transfer->from_owner_id !== auth()->id()) {
+            abort(403, 'Bạn không có quyền thực hiện thao tác này.');
+        }
+
+        // Chỉ cho phép gửi khi chưa gửi và trạng thái còn pending
+        if ($transfer->notified_at || $transfer->status !== 'pending') {
+            return redirect()->route('owner.web.venues.transfers.history')
+                ->with('error', 'Hợp đồng này đã được gửi hoặc không ở trạng thái hợp lệ.');
+        }
+
+        $transfer->update([
+            'notified_at' => now(),
+        ]);
+
+        // Gửi thông báo trong hệ thống cho Bên B
+        try {
+            $toOwner = $transfer->toOwner;
+            if ($toOwner) {
+                $toOwner->notify(new \App\Notifications\VenueTransferContractNotification($transfer));
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Gửi thông báo chuyển nhượng thất bại: ' . $e->getMessage());
+        }
+
+        return redirect()->route('owner.web.venues.transfers.history')
+            ->with('success', 'Đã gửi hợp đồng thành công đến Bên nhận!');
     }
 
     /**

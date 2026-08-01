@@ -18,6 +18,7 @@ class VenueTransferRequest extends Model
         'price',
         'contract_date',
         'contract_location',
+        'notified_at',
         'status',
         'admin_note',
         'receiver_data', 
@@ -27,6 +28,7 @@ class VenueTransferRequest extends Model
         'receiver_data' => 'array',
         'contract_date' => 'date',
         'price' => 'decimal:2',
+        'notified_at' => 'datetime',
     ];
 
     /**
