@@ -5,33 +5,59 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Ward;
 
 class MatchPost extends Model
 {
     protected $fillable = [
-        'user_id', 'sport_id', 'province_code', 'title', 'play_date', 
-        'play_time', 'location', 'skill_level', 
-        'needed_players', 'contact_info', 'description', 'status', 'total_players'
+        'user_id',
+        'sport_id',
+        'province_code',
+        'ward_code',
+        'title',
+        'play_date',
+        'play_time',
+        'location',
+        'skill_level',
+        'needed_players',
+        'total_players',
+        'contact_info',
+        'description',
+        'status'
     ];
 
     protected $casts = [
         'play_date' => 'date',
     ];
 
-    public function user(): BelongsTo { return $this->belongsTo(User::class); }
-    public function sport(): BelongsTo { return $this->belongsTo(Sport::class); }
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+    public function sport(): BelongsTo
+    {
+        return $this->belongsTo(Sport::class);
+    }
 
     // Lấy tất cả người xin tham gia
-    public function participants(): HasMany {
+    public function participants(): HasMany
+    {
         return $this->hasMany(MatchParticipant::class);
     }
 
     // Lấy những người ĐÃ ĐƯỢC DUYỆT
-    public function approvedParticipants(): HasMany {
+    public function approvedParticipants(): HasMany
+    {
         return $this->hasMany(MatchParticipant::class)->where('status', 'approved');
     }
-    public function province(): BelongsTo { 
+    public function province(): BelongsTo
+    {
         // Liên kết bằng cột province_code trong bảng match_posts với cột code trong bảng provinces
-        return $this->belongsTo(Province::class, 'province_code', 'code'); 
+        return $this->belongsTo(Province::class, 'province_code', 'code');
+    }
+
+    public function ward(): BelongsTo
+    {
+        return $this->belongsTo(Ward::class, 'ward_code', 'code');
     }
 }

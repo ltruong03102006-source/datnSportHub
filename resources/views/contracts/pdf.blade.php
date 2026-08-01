@@ -34,6 +34,7 @@
             <div class="row"><div class="label">Mã hợp đồng</div><div class="value">{{ $contract->contract_code }}</div></div>
             <div class="row"><div class="label">Tiêu đề</div><div class="value">{{ $contract->title }}</div></div>
             <div class="row"><div class="label">Nội dung</div><div class="value notes">{{ $contract->content }}</div></div>
+            <div class="row"><div class="label">Cơ sở liên kết</div><div class="value">{{ $contract->venue?->name ?? 'Chưa liên kết' }}</div></div>
             <div class="row"><div class="label">Hoa hồng</div><div class="value">{{ number_format($contract->commission_rate, 2) }}%</div></div>
             <div class="row"><div class="label">Ngày bắt đầu</div><div class="value">{{ $contract->start_date?->format('Y-m-d') }}</div></div>
             <div class="row"><div class="label">Ngày kết thúc</div><div class="value">{{ $contract->end_date?->format('Y-m-d') }}</div></div>

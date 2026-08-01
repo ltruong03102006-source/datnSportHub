@@ -3,7 +3,8 @@
 @section('title','Dashboard')
 
 @section('content')
-<div x-data="{ openRejectModal: false }">
+<!-- Kiểm tra nếu có lỗi của trường rejection_reason thì tự động mở Modal -->
+<div x-data="{ openRejectModal: {{ $errors->has('rejection_reason') ? 'true' : 'false' }} }">
 <main class="container-fluid max-w-7xl py-4 space-y-4">
 
     <!-- Top Header & Action Controls -->
@@ -69,6 +70,26 @@
             </div>
         </div>
     @endif
+
+    <!-- THÊM ĐOẠN NÀY VÀO: Thông báo khi bị Chấm dứt hợp đồng -->
+    @if($contract->status === 'terminated' && $contract->note)
+        <div class="alert alert-dark bg-dark text-white rounded-4 p-4 d-flex align-items-start gap-3 shadow-sm mb-4 mt-4">
+            <div class="p-2 bg-secondary text-white rounded-3 flex-shrink-0 d-flex align-items-center justify-content-center">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+            </div>
+            <div>
+                <h3 class="fw-bold small mb-1">Hợp đồng đã bị chấm dứt trước thời hạn</h3>
+                <p class="small mb-2 text-light">Quản trị viên SportHub đã thực hiện chấm dứt hợp đồng này. Cơ sở liên kết hiện đang bị tạm khóa hoặc gỡ khỏi hệ thống.</p>
+                <div class="bg-secondary bg-opacity-25 p-3 rounded-3 border border-secondary mt-2">
+                    <p class="small mb-0 text-white font-monospace" style="white-space: pre-line;">{{ $contract->note }}</p>
+                </div>
+            </div>
+        </div>
+    @endif
+    <!-- KẾT THÚC ĐOẠN THÊM -->
+
+    <!-- Main Details Section Grid -->
+    <div class="row g-4">
 
     <!-- Main Details Section Grid -->
     <div class="row g-4">
@@ -142,13 +163,21 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="col-12">
+                        <div class="p-3 rounded-3 bg-light border">
+                            <span class="small fw-medium text-muted text-uppercase tracking-wider d-block mb-1" style="font-size: 0.7rem;">Cơ sở liên kết</span>
+                            <div class="fw-semibold text-dark small">{{ $contract->venue?->name ?? 'Chưa gắn cơ sở cụ thể' }}</div>
+                            <div class="small text-muted mt-1">Khi bạn đồng ý hợp đồng, hệ thống sẽ kích hoạt cơ sở này để hoạt động trên nền tảng.</div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Contract Document Content -->
                 <div>
                     <h3 class="small font-weight-bold text-dark mb-2">Nội dung hợp đồng</h3>
-                    <div class="p-4 rounded-3 bg-light border text-dark lh-lg font-serif small user-select-text" style="max-height: 24rem; overflow-y: auto; white-space: pre-line;">
-                        {!! e($contract->content) !!}
+                    <div class="p-4 rounded-3 bg-light border text-dark lh-lg font-serif small user-select-text" style="max-height: 24rem; overflow-y: auto;">
+                        {!! $contract->content !!}
                     </div>
                 </div>
             </div>

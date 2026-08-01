@@ -418,6 +418,17 @@
         </thead>
         <tbody>
             @forelse($venues as $venue)
+            
+           {{-- KIỂM TRA XEM CƠ SỞ NÀY CÓ HỢP ĐỒNG NÀO ĐANG NHÁP/GỬI/CHỜ HIỆU LỰC KHÔNG --}}
+            {{-- KIỂM TRA XEM CƠ SỞ NÀY CÓ HỢP ĐỒNG NÀO ĐANG NHÁP/GỬI/CHỜ HIỆU LỰC KHÔNG --}}
+            @php
+                $activeContract = \App\Models\Contract::where('venue_id', $venue->id)
+                    // PHẢI THÊM 'terminated' VÀO ĐÚNG DÒNG NÀY THÌ ADMIN MỚI THẤY
+                    ->whereIn('status', ['draft', 'sent', 'accepted', 'terminated']) 
+                    ->orderBy('id', 'desc')
+                    ->first();
+            @endphp
+            
             <tr>
                 <td>
                     <div class="venue-info">
@@ -448,9 +459,25 @@
                 <td title="{{ $venue->address }}">
                     <div class="address-text">{{ $venue->address }}</div>
                 </td>
-                <td>
-                    @if($venue->status === 'approved')
-                        <span class="badge bg-success-subtle text-success">Hoạt động</span>
+               <td>
+                    @if($venue->status === 'active')
+                        <span class="badge bg-success-subtle text-success"><i class="fa-solid fa-circle-check"></i> Hoạt động</span>
+                    @elseif($venue->status === 'approved')
+                        
+                        {{-- PHÂN LOẠI TRẠNG THÁI THEO TIẾN ĐỘ HỢP ĐỒNG --}}
+                        @if($activeContract && $activeContract->status === 'accepted')
+                            <!-- Lấy ngày tháng động từ CSDL -->
+                            <span class="badge" style="background-color: #ccfbf1; color: #0f766e;" title="Chờ đến ngày {{ \Carbon\Carbon::parse($activeContract->start_date)->format('d/m/Y') }} để tự động kích hoạt">
+                                <i class="fa-solid fa-clock"></i> Chờ hiệu lực ({{ \Carbon\Carbon::parse($activeContract->start_date)->format('d/m') }})
+                            </span>
+                        @elseif($activeContract && $activeContract->status === 'sent')
+                            <span class="badge" style="background-color: #f3e8ff; color: #7e22ce;"><i class="fa-solid fa-pen-nib"></i> Chờ ký HĐ</span>
+                        @elseif($activeContract && $activeContract->status === 'draft')
+                            <span class="badge" style="background-color: #e2e8f0; color: #475569;"><i class="fa-solid fa-file-lines"></i> Đang nháp HĐ</span>
+                        @else
+                            <span class="badge" style="background-color: #e0f2fe; color: #0284c7;"><i class="fa-solid fa-check-double"></i> Đã duyệt</span>
+                        @endif
+
                     @elseif($venue->status === 'pending')
                         <span class="badge bg-warning-subtle text-warning">Chờ duyệt</span>
                     @elseif($venue->status === 'rejected')
@@ -483,23 +510,63 @@
                         
                         {{-- (Các nút form Duyệt/Từ chối của bạn ở dưới giữ nguyên) --}}
                     @if($venue->status === 'pending')
-    <form action="{{ route('admin.venues.approve', $venue->id) }}" method="POST">
-        @csrf
-        <button type="submit" class="venue-action-btn venue-action-approve"><i class="fa-solid fa-check"></i> Duyệt</button>
-    </form>
+                            <form action="{{ route('admin.venues.approve', $venue->id) }}" method="POST">
+                                @csrf
+                                <button type="submit" class="venue-action-btn venue-action-approve"><i class="fa-solid fa-check"></i> Duyệt</button>
+                            </form>
 
-    <form action="{{ route('admin.venues.reject', $venue->id) }}"
-      method="POST"
-      onsubmit="return rejectVenueConfirm(this);">
-    @csrf
+                            <form action="{{ route('admin.venues.reject', $venue->id) }}"
+                                  method="POST"
+                                  onsubmit="return rejectVenueConfirm(this);">
+                                @csrf
+                                <input type="hidden" name="reject_reason" class="reject-reason-input">
+                                <button type="submit" class="venue-action-btn venue-action-reject">
+                                    <i class="fa-solid fa-xmark"></i> Từ chối
+                                </button>
+                            </form>
+                        @endif
 
-    <input type="hidden" name="reject_reason" class="reject-reason-input">
-
-    <button type="submit" class="venue-action-btn venue-action-reject">
-        <i class="fa-solid fa-xmark"></i> Từ chối
-    </button>
-</form>
-@endif
+                        {{-- THÊM MỚI ĐOẠN NÀY: Nút Tạo hợp đồng khi vừa duyệt xong --}}
+                       {{-- HIỂN THỊ NÚT DỰA VÀO TIẾN ĐỘ HỢP ĐỒNG --}}
+                        {{-- HIỂN THỊ NÚT DỰA VÀO TIẾN ĐỘ HỢP ĐỒNG --}}
+                       {{-- XỬ LÝ CÁC NÚT LIÊN QUAN ĐẾN HỢP ĐỒNG --}}
+                        @if(in_array($venue->status, ['approved', 'active', 'inactive']))
+                            @if(!$activeContract)
+                                <!-- Chưa có HĐ -> Hiện nút TẠO HỢP ĐỒNG -->
+                                <a href="{{ route('admin.contracts.create', ['owner_id' => $venue->owner_id, 'venue_id' => $venue->id]) }}" 
+                                   class="venue-action-btn" 
+                                   style="background-color: #0ea5e9; color: white; border: none; box-shadow: 0 4px 6px rgba(14, 165, 233, 0.2);">
+                                    <i class="fa-solid fa-file-contract"></i> Tạo hợp đồng
+                                </a>
+                            @elseif($activeContract->status === 'draft')
+                                <!-- Đang nháp -> Hiện nút SỬA HĐ NHÁP -->
+                                <a href="{{ route('admin.contracts.edit', $activeContract->id) }}" 
+                                   class="venue-action-btn" 
+                                   style="background-color: #64748b; color: white; border: none;">
+                                    <i class="fa-solid fa-pen-to-square"></i> Sửa HĐ Nháp
+                                </a>
+                            @elseif(in_array($activeContract->status, ['sent', 'accepted']))
+                                <!-- Đang chờ ký hoặc Đã ký -> Hiện nút XEM HĐ -->
+                                <a href="{{ route('admin.contracts.show', $activeContract->id) }}" 
+                                   class="venue-action-btn" 
+                                   style="background-color: #10b981; color: white; border: none; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);">
+                                    <i class="fa-solid fa-eye"></i> Xem HĐ
+                                </a>
+                            @elseif($activeContract->status === 'terminated')
+                                <!-- Hợp đồng đã chấm dứt -> Hiện nút XEM HĐ CŨ (Màu xám) VÀ nút KÝ HĐ MỚI (Màu xanh) -->
+                                <a href="{{ route('admin.contracts.show', $activeContract->id) }}" 
+                                   class="venue-action-btn" 
+                                   style="background-color: #64748b; color: white; border: none;">
+                                    <i class="fa-solid fa-file-pdf"></i> Xem HĐ cũ
+                                </a>
+                                <a href="{{ route('admin.contracts.create', ['owner_id' => $venue->owner_id, 'venue_id' => $venue->id]) }}" 
+                                   class="venue-action-btn" 
+                                   style="background-color: #0ea5e9; color: white; border: none; box-shadow: 0 4px 6px rgba(14, 165, 233, 0.2);">
+                                    <i class="fa-solid fa-file-contract"></i> Ký HĐ mới
+                                </a>
+                            @endif
+                        @endif
+                        
                     </div>
                 </td>
             </tr>

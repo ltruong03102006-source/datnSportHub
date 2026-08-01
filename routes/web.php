@@ -187,6 +187,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/contracts/{contract}/send', [\App\Http\Controllers\Web\AdminContractController::class, 'send'])->name('contracts.send');
         Route::get('/contracts/{contract}/pdf', [\App\Http\Controllers\Web\AdminContractController::class, 'exportPdf'])->name('contracts.pdf');
         Route::get('/contracts/{contract}', [\App\Http\Controllers\Web\AdminContractController::class, 'show'])->name('contracts.show');
+        Route::post('/contracts/{contract}/terminate', [\App\Http\Controllers\Web\AdminContractController::class, 'terminate'])->name('contracts.terminate');
     });
 });
 

@@ -7,6 +7,7 @@ use App\Models\MatchPost;
 use App\Models\Sport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 use App\Models\MatchParticipant;
 
 class MatchPostController extends Controller
@@ -16,18 +17,20 @@ class MatchPostController extends Controller
     {
         $sports = Sport::orderBy('name')->get();
         $provinces = \App\Models\Province::orderedByName()->get();
-        $query = MatchPost::with(['user', 'sport', 'province'])
-                    ->where('status', 'open')
-                    // CHẶN TRIỆT ĐỂ NGÀY VÀ GIỜ TRONG QUÁ KHỨ
-                    ->where(function ($q) {
-                        // Kèo của ngày mai, ngày kia... (Luôn hiện)
-                        $q->where('play_date', '>', now()->toDateString())
-                          // HOẶC Kèo của ngày hôm nay, nhưng GIỜ ĐÁ PHẢI CHƯA XẢY RA
-                          ->orWhere(function ($sq) {
-                              $sq->where('play_date', now()->toDateString())
-                                 ->where('play_time', '>', now()->format('H:i'));
-                          });
+        $wards = collect();
+
+        $query = MatchPost::with(['user', 'sport', 'province', 'ward'])
+            ->where('status', 'open')
+            // CHẶN TRIỆT ĐỂ NGÀY VÀ GIỜ TRONG QUÁ KHỨ
+            ->where(function ($q) {
+                // Kèo của ngày mai, ngày kia... (Luôn hiện)
+                $q->where('play_date', '>', now()->toDateString())
+                    // HOẶC Kèo của ngày hôm nay, nhưng GIỜ ĐÁ PHẢI CHƯA XẢY RA
+                    ->orWhere(function ($sq) {
+                        $sq->where('play_date', now()->toDateString())
+                            ->where('play_time', '>', now()->format('H:i'));
                     });
+            });
 
         // Lọc theo môn thể thao nếu có
         if ($request->filled('sport_id')) {
@@ -36,13 +39,18 @@ class MatchPostController extends Controller
         // THÊM MỚI: LỌC THEO TỈNH THÀNH
         if ($request->filled('province_code')) {
             $query->where('province_code', $request->province_code);
+            $wards = \App\Models\Ward::forProvince($request->province_code)->get();
+        }
+        // THÊM MỚI: LỌC THEO PHƯỜNG / XÃ
+        if ($request->filled('ward_code')) {
+            $query->where('ward_code', $request->ward_code);
         }
         // Ưu tiên kèo sắp đá lên đầu
         $posts = $query->orderBy('play_date', 'asc')
-                       ->orderBy('play_time', 'asc')
-                       ->paginate(12);
+            ->orderBy('play_time', 'asc')
+            ->paginate(12);
 
-        return view('community.index', compact('posts', 'sports', 'provinces'));
+        return view('community.index', compact('posts', 'sports', 'provinces', 'wards'));
     }
 
     // 2. Lưu kèo mới (AJAX)
@@ -51,6 +59,12 @@ class MatchPostController extends Controller
         try {
             $validated = $request->validate([
                 'sport_id' => 'required|exists:sports,id',
+                'province_code' => 'required|string|exists:provinces,code',
+                'ward_code' => [
+                    'required',
+                    'string',
+                    Rule::exists('wards', 'code')->where('province_code', $request->province_code),
+                ],
                 'title' => 'required|string|max:255',
                 'play_date' => 'required|date|after_or_equal:today',
                 'play_time' => 'required',
@@ -84,13 +98,14 @@ class MatchPostController extends Controller
             'user_id' => Auth::id(),
             'sport_id' => $request->sport_id,
             'province_code' => $request->province_code,
+            'ward_code' => $request->ward_code,
             'title' => $request->title,
             'play_date' => $request->play_date,
             'play_time' => $request->play_time,
             'location' => $request->location,
             'skill_level' => $request->skill_level,
             'total_players' => $request->total_players,
-            'needed_players' => $request->needed_players, 
+            'needed_players' => $request->needed_players,
             'contact_info' => $request->contact_info, // THÊM LẠI DÒNG NÀY (Vì bạn đang dùng SĐT)
             'description' => $request->description,
             'status' => 'open'
@@ -107,18 +122,18 @@ class MatchPostController extends Controller
 
         // TAB 1: Kèo do mình tạo
         $posts = MatchPost::with('sport')
-                    ->where('user_id', $userId)
-                    ->orderBy('created_at', 'desc')
-                    ->paginate(15);
+            ->where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
 
         // TAB 2: Kèo mình xin tham gia (Lấy thông tin kèo và trạng thái tham gia)
         $joinedPosts = MatchPost::with(['sport', 'user']) // Lấy thêm 'user' để biết ai là chủ kèo
-                    ->whereHas('participants', function($query) use ($userId) {
-                        $query->where('user_id', $userId);
-                    })
-                    ->orderBy('play_date', 'desc')
-                    ->orderBy('play_time', 'desc')
-                    ->get();
+            ->whereHas('participants', function ($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })
+            ->orderBy('play_date', 'desc')
+            ->orderBy('play_time', 'desc')
+            ->get();
 
         return view('community.my_posts', compact('posts', 'joinedPosts'));
     }
@@ -127,7 +142,7 @@ class MatchPostController extends Controller
     public function closePost(MatchPost $matchPost)
     {
         if ($matchPost->user_id !== Auth::id()) abort(403);
-        
+
         $matchPost->update(['status' => 'closed']);
         return back()->with('success', 'Đã đóng kèo thành công!');
     }
@@ -142,7 +157,7 @@ class MatchPostController extends Controller
 
         // 2. THAY ĐỔI CỐT LÕI: Đổi trạng thái thành 'cancelled' (KHÔNG DÙNG delete() NỮA)
         $matchPost->update(['status' => 'cancelled']);
-        
+
         // 3. Tự động từ chối tất cả những người đang xin tham gia kèo này
         $matchPost->participants()->update(['status' => 'rejected']);
 
@@ -166,8 +181,8 @@ class MatchPostController extends Controller
 
         // 3. KIỂM TRA LỊCH SỬ THAM GIA CỦA NGƯỜI NÀY (Đoạn code bạn yêu cầu)
         $existingParticipant = \App\Models\MatchParticipant::where('match_post_id', $matchPost->id)
-                                               ->where('user_id', $userId)
-                                               ->first();
+            ->where('user_id', $userId)
+            ->first();
 
         if ($existingParticipant) {
             if ($existingParticipant->status === 'pending') {
@@ -176,7 +191,7 @@ class MatchPostController extends Controller
                 return response()->json(['message' => 'Bạn đã được duyệt vào kèo này rồi mà!'], 400);
             } elseif ($existingParticipant->status === 'kicked') {
                 return response()->json(['message' => 'Bạn đã bị chủ kèo mời ra, không thể tham gia lại.'], 400);
-            // THÊM NHÁNH NÀY:
+                // THÊM NHÁNH NÀY:
             } elseif ($existingParticipant->status === 'withdrawn') {
                 return response()->json(['message' => 'Bạn đã rút lui khỏi kèo này rồi, không thể xin tham gia lại.'], 400);
             } else {
@@ -199,7 +214,7 @@ class MatchPostController extends Controller
     public function approveParticipant(MatchParticipant $participant)
     {
         $post = $participant->matchPost;
-        
+
         // Chỉ chủ bài mới có quyền duyệt
         if ($post->user_id !== Auth::id()) abort(403);
 
@@ -228,7 +243,7 @@ class MatchPostController extends Controller
     public function rejectParticipant(\App\Models\MatchParticipant $participant)
     {
         $post = $participant->matchPost;
-        
+
         // Chỉ chủ bài mới có quyền từ chối/kick
         if ($post->user_id !== \Illuminate\Support\Facades\Auth::id()) abort(403);
 
@@ -262,7 +277,7 @@ class MatchPostController extends Controller
 
         if ($participant) {
             $wasApproved = ($participant->status === 'approved');
-            
+
             if ($wasApproved) {
                 // A. Nếu ĐÃ DUYỆT mà hủy -> Đổi trạng thái thành RÚT LUI (để chủ sân còn thấy)
                 $participant->update(['status' => 'withdrawn']);
@@ -273,12 +288,12 @@ class MatchPostController extends Controller
                 }
             } else {
                 // C. Nếu mới Pending mà hủy -> Xóa luôn cho sạch Database
-                $participant->delete(); 
+                $participant->delete();
             }
-            
+
             return response()->json(['message' => 'Bạn đã hủy tham gia kèo này thành công.']);
         }
-        
+
         return response()->json(['message' => 'Không tìm thấy yêu cầu.'], 404);
     }
 }

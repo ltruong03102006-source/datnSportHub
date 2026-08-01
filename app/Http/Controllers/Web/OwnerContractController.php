@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
+use App\Services\ContractLifecycleService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Storage;
 
 class OwnerContractController extends Controller
 {
@@ -22,6 +24,7 @@ class OwnerContractController extends Controller
 
         $contracts = Contract::with('creator')
             ->where('owner_id', Auth::id())
+            ->whereIn('status', ContractLifecycleService::OWNER_VISIBLE_STATUSES)
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
@@ -42,7 +45,7 @@ class OwnerContractController extends Controller
             abort(403);
         }
 
-        $contract->load('creator');
+        $contract->load(['creator', 'venue']);
 
         return view('owner.contracts.show', compact('contract'));
     }
@@ -53,27 +56,58 @@ class OwnerContractController extends Controller
      * @param Contract $contract
      * @return \Illuminate\Http\RedirectResponse
      */
-    public function accept(Contract $contract)
-    {
-        $this->authorize('accept', $contract);
+    // Thêm Request $request vào tham số
+public function accept(Request $request, Contract $contract, ContractLifecycleService $contracts)
+{
+    $this->authorize('accept', $contract);
 
-        if ($contract->owner_id !== Auth::id()) {
-            abort(403);
+    if ($contract->owner_id !== Auth::id()) {
+        abort(403);
+    }
+
+    if ($contract->status !== 'sent') {
+        return redirect()->route('owner.contracts.index')
+            ->with('error', 'Hợp đồng này không thể xác nhận.');
+    }
+
+    $result = $contracts->accept($contract, $request);
+        $contract = $result['contract'];
+
+        if ($result['expired']) {
+            return redirect()->route('owner.contracts.show', $contract)
+                ->with('error', 'Hợp đồng đã quá hạn hiệu lực nên không thể xác nhận.');
         }
 
-        if ($contract->status !== 'sent') {
-            return redirect()->route('owner.contracts.index')
-                ->with('error', 'Hợp đồng này không thể xác nhận.');
-        }
-
+        // =========================================================================
+        // THÊM ĐOẠN CODE NÀY VÀO ĐỂ "VẼ LẠI" VĂN BẢN (HIỂN THỊ CHỮ KÝ ĐIỆN TỬ)
+        // =========================================================================
+        $contract->load(['owner', 'venue']); // Load chắc chắn lại dữ liệu
+        
         $contract->update([
-            'status' => 'accepted',
-            'signed_at' => now(),
+            'content' => view('admin.contracts.partials.body', [
+                'contract' => $contract,
+                'owner'    => $contract->owner,
+                'venue'    => $contract->venue,
+            ])->render()
         ]);
 
-        return redirect()->route('owner.contracts.show', $contract)
-            ->with('success', 'Bạn đã xác nhận hợp đồng thành công.');
-    }
+        // =========================================================================
+        // MỞ KHÓA CHO PHÉP KINH DOANH (CHUYỂN SANG ACTIVE)
+        // =========================================================================
+        if ($contract->venue && $contract->start_date <= now() && $contract->end_date >= now()) {
+            $contract->venue->update([
+                'status' => 'active', // CHÍNH THỨC HIỂN THỊ TRÊN WEB CHO KHÁCH ĐẶT
+                'commission_rate' => $contract->commission_rate // Đồng bộ mức hoa hồng từ HĐ sang Cơ sở
+            ]);
+        }
+
+    $message = $result['activated_venues'] > 0
+        ? 'Bạn đã xác nhận hợp đồng thành công. Cơ sở đã được kích hoạt và áp dụng mức hoa hồng trong hợp đồng.'
+        : 'Bạn đã xác nhận hợp đồng thành công. Cơ sở sẽ được kích hoạt khi đến ngày bắt đầu hiệu lực.';
+
+    return redirect()->route('owner.contracts.show', $contract)
+        ->with('success', $message);
+}
 
     /**
      * Download the contract PDF for the authenticated owner.
@@ -85,15 +119,20 @@ class OwnerContractController extends Controller
     {
         $this->authorize('download', $contract);
 
-        if ($contract->owner_id !== Auth::id()) {
-            abort(403);
-        }
+        // Nếu hợp đồng đã ký và có file cứng trên server -> Tải file bất biến
+    if ($contract->pdf_path && Storage::disk('public')->exists($contract->pdf_path)) {
+        return Storage::disk('public')->download($contract->pdf_path, "HopDong_{$contract->contract_code}.pdf");
+    }
 
-        $contract->load(['owner', 'creator']);
+    // Nếu chỉ là bản nháp/đang gửi (chưa ký) -> Load động để xem thử
+    $contract->load(['owner', 'creator', 'venue']);
+    $pdf = Pdf::loadView('admin.contracts.partials.body', [
+        'contract' => $contract,
+        'owner' => $contract->owner,
+        'venue' => $contract->venue,
+    ]);
 
-        $pdf = Pdf::loadView('contracts.pdf', compact('contract'));
-
-        return $pdf->download("HopDong_{$contract->contract_code}.pdf");
+    return $pdf->download("HopDong_BanNhap_{$contract->contract_code}.pdf");
     }
 
     /**
@@ -123,6 +162,7 @@ class OwnerContractController extends Controller
         $contract->update([
             'status' => 'rejected',
             'rejection_reason' => $data['rejection_reason'],
+            'rejected_at' => now(),
         ]);
 
         return redirect()->route('owner.contracts.show', $contract)

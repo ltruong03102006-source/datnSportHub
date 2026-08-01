@@ -36,33 +36,53 @@
                         <div class="row g-4">
                             <div class="col-12 col-md-6">
                                 <label for="owner_id" class="form-label">Chủ sân</label>
-                                <select id="owner_id" name="owner_id" class="form-select @error('owner_id') is-invalid @enderror">
-                                    <option value="">Chọn chủ sân</option>
-                                    @foreach($owners as $owner)
-                                        <option value="{{ $owner->id }}" {{ old('owner_id') == $owner->id ? 'selected' : '' }}>
-                                            {{ $owner->name }} ({{ $owner->email }})
-                                        </option>
-                                    @endforeach
-                                </select>
+                                <select name="owner_id" id="owner_id" class="form-select" required>
+    <option value="">Chọn chủ sân</option>
+    @foreach($owners as $owner)
+        <!-- Dùng request('owner_id') để tự động chọn nếu URL có chứa id -->
+        <option value="{{ $owner->id }}" 
+            {{ old('owner_id', request('owner_id')) == $owner->id ? 'selected' : '' }}>
+            {{ $owner->name }}
+        </option>
+    @endforeach
+</select>
                                 @error('owner_id')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
 
                             <div class="col-12 col-md-6">
+    <label for="venue_id" class="form-label">Cơ sở liên kết <span class="text-danger">*</span></label>
+   <select name="venue_id" id="venue_id" class="form-select" required>
+    <option value="">-- Chọn cơ sở liên kết --</option>
+    @foreach($venues as $venue)
+        <!-- Thêm data-owner-id để JS nhận diện được sân này của ai -->
+        <option value="{{ $venue->id }}" 
+            data-owner-id="{{ $venue->owner_id }}"
+            {{ old('venue_id', request('venue_id')) == $venue->id ? 'selected' : '' }}>
+            {{ $venue->name }}
+        </option>
+    @endforeach
+</select>
+    
+    @error('venue_id')
+        <div class="invalid-feedback">{{ $message }}</div>
+    @enderror
+</div>
+
+                            <div class="col-12 col-md-6">
                                 <label for="title" class="form-label">Tiêu đề hợp đồng</label>
-                                <input type="text" id="title" name="title" value="{{ old('title') }}" class="form-control @error('title') is-invalid @enderror" placeholder="Ví dụ: Hợp tác kinh doanh mùa giải 2026">
+                                <input type="text" id="title" name="title" value="{{ old('title', 'HỢP ĐỒNG HỢP TÁC KINH DOANH') }}" class="form-control @error('title') is-invalid @enderror" placeholder="Ví dụ: Hợp tác kinh doanh mùa giải 2026">
                                 @error('title')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
 
                             <div class="col-12">
-                                <label for="content" class="form-label">Nội dung hợp đồng</label>
-                                <textarea id="content" name="content" rows="6" class="form-control @error('content') is-invalid @enderror" placeholder="Mô tả chi tiết điều khoản hợp đồng...">{{ old('content') }}</textarea>
-                                @error('content')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
+                                <div class="alert alert-info mb-0">
+                                    <div class="fw-semibold mb-1">Khung hợp đồng được tạo tự động</div>
+                                    <div class="small">Admin chỉ nhập các thông tin cần thiết như chủ sân, cơ sở, hoa hồng và thời hạn. Toàn bộ văn bản pháp lý sẽ được hệ thống render từ mẫu chuẩn.</div>
+                                </div>
                             </div>
 
                             <div class="col-12 col-md-4">
@@ -111,3 +131,57 @@
     </div>
 </div>
 @endsection
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ownerSelect = document.getElementById('owner_id');
+        const venueSelect = document.getElementById('venue_id');
+        
+        // Tạo một mảng lưu trữ gốc để tránh bị lỗi mất data khi ẩn/hiện trên một số trình duyệt
+        const venueOptions = Array.from(venueSelect.querySelectorAll('option:not([value=""])'));
+
+        function filterVenues() {
+            const selectedOwnerId = ownerSelect.value;
+
+            // 1. NẾU CHƯA CHỌN CHỦ SÂN: Khóa ô Cơ sở và ẩn tất cả tùy chọn
+            if (!selectedOwnerId) {
+                venueSelect.value = ""; // Reset về "Không gắn..."
+                venueSelect.disabled = true; // Bôi xám, khóa ô select
+                
+                venueOptions.forEach(option => {
+                    option.hidden = true; 
+                    option.style.display = 'none';
+                });
+                return; // Dừng hàm tại đây
+            }
+
+            // 2. NẾU ĐÃ CHỌN CHỦ SÂN: Mở khóa và bắt đầu lọc
+            venueSelect.disabled = false;
+            
+            venueOptions.forEach(option => {
+                if (option.dataset.ownerId === selectedOwnerId) {
+                    option.hidden = false;
+                    option.style.display = ''; // Hiện cơ sở đúng của chủ sân
+                } else {
+                    option.hidden = true;
+                    option.style.display = 'none'; // Ẩn cơ sở của người khác
+                }
+            });
+
+            // 3. Xử lý trường hợp đang chọn Chủ A + Sân A, đổi sang Chủ B thì sân bị sai
+            const currentVenueOption = venueSelect.options[venueSelect.selectedIndex];
+            if (currentVenueOption && currentVenueOption.value !== "" && currentVenueOption.dataset.ownerId !== selectedOwnerId) {
+                venueSelect.value = ""; // Tự động trả về "Không gắn..."
+            }
+        }
+
+        // Kích hoạt sự kiện lắng nghe
+        if (ownerSelect && venueSelect) {
+            ownerSelect.addEventListener('change', filterVenues);
+            
+            // Chạy ngay lần đầu tiên để ẩn danh sách lúc vừa vào trang (hoặc lúc load form Edit)
+            filterVenues();
+        }
+    });
+</script>
+@endpush
