@@ -58,8 +58,13 @@
             <h2 class="text-3xl font-bold text-slate-800 mb-2">Cơ sở của bạn</h2>
             <p class="text-slate-500">Quản lý các điểm sân hiện tại hoặc thêm mới cơ sở kinh doanh.</p>
         </div>
-        <div class="flex gap-3">
-            <!-- NÚT XEM LỊCH SỬ CHUYỂN NHƯỢNG VỪA THÊM -->
+        <div class="flex flex-wrap gap-3">
+            <!-- NÚT CHUYỂN NHƯỢNG CƠ SỞ -->
+            <a href="{{ route('owner.web.venues.transfer.general_create') }}" class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-300 hover:bg-amber-100 rounded-lg shadow-sm transition-colors">
+                <svg class="w-5 h-5 mr-2 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                Chuyển nhượng cơ sở
+            </a>
+            <!-- NÚT XEM LỊCH SỬ CHUYỂN NHƯỢNG -->
             <a href="{{ route('owner.web.venues.transfers.history') }}" class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg shadow-sm transition-colors">
                 <svg class="w-5 h-5 mr-2 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 Lịch sử chuyển nhượng

@@ -52,6 +52,7 @@
                     <tr class="bg-slate-50 border-b border-slate-200">
                         <th class="p-4 font-semibold text-slate-600">Mã YC</th>
                         <th class="p-4 font-semibold text-slate-600">Cơ sở</th>
+                        <th class="p-4 font-semibold text-slate-600">Giá chuyển nhượng</th>
                         <th class="p-4 font-semibold text-slate-600">Vai trò của bạn</th>
                         <th class="p-4 font-semibold text-slate-600">Đối tác</th>
                         <th class="p-4 font-semibold text-slate-600">Ngày tạo</th>
@@ -63,6 +64,9 @@
                         <tr class="border-b border-slate-100 hover:bg-slate-50">
                             <td class="p-4 text-slate-500">#{{ $transfer->id }}</td>
                             <td class="p-4 font-medium text-slate-800">{{ $transfer->venue->name ?? 'N/A' }}</td>
+                            <td class="p-4 font-semibold text-emerald-700">
+                                {{ $transfer->price ? number_format($transfer->price, 0, ',', '.') . ' VNĐ' : 'Chưa nhập' }}
+                            </td>
                             <td class="p-4">
                                 @if($transfer->from_owner_id === auth()->id())
                                     <span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-bold">Bên Bán (Chuyển đi)</span>
@@ -92,7 +96,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="p-8 text-center text-slate-500">Bạn chưa có lịch sử chuyển nhượng nào.</td>
+                            <td colspan="7" class="p-8 text-center text-slate-500">Bạn chưa có lịch sử chuyển nhượng nào.</td>
                         </tr>
                     @endforelse
                 </tbody>

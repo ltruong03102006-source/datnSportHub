@@ -15,14 +15,18 @@ class VenueTransferRequest extends Model
         'venue_id',
         'from_owner_id',
         'to_owner_id',
+        'price',
+        'contract_date',
+        'contract_location',
         'status',
         'admin_note',
         'receiver_data', 
     ];
 
-    // THÊM ĐOẠN NÀY ĐỂ LARAVEL TỰ ĐỘNG CHUYỂN ĐỔI JSON THÀNH MẢNG (ARRAY) KHI LẤY RA
     protected $casts = [
         'receiver_data' => 'array',
+        'contract_date' => 'date',
+        'price' => 'decimal:2',
     ];
 
     /**

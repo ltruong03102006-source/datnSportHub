@@ -8,47 +8,53 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueTransferRequest;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB; // Đã di chuyển lên đây đúng chuẩn
+use Illuminate\Support\Facades\DB;
 
 class OwnerVenueTransferController extends Controller
 {
     /**
-     * Hiển thị form tạo yêu cầu chuyển nhượng (Dành cho Chủ cũ)
+     * Hiển thị form tạo hợp đồng chuyển nhượng (Dành cho Chủ cũ)
      */
-    public function create(Venue $venue)
+    public function create(Request $request, ?Venue $venue = null)
     {
-        if ($venue->owner_id !== auth()->id()) {
+        $venues = Venue::where('owner_id', auth()->id())->get();
+
+        if ($venues->isEmpty()) {
+            return redirect()->route('owner.web.venues.index')
+                ->with('error', 'Bạn chưa có cơ sở nào để thực hiện chuyển nhượng.');
+        }
+
+        if ($venue && $venue->exists && $venue->owner_id !== auth()->id()) {
             abort(403, 'Bạn không có quyền truy cập cơ sở này.');
         }
 
-        $hasPending = \App\Models\VenueTransferRequest::where('venue_id', $venue->id)
-            ->whereIn('status', ['pending', 'pending_admin'])
-            ->exists();
+        $selectedVenueId = ($venue && $venue->exists) ? $venue->id : (int) $request->query('venue_id', $venues->first()->id);
 
-        if ($hasPending) {
-            return redirect()->route('owner.web.venues.index')
-                ->with('error', 'Cơ sở này đang có yêu cầu chuyển nhượng chờ xử lý. Bạn không thể tạo thêm!');
-        }
-
-        return view('owner.venues.transfer', compact('venue'));
+        return view('owner.venues.transfer', compact('venues', 'selectedVenueId', 'venue'));
     }
 
     /**
-     * Xử lý lưu yêu cầu chuyển nhượng (Dành cho Chủ cũ)
+     * Xử lý lưu hợp đồng chuyển nhượng
      */
-    public function store(StoreVenueTransferRequest $request, Venue $venue)
+    public function store(StoreVenueTransferRequest $request, ?Venue $venue = null)
     {
-        $receiver = User::where('email', $request->receiver_email)->first();
+        $venueId = $request->input('venue_id') ?? optional($venue)->id;
+        $targetVenue = Venue::where('id', $venueId)->where('owner_id', auth()->id())->firstOrFail();
+
+        $receiver = User::where('email', $request->receiver_email)->where('role', 'owner')->firstOrFail();
 
         VenueTransferRequest::create([
-            'venue_id'      => $venue->id,
-            'from_owner_id' => auth()->id(),
-            'to_owner_id'   => $receiver->id,
-            'status'        => 'pending', // Trạng thái chờ chủ mới phản hồi
+            'venue_id'          => $targetVenue->id,
+            'from_owner_id'     => auth()->id(),
+            'to_owner_id'       => $receiver->id,
+            'price'             => $request->input('price'),
+            'contract_date'     => $request->input('contract_date'),
+            'contract_location' => $request->input('contract_location'),
+            'status'            => 'pending',
         ]);
 
-        return redirect()->route('owner.web.venues.index')
-            ->with('success', 'Đã gửi yêu cầu chuyển nhượng thành công! Vui lòng chờ Chủ mới xác nhận.');
+        return redirect()->route('owner.web.venues.transfers.history')
+            ->with('success', 'Đã tạo hợp đồng chuyển nhượng thành công! Vui lòng chờ Chủ mới xác nhận.');
     }
 
     public function checkEmail(Request $request)
@@ -63,7 +69,13 @@ class OwnerVenueTransferController extends Controller
             return response()->json(['success' => false, 'message' => 'Bạn không thể chuyển nhượng cho chính mình.']);
         }
 
-        return response()->json(['success' => true, 'name' => $receiver->name ?? $receiver->full_name ?? 'Chủ sân ẩn danh']);
+        return response()->json([
+            'success' => true,
+            'name' => $receiver->name ?? $receiver->full_name ?? 'Chủ sân',
+            'email' => $receiver->email,
+            'phone' => $receiver->phone ?? $receiver->phone_number ?? 'N/A',
+            'message' => 'Email tồn tại - Hợp pháp',
+        ]);
     }
 
     /**
@@ -82,16 +94,11 @@ class OwnerVenueTransferController extends Controller
         return view('owner.venues.transfers.history', compact('transfers'));
     }
 
-    // =========================================================================
-    // PHẦN XỬ LÝ CỦA CHỦ MỚI (NGƯỜI NHẬN)
-    // =========================================================================
-
     /**
      * Hàm hiển thị Form điền pháp lý cho Chủ mới
      */
     public function showAcceptForm(VenueTransferRequest $transfer)
     {
-        // Kiểm tra đúng người nhận và đúng trạng thái chưa?
         if ($transfer->to_owner_id !== auth()->id() || $transfer->status !== 'pending') {
             abort(403, 'Bạn không có quyền thực hiện thao tác này hoặc yêu cầu đã hết hạn.');
         }
@@ -113,22 +120,16 @@ class OwnerVenueTransferController extends Controller
             'email' => ['required', 'email', 'max:255'],
             'owner_name' => ['required', 'string', 'max:255'],
             'citizen_id' => ['required', 'digits:12'],
-            // Thay đổi: Cho phép chữ cái (a-z, A-Z) và số (0-9). Mở rộng max lên 50 để tránh lỗi độ dài.
             'business_license_number' => ['required', 'string', 'regex:/^[a-zA-Z0-9]+$/', 'max:50'],
             'bank_name' => ['required', 'string', 'max:255'],
             'bank_account_number' => ['required', 'regex:/^[0-9]+$/', 'max:50'],
             'bank_account_holder' => ['required', 'string', 'max:255'],
             'citizen_front_image' => ['required', 'image', 'max:5120'],
             'citizen_back_image' => ['required', 'image', 'max:5120'], 
-            
-            // SIẾT CHẶT PHÁP LÝ Ở ĐÂY:
-            'business_license_file' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'], // Bắt buộc up GPKD
-            
-            // Bắt buộc phải có Hợp đồng thuê HOẶC Sổ đỏ (Nếu để trống cả 2 sẽ báo lỗi)
+            'business_license_file' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'rental_contract_file' => ['required_without:land_certificate_file', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'land_certificate_file' => ['required_without:rental_contract_file', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ], [
-            // Thêm việt hóa câu thông báo lỗi cho 2 trường này
             'rental_contract_file.required_without' => 'Bạn phải cung cấp Hợp đồng thuê mặt bằng hoặc Sổ đỏ.',
             'land_certificate_file.required_without' => 'Bạn phải cung cấp Sổ đỏ hoặc Hợp đồng thuê mặt bằng.',
             'business_license_file.required' => 'Vui lòng tải lên Giấy phép kinh doanh.'
@@ -142,7 +143,7 @@ class OwnerVenueTransferController extends Controller
         }
 
         $transfer->update([
-            'status' => 'pending_admin', // Chuyển sang chờ Admin duyệt
+            'status' => 'pending_admin',
             'receiver_data' => $validated 
         ]);
 

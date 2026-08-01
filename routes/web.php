@@ -269,7 +269,9 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
 
     // API Check Email (Phải đặt trước route có tham số {venue})
     Route::post('/venues/transfer/check-email', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'checkEmail'])->name('venues.transfer.check-email');
-    // Chuyển nhượng cơ sở
+    // Chuyển nhượng cơ sở (Hợp đồng chuyển nhượng)
+    Route::get('/venues/transfer/create', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'create'])->name('venues.transfer.general_create');
+    Route::post('/venues/transfer/store', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'store'])->name('venues.transfer.general_store');
     Route::get('/venues/{venue}/transfer', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'create'])->name('venues.transfer.create');
     Route::post('/venues/{venue}/transfer', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'store'])->name('venues.transfer.store');
     Route::get('/venues/transfers/history', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'history'])->name('venues.transfers.history');
