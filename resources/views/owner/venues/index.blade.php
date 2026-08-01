@@ -149,6 +149,17 @@
                     
                     <!-- Hình ảnh và Trạng thái -->
                     <div class="relative h-48 w-full bg-slate-100 overflow-hidden">
+                       {{-- CHỈ HIỂN THỊ KHI ĐÃ CÓ HỢP ĐỒNG (GỬI ĐI, ĐÃ KÝ, HOẶC CHẤM DỨT) --}}
+                        @if($activeContract && in_array($activeContract->status, ['sent', 'accepted', 'terminated']))
+                            <div class="absolute top-4 left-4 z-10">
+                                <span class="px-2.5 py-1 text-xs font-bold rounded-md bg-black/60 text-white backdrop-blur-md shadow-sm border border-white/10 flex items-center gap-1" 
+                                      title="Mức phí hoa hồng theo Hợp đồng">
+                                    Phí: <span class="text-amber-400">
+                                        {{ $activeContract->commission_rate + 0 }}%
+                                    </span>
+                                </span>
+                            </div>
+                        @endif
                         @if($venue->banner)
                             <img src="{{ asset('storage/' . $venue->banner) }}" alt="{{ $venue->name }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                             <div class="hidden absolute inset-0 bg-slate-100 flex-col items-center justify-center text-slate-400">

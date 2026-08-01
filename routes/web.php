@@ -188,11 +188,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/contracts/{contract}/pdf', [\App\Http\Controllers\Web\AdminContractController::class, 'exportPdf'])->name('contracts.pdf');
         Route::get('/contracts/{contract}', [\App\Http\Controllers\Web\AdminContractController::class, 'show'])->name('contracts.show');
         Route::post('/contracts/{contract}/terminate', [\App\Http\Controllers\Web\AdminContractController::class, 'terminate'])->name('contracts.terminate');
-    });
-});
 
+        // ❌ 2 DÒNG NÀY ĐANG NẰM NGOÀI NHÓM ADMIN NÊN BỊ LỖI MẤT CHỮ 'admin.'
 Route::get('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingController::class, 'index'])->name('financial-settings.index');
 Route::post('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingController::class, 'update'])->name('financial-settings.update');
+    });
+});
 
 //chu san
 Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group(function () {

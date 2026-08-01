@@ -419,12 +419,10 @@
         <tbody>
             @forelse($venues as $venue)
             
-           {{-- KIỂM TRA XEM CƠ SỞ NÀY CÓ HỢP ĐỒNG NÀO ĐANG NHÁP/GỬI/CHỜ HIỆU LỰC KHÔNG --}}
-            {{-- KIỂM TRA XEM CƠ SỞ NÀY CÓ HỢP ĐỒNG NÀO ĐANG NHÁP/GỬI/CHỜ HIỆU LỰC KHÔNG --}}
+            {{-- TÌM HỢP ĐỒNG ĐI KÈM CỦA CƠ SỞ --}}
             @php
                 $activeContract = \App\Models\Contract::where('venue_id', $venue->id)
-                    // PHẢI THÊM 'terminated' VÀO ĐÚNG DÒNG NÀY THÌ ADMIN MỚI THẤY
-                    ->whereIn('status', ['draft', 'sent', 'accepted', 'terminated']) 
+                    ->whereIn('status', ['draft', 'sent', 'accepted', 'terminated'])
                     ->orderBy('id', 'desc')
                     ->first();
             @endphp
@@ -463,11 +461,8 @@
                     @if($venue->status === 'active')
                         <span class="badge bg-success-subtle text-success"><i class="fa-solid fa-circle-check"></i> Hoạt động</span>
                     @elseif($venue->status === 'approved')
-                        
-                        {{-- PHÂN LOẠI TRẠNG THÁI THEO TIẾN ĐỘ HỢP ĐỒNG --}}
                         @if($activeContract && $activeContract->status === 'accepted')
-                            <!-- Lấy ngày tháng động từ CSDL -->
-                            <span class="badge" style="background-color: #ccfbf1; color: #0f766e;" title="Chờ đến ngày {{ \Carbon\Carbon::parse($activeContract->start_date)->format('d/m/Y') }} để tự động kích hoạt">
+                            <span class="badge" style="background-color: #ccfbf1; color: #0f766e;">
                                 <i class="fa-solid fa-clock"></i> Chờ hiệu lực ({{ \Carbon\Carbon::parse($activeContract->start_date)->format('d/m') }})
                             </span>
                         @elseif($activeContract && $activeContract->status === 'sent')
@@ -477,7 +472,6 @@
                         @else
                             <span class="badge" style="background-color: #e0f2fe; color: #0284c7;"><i class="fa-solid fa-check-double"></i> Đã duyệt</span>
                         @endif
-
                     @elseif($venue->status === 'pending')
                         <span class="badge bg-warning-subtle text-warning">Chờ duyệt</span>
                     @elseif($venue->status === 'rejected')
@@ -494,7 +488,6 @@
                 <td style="text-align: right; white-space: nowrap;">
                     <div class="venue-actions">
                         
-                        {{-- THÊM MỚI: NÚT BÁO HIỆU CHỦ SÂN VỪA CẬP NHẬT THÔNG TIN --}}
                         @if($venue->pendingUpdateRequest)
                             <a href="{{ route('admin.venues.documents', $venue->id) }}" 
                                class="venue-action-btn" 
@@ -503,13 +496,19 @@
                             </a>
                         @endif
 
+                        {{-- CHỈ HIỆN NÚT PHÍ KHI ĐÃ CÓ HỢP ĐỒNG (GỬI ĐI, ĐÃ KÝ, HOẶC CHẤM DỨT) --}}
+                        @if($activeContract && in_array($activeContract->status, ['sent', 'accepted', 'terminated']))
+                            <button type="button" class="venue-action-btn" style="color: #d97706; background: #fef3c7; border-color: #fde68a;" data-bs-toggle="modal" data-bs-target="#commissionModal{{ $venue->id }}">
+                                <i class="fa-solid fa-percent"></i> Phí
+                            </button>
+                        @endif
+
                         <a href="{{ route('admin.venues.documents', $venue->id) }}"
                            class="venue-action-btn venue-action-docs">
                             <i class="fa-regular fa-folder-open"></i> Hồ sơ
                         </a>
                         
-                        {{-- (Các nút form Duyệt/Từ chối của bạn ở dưới giữ nguyên) --}}
-                    @if($venue->status === 'pending')
+                        @if($venue->status === 'pending')
                             <form action="{{ route('admin.venues.approve', $venue->id) }}" method="POST">
                                 @csrf
                                 <button type="submit" class="venue-action-btn venue-action-approve"><i class="fa-solid fa-check"></i> Duyệt</button>
@@ -526,34 +525,26 @@
                             </form>
                         @endif
 
-                        {{-- THÊM MỚI ĐOẠN NÀY: Nút Tạo hợp đồng khi vừa duyệt xong --}}
-                       {{-- HIỂN THỊ NÚT DỰA VÀO TIẾN ĐỘ HỢP ĐỒNG --}}
-                        {{-- HIỂN THỊ NÚT DỰA VÀO TIẾN ĐỘ HỢP ĐỒNG --}}
-                       {{-- XỬ LÝ CÁC NÚT LIÊN QUAN ĐẾN HỢP ĐỒNG --}}
                         @if(in_array($venue->status, ['approved', 'active', 'inactive']))
                             @if(!$activeContract)
-                                <!-- Chưa có HĐ -> Hiện nút TẠO HỢP ĐỒNG -->
                                 <a href="{{ route('admin.contracts.create', ['owner_id' => $venue->owner_id, 'venue_id' => $venue->id]) }}" 
                                    class="venue-action-btn" 
                                    style="background-color: #0ea5e9; color: white; border: none; box-shadow: 0 4px 6px rgba(14, 165, 233, 0.2);">
                                     <i class="fa-solid fa-file-contract"></i> Tạo hợp đồng
                                 </a>
                             @elseif($activeContract->status === 'draft')
-                                <!-- Đang nháp -> Hiện nút SỬA HĐ NHÁP -->
                                 <a href="{{ route('admin.contracts.edit', $activeContract->id) }}" 
                                    class="venue-action-btn" 
                                    style="background-color: #64748b; color: white; border: none;">
                                     <i class="fa-solid fa-pen-to-square"></i> Sửa HĐ Nháp
                                 </a>
                             @elseif(in_array($activeContract->status, ['sent', 'accepted']))
-                                <!-- Đang chờ ký hoặc Đã ký -> Hiện nút XEM HĐ -->
                                 <a href="{{ route('admin.contracts.show', $activeContract->id) }}" 
                                    class="venue-action-btn" 
                                    style="background-color: #10b981; color: white; border: none; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2);">
                                     <i class="fa-solid fa-eye"></i> Xem HĐ
                                 </a>
                             @elseif($activeContract->status === 'terminated')
-                                <!-- Hợp đồng đã chấm dứt -> Hiện nút XEM HĐ CŨ (Màu xám) VÀ nút KÝ HĐ MỚI (Màu xanh) -->
                                 <a href="{{ route('admin.contracts.show', $activeContract->id) }}" 
                                    class="venue-action-btn" 
                                    style="background-color: #64748b; color: white; border: none;">
@@ -570,52 +561,6 @@
                     </div>
                 </td>
             </tr>
-           {{-- <!-- Modal Cấu Hình Hoa Hồng Riêng cho từng Venue -->
-<div class="modal fade" id="commissionModal{{ $venue->id }}" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border: none; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
-            <form action="{{ route('admin.venues.commission.update', $venue->id) }}" method="POST">
-                @csrf
-                @method('PUT')
-                <div class="modal-header" style="background-color: #fffbeb; border-bottom: 1px solid #fde68a; border-radius: 12px 12px 0 0; padding: 16px 24px;">
-                    <h5 class="modal-title" style="color: #d97706; font-weight: 700; font-size: 16px;">
-                        <i class="fa-solid fa-percent me-2"></i> Hoa Hồng Riêng
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                
-                <div class="modal-body text-start" style="padding: 24px;">
-                    <div class="mb-2">
-                        <label class="form-label" style="font-size: 13px; font-weight: 700; color: #495057; text-transform: uppercase;">Cơ sở áp dụng</label>
-                        <div style="padding: 10px 16px; background: #f8f9fa; border-radius: 8px; font-weight: 600; color: #212529; border: 1px solid #e9ecef;">
-                            {{ $venue->name }}
-                        </div>
-                    </div>
-                    
-                    <div class="mt-4">
-                        <label class="form-label" style="font-size: 13px; font-weight: 700; color: #495057; text-transform: uppercase;">Tỷ lệ hoa hồng (%)</label>
-                        <input type="number" step="0.01" class="form-control" name="commission_rate" 
-                               value="{{ $venue->commission_rate }}" placeholder="VD: 15.5" 
-                               style="border-radius: 8px; padding: 12px 16px; font-size: 16px; font-weight: 600; border: 2px solid #fde68a;">
-                        
-                        <div class="alert alert-warning mt-3 mb-0" style="background-color: #fffbeb; border-color: #fde68a; color: #92400e; font-size: 13px; padding: 12px; border-radius: 8px;">
-                            <i class="fa-solid fa-circle-info me-1"></i> <strong>Lưu ý:</strong><br>
-                            - Nhập số để áp dụng mức phí đặc biệt cho cơ sở này.<br>
-                            - <strong>Xóa trắng ô nhập</strong> nếu muốn cơ sở này sử dụng lại mức phí mặc định của hệ thống.
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="modal-footer" style="border-top: 1px solid #f3f4f6; padding: 16px 24px;">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="font-weight: 600; border-radius: 8px; padding: 8px 20px;">Đóng</button>
-                    <button type="submit" class="btn" style="background-color: #f59e0b; color: white; font-weight: 600; border-radius: 8px; padding: 8px 20px; box-shadow: 0 4px 6px rgba(245, 158, 11, 0.2);">
-                        Lưu Cấu Hình
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div> --}}
             @empty
             <tr>
                 <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">Không tìm thấy cơ sở sân nào.</td>
@@ -634,86 +579,57 @@
     </div>
 </div>
 
-{{-- <!-- Reject venue modal -->
-<div class="modal fade" id="rejectVenueModal" tabindex="-1" aria-labelledby="rejectVenueModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <form id="rejectVenueForm" method="POST" class="modal-content">
-            @csrf
-            <div class="modal-header">
-                <h5 class="modal-title" id="rejectVenueModalLabel">Từ chối cơ sở sân</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
-            </div>
-            <div class="modal-body">
-                <label for="reject_reason" class="form-label">Lý do từ chối</label>
-                <textarea id="reject_reason" name="reject_reason" class="form-control" rows="4" minlength="5" required placeholder="Nhập lý do từ chối (ít nhất 5 ký tự)..."></textarea>
-                <div class="form-text">Lý do này sẽ được lưu cùng hồ sơ của chủ sân.</div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                <button type="submit" class="btn btn-danger">Xác nhận từ chối</button>
-            </div>
-        </form>
-    </div>
-</div> --}}
-<!-- ================= KHU VỰC CHỨA MODAL (NẰM NGOÀI BẢNG) ================= -->
+<!-- ================= KHU VỰC CHỨA MODAL XEM HOA HỒNG (READ-ONLY) ================= -->
 @foreach($venues as $venue)
-    <!-- Modal Cấu Hình Hoa Hồng Riêng cho từng Venue -->
+    @php
+        $modalContract = \App\Models\Contract::where('venue_id', $venue->id)
+            ->whereIn('status', ['draft', 'sent', 'accepted', 'terminated'])
+            ->orderBy('id', 'desc')
+            ->first();
+    @endphp
+
     <div class="modal fade" id="commissionModal{{ $venue->id }}" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content" style="border: none; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
-                <form action="{{ route('admin.venues.commission.update', $venue->id) }}" method="POST">
-                    @csrf
-                    @method('PUT')
-                    <div class="modal-header" style="background-color: #fffbeb; border-bottom: 1px solid #fde68a; border-radius: 12px 12px 0 0; padding: 16px 24px;">
-                        <h5 class="modal-title" style="color: #d97706; font-weight: 700; font-size: 16px;">
-                            <i class="fa-solid fa-percent me-2"></i> Hoa Hồng Riêng
-                        </h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                
+                <div class="modal-header" style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0; border-radius: 12px 12px 0 0; padding: 16px 24px;">
+                    <h5 class="modal-title" style="color: #475569; font-weight: 700; font-size: 16px;">
+                        <i class="fa-solid fa-percent me-2"></i> Thông Tin Hoa Hồng
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <div class="modal-body text-start" style="padding: 24px;">
+                    <div class="mb-4">
+                        <label class="form-label" style="font-size: 13px; font-weight: 700; color: #495057; text-transform: uppercase;">Cơ sở</label>
+                        <div style="padding: 10px 16px; background: #f8f9fa; border-radius: 8px; font-weight: 600; color: #212529; border: 1px solid #e9ecef;">
+                            {{ $venue->name }}
+                        </div>
                     </div>
                     
-                    <div class="modal-body text-start" style="padding: 24px;">
-                        <div class="mb-2">
-                            <label class="form-label" style="font-size: 13px; font-weight: 700; color: #495057; text-transform: uppercase;">Cơ sở áp dụng</label>
-                            <div style="padding: 10px 16px; background: #f8f9fa; border-radius: 8px; font-weight: 600; color: #212529; border: 1px solid #e9ecef;">
-                                {{ $venue->name }}
-                            </div>
+                    <div>
+                        <label class="form-label" style="font-size: 13px; font-weight: 700; color: #495057; text-transform: uppercase;">Tỷ lệ hoa hồng hiện tại</label>
+                        
+                        <div style="padding: 16px; background: #fffbeb; border-radius: 8px; font-weight: 700; color: #d97706; border: 1px solid #fde68a; font-size: 20px; display: flex; align-items: center; justify-content: space-between;">
+                            @if($modalContract && in_array($modalContract->status, ['sent', 'accepted', 'terminated']))
+                                <span>{{ $modalContract->commission_rate + 0 }}%</span>
+                                <span style="font-size: 12px; font-weight: 600; background: #f59e0b; color: white; padding: 4px 8px; border-radius: 6px;">Theo Hợp đồng</span>
+                            @else
+                                <span style="color: #94a3b8; font-size: 16px;">Chưa có hợp đồng</span>
+                            @endif
                         </div>
                         
-                        <div class="mt-4">
-                        <label class="form-label" style="font-size: 13px; font-weight: 700; color: #495057; text-transform: uppercase;">Tỷ lệ hoa hồng (%)</label>
-                        
-                        <!-- TRƯỜNG ẨN ĐỂ NHẬN DIỆN ĐANG SỬA SÂN NÀO -->
-                        <input type="hidden" name="error_venue_id" value="{{ $venue->id }}">
-
-                        <input type="number" step="0.01" 
-                               class="form-control @if($errors->has('commission_rate') && old('error_venue_id') == $venue->id) is-invalid @endif" 
-                               name="commission_rate" 
-                               value="{{ old('error_venue_id') == $venue->id ? old('commission_rate') : $venue->commission_rate }}" 
-                               placeholder="VD: 15.5" 
-                               style="border-radius: 8px; padding: 12px 16px; font-size: 16px; font-weight: 600; border: 2px solid #fde68a;">
-                        
-                        <!-- HIỂN THỊ LỖI MÀU ĐỎ -->
-                        @if($errors->has('commission_rate') && old('error_venue_id') == $venue->id)
-                            <small class="text-danger d-block mt-2 fw-bold">
-                                <i class="fa-solid fa-circle-exclamation"></i> {{ $errors->first('commission_rate') }}
-                            </small>
-                        @endif
-                        
-                        <div class="alert alert-warning mt-3 mb-0" style="background-color: #fffbeb; border-color: #fde68a; color: #92400e; font-size: 13px; padding: 12px; border-radius: 8px;">
+                        <div class="alert alert-info mt-3 mb-0" style="background-color: #f0f9ff; border-color: #bae6fd; color: #0369a1; font-size: 13px; padding: 12px; border-radius: 8px;">
                             <i class="fa-solid fa-circle-info me-1"></i> <strong>Lưu ý:</strong><br>
-                            - Nhập số để áp dụng mức phí đặc biệt cho cơ sở này.<br>
-                            - <strong>Xóa trắng ô nhập</strong> nếu muốn cơ sở này sử dụng lại mức phí mặc định của hệ thống.
+                            Mức phí hoa hồng được tự động áp dụng theo văn bản Hợp đồng. Nếu muốn thay đổi tỷ lệ chia sẻ, vui lòng <strong>Ký hợp đồng mới</strong>.
                         </div>
                     </div>
-                    </div>
-                    
-                    <div class="modal-footer" style="border-top: 1px solid #f3f4f6; padding: 16px 24px;">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="font-weight: 600; border-radius: 8px; padding: 8px 20px;">Đóng</button>
-                        <button type="submit" class="btn" style="background-color: #f59e0b; color: white; font-weight: 600; border-radius: 8px; padding: 8px 20px; box-shadow: 0 4px 6px rgba(245, 158, 11, 0.2);">
-                            Lưu Cấu Hình
-                        </button>
-                    </div>
-                </form>
+                </div>
+                
+                <div class="modal-footer" style="border-top: 1px solid #f3f4f6; padding: 16px 24px;">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="font-weight: 600; border-radius: 8px; padding: 8px 20px;">Đóng</button>
+                </div>
+
             </div>
         </div>
     </div>
@@ -763,32 +679,16 @@
             <div class="mt-3">${fileHtml}</div>
         `;
     }
+    
     function rejectVenueConfirm(form) {
-    const reason = prompt('Nhập lý do từ chối cơ sở sân:');
-
-    if (reason === null) {
-        return false;
+        const reason = prompt('Nhập lý do từ chối cơ sở sân:');
+        if (reason === null) return false;
+        if (reason.trim().length < 5) {
+            alert('Lý do từ chối phải có ít nhất 5 ký tự.');
+            return false;
+        }
+        form.querySelector('.reject-reason-input').value = reason.trim();
+        return confirm('Bạn có chắc chắn muốn từ chối cơ sở sân này không?');
     }
-
-    if (reason.trim().length < 5) {
-        alert('Lý do từ chối phải có ít nhất 5 ký tự.');
-        return false;
-    }
-
-    form.querySelector('.reject-reason-input').value = reason.trim();
-
-    return confirm('Bạn có chắc chắn muốn từ chối cơ sở sân này không?');
-}
-@if($errors->any() && old('error_venue_id'))
-        document.addEventListener('DOMContentLoaded', function () {
-            // Tự động tìm đúng ID của Modal vừa bị lỗi và bật nó lên lại
-            var modalId = 'commissionModal{{ old("error_venue_id") }}';
-            var modalElement = document.getElementById(modalId);
-            if(modalElement) {
-                var myModal = new bootstrap.Modal(modalElement);
-                myModal.show();
-            }
-        });
-    @endif
 </script>
 @endpush
