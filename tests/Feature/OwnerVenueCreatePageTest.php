@@ -72,7 +72,7 @@ class OwnerVenueCreatePageTest extends TestCase
             'business_license_file' => UploadedFile::fake()->create('gpkd.pdf', 100, 'application/pdf'),
         ]);
 
-        $response->assertRedirect('/owner/venues/create');
+        $response->assertRedirect('/owner/venues');
         $this->assertDatabaseHas('venues', [
             'owner_id' => $owner->id,
             'name' => 'Dant Sport Mỹ Đình',

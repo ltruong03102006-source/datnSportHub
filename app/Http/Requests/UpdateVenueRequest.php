@@ -51,9 +51,9 @@ class UpdateVenueRequest extends FormRequest
                 'max:50'
             ],
             
-            'bank_name' => ['required', 'string', 'max:255'],
-            'bank_account_number' => ['required', 'regex:/^[0-9]+$/', 'min:6', 'max:20'],
-            'bank_account_holder' => ['required', 'string', 'max:255'],
+            'bank_name' => ['nullable', 'string', 'max:255'],
+            'bank_account_number' => ['nullable', 'string', 'max:50'],
+            'bank_account_holder' => ['nullable', 'string', 'max:255'],
 
             // 5. File đính kèm pháp lý (Chỉ validate định dạng nếu người dùng có up file MỚI)
             'citizen_front_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:5120'],
@@ -84,11 +84,6 @@ class UpdateVenueRequest extends FormRequest
             'citizen_id.digits' => 'Số Căn cước công dân phải bao gồm chính xác 12 chữ số.',
             'business_license_number.required' => 'Vui lòng nhập mã số thuế hoặc số giấy phép kinh doanh.',
             'business_license_number.alpha_num' => 'Số giấy phép kinh doanh chỉ được chứa chữ cái và số.',
-            
-            'bank_name.required' => 'Vui lòng nhập tên ngân hàng.',
-            'bank_account_number.required' => 'Vui lòng nhập số tài khoản ngân hàng.',
-            'bank_account_number.regex' => 'Số tài khoản ngân hàng chỉ được phép chứa các chữ số.',
-            'bank_account_holder.required' => 'Vui lòng nhập tên chủ tài khoản.',
         ];
     }
 }

@@ -29,10 +29,15 @@ class OwnerVenueCreateTest extends TestCase
             'slug' => 'badminton',
         ]);
 
+        $province = \App\Models\Province::firstOrCreate(['code' => '01'], ['name' => 'Hà Nội']);
+        $ward = \App\Models\Ward::firstOrCreate(['code' => '00001'], ['province_code' => '01', 'name' => 'Ba Đình']);
+
         $response = $this->actingAs($owner, 'sanctum')->postJson('/api/owner/venues', [
             'sport_id' => $sport->id,
             'name' => 'Dant Sport Mỹ Đình',
             'address' => '123 Nguyễn Văn Huyên',
+            'province_code' => $province->code,
+            'ward_code' => $ward->code,
             'description' => 'Venue for badminton',
             'banner' => UploadedFile::fake()->image('banner.png', 600, 400)->size(120),
             'lat' => 21.0285,
@@ -44,10 +49,7 @@ class OwnerVenueCreateTest extends TestCase
             'google_maps_address' => '123 Nguyễn Văn Huyên, Hà Nội',
             'owner_name' => 'Nguyễn Văn A',
             'citizen_id' => '001234567890',
-            'business_license_number' => 'BL-001',
-            'bank_name' => 'Techcombank',
-            'bank_account_number' => '123456789',
-            'bank_account_holder' => 'Nguyễn Văn A',
+            'business_license_number' => 'BL001',
             'citizen_front_image' => UploadedFile::fake()->image('front.png', 600, 400)->size(120),
             'citizen_back_image' => UploadedFile::fake()->image('back.png', 600, 400)->size(120),
             'business_license_file' => UploadedFile::fake()->image('license.png', 600, 400)->size(120),
@@ -79,8 +81,8 @@ class OwnerVenueCreateTest extends TestCase
         ]);
 
         $sport = Sport::create([
-            'name' => 'Badminton',
-            'slug' => 'badminton',
+            'name' => 'Badminton 2',
+            'slug' => 'badminton-2',
         ]);
 
         $venue = Venue::create([
@@ -99,7 +101,7 @@ class OwnerVenueCreateTest extends TestCase
             ]);
 
         $response->assertStatus(403);
-        $response->assertJsonPath('message', 'Bạn phải được Admin duyệt cơ sở trước khi tạo sân.');
+        $response->assertJsonPath('message', 'Cơ sở chưa ký hợp đồng hợp tác với Admin (chưa ở trạng thái hoạt động) nên chưa thể tạo sân con.');
     }
 
     public function test_invalid_sport_id_returns_validation_error(): void
