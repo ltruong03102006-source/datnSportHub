@@ -119,7 +119,7 @@
     </form>
 
     <!-- Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
         <!-- Revenue Card -->
         <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
             <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -156,15 +156,27 @@
             <p class="text-xs text-violet-600 mt-2 font-medium bg-violet-50 inline-block px-2 py-1 rounded-md">Từ booking phát sinh từ gói</p>
         </div>
 
-        <!-- Total Bookings Card -->
+        <!-- Single Bookings Card -->
         <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
             <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                 <svg class="w-16 h-16 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10z"/></svg>
             </div>
-            <p class="text-sm font-medium text-slate-500 mb-1">Tổng lượt đặt</p>
-            <h3 class="text-3xl font-bold text-slate-800">{{ $totalBookings }}</h3>
+            <p class="text-sm font-medium text-slate-500 mb-1">Tổng lượt đặt lẻ</p>
+            <h3 class="text-3xl font-bold text-slate-800">{{ $singleBookingsCount }}</h3>
             <p class="text-xs text-blue-600 mt-2 font-medium bg-blue-50 inline-block px-2 py-1 rounded-md">
-                {{ $bookingStatuses['completed'] ?? 0 }} lượt hoàn tất
+                {{ $singleBookingsCompletedCount }} lượt hoàn tất
+            </p>
+        </div>
+
+        <!-- Package Bookings Card -->
+        <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
+            <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <svg class="w-16 h-16 text-teal-600" fill="currentColor" viewBox="0 0 24 24"><path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/></svg>
+            </div>
+            <p class="text-sm font-medium text-slate-500 mb-1">Tổng lượt đặt gói</p>
+            <h3 class="text-3xl font-bold text-slate-800">{{ $packageBookingsCount }}</h3>
+            <p class="text-xs text-teal-600 mt-2 font-medium bg-teal-50 inline-block px-2 py-1 rounded-md">
+                {{ $packageBookingsCompletedCount }} lượt hoàn tất
             </p>
         </div>
 

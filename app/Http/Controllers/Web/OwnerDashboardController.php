@@ -152,6 +152,16 @@ class OwnerDashboardController extends Controller
             'cancelled' => $bookings->where('status', 'cancelled')->count(),
         ];
 
+        // Phân loại Lượt đặt lẻ vs Lượt đặt gói
+        $singleBookings = $validBookings->filter(fn (Booking $b) => empty($b->booking_package_id) || strtolower((string) $b->payment_method) !== 'package');
+        $packageBookings = $validBookings->filter(fn (Booking $b) => ! empty($b->booking_package_id) && strtolower((string) $b->payment_method) === 'package');
+
+        $singleBookingsCount = $singleBookings->count();
+        $singleBookingsCompletedCount = $singleBookings->where('status', 'completed')->count();
+
+        $packageBookingsCount = $packageBookings->count();
+        $packageBookingsCompletedCount = $packageBookings->where('status', 'completed')->count();
+
         // 4. Revenue by Day for Line Chart
         $revenueByDay = $completedPaidBookings->groupBy(function($b) {
             return Carbon::parse($b->slot_date)->format('Y-m-d');
@@ -281,6 +291,10 @@ class OwnerDashboardController extends Controller
             'totalRevenue',
             'packageBookingRevenue',
             'totalBookings',
+            'singleBookingsCount',
+            'singleBookingsCompletedCount',
+            'packageBookingsCount',
+            'packageBookingsCompletedCount',
             'bookingStatuses',
             'uniqueCustomers',
             'totalHours',
