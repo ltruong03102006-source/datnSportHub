@@ -111,4 +111,24 @@ class VoucherService
             return $voucher;
         });
     }
+
+    /**
+     * Delete a voucher (soft delete)
+     *
+     * @param int $voucherId
+     * @return bool
+     * @throws Exception
+     */
+    public function delete(int $voucherId): bool
+    {
+        $voucher = Voucher::findOrFail($voucherId);
+
+        if ($voucher->used_count > 0 || DB::table('booking_vouchers')->where('voucher_id', $voucherId)->exists()) {
+            throw new Exception("Cannot delete voucher. It has already been used.");
+        }
+
+        return DB::transaction(function () use ($voucher) {
+            return $voucher->delete();
+        });
+    }
 }
