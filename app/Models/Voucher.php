@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Voucher extends Model
@@ -14,6 +15,7 @@ class Voucher extends Model
     protected $table = 'vouchers';
 
     protected $fillable = [
+        'name',
         'code',
         'discount_type',
         'discount_value',
@@ -49,9 +51,9 @@ class Voucher extends Model
         return $this->belongsTo(User::class, 'owner_id');
     }
 
-    // Ghi chú: Có thể SportField model chưa có nhưng theo logic tạo Task 2 thì cần có quan hệ với SportField.
-    public function sportField(): BelongsTo
+    public function venues(): BelongsToMany
     {
-        return $this->belongsTo(SportField::class, 'sport_field_id');
+        return $this->belongsToMany(Venue::class, 'venue_voucher')
+            ->withTimestamps();
     }
 }
