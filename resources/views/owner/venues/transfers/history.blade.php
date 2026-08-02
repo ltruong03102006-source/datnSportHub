@@ -35,7 +35,7 @@
     </nav>
 
     <!-- Main Content Container -->
-    <div class="flex-1 p-6 lg:p-10 max-w-7xl mx-auto w-full">
+    <div class="flex-1 p-6 lg:p-10 max-w-[90rem] mx-auto w-full">
 
         {{-- Alerts --}}
         @if (session('success'))
@@ -237,7 +237,7 @@
                                         <a href="{{ route('owner.web.venues.transfers.show', $transfer->id) }}" 
                                            class="inline-flex items-center px-3 py-1.5 bg-slate-100 hover:bg-emerald-600 hover:text-white text-slate-700 text-xs font-bold rounded-lg transition-colors border border-slate-200">
                                             <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                            Xem hợp đồng
+                                            Xem
                                         </a>
 
                                         {{-- Nút GỬI: Chỉ hiện với Bên A khi trạng thái là draft/pending --}}
@@ -251,7 +251,7 @@
                                                         onclick="confirmSend({{ $transfer->id }}, '{{ addslashes($transfer->venue->name ?? 'cơ sở') }}', '{{ addslashes($transfer->toOwner->email ?? '') }}')"
                                                         class="inline-flex items-center px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm">
                                                     <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                                                    Gửi cho Bên B
+                                                    Gửi HĐ
                                                 </button>
                                             </form>
                                         @endif
@@ -260,12 +260,12 @@
                                         @if($transfer->to_owner_id === auth()->id() && in_array($transfer->status, ['sent', 'pending']))
                                             <a href="{{ route('owner.web.venues.transfers.accept', $transfer->id) }}" 
                                                class="inline-flex items-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm">
-                                                Điền hồ sơ nhận sân
+                                                Điền hồ sơ
                                             </a>
                                         @elseif($transfer->to_owner_id === auth()->id() && $transfer->status === 'filled')
                                             <a href="{{ route('owner.web.venues.transfers.show', $transfer->id) }}" 
                                                class="inline-flex items-center px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm">
-                                                Ký hợp đồng ngay
+                                                Ký HĐ
                                             </a>
                                         @endif
                                     </div>

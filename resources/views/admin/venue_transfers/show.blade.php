@@ -21,6 +21,10 @@
         @elseif($transfer->status === 'rejected')
             <span style="background-color: #f8d7da; color: #721c24; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600;">Từ chối</span>
         @endif
+
+        <a href="{{ route('admin.venue-transfers.contract', $transfer->id) }}" target="_blank" style="margin-left: auto; display: inline-flex; align-items: center; gap: 8px; background-color: #2ecc71; color: white; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+            📜 Xem văn bản Hợp đồng chi tiết 2 bên &#8599;
+        </a>
     </div>
 
     @if(session('error'))
@@ -102,63 +106,99 @@
                 </div>
             </div>
 
-            <!-- Box: HỒ SƠ PHÁP LÝ (CHỈ HIỆN KHI CHỦ MỚI ĐÃ NỘP HOẶC ĐÃ DUYỆT) -->
-            @if(in_array($transfer->status, ['pending_admin', 'approved']) && is_array($transfer->receiver_data))
-            <div class="card-custom" style="padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #ecf0f1; border-top: 4px solid #3498db;">
-                <h3 style="margin: 0 0 16px 0; font-size: 16px; color: #3498db; border-bottom: 1px solid #ecf0f1; padding-bottom: 12px; text-transform: uppercase;">Hồ sơ pháp lý(Chủ mới nộp)</h3>
+            <!-- Box: HỒ SƠ PHÁP LÝ BÊN A (CHỦ CŨ CỦA CƠ SỞ) -->
+            @if($transfer->venue && $transfer->venue->legalDocument)
+            <div class="card-custom" style="padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #ecf0f1; border-top: 4px solid #e74c3c; margin-bottom: 20px;">
+                <h3 style="margin: 0 0 16px 0; font-size: 16px; color: #e74c3c; border-bottom: 1px solid #ecf0f1; padding-bottom: 12px; text-transform: uppercase;">Hồ sơ pháp lý hiện tại (Chủ cũ - Bên A)</h3>
                 
-<div style="display: flex; gap: 24px;">
-    <!-- Cột 1: Thông tin liên hệ & Pháp lý -->
-    <div style="flex: 1; display: flex; flex-direction: column; gap: 12px; font-size: 14px;">
-        <div><span style="color: #7f8c8d; display: inline-block; width: 120px;">Tên pháp lý:</span> <strong style="color: #2c3e50;">{{ $transfer->receiver_data['owner_name'] ?? '' }}</strong></div>
-        @if(!empty($transfer->receiver_data['dob']))
-            <div><span style="color: #7f8c8d; display: inline-block; width: 120px;">Ngày sinh:</span> <strong style="color: #2c3e50;">{{ \Carbon\Carbon::parse($transfer->receiver_data['dob'])->format('d/m/Y') }}</strong></div>
-        @endif
-        @if(!empty($transfer->receiver_data['address']))
-            <div><span style="color: #7f8c8d; display: inline-block; width: 120px;">Chỗ ở hiện tại:</span> <strong style="color: #2c3e50;">{{ $transfer->receiver_data['address'] }}</strong></div>
-        @endif
-        <div><span style="color: #7f8c8d; display: inline-block; width: 120px;">Số CCCD:</span> <strong style="color: #2c3e50;">{{ $transfer->receiver_data['citizen_id'] ?? '' }}</strong></div>
-        <div><span style="color: #7f8c8d; display: inline-block; width: 120px;">Mã số GPKD:</span> <strong style="color: #2c3e50;">{{ $transfer->receiver_data['business_license_number'] ?? 'Không có' }}</strong></div>
-        
-        <!-- ĐÃ THÊM: Email và SĐT sân mới -->
-        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #bdc3c7;">
-            <span style="color: #7f8c8d; display: inline-block; width: 120px;">SĐT Sân mới:</span> <strong style="color: #e67e22;">{{ $transfer->receiver_data['phone'] ?? 'Không có' }}</strong>
-        </div>
-        <div>
-            <span style="color: #7f8c8d; display: inline-block; width: 120px;">Email Sân mới:</span> <strong style="color: #e67e22;">{{ $transfer->receiver_data['email'] ?? 'Không có' }}</strong>
-        </div>
-    </div>
-    
-    <!-- Cột 2: Ngân hàng -->
-    <div style="flex: 1; display: flex; flex-direction: column; gap: 12px; font-size: 14px;">
-        <div><span style="color: #7f8c8d; display: inline-block; width: 100px;">Ngân hàng:</span> <strong style="color: #2c3e50;">{{ $transfer->receiver_data['bank_name'] ?? '' }}</strong></div>
-        <div><span style="color: #7f8c8d; display: inline-block; width: 100px;">Số tài khoản:</span> <strong style="color: #2c3e50;">{{ $transfer->receiver_data['bank_account_number'] ?? '' }}</strong></div>
-        <div><span style="color: #7f8c8d; display: inline-block; width: 100px;">Chủ tài khoản:</span> <strong style="color: #2c3e50;">{{ $transfer->receiver_data['bank_account_holder'] ?? '' }}</strong></div>
-    </div>
-</div>
+                <div style="display: flex; gap: 24px;">
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 12px; font-size: 14px;">
+                        <div><span style="color: #7f8c8d; display: inline-block; width: 120px;">Tên pháp lý:</span> <strong style="color: #2c3e50;">{{ $transfer->venue->legalDocument->owner_name ?? '' }}</strong></div>
+                        <div><span style="color: #7f8c8d; display: inline-block; width: 120px;">Địa chỉ sân:</span> <strong style="color: #2c3e50;">{{ $transfer->venue->legalDocument->address ?? $transfer->venue->address }}</strong></div>
+                        <div><span style="color: #7f8c8d; display: inline-block; width: 120px;">Số CCCD:</span> <strong style="color: #2c3e50;">{{ $transfer->venue->legalDocument->citizen_id ?? 'Không có' }}</strong></div>
+                        @if(!empty($transfer->venue->legalDocument->business_license_number))
+                            <div><span style="color: #7f8c8d; display: inline-block; width: 120px;">Mã số GPKD:</span> <strong style="color: #2c3e50;">{{ $transfer->venue->legalDocument->business_license_number }}</strong></div>
+                        @endif
+                    </div>
+                </div>
 
-<!-- ... code phần Hiển thị nút bấm Đính kèm giữ nguyên ... -->
+                <h4 style="margin: 20px 0 12px 0; font-size: 14px; color: #7f8c8d; border-top: 1px solid #ecf0f1; padding-top: 16px;">Tài liệu minh chứng Chủ cũ:</h4>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    @if(!empty($transfer->venue->legalDocument->citizen_front_image))
+                        <a href="{{ Storage::url($transfer->venue->legalDocument->citizen_front_image) }}" target="_blank" style="padding: 6px 12px; background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">📄 Ảnh CCCD Mặt trước</a>
+                    @endif
+                    @if(!empty($transfer->venue->legalDocument->citizen_back_image))
+                        <a href="{{ Storage::url($transfer->venue->legalDocument->citizen_back_image) }}" target="_blank" style="padding: 6px 12px; background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">📄 Ảnh CCCD Mặt sau</a>
+                    @endif
+                    @if(!empty($transfer->venue->legalDocument->business_license_file))
+                        <a href="{{ Storage::url($transfer->venue->legalDocument->business_license_file) }}" target="_blank" style="padding: 6px 12px; background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">📄 Giấy phép KD</a>
+                    @endif
+                    @if(!empty($transfer->venue->legalDocument->rental_contract_file))
+                        <a href="{{ Storage::url($transfer->venue->legalDocument->rental_contract_file) }}" target="_blank" style="padding: 6px 12px; background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">📄 Hợp đồng thuê</a>
+                    @endif
+                    @if(!empty($transfer->venue->legalDocument->land_certificate_file))
+                        <a href="{{ Storage::url($transfer->venue->legalDocument->land_certificate_file) }}" target="_blank" style="padding: 6px 12px; background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">📄 Sổ đỏ/Sổ hồng</a>
+                    @endif
+                </div>
+            </div>
+            @endif
 
-                <h4 style="margin: 20px 0 12px 0; font-size: 14px; color: #2c3e50;">Tài liệu đính kèm (Nhấn vào để xem):</h4>
+            <!-- Box: HỒ SƠ PHÁP LÝ BÊN B (CHỦ MỚI NỘP) -->
+            @if(is_array($transfer->receiver_data))
+            <div class="card-custom" style="padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #ecf0f1; border-top: 4px solid #3498db;">
+                <h3 style="margin: 0 0 16px 0; font-size: 16px; color: #3498db; border-bottom: 1px solid #ecf0f1; padding-bottom: 12px; text-transform: uppercase;">Hồ sơ pháp lý đề xuất (Chủ mới - Bên B)</h3>
+                
+                <div style="display: flex; gap: 24px;">
+                    <!-- Thông tin liên hệ & Pháp lý -->
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 12px; font-size: 14px;">
+                        <div><span style="color: #7f8c8d; display: inline-block; width: 120px;">Tên pháp lý:</span> <strong style="color: #2c3e50;">{{ $transfer->receiver_data['owner_name'] ?? '' }}</strong></div>
+                        @if(!empty($transfer->receiver_data['dob']))
+                            <div><span style="color: #7f8c8d; display: inline-block; width: 120px;">Ngày sinh:</span> <strong style="color: #2c3e50;">{{ \Carbon\Carbon::parse($transfer->receiver_data['dob'])->format('d/m/Y') }}</strong></div>
+                        @endif
+                        @if(!empty($transfer->receiver_data['address']))
+                            <div><span style="color: #7f8c8d; display: inline-block; width: 120px;">Chỗ ở hiện tại:</span> <strong style="color: #2c3e50;">{{ $transfer->receiver_data['address'] }}</strong></div>
+                        @endif
+                        <div><span style="color: #7f8c8d; display: inline-block; width: 120px;">Số CCCD:</span> <strong style="color: #2c3e50;">{{ $transfer->receiver_data['citizen_id'] ?? '' }}</strong></div>
+                        @if(!empty($transfer->receiver_data['business_license_number']))
+                            <div><span style="color: #7f8c8d; display: inline-block; width: 120px;">Mã số GPKD:</span> <strong style="color: #2c3e50;">{{ $transfer->receiver_data['business_license_number'] }}</strong></div>
+                        @endif
+                        
+                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #bdc3c7;">
+                            <span style="color: #7f8c8d; display: inline-block; width: 120px;">SĐT Sân mới:</span> <strong style="color: #e67e22;">{{ $transfer->receiver_data['phone'] ?? 'Không có' }}</strong>
+                        </div>
+                        <div>
+                            <span style="color: #7f8c8d; display: inline-block; width: 120px;">Email Sân mới:</span> <strong style="color: #e67e22;">{{ $transfer->receiver_data['email'] ?? 'Không có' }}</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Danh sách File đính kèm -->
+                <h4 style="margin: 20px 0 12px 0; font-size: 14px; color: #7f8c8d; border-top: 1px solid #ecf0f1; padding-top: 16px;">Tài liệu minh chứng Pháp lý của Chủ mới:</h4>
                 <div style="display: flex; gap: 12px; flex-wrap: wrap;">
                     @if(isset($transfer->receiver_data['citizen_front_image']))
-                        <a href="{{ Storage::url($transfer->receiver_data['citizen_front_image']) }}" target="_blank" style="padding: 6px 12px; background-color: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">Ảnh CCCD Mặt trước</a>
+                        <a href="{{ Storage::url($transfer->receiver_data['citizen_front_image']) }}" target="_blank" style="padding: 6px 12px; background-color: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">🪪 Ảnh CCCD Mặt trước (Chủ mới)</a>
                     @endif
                     
                     @if(isset($transfer->receiver_data['citizen_back_image']))
-                        <a href="{{ Storage::url($transfer->receiver_data['citizen_back_image']) }}" target="_blank" style="padding: 6px 12px; background-color: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">Ảnh CCCD Mặt sau</a>
+                        <a href="{{ Storage::url($transfer->receiver_data['citizen_back_image']) }}" target="_blank" style="padding: 6px 12px; background-color: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">🪪 Ảnh CCCD Mặt sau (Chủ mới)</a>
                     @endif
 
-                    @if(isset($transfer->receiver_data['business_license_file']))
-                        <a href="{{ Storage::url($transfer->receiver_data['business_license_file']) }}" target="_blank" style="padding: 6px 12px; background-color: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">Giấy phép KD</a>
+                    @php
+                        $bizFile = $transfer->receiver_data['business_license_file'] ?? $transfer->venue->legalDocument->business_license_file ?? null;
+                        $rentalFile = $transfer->receiver_data['rental_contract_file'] ?? $transfer->venue->legalDocument->rental_contract_file ?? null;
+                        $landFile = $transfer->receiver_data['land_certificate_file'] ?? $transfer->venue->legalDocument->land_certificate_file ?? null;
+                    @endphp
+
+                    @if($bizFile)
+                        <a href="{{ Storage::url($bizFile) }}" target="_blank" style="padding: 6px 12px; background-color: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">📄 Giấy phép KD (Lấy từ Cơ sở)</a>
                     @endif
 
-                    @if(isset($transfer->receiver_data['rental_contract_file']))
-                        <a href="{{ Storage::url($transfer->receiver_data['rental_contract_file']) }}" target="_blank" style="padding: 6px 12px; background-color: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">Hợp đồng thuê</a>
+                    @if($rentalFile)
+                        <a href="{{ Storage::url($rentalFile) }}" target="_blank" style="padding: 6px 12px; background-color: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">📄 Hợp đồng thuê (Lấy từ Cơ sở)</a>
                     @endif
 
-                    @if(isset($transfer->receiver_data['land_certificate_file']))
-                        <a href="{{ Storage::url($transfer->receiver_data['land_certificate_file']) }}" target="_blank" style="padding: 6px 12px; background-color: #f0f9ff; color: #0284c7; border: 1px solid #bae6fd; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">Sổ đỏ/Sổ hồng</a>
+                    @if($landFile)
+                        <a href="{{ Storage::url($landFile) }}" target="_blank" style="padding: 6px 12px; background-color: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600;">📄 Sổ đỏ/Sổ hồng (Lấy từ Cơ sở)</a>
                     @endif
                 </div>
             </div>

@@ -26,10 +26,16 @@ class AdminVenueTransferController extends Controller
 
     public function show(VenueTransferRequest $transfer)
     {
-        // Đã tạm ẩn load ví: 'fromOwner.wallet'
-        $transfer->load(['venue', 'fromOwner', 'toOwner']);
+        $transfer->load(['venue.legalDocument', 'fromOwner', 'toOwner']);
 
         return view('admin.venue_transfers.show', compact('transfer'));
+    }
+
+    public function contract(VenueTransferRequest $transfer)
+    {
+        $transfer->load(['venue', 'fromOwner', 'toOwner']);
+
+        return view('owner.venues.transfers.show', compact('transfer'));
     }
 
     public function approve(\App\Models\VenueTransferRequest $transfer)
@@ -51,39 +57,38 @@ class AdminVenueTransferController extends Controller
                 'status' => 'approved' // Đảm bảo sân tiếp tục hoạt động
             ]);
 
-            // 2. XÓA HỒ SƠ PHÁP LÝ CHỦ CŨ
-            if ($venue->legalDocument) {
-                // Xóa file vật lý của chủ cũ (Tuỳ chọn)
-                Storage::disk('public')->delete($venue->legalDocument->citizen_front_image);
-                // ... Xóa các file khác
-                $venue->legalDocument->delete();
-            }
+            // 2. LẤY HỒ SƠ PHÁP LÝ CHỦ CŨ ĐỂ KẾ THỪA FILE
+            $oldLegal = $venue->legalDocument;
 
-            // 3. TẠO HỒ SƠ PHÁP LÝ CHO CHỦ MỚI
+            // 3. TẠO HỒ SƠ PHÁP LÝ CHO CHỦ MỚI (KẾ THỪA FILE GPKD, HỢP ĐỒNG THUÊ, SỔ ĐỎ TỪ CHỦ CŨ)
             $venue->legalDocument()->create([
-                'owner_name' => $newOwnerData['owner_name'],
-                'citizen_id' => $newOwnerData['citizen_id'],
-                
-                // ĐÃ SỬA: Lấy địa chỉ của cơ sở sân đắp vào để không bị lỗi thiếu cột address
-                'address' => $venue->address, 
-                
-                'business_license_number' => $newOwnerData['business_license_number'] ?? null,
-                'bank_name' => $newOwnerData['bank_name'],
-                'bank_account_number' => $newOwnerData['bank_account_number'],
-                'bank_account_holder' => $newOwnerData['bank_account_holder'],
-                'citizen_front_image' => $newOwnerData['citizen_front_image'],
-                'citizen_back_image' => $newOwnerData['citizen_back_image'],
-                'business_license_file' => $newOwnerData['business_license_file'] ?? null,
-                'rental_contract_file' => $newOwnerData['rental_contract_file'] ?? null,
-                'land_certificate_file' => $newOwnerData['land_certificate_file'] ?? null,
+                'owner_name' => $newOwnerData['owner_name'] ?? $venue->name,
+                'citizen_id' => $newOwnerData['citizen_id'] ?? '000000000000',
+                'address' => $newOwnerData['address'] ?? $venue->address, 
+                'business_license_number' => $newOwnerData['business_license_number'] ?? optional($oldLegal)->business_license_number,
+                'bank_name' => optional($oldLegal)->bank_name ?? 'N/A',
+                'bank_account_number' => optional($oldLegal)->bank_account_number ?? 'N/A',
+                'bank_account_holder' => optional($oldLegal)->bank_account_holder ?? 'N/A',
+                'citizen_front_image' => $newOwnerData['citizen_front_image'] ?? optional($oldLegal)->citizen_front_image ?? '',
+                'citizen_back_image' => $newOwnerData['citizen_back_image'] ?? optional($oldLegal)->citizen_back_image ?? '',
+                'business_license_file' => $newOwnerData['business_license_file'] ?? optional($oldLegal)->business_license_file,
+                'rental_contract_file' => $newOwnerData['rental_contract_file'] ?? optional($oldLegal)->rental_contract_file,
+                'land_certificate_file' => $newOwnerData['land_certificate_file'] ?? optional($oldLegal)->land_certificate_file,
                 'status' => 'approved'
             ]);
+
+            // Xóa hồ sơ cũ nếu có sau khi tạo mới xong
+            if ($oldLegal) {
+                $oldLegal->delete();
+            }
 
             // 4. CẬP NHẬT TRẠNG THÁI YÊU CẦU
             $transfer->update(['status' => 'approved']);
 
             // 5. XÓA CÁC YÊU CẦU CẬP NHẬT PHÁP LÝ ĐANG TREO (NẾU CÓ)
-            $venue->updateRequests()->delete();
+            if (method_exists($venue, 'updateRequests')) {
+                $venue->updateRequests()->delete();
+            }
 
             DB::commit();
 

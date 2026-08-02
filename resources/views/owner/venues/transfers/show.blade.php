@@ -19,10 +19,10 @@
 
     <!-- Thanh công cụ điều hướng / In ấn (no-print) -->
     <div class="max-w-4xl mx-auto mb-6 flex justify-between items-center no-print">
-        <a href="{{ route('owner.web.venues.transfers.history') }}" 
+        <a href="{{ (request()->routeIs('admin.venue-transfers.contract') || (auth()->check() && auth()->user()->role === 'admin')) ? route('admin.venue-transfers.show', $transfer->id) : route('owner.web.venues.transfers.history') }}" 
            class="inline-flex items-center text-sm font-semibold text-slate-700 hover:text-emerald-600 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200 transition-colors">
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-            Quay lại Danh sách hợp đồng
+            {{ (request()->routeIs('admin.venue-transfers.contract') || (auth()->check() && auth()->user()->role === 'admin')) ? 'Quay lại Yêu cầu chuyển nhượng #' . $transfer->id : 'Quay lại Danh sách hợp đồng' }}
         </a>
 
         <div class="flex items-center gap-3">

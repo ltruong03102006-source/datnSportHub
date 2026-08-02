@@ -144,7 +144,8 @@ class OwnerVenueTransferController extends Controller
     public function show(VenueTransferRequest $transfer)
     {
         $userId = auth()->id();
-        if ($transfer->from_owner_id !== $userId && $transfer->to_owner_id !== $userId && optional(auth()->user())->role !== 'admin') {
+        $userRole = strtolower(optional(auth()->user())->role ?? '');
+        if ($transfer->from_owner_id !== $userId && $transfer->to_owner_id !== $userId && $userRole !== 'admin') {
             abort(403, 'Bạn không có quyền xem hợp đồng này.');
         }
 
@@ -225,26 +226,16 @@ class OwnerVenueTransferController extends Controller
             'dob' => ['required', 'date', 'before:today'],
             'address' => ['required', 'string', 'max:255'],
             'citizen_id' => ['required', 'digits:12'],
-            'business_license_number' => ['required', 'string', 'regex:/^[a-zA-Z0-9]+$/', 'max:50'],
-            'bank_name' => ['required', 'string', 'max:255'],
-            'bank_account_number' => ['required', 'regex:/^[0-9]+$/', 'max:50'],
-            'bank_account_holder' => ['required', 'string', 'max:255'],
             'citizen_front_image' => ['required', 'image', 'max:5120'],
             'citizen_back_image' => ['required', 'image', 'max:5120'], 
-            'business_license_file' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
-            'rental_contract_file' => ['required_without:land_certificate_file', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
-            'land_certificate_file' => ['required_without:rental_contract_file', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ], [
             'dob.required' => 'Vui lòng chọn ngày sinh.',
             'dob.date' => 'Ngày sinh không đúng định dạng.',
             'dob.before' => 'Ngày sinh phải là một ngày trong quá khứ.',
             'address.required' => 'Vui lòng nhập chỗ ở hiện tại.',
-            'rental_contract_file.required_without' => 'Bạn phải cung cấp Hợp đồng thuê mặt bằng hoặc Sổ đỏ.',
-            'land_certificate_file.required_without' => 'Bạn phải cung cấp Sổ đỏ hoặc Hợp đồng thuê mặt bằng.',
-            'business_license_file.required' => 'Vui lòng tải lên Giấy phép kinh doanh.'
         ]);
 
-        $fileFields = ['citizen_front_image', 'citizen_back_image', 'business_license_file', 'rental_contract_file', 'land_certificate_file'];
+        $fileFields = ['citizen_front_image', 'citizen_back_image'];
         foreach ($fileFields as $field) {
             if ($request->hasFile($field)) {
                 $validated[$field] = $request->file($field)->store('venue-documents/temp_transfers', 'public');

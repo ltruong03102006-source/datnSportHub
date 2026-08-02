@@ -172,6 +172,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Quản lý Yêu cầu chuyển nhượng cơ sở
         Route::get('/venue-transfers', [\App\Http\Controllers\Web\AdminVenueTransferController::class, 'index'])->name('venue-transfers.index');
         Route::get('/venue-transfers/{transfer}', [\App\Http\Controllers\Web\AdminVenueTransferController::class, 'show'])->name('venue-transfers.show');
+        Route::get('/venue-transfers/{transfer}/contract', [\App\Http\Controllers\Web\AdminVenueTransferController::class, 'contract'])->name('venue-transfers.contract');
         Route::post('/venue-transfers/{transfer}/approve', [\App\Http\Controllers\Web\AdminVenueTransferController::class, 'approve'])->name('venue-transfers.approve');
         Route::post('/venue-transfers/{transfer}/reject', [\App\Http\Controllers\Web\AdminVenueTransferController::class, 'reject'])->name('venue-transfers.reject');
         // 👇 THÊM 2 DÒNG NÀY VÀO ĐỂ XỬ LÝ YÊU CẦU THAY ĐỔI THÔNG TIN (BẢN NHÁP) 👇
