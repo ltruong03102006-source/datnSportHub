@@ -84,4 +84,31 @@ class VoucherService
 
         return true;
     }
+
+    /**
+     * Update an existing voucher
+     *
+     * @param int $voucherId
+     * @param array $data
+     * @return Voucher
+     * @throws Exception
+     */
+    public function update(int $voucherId, array $data): Voucher
+    {
+        $voucher = Voucher::findOrFail($voucherId);
+
+        if ($voucher->used_count > 0 || DB::table('booking_vouchers')->where('voucher_id', $voucherId)->exists()) {
+            throw new Exception("Cannot update voucher. It has already been used.");
+        }
+
+        // Validate code uniqueness if it's being updated
+        if (isset($data['code']) && $data['code'] !== $voucher->code && Voucher::where('code', $data['code'])->exists()) {
+            throw new Exception("Voucher code already exists.");
+        }
+
+        return DB::transaction(function () use ($voucher, $data) {
+            $voucher->update($data);
+            return $voucher;
+        });
+    }
 }
