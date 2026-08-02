@@ -6,6 +6,7 @@ use App\Models\Voucher;
 use App\Models\SportField;
 use Exception;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class VoucherService
 {
@@ -44,5 +45,20 @@ class VoucherService
         return DB::transaction(function () use ($data) {
             return Voucher::create($data);
         });
+    }
+
+    /**
+     * Generate a unique voucher code
+     *
+     * @param string $prefix
+     * @return string
+     */
+    public function generateCode(string $prefix = 'FIELD'): string
+    {
+        do {
+            $code = strtoupper($prefix . '-' . Str::random(6));
+        } while (Voucher::where('code', $code)->exists());
+
+        return $code;
     }
 }
