@@ -290,6 +290,10 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
     // Xử lý nộp form pháp lý
     Route::post('venues/transfers/{transfer}/accept', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'submitAcceptForm'])
         ->name('venues.transfers.accept.submit');
+
+    // Xử lý Ký hợp đồng chuyển nhượng (Bên B)
+    Route::post('venues/transfers/{transfer}/sign', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'signContract'])
+        ->name('venues.transfers.sign');
 });
 
 Route::middleware('auth')->group(function () {

@@ -95,7 +95,7 @@
                                         class="w-full appearance-none rounded-xl border-slate-300 bg-white px-4 py-3 text-slate-800 font-medium shadow-sm focus:border-emerald-500 focus:ring-emerald-500 pr-10 border transition-all">
                                     @foreach ($venues as $v)
                                         <option value="{{ $v->id }}" {{ (old('venue_id', $selectedVenueId ?? null) == $v->id) ? 'selected' : '' }}>
-                                            ▼ {{ $v->name }} ({{ $v->address ?? 'Chưa cập nhật địa chỉ' }})
+                                            {{ $v->name }} ({{ $v->address ?? 'Chưa cập nhật địa chỉ' }})
                                         </option>
                                     @endforeach
                                 </select>
@@ -109,10 +109,49 @@
                     <!-- ĐƯỜNG KẺ PHÂN CÁCH -->
                     <hr class="border-t border-dashed border-slate-200 my-8">
 
-                    <!-- PHẦN 2: THÔNG TIN BÊN NHẬN -->
+                    <!-- PHẦN 2: THÔNG TIN BÊN CHUYỂN NHƯỢNG -->
                     <div class="mb-8">
                         <div class="flex items-center gap-2 mb-4">
                             <span class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">2</span>
+                            <h3 class="text-lg font-bold text-slate-800">Thông tin bên chuyển nhượng</h3>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <label for="sender_owner_name" class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Tên bên chuyển nhượng <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text" name="sender_owner_name" id="sender_owner_name" 
+                                       value="{{ old('sender_owner_name', auth()->user()->name ?? auth()->user()->full_name) }}" required
+                                       class="w-full rounded-xl border-slate-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 px-4 py-3 text-slate-800 border">
+                            </div>
+                            <div>
+                                <label for="sender_dob" class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Ngày sinh <span class="text-red-500">*</span>
+                                </label>
+                                <input type="date" name="sender_dob" id="sender_dob" 
+                                       value="{{ old('sender_dob') }}" required
+                                       class="w-full rounded-xl border-slate-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 px-4 py-3 text-slate-800 border">
+                            </div>
+                            <div>
+                                <label for="sender_address" class="block text-sm font-semibold text-slate-700 mb-2">
+                                    Chỗ ở hiện tại <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text" name="sender_address" id="sender_address" 
+                                       value="{{ old('sender_address') }}" required
+                                       placeholder="Ví dụ: Quận 1, TP. Hồ Chí Minh"
+                                       class="w-full rounded-xl border-slate-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 px-4 py-3 text-slate-800 border">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ĐƯỜNG KẺ PHÂN CÁCH -->
+                    <hr class="border-t border-dashed border-slate-200 my-8">
+
+                    <!-- PHẦN 3: THÔNG TIN BÊN NHẬN -->
+                    <div class="mb-8">
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">3</span>
                             <h3 class="text-lg font-bold text-slate-800">Thông tin bên nhận</h3>
                         </div>
 
@@ -146,10 +185,10 @@
                     <!-- ĐƯỜNG KẺ PHÂN CÁCH -->
                     <hr class="border-t border-dashed border-slate-200 my-8">
 
-                    <!-- PHẦN 3: THÔNG TIN CHUYỂN NHƯỢNG -->
+                    <!-- PHẦN 4: THÔNG TIN CHUYỂN NHƯỢNG -->
                     <div class="mb-8">
                         <div class="flex items-center gap-2 mb-4">
-                            <span class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">3</span>
+                            <span class="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs">4</span>
                             <h3 class="text-lg font-bold text-slate-800">Thông tin chuyển nhượng</h3>
                         </div>
 
@@ -181,7 +220,7 @@
                                 <label for="contract_location" class="block text-sm font-semibold text-slate-700 mb-2">
                                     Địa điểm lập hợp đồng <span class="text-red-500">*</span>
                                 </label>
-                                <input type="text" name="contract_location" id="contract_location" value="{{ old('contract_location', 'Thành phố Hồ Chí Minh') }}" required
+                                <input type="text" name="contract_location" id="contract_location" value="{{ old('contract_location', '') }}" required
                                        class="w-full rounded-xl border-slate-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 px-4 py-3 text-slate-800 border"
                                        placeholder="Ví dụ: Thành phố Hồ Chí Minh, Việt Nam">
                             </div>

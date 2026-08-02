@@ -8,10 +8,14 @@
         <a href="{{ route('admin.venue-transfers.index') }}" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; background-color: #f1f3f5; color: #7f8c8d; border-radius: 8px; text-decoration: none; font-weight: bold;">&#8592;</a>
         <h2 style="margin: 0; color: #2c3e50; font-weight: 700;">Chi tiết Yêu cầu #{{ $transfer->id }}</h2>
         
-        @if($transfer->status === 'pending')
-            <span style="background-color: #fff3cd; color: #856404; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600;">Chờ chủ mới nhận</span>
-        @elseif($transfer->status === 'pending_admin')
-            <span style="background-color: #cce5ff; color: #004085; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600;">Chờ Admin duyệt</span>
+        @if($transfer->status === 'draft')
+            <span style="background-color: #fff3cd; color: #856404; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600;">Hợp đồng Nháp</span>
+        @elseif(in_array($transfer->status, ['sent', 'pending']))
+            <span style="background-color: #e2e8f0; color: #334155; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600;">Chờ chủ mới nhận</span>
+        @elseif($transfer->status === 'filled')
+            <span style="background-color: #f3e8ff; color: #6b21a8; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600;">Đã điền hồ sơ (Chờ ký)</span>
+        @elseif(in_array($transfer->status, ['signed', 'pending_admin']))
+            <span style="background-color: #cce5ff; color: #004085; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600;">Đã ký (Chờ Admin duyệt)</span>
         @elseif($transfer->status === 'approved')
             <span style="background-color: #d4edda; color: #155724; padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600;">Đã duyệt</span>
         @elseif($transfer->status === 'rejected')
@@ -53,9 +57,23 @@
                 <div class="card-custom" style="flex: 1; padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #ecf0f1; border-top: 4px solid #e74c3c;">
                     <h3 style="margin: 0 0 16px 0; font-size: 16px; color: #e74c3c; border-bottom: 1px solid #ecf0f1; padding-bottom: 12px; text-transform: uppercase;">Bên Bán (Chủ cũ)</h3>
                     <div style="display: flex; flex-direction: column; gap: 12px; font-size: 14px;">
-                        <div><span style="color: #7f8c8d; display: inline-block; width: 60px;">Họ tên:</span> <strong style="color: #2c3e50;">{{ $transfer->fromOwner->name ?? $transfer->fromOwner->full_name }}</strong></div>
-                        <div><span style="color: #7f8c8d; display: inline-block; width: 60px;">Email:</span> <span style="color: #2c3e50;">{{ $transfer->fromOwner->email }}</span></div>
-                        <div><span style="color: #7f8c8d; display: inline-block; width: 60px;">SĐT:</span> <span style="color: #2c3e50;">{{ $transfer->venue->phone ?? $transfer->fromOwner->phone ?? 'Chưa cập nhật' }}</span></div>
+                        <div><span style="color: #7f8c8d; display: inline-block; width: 110px;">Họ tên:</span> <strong style="color: #2c3e50;">{{ $transfer->sender_data['owner_name'] ?? $transfer->fromOwner->name ?? $transfer->fromOwner->full_name }}</strong></div>
+                        @if(!empty($transfer->sender_data['dob']))
+                            <div><span style="color: #7f8c8d; display: inline-block; width: 110px;">Ngày sinh:</span> <span style="color: #2c3e50;">{{ \Carbon\Carbon::parse($transfer->sender_data['dob'])->format('d/m/Y') }}</span></div>
+                        @endif
+                        @if(!empty($transfer->sender_data['address']))
+                            <div><span style="color: #7f8c8d; display: inline-block; width: 110px;">Chỗ ở hiện tại:</span> <span style="color: #2c3e50;">{{ $transfer->sender_data['address'] }}</span></div>
+                        @endif
+                        <div><span style="color: #7f8c8d; display: inline-block; width: 110px;">Email:</span> <span style="color: #2c3e50;">{{ $transfer->fromOwner->email }}</span></div>
+                        <div><span style="color: #7f8c8d; display: inline-block; width: 110px;">SĐT:</span> <span style="color: #2c3e50;">{{ $transfer->venue->phone ?? $transfer->fromOwner->phone ?? 'Chưa cập nhật' }}</span></div>
+                        @if($transfer->sender_signed_at)
+                            <div style="margin-top: 8px; padding: 8px; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; font-size: 12px;">
+                                <div style="color: #166534; font-weight: bold; margin-bottom: 4px;">✓ Chữ ký số xác nhận khởi tạo</div>
+                                <div style="color: #374151;">Thời gian ký: {{ \Carbon\Carbon::parse($transfer->sender_signed_at)->format('H:i:s - d/m/Y') }}</div>
+                                <div style="color: #374151;">Tài khoản: {{ $transfer->sender_signed_account ?? $transfer->fromOwner->email }}</div>
+                                <div style="color: #374151;">IP xác thực: {{ $transfer->sender_signed_ip ?? '127.0.0.1' }}</div>
+                            </div>
+                        @endif
                     </div>
                 </div>
 
@@ -63,9 +81,23 @@
                 <div class="card-custom" style="flex: 1; padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #ecf0f1; border-top: 4px solid #2ecc71;">
                     <h3 style="margin: 0 0 16px 0; font-size: 16px; color: #2ecc71; border-bottom: 1px solid #ecf0f1; padding-bottom: 12px; text-transform: uppercase;">Bên Mua (Chủ mới)</h3>
                     <div style="display: flex; flex-direction: column; gap: 12px; font-size: 14px;">
-                        <div><span style="color: #7f8c8d; display: inline-block; width: 60px;">Họ tên:</span> <strong style="color: #2c3e50;">{{ $transfer->toOwner->name ?? $transfer->toOwner->full_name }}</strong></div>
-                        <div><span style="color: #7f8c8d; display: inline-block; width: 60px;">Email:</span> <span style="color: #2c3e50;">{{ $transfer->toOwner->email }}</span></div>
-                        <div><span style="color: #7f8c8d; display: inline-block; width: 60px;">SĐT:</span> <span style="color: #2c3e50;">{{ $transfer->toOwner->phone ?? \App\Models\OwnerRegistration::where('user_id', $transfer->to_owner_id)->value('phone') ?? 'Chưa cập nhật' }}</span></div>
+                        <div><span style="color: #7f8c8d; display: inline-block; width: 110px;">Họ tên:</span> <strong style="color: #2c3e50;">{{ $transfer->receiver_data['owner_name'] ?? $transfer->toOwner->name ?? $transfer->toOwner->full_name }}</strong></div>
+                        @if(!empty($transfer->receiver_data['dob']))
+                            <div><span style="color: #7f8c8d; display: inline-block; width: 110px;">Ngày sinh:</span> <span style="color: #2c3e50;">{{ \Carbon\Carbon::parse($transfer->receiver_data['dob'])->format('d/m/Y') }}</span></div>
+                        @endif
+                        @if(!empty($transfer->receiver_data['address']))
+                            <div><span style="color: #7f8c8d; display: inline-block; width: 110px;">Chỗ ở hiện tại:</span> <span style="color: #2c3e50;">{{ $transfer->receiver_data['address'] }}</span></div>
+                        @endif
+                        <div><span style="color: #7f8c8d; display: inline-block; width: 110px;">Email:</span> <span style="color: #2c3e50;">{{ $transfer->toOwner->email }}</span></div>
+                        <div><span style="color: #7f8c8d; display: inline-block; width: 110px;">SĐT:</span> <span style="color: #2c3e50;">{{ $transfer->toOwner->phone ?? \App\Models\OwnerRegistration::where('user_id', $transfer->to_owner_id)->value('phone') ?? 'Chưa cập nhật' }}</span></div>
+                        @if($transfer->receiver_signed_at)
+                            <div style="margin-top: 8px; padding: 8px; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; font-size: 12px;">
+                                <div style="color: #166534; font-weight: bold; margin-bottom: 4px;">✓ Chữ ký số điện tử xác thực</div>
+                                <div style="color: #374151;">Thời gian ký: {{ \Carbon\Carbon::parse($transfer->receiver_signed_at)->format('H:i:s - d/m/Y') }}</div>
+                                <div style="color: #374151;">Tài khoản: {{ $transfer->receiver_signed_account ?? $transfer->toOwner->email }}</div>
+                                <div style="color: #374151;">IP xác thực: {{ $transfer->receiver_signed_ip ?? '127.0.0.1' }}</div>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -75,12 +107,16 @@
             <div class="card-custom" style="padding: 20px; background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); border: 1px solid #ecf0f1; border-top: 4px solid #3498db;">
                 <h3 style="margin: 0 0 16px 0; font-size: 16px; color: #3498db; border-bottom: 1px solid #ecf0f1; padding-bottom: 12px; text-transform: uppercase;">Hồ sơ pháp lý(Chủ mới nộp)</h3>
                 
-                <!-- ... code phần tiêu đề HỒ SƠ PHÁP LÝ giữ nguyên ... -->
-
 <div style="display: flex; gap: 24px;">
     <!-- Cột 1: Thông tin liên hệ & Pháp lý -->
     <div style="flex: 1; display: flex; flex-direction: column; gap: 12px; font-size: 14px;">
         <div><span style="color: #7f8c8d; display: inline-block; width: 120px;">Tên pháp lý:</span> <strong style="color: #2c3e50;">{{ $transfer->receiver_data['owner_name'] ?? '' }}</strong></div>
+        @if(!empty($transfer->receiver_data['dob']))
+            <div><span style="color: #7f8c8d; display: inline-block; width: 120px;">Ngày sinh:</span> <strong style="color: #2c3e50;">{{ \Carbon\Carbon::parse($transfer->receiver_data['dob'])->format('d/m/Y') }}</strong></div>
+        @endif
+        @if(!empty($transfer->receiver_data['address']))
+            <div><span style="color: #7f8c8d; display: inline-block; width: 120px;">Chỗ ở hiện tại:</span> <strong style="color: #2c3e50;">{{ $transfer->receiver_data['address'] }}</strong></div>
+        @endif
         <div><span style="color: #7f8c8d; display: inline-block; width: 120px;">Số CCCD:</span> <strong style="color: #2c3e50;">{{ $transfer->receiver_data['citizen_id'] ?? '' }}</strong></div>
         <div><span style="color: #7f8c8d; display: inline-block; width: 120px;">Mã số GPKD:</span> <strong style="color: #2c3e50;">{{ $transfer->receiver_data['business_license_number'] ?? 'Không có' }}</strong></div>
         
@@ -149,11 +185,11 @@
             @endif
 
             <!-- LOGIC NÚT DUYỆT ĐÃ ĐƯỢC CHUẨN HÓA -->
-            @if($transfer->status === 'pending')
+            @if(in_array($transfer->status, ['draft', 'sent', 'pending', 'filled']))
                 <div style="background-color: #fff3cd; color: #856404; padding: 12px; text-align: center; border-radius: 8px; font-size: 13px;">
-                    <i class="fa-solid fa-hourglass-half"></i> Đang chờ Chủ mới điền hồ sơ pháp lý... Không thể duyệt lúc này.
+                    <i class="fa-solid fa-hourglass-half"></i> Đang chờ các bên hoàn tất điền hồ sơ và ký điện tử... Chưa thể duyệt lúc này.
                 </div>
-            @elseif($transfer->status === 'pending_admin')
+            @elseif(in_array($transfer->status, ['signed', 'pending_admin']))
                 <div style="display: flex; flex-direction: column; gap: 12px;">
                     <form action="{{ route('admin.venue-transfers.approve', $transfer->id) }}" method="POST" onsubmit="return confirm('Xác nhận Duyệt? Quyền sở hữu sân và dòng tiền sẽ thay đổi ngay lập tức!');">
                         @csrf

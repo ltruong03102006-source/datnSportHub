@@ -110,23 +110,31 @@
                                 $currStatus = request('status', 'all');
                             @endphp
                             <a href="{{ route('owner.web.venues.transfers.history', array_merge(request()->except('status'), ['status' => 'all'])) }}"
-                               class="flex-1 text-center py-2 px-2.5 text-xs font-bold rounded-lg transition-all {{ $currStatus == 'all' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
+                               class="flex-1 text-center py-2 px-2 text-xs font-bold rounded-lg transition-all {{ $currStatus == 'all' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
                                 Tất cả
                             </a>
-                            <a href="{{ route('owner.web.venues.transfers.history', array_merge(request()->except('status'), ['status' => 'pending'])) }}"
-                               class="flex-1 text-center py-2 px-2.5 text-xs font-bold rounded-lg transition-all {{ $currStatus == 'pending' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
-                                Chờ xác nhận
+                            <a href="{{ route('owner.web.venues.transfers.history', array_merge(request()->except('status'), ['status' => 'draft'])) }}"
+                               class="flex-1 text-center py-2 px-2 text-xs font-bold rounded-lg transition-all {{ $currStatus == 'draft' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
+                                Nháp
                             </a>
-                            <a href="{{ route('owner.web.venues.transfers.history', array_merge(request()->except('status'), ['status' => 'pending_admin'])) }}"
-                               class="flex-1 text-center py-2 px-2.5 text-xs font-bold rounded-lg transition-all {{ $currStatus == 'pending_admin' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
-                                Chờ ký
+                            <a href="{{ route('owner.web.venues.transfers.history', array_merge(request()->except('status'), ['status' => 'sent'])) }}"
+                               class="flex-1 text-center py-2 px-2 text-xs font-bold rounded-lg transition-all {{ $currStatus == 'sent' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
+                                Đã gửi
+                            </a>
+                            <a href="{{ route('owner.web.venues.transfers.history', array_merge(request()->except('status'), ['status' => 'filled'])) }}"
+                               class="flex-1 text-center py-2 px-2 text-xs font-bold rounded-lg transition-all {{ $currStatus == 'filled' ? 'bg-white text-purple-700 shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
+                                Đã điền hồ sơ
+                            </a>
+                            <a href="{{ route('owner.web.venues.transfers.history', array_merge(request()->except('status'), ['status' => 'signed'])) }}"
+                               class="flex-1 text-center py-2 px-2 text-xs font-bold rounded-lg transition-all {{ $currStatus == 'signed' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
+                                Đã ký
                             </a>
                             <a href="{{ route('owner.web.venues.transfers.history', array_merge(request()->except('status'), ['status' => 'approved'])) }}"
-                               class="flex-1 text-center py-2 px-2.5 text-xs font-bold rounded-lg transition-all {{ $currStatus == 'approved' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
-                                Đã hoàn thành
+                               class="flex-1 text-center py-2 px-2 text-xs font-bold rounded-lg transition-all {{ $currStatus == 'approved' ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
+                                Hoàn tất
                             </a>
                             <a href="{{ route('owner.web.venues.transfers.history', array_merge(request()->except('status'), ['status' => 'rejected'])) }}"
-                               class="flex-1 text-center py-2 px-2.5 text-xs font-bold rounded-lg transition-all {{ $currStatus == 'rejected' ? 'bg-white text-red-700 shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
+                               class="flex-1 text-center py-2 px-2 text-xs font-bold rounded-lg transition-all {{ $currStatus == 'rejected' ? 'bg-white text-red-700 shadow-sm' : 'text-slate-600 hover:text-slate-900' }}">
                                 Đã hủy
                             </a>
                         </div>
@@ -191,13 +199,21 @@
 
                                 <!-- Trạng thái -->
                                 <td class="py-4 px-5 text-center whitespace-nowrap">
-                                    @if($transfer->status === 'pending')
+                                    @if($transfer->status === 'draft')
                                         <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
-                                            Chờ xác nhận
+                                            Nháp (Xem trước)
                                         </span>
-                                    @elseif($transfer->status === 'pending_admin')
+                                    @elseif(in_array($transfer->status, ['sent', 'pending']))
                                         <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">
-                                            Chờ ký
+                                            Đã gửi (Chờ nhận)
+                                        </span>
+                                    @elseif($transfer->status === 'filled')
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                                            Đã điền hồ sơ (Chờ ký)
+                                        </span>
+                                    @elseif(in_array($transfer->status, ['signed', 'pending_admin']))
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-cyan-100 text-cyan-800 border border-cyan-200">
+                                            Đã ký (Chờ Admin)
                                         </span>
                                     @elseif($transfer->status === 'approved')
                                         <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
@@ -221,11 +237,11 @@
                                         <a href="{{ route('owner.web.venues.transfers.show', $transfer->id) }}" 
                                            class="inline-flex items-center px-3 py-1.5 bg-slate-100 hover:bg-emerald-600 hover:text-white text-slate-700 text-xs font-bold rounded-lg transition-colors border border-slate-200">
                                             <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                            Xem
+                                            Xem hợp đồng
                                         </a>
 
-                                        {{-- Nút GỬIL: chỉ hiện với Bên A khi status=pending và chưa gửi --}}
-                                        @if($transfer->from_owner_id === auth()->id() && $transfer->status === 'pending' && !$transfer->notified_at)
+                                        {{-- Nút GỬI: Chỉ hiện với Bên A khi trạng thái là draft/pending --}}
+                                        @if($transfer->from_owner_id === auth()->id() && in_array($transfer->status, ['draft', 'pending']))
                                             <form action="{{ route('owner.web.venues.transfers.send', $transfer->id) }}" 
                                                   method="POST" 
                                                   id="send-form-{{ $transfer->id }}"
@@ -233,22 +249,23 @@
                                                 @csrf
                                                 <button type="button"
                                                         onclick="confirmSend({{ $transfer->id }}, '{{ addslashes($transfer->venue->name ?? 'cơ sở') }}', '{{ addslashes($transfer->toOwner->email ?? '') }}')"
-                                                        class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm">
+                                                        class="inline-flex items-center px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm">
                                                     <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                                                    Gửi
+                                                    Gửi cho Bên B
                                                 </button>
                                             </form>
-                                        @elseif($transfer->from_owner_id === auth()->id() && $transfer->notified_at && $transfer->status === 'pending')
-                                            <span class="inline-flex items-center px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-lg border border-emerald-200" title="Đã gửi lúc {{ $transfer->notified_at->format('d/m/Y H:i') }}">
-                                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                                Đã gửi
-                                            </span>
                                         @endif
 
-                                        @if($transfer->to_owner_id === auth()->id() && $transfer->status === 'pending')
+                                        {{-- Nút ĐIỀN HỒ SƠ & KÝ: Dành cho Bên B --}}
+                                        @if($transfer->to_owner_id === auth()->id() && in_array($transfer->status, ['sent', 'pending']))
                                             <a href="{{ route('owner.web.venues.transfers.accept', $transfer->id) }}" 
                                                class="inline-flex items-center px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm">
-                                                Xác nhận ngay
+                                                Điền hồ sơ nhận sân
+                                            </a>
+                                        @elseif($transfer->to_owner_id === auth()->id() && $transfer->status === 'filled')
+                                            <a href="{{ route('owner.web.venues.transfers.show', $transfer->id) }}" 
+                                               class="inline-flex items-center px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm">
+                                                Ký hợp đồng ngay
                                             </a>
                                         @endif
                                     </div>

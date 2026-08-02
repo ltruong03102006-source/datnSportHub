@@ -26,8 +26,45 @@
         </a>
 
         <div class="flex items-center gap-3">
+            {{-- Nút GỬI HỢP ĐỒNG: Dành cho Bên A khi hợp đồng ở dạng nháp --}}
+            @if($transfer->from_owner_id === auth()->id() && in_array($transfer->status, ['draft', 'pending']))
+                <form action="{{ route('owner.web.venues.transfers.send', $transfer->id) }}" method="POST" class="inline">
+                    @csrf
+                    <button type="submit" 
+                            class="inline-flex items-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-xl shadow-sm transition">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                        Gửi hợp đồng cho Bên B
+                    </button>
+                </form>
+            @endif
+
+            {{-- Nút ĐIỀN HỒ SƠ: Dành cho Bên B khi nhận được hợp đồng --}}
+            @if($transfer->to_owner_id === auth()->id() && in_array($transfer->status, ['sent', 'pending']))
+                <a href="{{ route('owner.web.venues.transfers.accept', $transfer->id) }}" 
+                   class="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition">
+                    Điền hồ sơ nhận sân
+                </a>
+            @endif
+
+            {{-- Nút KÝ HỢP ĐỒNG: Chỉ xuất hiện cho Bên B khi ĐÃ ĐIỀN HỒ SƠ (filled) --}}
+            @if($transfer->to_owner_id === auth()->id() && $transfer->status === 'filled' && !$transfer->receiver_signed_at)
+                <form action="{{ route('owner.web.venues.transfers.sign', $transfer->id) }}" method="POST" class="inline">
+                    @csrf
+                    <button type="submit" 
+                            class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded-xl shadow-sm transition">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                        Ký hợp đồng
+                    </button>
+                </form>
+            @elseif($transfer->receiver_signed_at)
+                <span class="inline-flex items-center px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-xl border border-emerald-200 shadow-sm">
+                    <svg class="w-4 h-4 mr-1.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Đã ký điện tử
+                </span>
+            @endif
+
             <button onclick="window.print()" 
-                    class="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow-sm transition">
+                    class="inline-flex items-center px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-sm font-bold rounded-xl shadow-sm transition">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                 In / Tải PDF
             </button>
@@ -70,7 +107,9 @@
         <!-- BÊN A -->
         <div class="mb-6 space-y-2 text-sm">
             <h4 class="font-bold uppercase text-slate-900 border-b border-slate-200 pb-1">BÊN CHUYỂN NHƯỢNG (BÊN A):</h4>
-            <p>Ông/Bà: <strong>{{ $transfer->fromOwner->name ?? $transfer->fromOwner->full_name ?? 'Bên chuyển nhượng' }}</strong></p>
+            <p>Ông/Bà: <strong>{{ $transfer->sender_data['owner_name'] ?? $transfer->fromOwner->name ?? $transfer->fromOwner->full_name ?? 'Bên chuyển nhượng' }}</strong></p>
+            <p>Ngày sinh: <strong>{{ !empty($transfer->sender_data['dob']) ? \Carbon\Carbon::parse($transfer->sender_data['dob'])->format('d/m/Y') : '......................................' }}</strong></p>
+            <p>Chỗ ở hiện tại: <strong>{{ $transfer->sender_data['address'] ?? '......................................' }}</strong></p>
             <p>Email liên hệ: <strong>{{ $transfer->fromOwner->email }}</strong></p>
             <p>Số Căn cước công dân / CMND: <strong>{{ $transfer->venue->legalDocument->citizen_id ?? '......................................' }}</strong></p>
             <p>Là chủ sở hữu hợp pháp của Cơ sở thể thao: <strong>{{ $transfer->venue->name ?? 'N/A' }}</strong></p>
@@ -81,8 +120,10 @@
         <div class="mb-8 space-y-2 text-sm">
             <h4 class="font-bold uppercase text-slate-900 border-b border-slate-200 pb-1">BÊN ĐƯỢC CHUYỂN NHƯỢNG (BÊN B):</h4>
             <p>Ông/Bà: <strong>{{ $transfer->receiver_data['owner_name'] ?? $transfer->toOwner->name ?? $transfer->toOwner->full_name ?? 'Bên nhận chuyển nhượng' }}</strong></p>
-            <p>Email đăng ký: <strong>{{ $transfer->toOwner->email }}</strong></p>
+            <p>Ngày sinh: <strong>{{ !empty($transfer->receiver_data['dob']) ? \Carbon\Carbon::parse($transfer->receiver_data['dob'])->format('d/m/Y') : '......................................' }}</strong></p>
             <p>Số Căn cước công dân / CMND: <strong>{{ $transfer->receiver_data['citizen_id'] ?? '......................................' }}</strong></p>
+            <p>Chỗ ở hiện tại: <strong>{{ $transfer->receiver_data['address'] ?? '......................................' }}</strong></p>
+            <p>Email đăng ký: <strong>{{ $transfer->toOwner->email }}</strong></p>
         </div>
 
         <p class="text-sm mb-6 font-medium italic">
@@ -167,23 +208,53 @@
 
         <!-- CHỮ KÝ XÁC NHẬN HAI BÊN -->
         <div class="pt-8 border-t border-slate-300 grid grid-cols-2 gap-8 text-center text-sm font-sans">
-            <div>
+            <!-- ĐẠI DIỆN BÊN A -->
+            <div class="flex flex-col items-center">
                 <h5 class="font-bold uppercase text-slate-900">ĐẠI DIỆN BÊN A</h5>
-                <p class="text-xs text-slate-500 italic mb-10">(Bên Chuyển nhượng)</p>
-                <div class="font-bold text-slate-800">{{ $transfer->fromOwner->name ?? $transfer->fromOwner->full_name }}</div>
-                <div class="text-xs text-emerald-600 font-semibold mt-1">✓ Đã xác nhận khởi tạo</div>
+                <p class="text-xs text-slate-500 italic mb-4">(Bên Chuyển nhượng)</p>
+                <div class="font-bold text-slate-900 text-base mb-3">{{ $transfer->sender_data['owner_name'] ?? $transfer->fromOwner->name ?? $transfer->fromOwner->full_name }}</div>
+                
+                @if($transfer->sender_signed_at)
+                    <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-left text-xs space-y-1 w-full max-w-xs shadow-sm">
+                        <div class="font-bold text-emerald-700 flex items-center gap-1 border-b border-emerald-200 pb-1 mb-1">
+                            <svg class="w-3.5 h-3.5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span>✓ Chữ ký số Điện tử xác thực</span>
+                        </div>
+                        <div class="text-slate-700"><strong>Thời gian ký:</strong> {{ \Carbon\Carbon::parse($transfer->sender_signed_at)->format('H:i:s - d/m/Y') }}</div>
+                        <div class="text-slate-700 truncate"><strong>Tài khoản:</strong> {{ $transfer->sender_signed_account ?? $transfer->fromOwner->email }}</div>
+                        <div class="text-slate-700"><strong>IP xác thực:</strong> {{ $transfer->sender_signed_ip ?? '127.0.0.1' }}</div>
+                    </div>
+                @else
+                    <div class="text-xs text-emerald-600 font-semibold mt-1">✓ Đã xác nhận khởi tạo</div>
+                @endif
             </div>
 
-            <div>
+            <!-- ĐẠI DIỆN BÊN B -->
+            <div class="flex flex-col items-center">
                 <h5 class="font-bold uppercase text-slate-900">ĐẠI DIỆN BÊN B</h5>
-                <p class="text-xs text-slate-500 italic mb-10">(Bên Nhận chuyển nhượng)</p>
-                <div class="font-bold text-slate-800">{{ $transfer->receiver_data['owner_name'] ?? $transfer->toOwner->name ?? $transfer->toOwner->full_name }}</div>
-                @if($transfer->status === 'approved')
-                    <div class="text-xs text-emerald-600 font-semibold mt-1">✓ Đã ký và hoàn tất</div>
-                @elseif($transfer->status === 'pending_admin')
-                    <div class="text-xs text-blue-600 font-semibold mt-1">⏳ Đã nộp hồ sơ pháp lý (Chờ Admin ký)</div>
-                @elseif($transfer->status === 'pending')
-                    <div class="text-xs text-amber-600 font-semibold mt-1">⏳ Đang chờ xác nhận</div>
+                <p class="text-xs text-slate-500 italic mb-4">(Bên Nhận chuyển nhượng)</p>
+                <div class="font-bold text-slate-900 text-base mb-3">{{ $transfer->receiver_data['owner_name'] ?? $transfer->toOwner->name ?? $transfer->toOwner->full_name }}</div>
+                
+                @if($transfer->receiver_signed_at)
+                    <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-left text-xs space-y-1 w-full max-w-xs shadow-sm">
+                        <div class="font-bold text-emerald-700 flex items-center gap-1 border-b border-emerald-200 pb-1 mb-1">
+                            <svg class="w-3.5 h-3.5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span>✓ Chữ ký số Điện tử xác thực</span>
+                        </div>
+                        <div class="text-slate-700"><strong>Thời gian ký:</strong> {{ \Carbon\Carbon::parse($transfer->receiver_signed_at)->format('H:i:s - d/m/Y') }}</div>
+                        <div class="text-slate-700 truncate"><strong>Tài khoản:</strong> {{ $transfer->receiver_signed_account ?? $transfer->toOwner->email }}</div>
+                        <div class="text-slate-700"><strong>IP xác thực:</strong> {{ $transfer->receiver_signed_ip ?? '127.0.0.1' }}</div>
+                    </div>
+                @elseif($transfer->status === 'approved')
+                    <div class="text-xs text-emerald-600 font-semibold mt-1">✓ Đã duyệt và hoàn tất</div>
+                @elseif(in_array($transfer->status, ['signed', 'pending_admin']))
+                    <div class="text-xs text-cyan-600 font-semibold mt-1">⏳ Đã ký hợp đồng (Chờ Admin duyệt)</div>
+                @elseif($transfer->status === 'filled')
+                    <div class="text-xs text-purple-600 font-semibold mt-1">⏳ Đã điền hồ sơ (Chờ Bên B ký)</div>
+                @elseif(in_array($transfer->status, ['sent', 'pending']))
+                    <div class="text-xs text-blue-600 font-semibold mt-1">⏳ Đã gửi (Chờ Bên B điền hồ sơ)</div>
+                @elseif($transfer->status === 'draft')
+                    <div class="text-xs text-amber-600 font-semibold mt-1">⏳ Hợp đồng nháp (Chưa gửi)</div>
                 @else
                     <div class="text-xs text-red-600 font-semibold mt-1">✗ Đã hủy/Từ chối</div>
                 @endif

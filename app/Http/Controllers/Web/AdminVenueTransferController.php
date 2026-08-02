@@ -34,8 +34,8 @@ class AdminVenueTransferController extends Controller
 
     public function approve(\App\Models\VenueTransferRequest $transfer)
     {
-        if ($transfer->status !== 'pending_admin') {
-            return back()->with('error', 'Yêu cầu này không ở trạng thái chờ duyệt.');
+        if (!in_array($transfer->status, ['signed', 'pending_admin'])) {
+            return back()->with('error', 'Yêu cầu này không ở trạng thái chờ duyệt (Chưa ký điện tử hoặc đã được xử lý).');
         }
 
         DB::beginTransaction();
@@ -101,7 +101,7 @@ class AdminVenueTransferController extends Controller
     public function reject(Request $request, VenueTransferRequest $transfer)
     {
         // Chặn nếu không phải trạng thái chờ Admin
-        if ($transfer->status !== 'pending_admin') {
+        if (!in_array($transfer->status, ['signed', 'pending_admin'])) {
             return back()->with('error', 'Yêu cầu này không ở trạng thái chờ duyệt.');
         }
 

@@ -20,6 +20,9 @@ class StoreVenueTransferRequest extends FormRequest
     {
         return [
             'venue_id' => ['required', 'exists:venues,id'],
+            'sender_owner_name' => ['required', 'string', 'max:255'],
+            'sender_dob' => ['required', 'date', 'before:today'],
+            'sender_address' => ['required', 'string', 'max:255'],
             'receiver_email' => [
                 'required',
                 'email',
@@ -46,6 +49,11 @@ class StoreVenueTransferRequest extends FormRequest
         return [
             'venue_id.required' => 'Vui lòng chọn cơ sở cần chuyển nhượng.',
             'venue_id.exists' => 'Cơ sở đã chọn không hợp lệ.',
+            'sender_owner_name.required' => 'Vui lòng nhập tên bên chuyển nhượng.',
+            'sender_dob.required' => 'Vui lòng chọn ngày sinh của bên chuyển nhượng.',
+            'sender_dob.date' => 'Ngày sinh bên chuyển nhượng không hợp lệ.',
+            'sender_dob.before' => 'Ngày sinh phải là một ngày trong quá khứ.',
+            'sender_address.required' => 'Vui lòng nhập chỗ ở hiện tại của bên chuyển nhượng.',
             'receiver_email.required' => 'Vui lòng nhập Email bên nhận.',
             'receiver_email.email' => 'Địa chỉ Email không đúng định dạng.',
             'price.required' => 'Vui lòng nhập giá chuyển nhượng.',
@@ -64,7 +72,7 @@ class StoreVenueTransferRequest extends FormRequest
             
             if ($venueId) {
                 $hasPending = VenueTransferRequest::where('venue_id', $venueId)
-                    ->whereIn('status', ['pending', 'pending_admin'])
+                    ->whereIn('status', ['draft', 'sent', 'pending', 'filled', 'signed', 'pending_admin'])
                     ->exists();
                     
                 if ($hasPending) {

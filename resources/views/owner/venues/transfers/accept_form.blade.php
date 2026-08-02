@@ -93,22 +93,30 @@
                     <div>
                         <h3 class="text-lg font-bold text-slate-800 mb-4 border-b border-slate-200 pb-2 mt-2">2. Hồ sơ pháp lý & Thanh toán</h3>
                         
-                        <!-- Thông tin cá nhân & GPKD -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <!-- Thông tin cá nhân người nhận (Bên B) -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Tên chủ sở hữu <span class="text-red-500">*</span></label>
-                                <input type="text" name="owner_name" value="{{ old('owner_name') }}" required class="w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500 shadow-sm transition-colors @error('owner_name') border-red-500 @enderror">
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Tên chủ sở hữu / Họ tên <span class="text-red-500">*</span></label>
+                                <input type="text" name="owner_name" value="{{ old('owner_name', auth()->user()->name ?? auth()->user()->full_name) }}" required class="w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500 shadow-sm transition-colors @error('owner_name') border-red-500 @enderror">
                                 @error('owner_name') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Số CCCD <span class="text-red-500">*</span></label>
-                                <!-- oninput chặn nhập chữ, maxlength khóa cứng 12 ký tự -->
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Ngày sinh <span class="text-red-500">*</span></label>
+                                <input type="date" name="dob" value="{{ old('dob') }}" required class="w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500 shadow-sm transition-colors @error('dob') border-red-500 @enderror">
+                                @error('dob') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Số Căn cước công dân / CMND <span class="text-red-500">*</span></label>
                                 <input type="text" name="citizen_id" value="{{ old('citizen_id') }}" minlength="12" maxlength="12" pattern="\d{12}" title="Vui lòng nhập đủ 12 số CCCD" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 12)" required class="w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500 shadow-sm transition-colors @error('citizen_id') border-red-500 @enderror">
                                 @error('citizen_id') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                             </div>
                             <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Chỗ ở hiện tại <span class="text-red-500">*</span></label>
+                                <input type="text" name="address" value="{{ old('address') }}" required placeholder="Ví dụ: Quận 3, TP. Hồ Chí Minh" class="w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500 shadow-sm transition-colors @error('address') border-red-500 @enderror">
+                                @error('address') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="md:col-span-2">
                                 <label class="block text-sm font-medium text-slate-700 mb-1">Mã số thuế / GPKD <span class="text-red-500">*</span></label>
-                                <!-- Thay đổi: oninput dùng regex [^a-zA-Z0-9] để chỉ cho phép chữ và số. Khóa độ dài bằng maxlength="50" -->
                                 <input type="text" name="business_license_number" value="{{ old('business_license_number') }}" maxlength="50" oninput="this.value = this.value.replace(/[^a-zA-Z0-9]/g, '')" required class="w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500 shadow-sm transition-colors @error('business_license_number') border-red-500 @enderror">
                                 @error('business_license_number') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                             </div>
