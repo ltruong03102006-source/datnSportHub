@@ -131,4 +131,40 @@ class VoucherService
             return $voucher->delete();
         });
     }
+
+    /**
+     * Disable a voucher
+     *
+     * @param int $voucherId
+     * @return Voucher
+     */
+    public function disable(int $voucherId): Voucher
+    {
+        $voucher = Voucher::findOrFail($voucherId);
+        $voucher->status = 'disabled';
+        $voucher->save();
+
+        return $voucher;
+    }
+
+    /**
+     * Extend voucher end date and reactivate if expired
+     *
+     * @param int $voucherId
+     * @param string $newEndDate
+     * @return Voucher
+     */
+    public function extend(int $voucherId, string $newEndDate): Voucher
+    {
+        $voucher = Voucher::findOrFail($voucherId);
+        $voucher->end_date = $newEndDate;
+        
+        if ($voucher->status === 'expired' || $voucher->status === 'disabled') {
+            $voucher->status = 'active';
+        }
+        
+        $voucher->save();
+
+        return $voucher;
+    }
 }
