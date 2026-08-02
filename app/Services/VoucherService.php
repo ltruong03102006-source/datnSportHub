@@ -61,4 +61,27 @@ class VoucherService
 
         return $code;
     }
+
+    /**
+     * Validate if the owner actually owns the given sport fields
+     *
+     * @param int $ownerId
+     * @param array|int $sportFieldIds
+     * @return bool
+     * @throws Exception
+     */
+    public function validateOwnership(int $ownerId, $sportFieldIds): bool
+    {
+        $ids = (array) $sportFieldIds;
+
+        $count = SportField::whereIn('id', $ids)
+            ->where('owner_id', $ownerId)
+            ->count();
+
+        if ($count !== count($ids)) {
+            throw new Exception("Owner does not own all the provided sport fields.");
+        }
+
+        return true;
+    }
 }
