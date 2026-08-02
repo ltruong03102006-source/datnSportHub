@@ -6,14 +6,14 @@ use App\Models\Sport;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueLegalDocument;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class OwnerVenueCreateTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     public function test_owner_can_create_a_venue_with_banner_and_pending_status(): void
     {

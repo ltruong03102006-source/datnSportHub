@@ -149,6 +149,7 @@
                 {{-- BƯỚC 1: TÌM HỢP ĐỒNG ĐI KÈM CỦA CƠ SỞ --}}
                 @php
                     $activeContract = \App\Models\Contract::where('venue_id', $venue->id)
+                        ->where('owner_id', $venue->owner_id)
                         ->whereIn('status', ['draft', 'sent', 'accepted', 'terminated'])
                         ->orderBy('id', 'desc')
                         ->first();
@@ -203,7 +204,7 @@
                                     </span>
                                 @else
                                     <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-sky-100 text-sky-700 border border-sky-200 shadow-sm flex items-center gap-1.5 backdrop-blur-md">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Đã duyệt
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Chờ tạo & ký HĐ
                                     </span>
                                 @endif
                             @elseif($venue->status === 'pending')

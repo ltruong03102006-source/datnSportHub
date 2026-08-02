@@ -246,6 +246,15 @@
                 <div style="background-color: #f1f3f5; color: #7f8c8d; padding: 12px; text-align: center; border-radius: 8px; font-weight: bold; font-size: 14px;">
                     Yêu cầu đã được xử lý xong
                 </div>
+                @if($transfer->status === 'approved')
+                    <div style="margin-top: 12px;">
+                        <a href="{{ route('admin.contracts.create', ['owner_id' => $transfer->to_owner_id, 'venue_id' => $transfer->venue_id]) }}" 
+                           style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; text-align: center; padding: 12px; background-color: #2563eb; color: white; border-radius: 8px; font-weight: bold; text-decoration: none; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: background 0.2s;"
+                           onmouseover="this.style.backgroundColor='#1d4ed8'" onmouseout="this.style.backgroundColor='#2563eb'">
+                            📄 Tạo hợp đồng mới cho Chủ sân mới
+                        </a>
+                    </div>
+                @endif
             @endif
         </div>
     </div>

@@ -251,17 +251,21 @@
                 <h2 class="text-3xl font-bold text-slate-800 mb-2">
                     {{ $venue->name }}
 
-                    @if(in_array($venue->status, ['active', 'approved']))
+                    @if($venue->status === 'active')
                         <span class="status-badge status-approved">
-                            Hoạt động
+                            <i class="fas font-medium fa-check-circle me-1"></i>Đang hoạt động
+                        </span>
+                    @elseif($venue->status === 'approved')
+                        <span class="status-badge status-pending">
+                            <i class="fas font-medium fa-file-signature me-1"></i>Chờ ký HĐ hợp tác
                         </span>
                     @elseif($venue->status === 'inactive')
                         <span class="status-badge status-rejected">
-                            Ngừng hoạt động
+                            <i class="fas font-medium fa-times-circle me-1"></i>Ngừng hoạt động
                         </span>
                     @else
                         <span class="status-badge status-pending">
-                            Chờ duyệt
+                            <i class="fas font-medium fa-clock me-1"></i>Chờ duyệt
                         </span>
                     @endif
                 </h2>
@@ -459,9 +463,15 @@
     <div class="card card-shell mb-4">
         <div class="card-header bg-white d-flex justify-content-between align-items-center py-3" style="border-top-left-radius: 18px; border-top-right-radius: 18px;">
             <h5 class="mb-0 fw-bold">Dịch vụ & Đồ uống bán kèm</h5>
-            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createServiceModal">
-                + Thêm Dịch vụ
-            </button>
+            @if($venue->status === 'active')
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createServiceModal">
+                    + Thêm Dịch vụ
+                </button>
+            @else
+                <button type="button" class="btn btn-secondary btn-sm opacity-75" disabled title="Cơ sở chưa ký hợp đồng hợp tác với Admin nên chưa thể thêm dịch vụ.">
+                    + Thêm Dịch vụ (Yêu cầu ký HĐ)
+                </button>
+            @endif
         </div>
         <div class="card-body p-0">
             <div class="list-group list-group-flush rounded-bottom" style="border-bottom-left-radius: 18px; border-bottom-right-radius: 18px;">
@@ -531,9 +541,15 @@ Trạng thái: {!! $service->is_active ? '<span class="text-success">Đang bán<
     <div class="card card-shell mb-4">
         <div class="card-header bg-white d-flex justify-content-between align-items-center py-3" style="border-top-left-radius: 18px; border-top-right-radius: 18px;">
             <h5 class="mb-0 fw-bold">Danh sách Sân con</h5>
-            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createCourtModal">
-                + Tạo Sân con
-            </button>
+            @if($venue->status === 'active')
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createCourtModal">
+                    + Tạo Sân con
+                </button>
+            @else
+                <button type="button" class="btn btn-secondary btn-sm opacity-75" disabled title="Cơ sở chưa ký hợp đồng hợp tác với Admin nên chưa thể tạo sân con.">
+                    + Tạo Sân con (Yêu cầu ký HĐ)
+                </button>
+            @endif
         </div>
         <div class="card-body p-0">
             <div class="list-group list-group-flush rounded-bottom" style="border-bottom-left-radius: 18px; border-bottom-right-radius: 18px;">

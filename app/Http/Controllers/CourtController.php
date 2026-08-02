@@ -31,7 +31,9 @@ class CourtController extends Controller
     public function show(int $courtId): JsonResponse
     {
         // Hàm này giữ nguyên để phục vụ API lấy chi tiết Sân con (Task #08)
-        $court = Court::with(['venue.sport', 'venue.ownerRegistration'])->findOrFail($courtId);
+        $court = Court::whereHas('venue', fn ($q) => $q->where('status', 'active'))
+            ->with(['venue.sport', 'venue.ownerRegistration'])
+            ->findOrFail($courtId);
 
         return response()->json([
             'status' => 'success',
@@ -53,7 +55,7 @@ class CourtController extends Controller
                 $q->where('status', 'active');
             }])
             ->join('sports', 'sports.id', '=', 'venues.sport_id')
-            ->whereIn('venues.status', ['active', 'approved'])
+            ->where('venues.status', 'active')
             ->whereExists(function ($query) {
                 // Chỉ hiển thị các Cơ sở có ít nhất 1 Sân con đang hoạt động
                 $query->select(DB::raw(1))
@@ -270,7 +272,7 @@ class CourtController extends Controller
         // Đếm số lượng Cơ sở theo từng môn thể thao
         $rows = DB::table('venues')
             ->join('sports', 'sports.id', '=', 'venues.sport_id')
-            ->whereIn('venues.status', ['active', 'approved'])
+            ->where('venues.status', 'active')
             ->whereExists(function ($query) {
                 $query->select(DB::raw(1))
                       ->from('courts')

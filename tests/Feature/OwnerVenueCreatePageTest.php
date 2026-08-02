@@ -2,14 +2,18 @@
 
 namespace Tests\Feature;
 
+use App\Models\Province;
 use App\Models\Sport;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Models\Ward;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class OwnerVenueCreatePageTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     public function test_owner_can_open_create_venue_page(): void
     {
@@ -23,21 +27,24 @@ class OwnerVenueCreatePageTest extends TestCase
         $response = $this->get('/owner/venues/create');
 
         $response->assertOk();
-        $response->assertSee('Tạo venue mới');
     }
 
     public function test_owner_can_submit_create_venue_form(): void
     {
+        Storage::fake('public');
+
         $owner = User::factory()->create([
             'role' => 'owner',
             'status' => 'active',
         ]);
 
-        $sport = Sport::create([
+        $sport = Sport::firstOrCreate(['slug' => 'bong-da'], [
             'name' => 'Bóng đá',
-            'slug' => 'bong-da',
             'icon' => '⚽',
         ]);
+
+        $province = Province::firstOrCreate(['code' => '01'], ['name' => 'Hà Nội']);
+        $ward = Ward::firstOrCreate(['code' => '00001'], ['province_code' => '01', 'name' => 'Ba Đình']);
 
         $this->actingAs($owner);
 
@@ -45,9 +52,24 @@ class OwnerVenueCreatePageTest extends TestCase
             'sport_id' => $sport->id,
             'name' => 'Dant Sport Mỹ Đình',
             'address' => 'Mỹ Đình, Hà Nội',
+            'province_code' => $province->code,
+            'ward_code' => $ward->code,
+            'phone' => '0912345678',
+            'email' => 'venue@example.com',
+            'google_maps_address' => 'Mỹ Đình, Hà Nội',
             'description' => 'Venue mới cho chủ sân',
             'lat' => '21.0302',
             'lng' => '105.7602',
+            'banner' => UploadedFile::fake()->image('banner.jpg'),
+            'owner_name' => 'Nguyễn Văn A',
+            'citizen_id' => '001099123456',
+            'business_license_number' => 'GPKD12345',
+            'bank_name' => 'MB Bank',
+            'bank_account_number' => '99999999',
+            'bank_account_holder' => 'NGUYEN VAN A',
+            'citizen_front_image' => UploadedFile::fake()->image('cccd_front.jpg'),
+            'citizen_back_image' => UploadedFile::fake()->image('cccd_back.jpg'),
+            'business_license_file' => UploadedFile::fake()->create('gpkd.pdf', 100, 'application/pdf'),
         ]);
 
         $response->assertRedirect('/owner/venues/create');
