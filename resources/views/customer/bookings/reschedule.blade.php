@@ -38,6 +38,8 @@
                             <input type="checkbox"
                                    name="booking_item_ids[]"
                                    value="{{ $item->id }}"
+                                   data-price-type="{{ $item->price_type ?? 'normal' }}"
+                                   data-start-time="{{ $item->start_time }}"
                                    class="old-slot-checkbox mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
                             <span>
                                 <span class="block text-sm font-black text-zinc-900">
@@ -46,8 +48,13 @@
                                 <span class="mt-0.5 block text-sm font-bold text-slate-600">
                                     {{ substr($item->start_time, 0, 5) }} - {{ substr($item->end_time, 0, 5) }}
                                 </span>
-                                <span class="mt-0.5 block text-sm font-black text-emerald-700">
-                                    {{ number_format((float) $item->price, 0, ',', '.') }}đ
+                                <span class="mt-0.5 flex items-center gap-2">
+                                    <span class="text-sm font-black text-emerald-700">
+                                        {{ number_format((float) $item->price, 0, ',', '.') }}đ
+                                    </span>
+                                    <span class="rounded px-1.5 py-0.5 text-[10px] font-black {{ ($item->price_type ?? 'normal') === 'peak' ? 'bg-orange-100 text-orange-700' : 'bg-slate-200 text-slate-600' }}">
+                                        {{ ($item->price_type ?? 'normal') === 'peak' ? 'Cao điểm' : 'Thường' }}
+                                    </span>
                                 </span>
                             </span>
                         </label>
@@ -143,8 +150,29 @@
         return Number(amount || 0).toLocaleString('vi-VN') + 'đ';
     }
 
+    function getSelectedOldItems() {
+        return oldCheckboxes
+            .filter(input => input.checked)
+            .map(input => ({
+                id: input.value,
+                priceType: input.dataset.priceType || 'normal',
+                startTime: input.dataset.startTime || ''
+            }))
+            .sort((a, b) => String(a.startTime).localeCompare(String(b.startTime)));
+    }
+
     function selectedOldCount() {
-        return oldCheckboxes.filter(input => input.checked).length;
+        return getSelectedOldItems().length;
+    }
+
+    function isPriceTypeMatchingValid(oldItems, newSlots) {
+        const count = Math.min(oldItems.length, newSlots.length);
+        for (let i = 0; i < count; i++) {
+            if (oldItems[i].priceType === 'normal' && newSlots[i].price_type === 'peak') {
+                return false;
+            }
+        }
+        return true;
     }
 
     function getSlotId(slot) {
@@ -218,7 +246,8 @@
     }
 
     function syncState() {
-        const oldCount = selectedOldCount();
+        const oldItems = getSelectedOldItems();
+        const oldCount = oldItems.length;
         selectedNewSlotIds = selectedNewSlotIds.slice(0, oldCount);
 
         hiddenSlotInputs.innerHTML = '';
@@ -231,11 +260,16 @@
         });
 
         selectedCountDisplay.textContent = `${oldCount} ca cũ · ${selectedNewSlotIds.length} ca mới`;
-        const consecutive = areConsecutive(selectedNewSlots());
-        submitButton.disabled = oldCount === 0 || selectedNewSlotIds.length !== oldCount || !consecutive;
+        const currentNewSlots = selectedNewSlots();
+        const consecutive = areConsecutive(currentNewSlots);
+        const validPriceType = isPriceTypeMatchingValid(oldItems, currentNewSlots);
+
+        submitButton.disabled = oldCount === 0 || selectedNewSlotIds.length !== oldCount || !consecutive || !validPriceType;
 
         if (oldCount === 0) {
             slotMessage.textContent = 'Chọn ca cũ muốn đổi trước.';
+        } else if (!validPriceType) {
+            slotMessage.textContent = 'Ca cũ là ca thường, không thể đổi sang ca cao điểm.';
         } else if (!consecutive) {
             slotMessage.textContent = 'Các ca mới phải liền nhau, ví dụ 18:00-19:00 và 19:00-20:00.';
         } else if (selectedNewSlotIds.length < oldCount) {
@@ -289,7 +323,8 @@
             return;
         }
 
-        if (selectedNewSlotIds.length >= selectedOldCount()) {
+        const oldItems = getSelectedOldItems();
+        if (selectedNewSlotIds.length >= oldItems.length) {
             slotMessage.textContent = 'Bạn đã chọn đủ số ca mới. Bỏ chọn ca cũ hoặc ca mới trước khi chọn thêm.';
             return;
         }
@@ -302,6 +337,11 @@
 
         if (!areConsecutive(nextSlots)) {
             slotMessage.textContent = 'Vui lòng chọn các ca mới liền nhau, không chọn ca rời nhau.';
+            return;
+        }
+
+        if (!isPriceTypeMatchingValid(oldItems, nextSlots)) {
+            slotMessage.textContent = 'Ca cũ là ca thường, không thể đổi sang ca cao điểm.';
             return;
         }
 
