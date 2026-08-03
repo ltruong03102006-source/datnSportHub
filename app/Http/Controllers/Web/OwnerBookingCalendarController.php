@@ -123,20 +123,127 @@ class OwnerBookingCalendarController extends Controller
                 $validated['court_id'] ?? null,
                 fn ($query, $courtId) => $query->where('court_id', $courtId)
             )
-            ->when(
-                $validated['status'] ?? null,
-                fn ($query, $status) => $query->where('status', $status)
-            )
-            ->whereDate('slot_date', '>=', $start->toDateString())
-            ->whereDate('slot_date', '<', $end->toDateString())
-            ->with(['court.venue', 'user', 'services']) // <--- Đã thêm services
-            ->orderBy('slot_date')
-            ->orderBy('start_time')
+            ->where(function ($query) use ($start, $end) {
+                $query->where(function ($bQuery) use ($start, $end) {
+                    $bQuery->whereDate('slot_date', '>=', $start->toDateString())
+                        ->whereDate('slot_date', '<', $end->toDateString());
+                })
+                ->orWhereHas('items', function ($itemQuery) use ($start, $end) {
+                    $itemQuery->whereDate('slot_date', '>=', $start->toDateString())
+                        ->whereDate('slot_date', '<', $end->toDateString());
+                });
+            })
+            ->with(['court.venue', 'user', 'services', 'items'])
             ->get();
 
-        return response()->json(
-            $bookings->map(fn (Booking $booking) => $this->formatEvent($booking))->values()
-        );
+        $events = collect();
+
+        foreach ($bookings as $booking) {
+            $items = $booking->items;
+
+            if ($items->isNotEmpty()) {
+                $mappedItems = $items->map(function ($item) use ($booking) {
+                    if (in_array($booking->status, ['cancelled', 'rejected'], true)) {
+                        $effectiveStatus = $booking->status;
+                    } elseif ($item->status === 'cancelled') {
+                        $effectiveStatus = 'cancelled';
+                    } else {
+                        $effectiveStatus = $booking->status;
+                    }
+
+                    return [
+                        'item' => $item,
+                        'effective_status' => $effectiveStatus,
+                        'slot_date' => $item->slot_date instanceof Carbon ? $item->slot_date->format('Y-m-d') : Carbon::parse($item->slot_date)->format('Y-m-d'),
+                        'start_time' => date('H:i:s', strtotime($item->start_time)),
+                        'end_time' => date('H:i:s', strtotime($item->end_time)),
+                    ];
+                });
+
+                if (!empty($validated['status'])) {
+                    $mappedItems = $mappedItems->where('effective_status', $validated['status']);
+                } else {
+                    $mappedItems = $mappedItems->whereNotIn('effective_status', ['cancelled', 'rejected']);
+                }
+
+                $grouped = $mappedItems->groupBy(fn ($row) => $row['slot_date'] . '_' . $row['effective_status']);
+
+                foreach ($grouped as $groupKey => $dateItems) {
+                    $first = $dateItems->first();
+                    $dateStr = $first['slot_date'];
+                    $effectiveStatus = $first['effective_status'];
+
+                    $dateCarbon = Carbon::parse($dateStr);
+                    if ($dateCarbon->lt($start) || $dateCarbon->gte($end)) {
+                        continue;
+                    }
+
+                    $sortedItems = $dateItems->sortBy('start_time')->values();
+                    $blocks = [];
+                    $currentBlock = null;
+
+                    foreach ($sortedItems as $row) {
+                        $itemStart = $row['start_time'];
+                        $itemEnd = $row['end_time'];
+
+                        if ($currentBlock === null) {
+                            $currentBlock = [
+                                'slot_date' => $dateStr,
+                                'start_time' => $itemStart,
+                                'end_time' => $itemEnd,
+                                'effective_status' => $effectiveStatus,
+                            ];
+                        } else {
+                            if ($itemStart === $currentBlock['end_time']) {
+                                $currentBlock['end_time'] = $itemEnd;
+                            } else {
+                                $blocks[] = $currentBlock;
+                                $currentBlock = [
+                                    'slot_date' => $dateStr,
+                                    'start_time' => $itemStart,
+                                    'end_time' => $itemEnd,
+                                    'effective_status' => $effectiveStatus,
+                                ];
+                            }
+                        }
+                    }
+
+                    if ($currentBlock !== null) {
+                        $blocks[] = $currentBlock;
+                    }
+
+                    foreach ($blocks as $blockIndex => $block) {
+                        $events->push($this->formatEvent($booking, $block, $blockIndex, $block['effective_status']));
+                    }
+                }
+            } else {
+                $effectiveStatus = $booking->status;
+                if (!empty($validated['status'])) {
+                    if ($effectiveStatus !== $validated['status']) {
+                        continue;
+                    }
+                } else {
+                    if (in_array($effectiveStatus, ['cancelled', 'rejected'], true)) {
+                        continue;
+                    }
+                }
+
+                $dateStr = $booking->slot_date instanceof Carbon ? $booking->slot_date->format('Y-m-d') : Carbon::parse($booking->slot_date)->format('Y-m-d');
+                $dateCarbon = Carbon::parse($dateStr);
+
+                if ($dateCarbon->gte($start) && $dateCarbon->lt($end)) {
+                    $block = [
+                        'slot_date' => $dateStr,
+                        'start_time' => date('H:i:s', strtotime($booking->start_time)),
+                        'end_time' => date('H:i:s', strtotime($booking->end_time)),
+                        'effective_status' => $effectiveStatus,
+                    ];
+                    $events->push($this->formatEvent($booking, $block, 0, $effectiveStatus));
+                }
+            }
+        }
+
+        return response()->json($events->values());
     }
 
     public function updateStatus(Request $request, Booking $booking): JsonResponse
@@ -359,50 +466,60 @@ class OwnerBookingCalendarController extends Controller
         ], true);
     }
 
-    private function formatEvent(Booking $booking): array
+    private function formatEvent(Booking $booking, ?array $block = null, int $blockIndex = 0): array
     {
         $status = $this->statusMeta($booking->status);
-        $date = $booking->slot_date->format('Y-m-d');
-        
+        $date = $block['slot_date'] ?? ($booking->slot_date instanceof Carbon ? $booking->slot_date->format('Y-m-d') : Carbon::parse($booking->slot_date)->format('Y-m-d'));
+        $startTime = $block['start_time'] ?? date('H:i:s', strtotime($booking->start_time));
+        $endTime = $block['end_time'] ?? date('H:i:s', strtotime($booking->end_time));
+
         // --- LOGIC MỚI: GHI ĐÈ HIỂN THỊ (VISUAL OVERRIDE) ---
         $now = now('Asia/Ho_Chi_Minh');
-        $endDateTime = \Carbon\Carbon::parse($date . ' ' . $booking->end_time, 'Asia/Ho_Chi_Minh');
+        $endDateTime = \Carbon\Carbon::parse($date . ' ' . $endTime, 'Asia/Ho_Chi_Minh');
         $isPast = $now->greaterThanOrEqualTo($endDateTime);
 
         // Nếu DB đang là "Đã xác nhận" nhưng giờ đã qua -> Khoác áo "Đã hoàn thành"
         if ($booking->status === 'confirmed' && $isPast) {
             $status = ['label' => 'Đã đá xong', 'color' => '#2563eb']; // Đổi màu xanh dương
         }
-        
+
         // Trạng thái giả lập gửi xuống Frontend để giấu nút "Hủy sân"
         $displayStatus = ($booking->status === 'confirmed' && $isPast) ? 'completed' : $booking->status;
         // --- KẾT THÚC LOGIC ---
 
+        $timeLabel = substr($startTime, 0, 5).' - '.substr($endTime, 0, 5);
+        $dateLabel = Carbon::parse($date)->format('d/m/Y');
+
+        $eventId = (string) $booking->id;
+        if ($block !== null) {
+            $eventId .= '_' . $date . '_' . str_replace(':', '', $startTime);
+        }
+
         return [
-            'id' => (string) $booking->id,
+            'id' => $eventId,
             'title' => $booking->court->name.' - '.$booking->user->name,
-            'start' => $date.'T'.$booking->start_time,
-            'end' => $date.'T'.$booking->end_time,
+            'start' => $date.'T'.$startTime,
+            'end' => $date.'T'.$endTime,
             'backgroundColor' => $status['color'],
             'borderColor' => $status['color'],
             'textColor' => '#ffffff',
-           'extendedProps' => [
+            'extendedProps' => [
                 'booking_id' => $booking->id,
                 'venue_name' => $booking->court->venue->name,
                 'court_name' => $booking->court->name,
                 'customer_name' => $booking->user->name,
                 'customer_email' => $booking->user->email,
                 'customer_phone' => $booking->user->phone ?? 'Chưa cập nhật SĐT', 
-                
+
                 'status' => $displayStatus, 
                 'status_label' => $status['label'], 
-                
+
                 'total_price' => number_format((float) $booking->total_price, 0, ',', '.').' đ',
                 'note' => $booking->note,
                 'cancel_reason' => $booking->cancel_reason,
-                'date_label' => $booking->slot_date->format('d/m/Y'),
-                'time_label' => substr($booking->start_time, 0, 5).' - '.substr($booking->end_time, 0, 5),
-                
+                'date_label' => $dateLabel,
+                'time_label' => $timeLabel,
+
                 // BỔ SUNG DÒNG NÀY ĐỂ TRUYỀN DATA DỊCH VỤ SANG JAVASCRIPT
                 'services' => $booking->services, 
             ],

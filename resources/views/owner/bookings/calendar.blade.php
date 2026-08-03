@@ -74,6 +74,7 @@
                     <option value="confirmed">Đã xác nhận</option>
                     <option value="completed">Đã hoàn thành</option>
                     <option value="cancelled">Đã hủy</option>
+                    <option value="rejected">Đã từ chối</option>
                 </select>
             </div>
             <div>
@@ -86,6 +87,7 @@
             <span class="legend-item"><i class="legend-dot" style="background:#047857"></i> Đã xác nhận</span>
             <span class="legend-item"><i class="legend-dot" style="background:#2563eb"></i> Đã hoàn thành</span>
             <span class="legend-item"><i class="legend-dot" style="background:#64748b"></i> Đã hủy</span>
+            <span class="legend-item"><i class="legend-dot" style="background:#dc2626"></i> Đã từ chối</span>
         </div>
     </section>
 
