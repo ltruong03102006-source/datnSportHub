@@ -25,7 +25,7 @@
     @php
         $pendingTransfers = \App\Models\VenueTransferRequest::with('venue')
             ->where('to_owner_id', auth()->id())
-            ->where('status', 'pending')
+            ->whereIn('status', ['sent', 'pending'])
             ->get();
     @endphp
  
@@ -53,19 +53,28 @@
         @endforeach
     @endif
     <!-- Header -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4 pb-4 border-b border-slate-200/60">
         <div>
-            <h2 class="text-3xl font-bold text-slate-800 mb-2">Cơ sở của bạn</h2>
-            <p class="text-slate-500">Quản lý các điểm sân hiện tại hoặc thêm mới cơ sở kinh doanh.</p>
+            <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Cơ sở của bạn</h2>
+            <p class="text-slate-500 text-sm mt-1">Quản lý các điểm sân hiện tại hoặc thêm mới cơ sở kinh doanh.</p>
         </div>
-        <div class="flex gap-3">
-            <!-- NÚT XEM LỊCH SỬ CHUYỂN NHƯỢNG VỪA THÊM -->
-            <a href="{{ route('owner.web.venues.transfers.history') }}" class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg shadow-sm transition-colors">
-                <svg class="w-5 h-5 mr-2 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <div class="flex flex-wrap lg:flex-nowrap items-center gap-3 shrink-0">
+            <!-- NÚT CHUYỂN NHƯỢNG CƠ SỞ -->
+            <a href="{{ route('owner.web.venues.transfer.general_create') }}" 
+               class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-semibold text-amber-700 bg-amber-50/90 border border-amber-300 hover:bg-amber-100 rounded-xl shadow-sm transition-all whitespace-nowrap">
+                <svg class="w-4 h-4 mr-2 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                Chuyển nhượng cơ sở
+            </a>
+            <!-- NÚT XEM LỊCH SỬ CHUYỂN NHƯỢNG -->
+            <a href="{{ route('owner.web.venues.transfers.history') }}" 
+               class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 hover:text-slate-900 rounded-xl shadow-sm transition-all whitespace-nowrap">
+                <svg class="w-4 h-4 mr-2 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 Lịch sử chuyển nhượng
             </a>
-            <a href="{{ route('owner.web.venues.create') }}" class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-colors">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <!-- NÚT THÊM CƠ SỞ MỚI -->
+            <a href="{{ route('owner.web.venues.create') }}" 
+               class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md hover:shadow-lg transition-all whitespace-nowrap">
+                <svg class="w-4 h-4 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 Thêm cơ sở mới
             </a>
         </div>
@@ -140,6 +149,7 @@
                 {{-- BƯỚC 1: TÌM HỢP ĐỒNG ĐI KÈM CỦA CƠ SỞ --}}
                 @php
                     $activeContract = \App\Models\Contract::where('venue_id', $venue->id)
+                        ->where('owner_id', $venue->owner_id)
                         ->whereIn('status', ['draft', 'sent', 'accepted', 'terminated'])
                         ->orderBy('id', 'desc')
                         ->first();
@@ -194,7 +204,7 @@
                                     </span>
                                 @else
                                     <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-sky-100 text-sky-700 border border-sky-200 shadow-sm flex items-center gap-1.5 backdrop-blur-md">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Đã duyệt
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Chờ tạo & ký HĐ
                                     </span>
                                 @endif
                             @elseif($venue->status === 'pending')

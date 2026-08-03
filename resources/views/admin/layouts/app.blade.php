@@ -288,6 +288,9 @@
                style="display:flex; align-items:center; width:100%; text-decoration:none;">
                 <i class="fa-solid fa-building"></i> Quản lý cơ sở
             </a>
+            <a href="{{ route('admin.venue-transfers.index') }}" class="nav-item {{ request()->routeIs('admin.venue-transfers.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-arrow-right-arrow-left"></i> Chuyển nhượng cơ sở
+            </a>
             <a href="{{ route('admin.courts.index') }}" class="nav-item {{ request()->routeIs('admin.courts.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-list-check"></i> Quản lý sân
             </a>

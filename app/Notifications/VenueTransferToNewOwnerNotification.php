@@ -28,8 +28,8 @@ class VenueTransferToNewOwnerNotification extends Notification
     {
         return [
             'title' => '🎉 Nhận cơ sở mới',
-            'message' => 'Bạn đã được chuyển quyền sở hữu cơ sở: ' . $this->transfer->venue->name,
-            'url' => route('owner.web.venues.index'), // Link ấn vào thông báo sẽ chuyển đến đâu
+            'message' => 'Bạn đã được chuyển quyền sở hữu cơ sở: ' . ($this->transfer->venue->name ?? '') . '. Vui lòng chờ Admin gửi hợp đồng hợp tác mới và ký hợp đồng để kích hoạt cơ sở đi vào hoạt động.',
+            'url' => route('owner.contracts.index'), // Link trỏ thẳng đến danh sách Hợp đồng để ký
             'type' => 'success'
         ];
     }

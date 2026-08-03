@@ -4,12 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\OwnerRegistration;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class AdminOwnerRegistrationApiTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     public function test_admin_can_list_owner_registrations_with_status_filter(): void
     {

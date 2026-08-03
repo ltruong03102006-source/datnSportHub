@@ -58,9 +58,9 @@ class OwnerCourtController extends Controller
                 ], 404);
             }
 
-            if (! in_array($venue->status, ['approved'], true)) {
+            if ($venue->status !== 'active') {
                 return response()->json([
-                    'message' => 'Bạn phải được Admin duyệt cơ sở trước khi tạo sân.'
+                    'message' => 'Cơ sở chưa ký hợp đồng hợp tác với Admin (chưa ở trạng thái hoạt động) nên chưa thể tạo sân con.'
                 ], 403);
             }
 

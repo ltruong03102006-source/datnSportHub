@@ -37,6 +37,28 @@
             </div>
             
             <div class="p-6 lg:p-8">
+                <!-- Thông tin Hợp đồng Chuyển nhượng -->
+                <div class="mb-6 p-5 bg-emerald-50/50 border border-emerald-200 rounded-xl">
+                    <h3 class="text-sm font-bold text-emerald-900 mb-3 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        Thông tin Hợp đồng Chuyển nhượng
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                        <div class="bg-white p-3 rounded-lg border border-emerald-100">
+                            <span class="text-slate-500 block">Giá chuyển nhượng</span>
+                            <span class="text-emerald-700 font-bold text-base">{{ $transfer->price ? number_format($transfer->price, 0, ',', '.') . ' VNĐ' : 'Chưa cập nhật' }}</span>
+                        </div>
+                        <div class="bg-white p-3 rounded-lg border border-emerald-100">
+                            <span class="text-slate-500 block">Ngày tạo hợp đồng</span>
+                            <span class="text-slate-800 font-semibold text-sm">{{ $transfer->contract_date ? \Carbon\Carbon::parse($transfer->contract_date)->format('d/m/Y') : 'Chưa cập nhật' }}</span>
+                        </div>
+                        <div class="bg-white p-3 rounded-lg border border-emerald-100">
+                            <span class="text-slate-500 block">Địa điểm lập hợp đồng</span>
+                            <span class="text-slate-800 font-semibold text-sm">{{ $transfer->contract_location ?? 'Chưa cập nhật' }}</span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Cảnh báo -->
                 <div class="mb-8 p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-start">
                     <svg class="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -71,48 +93,32 @@
                     <div>
                         <h3 class="text-lg font-bold text-slate-800 mb-4 border-b border-slate-200 pb-2 mt-2">2. Hồ sơ pháp lý & Thanh toán</h3>
                         
-                        <!-- Thông tin cá nhân & GPKD -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <!-- Thông tin cá nhân người nhận (Bên B) -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Tên chủ sở hữu <span class="text-red-500">*</span></label>
-                                <input type="text" name="owner_name" value="{{ old('owner_name') }}" required class="w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500 shadow-sm transition-colors @error('owner_name') border-red-500 @enderror">
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Tên chủ sở hữu / Họ tên <span class="text-red-500">*</span></label>
+                                <input type="text" name="owner_name" value="{{ old('owner_name', auth()->user()->name ?? auth()->user()->full_name) }}" required class="w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500 shadow-sm transition-colors @error('owner_name') border-red-500 @enderror">
                                 @error('owner_name') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Số CCCD <span class="text-red-500">*</span></label>
-                                <!-- oninput chặn nhập chữ, maxlength khóa cứng 12 ký tự -->
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Ngày sinh <span class="text-red-500">*</span></label>
+                                <input type="date" name="dob" value="{{ old('dob') }}" required class="w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500 shadow-sm transition-colors @error('dob') border-red-500 @enderror">
+                                @error('dob') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Số Căn cước công dân / CMND <span class="text-red-500">*</span></label>
                                 <input type="text" name="citizen_id" value="{{ old('citizen_id') }}" minlength="12" maxlength="12" pattern="\d{12}" title="Vui lòng nhập đủ 12 số CCCD" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 12)" required class="w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500 shadow-sm transition-colors @error('citizen_id') border-red-500 @enderror">
                                 @error('citizen_id') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Mã số thuế / GPKD <span class="text-red-500">*</span></label>
-                                <!-- Thay đổi: oninput dùng regex [^a-zA-Z0-9] để chỉ cho phép chữ và số. Khóa độ dài bằng maxlength="50" -->
-                                <input type="text" name="business_license_number" value="{{ old('business_license_number') }}" maxlength="50" oninput="this.value = this.value.replace(/[^a-zA-Z0-9]/g, '')" required class="w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500 shadow-sm transition-colors @error('business_license_number') border-red-500 @enderror">
-                                @error('business_license_number') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                            </div>
-                        </div>
-
-                        <!-- Thông tin ngân hàng -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Ngân hàng <span class="text-red-500">*</span></label>
-                                <input type="text" name="bank_name" value="{{ old('bank_name') }}" required class="w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500 shadow-sm transition-colors @error('bank_name') border-red-500 @enderror">
-                                @error('bank_name') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Số tài khoản <span class="text-red-500">*</span></label>
-                                <input type="text" name="bank_account_number" value="{{ old('bank_account_number') }}" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required class="w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500 shadow-sm transition-colors @error('bank_account_number') border-red-500 @enderror">
-                                @error('bank_account_number') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Chủ tài khoản <span class="text-red-500">*</span></label>
-                                <input type="text" name="bank_account_holder" value="{{ old('bank_account_holder') }}" required class="w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500 shadow-sm transition-colors @error('bank_account_holder') border-red-500 @enderror">
-                                @error('bank_account_holder') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Chỗ ở hiện tại <span class="text-red-500">*</span></label>
+                                <input type="text" name="address" value="{{ old('address') }}" required placeholder="Ví dụ: Quận 3, TP. Hồ Chí Minh" class="w-full rounded-lg border-slate-300 focus:border-emerald-500 focus:ring-emerald-500 shadow-sm transition-colors @error('address') border-red-500 @enderror">
+                                @error('address') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                             </div>
                         </div>
 
                         <!-- Cập nhật File Bắt buộc (CCCD) -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-1">Ảnh CCCD Mặt trước <span class="text-red-500">*</span></label>
                                 <input type="file" name="citizen_front_image" accept="image/*" required class="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 border border-slate-300 rounded-lg cursor-pointer @error('citizen_front_image') border-red-500 @enderror">
@@ -122,27 +128,6 @@
                                 <label class="block text-sm font-medium text-slate-700 mb-1">Ảnh CCCD Mặt sau <span class="text-red-500">*</span></label>
                                 <input type="file" name="citizen_back_image" accept="image/*" required class="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 border border-slate-300 rounded-lg cursor-pointer @error('citizen_back_image') border-red-500 @enderror">
                                 @error('citizen_back_image') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                            </div>
-                        </div>
-
-                        <!-- Cập nhật File Pháp lý (Bắt buộc tất cả) -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">File Giấy phép KD <span class="text-red-500">*</span></label>
-                                <input type="file" name="business_license_file" accept=".pdf,image/*" required class="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 border border-slate-300 rounded-lg cursor-pointer @error('business_license_file') border-red-500 @enderror">
-                                @error('business_license_file') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">File Hợp đồng thuê <span class="text-red-500">*</span></label>
-                                <input type="file" name="rental_contract_file" accept=".pdf,image/*" required class="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 border border-slate-300 rounded-lg cursor-pointer @error('rental_contract_file') border-red-500 @enderror">
-                                @error('rental_contract_file') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">File Sổ đỏ/Sổ hồng <span class="text-red-500">*</span></label>
-                                <input type="file" name="land_certificate_file" accept=".pdf,image/*" required class="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 border border-slate-300 rounded-lg cursor-pointer @error('land_certificate_file') border-red-500 @enderror">
-                                @error('land_certificate_file') <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span> @enderror
                             </div>
                         </div>
                     </div>

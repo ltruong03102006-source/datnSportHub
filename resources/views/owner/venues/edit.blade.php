@@ -271,21 +271,6 @@
                                         
                                         <div class="col-12"><hr class="text-muted my-2"></div>
 
-                                        <div class="col-12 col-md-4">
-                                            <label class="form-label">Tên ngân hàng</label>
-                                            <input type="text" name="bank_name" class="form-control" value="{{ old('bank_name', $venue->legalDocument->bank_name ?? '') }}">
-                                        </div>
-                                        <div class="col-12 col-md-4">
-                                            <label class="form-label">Số tài khoản</label>
-                                            <input type="text" name="bank_account_number" class="form-control" value="{{ old('bank_account_number', $venue->legalDocument->bank_account_number ?? '') }}">
-                                        </div>
-                                        <div class="col-12 col-md-4">
-                                            <label class="form-label">Tên chủ tài khoản</label>
-                                            <input type="text" name="bank_account_holder" class="form-control" value="{{ old('bank_account_holder', $venue->legalDocument->bank_account_holder ?? '') }}">
-                                        </div>
-
-                                        <div class="col-12"><hr class="text-muted my-2"></div>
-
                                         <div class="col-12 col-md-6">
                                             <label class="form-label">Cập nhật CCCD Mặt trước</label>
                                             <input type="file" name="citizen_front_image" class="form-control" accept="image/*">

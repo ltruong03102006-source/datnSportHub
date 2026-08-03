@@ -172,6 +172,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Quản lý Yêu cầu chuyển nhượng cơ sở
         Route::get('/venue-transfers', [\App\Http\Controllers\Web\AdminVenueTransferController::class, 'index'])->name('venue-transfers.index');
         Route::get('/venue-transfers/{transfer}', [\App\Http\Controllers\Web\AdminVenueTransferController::class, 'show'])->name('venue-transfers.show');
+        Route::get('/venue-transfers/{transfer}/contract', [\App\Http\Controllers\Web\AdminVenueTransferController::class, 'contract'])->name('venue-transfers.contract');
         Route::post('/venue-transfers/{transfer}/approve', [\App\Http\Controllers\Web\AdminVenueTransferController::class, 'approve'])->name('venue-transfers.approve');
         Route::post('/venue-transfers/{transfer}/reject', [\App\Http\Controllers\Web\AdminVenueTransferController::class, 'reject'])->name('venue-transfers.reject');
         // 👇 THÊM 2 DÒNG NÀY VÀO ĐỂ XỬ LÝ YÊU CẦU THAY ĐỔI THÔNG TIN (BẢN NHÁP) 👇
@@ -269,17 +270,31 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
 
     // API Check Email (Phải đặt trước route có tham số {venue})
     Route::post('/venues/transfer/check-email', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'checkEmail'])->name('venues.transfer.check-email');
-    // Chuyển nhượng cơ sở
+    // Chuyển nhượng cơ sở (Hợp đồng chuyển nhượng)
+    Route::get('/venues/transfer/create', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'create'])->name('venues.transfer.general_create');
+    Route::post('/venues/transfer/store', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'store'])->name('venues.transfer.general_store');
     Route::get('/venues/{venue}/transfer', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'create'])->name('venues.transfer.create');
     Route::post('/venues/{venue}/transfer', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'store'])->name('venues.transfer.store');
     Route::get('/venues/transfers/history', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'history'])->name('venues.transfers.history');
+    // Hiển thị chi tiết Hợp đồng chuyển nhượng
+    Route::get('/venues/transfers/{transfer}/show', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'show'])
+        ->name('venues.transfers.show');
+
     // Hiển thị form điền pháp lý cho chủ mới
     Route::get('venues/transfers/{transfer}/accept', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'showAcceptForm'])
         ->name('venues.transfers.accept');
 
+    // Gửi thông báo hợp đồng chuyển nhượng đến Bên nhận
+    Route::post('venues/transfers/{transfer}/send', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'sendNotification'])
+        ->name('venues.transfers.send');
+
     // Xử lý nộp form pháp lý
     Route::post('venues/transfers/{transfer}/accept', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'submitAcceptForm'])
         ->name('venues.transfers.accept.submit');
+
+    // Xử lý Ký hợp đồng chuyển nhượng (Bên B)
+    Route::post('venues/transfers/{transfer}/sign', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'signContract'])
+        ->name('venues.transfers.sign');
 });
 
 Route::middleware('auth')->group(function () {

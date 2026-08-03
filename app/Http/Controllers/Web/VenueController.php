@@ -33,7 +33,7 @@ class VenueController extends Controller
 
         session()->put('recently_viewed', $recentlyViewed);
         // ----------------------------------------
-        $venue = Venue::with([
+        $venue = Venue::where('status', 'active')->with([
             'sport',
             'ownerRegistration',
             // Lọc: Chỉ lấy các sân con đang hoạt động và cho đặt online

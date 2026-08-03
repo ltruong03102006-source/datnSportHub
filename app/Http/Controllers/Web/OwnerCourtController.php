@@ -20,10 +20,10 @@ class OwnerCourtController extends Controller
             return response()->json(['success' => false, 'message' => 'Bạn không có quyền thao tác trên sân này.'], 403);
         }
 
-        if (! in_array($venue->status, ['approved', 'active', 'inactive'], true)) {
+        if ($venue->status !== 'active') {
             return response()->json([
                 'success' => false,
-                'message' => 'Bạn phải được Admin duyệt cơ sở trước khi thao tác.'
+                'message' => 'Cơ sở chưa ký hợp đồng hợp tác với Admin (chưa ở trạng thái hoạt động) nên chưa thể tạo sân con.'
             ], 403);
         }
 
