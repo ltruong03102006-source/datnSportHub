@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\OwnerAuthController;
 use App\Http\Controllers\Api\OwnerVenueController;
 use App\Http\Controllers\Api\OwnerCourtController;
 use App\Http\Controllers\Api\OwnerBookingController;
+use App\Http\Controllers\Api\OwnerVoucherController;
 use App\Http\Controllers\Api\SportController;
 use App\Http\Controllers\Api\VenueController;
 use App\Http\Controllers\Api\CourtAvailabilityController;
@@ -169,6 +170,9 @@ Route::middleware(['auth:sanctum', 'owner'])->prefix('owner')->group(function ()
     Route::post('/bookings/{id}/cancel', [OwnerBookingController::class, 'cancel'])->name('owner.bookings.cancel');
     Route::get('/venues/{venueId}/bookings', [OwnerBookingController::class, 'venueBookings'])->name('owner.venues.bookings');
     Route::get('/courts/{courtId}/bookings', [OwnerBookingController::class, 'courtBookings'])->name('owner.courts.bookings');
+
+    // Owner Vouchers
+    Route::post('/vouchers', [OwnerVoucherController::class, 'store'])->name('owner.vouchers.store');
 });
 
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {

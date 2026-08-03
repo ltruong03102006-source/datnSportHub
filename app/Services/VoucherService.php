@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\Voucher;
-use App\Models\SportField;
+use App\Models\Venue;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -19,31 +19,35 @@ class VoucherService
      */
     public function create(array $data): Voucher
     {
-        // Kiểm tra mã unique nếu có truyền vào
-        if (!empty($data['code']) && Voucher::where('code', $data['code'])->exists()) {
-            throw new Exception("Voucher code already exists.");
-        }
-
-        // Đảm bảo sport_field_id hợp lệ
-        if (!empty($data['sport_field_id'])) {
-            $sportField = SportField::find($data['sport_field_id']);
-            if (!$sportField) {
-                throw new Exception("Sport field not found.");
-            }
-            
-            // Tự động gán owner_id nếu chưa có, dựa vào sport field
-            if (empty($data['owner_id']) && isset($sportField->owner_id)) {
-                $data['owner_id'] = $sportField->owner_id;
+        // Tự động sinh mã nếu không có
+        if (empty($data['code'])) {
+            $data['code'] = $this->generateCode();
+        } else {
+            // Kiểm tra mã unique nếu có truyền vào
+            if (Voucher::where('code', $data['code'])->exists()) {
+                throw new Exception("Voucher code already exists.");
             }
         }
 
-        // Đảm bảo owner_id hợp lệ (có thể bổ sung check User model nếu cần)
+        // Đảm bảo owner_id hợp lệ
         if (empty($data['owner_id'])) {
             throw new Exception("Owner ID is required.");
         }
 
-        return DB::transaction(function () use ($data) {
-            return Voucher::create($data);
+        // Validate venues ownership
+        $venueIds = $data['venue_ids'] ?? [];
+        if (!empty($venueIds)) {
+            $this->validateOwnership($data['owner_id'], $venueIds);
+        }
+
+        return DB::transaction(function () use ($data, $venueIds) {
+            $voucher = Voucher::create($data);
+            
+            if (!empty($venueIds)) {
+                $voucher->venues()->sync($venueIds);
+            }
+            
+            return $voucher;
         });
     }
 
@@ -70,16 +74,16 @@ class VoucherService
      * @return bool
      * @throws Exception
      */
-    public function validateOwnership(int $ownerId, $sportFieldIds): bool
+    public function validateOwnership(int $ownerId, $venueIds): bool
     {
-        $ids = (array) $sportFieldIds;
+        $ids = (array) $venueIds;
 
-        $count = SportField::whereIn('id', $ids)
+        $count = Venue::whereIn('id', $ids)
             ->where('owner_id', $ownerId)
             ->count();
 
         if ($count !== count($ids)) {
-            throw new Exception("Owner does not own all the provided sport fields.");
+            throw new Exception("Owner does not own all the provided venues.");
         }
 
         return true;
