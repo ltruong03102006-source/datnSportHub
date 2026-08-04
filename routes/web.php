@@ -298,6 +298,7 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
         ->name('venues.transfers.sign');
 
     // Quản lý Mã giảm giá (Vouchers)
+    Route::get('/vouchers/report', [WebOwnerVoucherController::class, 'report'])->name('vouchers.report');
     Route::get('/vouchers', [WebOwnerVoucherController::class, 'index'])->name('vouchers.index');
     Route::get('/vouchers/create', [WebOwnerVoucherController::class, 'create'])->name('vouchers.create');
     Route::post('/vouchers', [WebOwnerVoucherController::class, 'store'])->name('vouchers.store');

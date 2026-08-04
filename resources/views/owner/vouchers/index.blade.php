@@ -18,7 +18,10 @@
                 Quản lý các mã giảm giá, theo dõi trạng thái áp dụng và thống kê lượt sử dụng.
             </p>
         </div>
-        <div>
+        <div class="flex items-center gap-3">
+            <a href="{{ route('owner.web.vouchers.report') }}" class="inline-flex items-center gap-2 rounded-xl bg-indigo-50 border border-indigo-200 px-5 py-2.5 text-sm font-bold text-indigo-700 shadow-sm transition hover:bg-indigo-100">
+                <span>📊</span> Xem báo cáo hiệu quả
+            </a>
             <a href="{{ route('owner.web.vouchers.create') }}" class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700">
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
