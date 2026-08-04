@@ -224,6 +224,69 @@ class VoucherService
     }
 
     /**
+     * Extend voucher end date and/or add usage limit for owner
+     *
+     * @param int $voucherId
+     * @param int $ownerId
+     * @param array $data
+     * @return Voucher
+     * @throws Exception
+     */
+    public function extendForOwner(int $voucherId, int $ownerId, array $data): Voucher
+    {
+        $voucher = Voucher::where('id', $voucherId)
+            ->where('owner_id', $ownerId)
+            ->first();
+
+        if (!$voucher) {
+            throw new Exception("Voucher không tồn tại hoặc truy cập bị từ chối.");
+        }
+
+        // Kéo dài thời gian áp dụng
+        if (!empty($data['new_end_date'])) {
+            $voucher->end_date = $data['new_end_date'];
+        } elseif (!empty($data['extend_days'])) {
+            $days = (int) $data['extend_days'];
+            if ($voucher->end_date && \Illuminate\Support\Carbon::parse($voucher->end_date)->isFuture()) {
+                $voucher->end_date = \Illuminate\Support\Carbon::parse($voucher->end_date)->addDays($days);
+            } else {
+                $voucher->end_date = \Illuminate\Support\Carbon::now()->addDays($days);
+            }
+        }
+
+        // Tăng thêm số lượng lượt sử dụng
+        if (!empty($data['add_quantity'])) {
+            $addQty = (int) $data['add_quantity'];
+            if (is_null($voucher->usage_limit)) {
+                $voucher->usage_limit = $voucher->used_count + $addQty;
+            } else {
+                $voucher->usage_limit += $addQty;
+            }
+        } elseif (array_key_exists('new_usage_limit', $data) && !is_null($data['new_usage_limit'])) {
+            $newLimit = (int) $data['new_usage_limit'];
+            if ($newLimit < $voucher->used_count) {
+                throw new Exception("Giới hạn lượt dùng mới phải lớn hơn hoặc bằng số lượt đã dùng ({$voucher->used_count}).");
+            }
+            $voucher->usage_limit = $newLimit;
+        }
+
+        // Tự động kích hoạt lại nếu voucher đang hết hạn hoặc tắt do hết lượt
+        if (in_array($voucher->status, ['expired', 'disabled'], true)) {
+            $now = \Illuminate\Support\Carbon::now();
+            $hasEndDateValid = is_null($voucher->end_date) || $voucher->end_date >= $now;
+            $hasUsageValid = is_null($voucher->usage_limit) || $voucher->used_count < $voucher->usage_limit;
+
+            if ($hasEndDateValid && $hasUsageValid) {
+                $voucher->status = 'active';
+            }
+        }
+
+        $voucher->save();
+
+        return $voucher;
+    }
+
+    /**
      * Get detailed voucher information with statistics and usage history for owner
      *
      * @param int $voucherId
