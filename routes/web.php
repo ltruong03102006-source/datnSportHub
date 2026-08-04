@@ -162,6 +162,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/finance/withdraw-history', [AdminFinanceDashboardController::class, 'withdrawHistory'])->name('finance.withdraw_history');
         Route::get('/debts', [AdminDebtController::class, 'index'])->name('debts.index');
         Route::get('/packages', [AdminPackageController::class, 'index'])->name('packages.index');
+        Route::get('/chatbot', [\App\Http\Controllers\Web\AdminChatbotController::class, 'index'])->name('chatbot.index');
 
         // Quáº£n lÃ½ YÃªu cáº§u rÃºt tiá»n
         Route::get('/withdrawals', [\App\Http\Controllers\Web\AdminWithdrawalController::class, 'index'])->name('withdrawals.index');
