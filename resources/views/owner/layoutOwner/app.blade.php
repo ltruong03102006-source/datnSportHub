@@ -652,6 +652,9 @@
         <a href="{{ route('owner.web.packages.index') }}">
             Quản lý gói
         </a>
+        <a href="{{ route('owner.web.vouchers.index') }}">
+            Voucher
+        </a>
         <a href="{{ route('owner.contracts.index') }}">
             Hợp đồng
         </a>
