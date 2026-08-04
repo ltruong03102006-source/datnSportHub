@@ -93,7 +93,63 @@
                     <label class="mb-2 block text-xs font-extrabold uppercase tracking-wider text-slate-700">Tổng số lượt sử dụng tối đa</label>
                     <input type="number" name="usage_limit" value="{{ old('usage_limit') }}" placeholder="Để trống nếu không giới hạn" class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                 </div>
+
+                <!-- Giới hạn số lần dùng/khách hàng -->
+                <div>
+                    <label class="mb-2 block text-xs font-extrabold uppercase tracking-wider text-slate-700">Giới hạn số lần dùng/khách hàng</label>
+                    <input type="number" name="max_uses_per_user" value="{{ old('max_uses_per_user') }}" placeholder="Mỗi khách được dùng tối đa bao nhiêu lần? VD: 1" min="1" class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                </div>
             </div>
+
+            <!-- Điều kiện áp dụng theo ngày & giờ -->
+            <div class="border-t border-slate-100 pt-6">
+                <h4 class="mb-4 text-sm font-bold uppercase tracking-wider text-slate-800">Điều kiện ngày & giờ áp dụng</h4>
+                
+                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    <!-- Áp dụng theo ngày trong tuần -->
+                    <div>
+                        <label class="mb-3 block text-xs font-extrabold uppercase tracking-wider text-slate-700">Ngày áp dụng trong tuần (Để trống = Áp dụng tất cả ngày)</label>
+                        <div class="flex flex-wrap gap-2">
+                            @foreach([1 => 'Thứ 2', 2 => 'Thứ 3', 3 => 'Thứ 4', 4 => 'Thứ 5', 5 => 'Thứ 6', 6 => 'Thứ 7', 0 => 'Chủ Nhật'] as $val => $label)
+                                <label class="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 hover:bg-slate-50 cursor-pointer text-xs font-semibold">
+                                    <input type="checkbox" name="apply_days[]" value="{{ $val }}" {{ is_array(old('apply_days')) && in_array((string)$val, old('apply_days')) ? 'checked' : '' }} class="h-3.5 w-3.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                                    <span>{{ $label }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <!-- Áp dụng theo giờ -->
+                    <div>
+                        <label class="mb-3 block text-xs font-extrabold uppercase tracking-wider text-slate-700">Khung giờ áp dụng (Để trống = Cả ngày)</label>
+                        <div id="time-slots-container" class="space-y-2">
+                            <div class="flex items-center gap-2 time-slot-row">
+                                <input type="time" name="time_slots[0][start]" class="rounded-xl border border-slate-200 px-3 py-1.5 text-xs focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                <span class="text-xs text-slate-400">đến</span>
+                                <input type="time" name="time_slots[0][end]" class="rounded-xl border border-slate-200 px-3 py-1.5 text-xs focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                                <button type="button" onclick="addTimeSlotRow()" class="rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 px-2.5 py-1 text-xs font-bold">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                let timeSlotIndex = 1;
+                function addTimeSlotRow() {
+                    const container = document.getElementById('time-slots-container');
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center gap-2 time-slot-row';
+                    div.innerHTML = `
+                        <input type="time" name="time_slots[${timeSlotIndex}][start]" class="rounded-xl border border-slate-200 px-3 py-1.5 text-xs focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                        <span class="text-xs text-slate-400">đến</span>
+                        <input type="time" name="time_slots[${timeSlotIndex}][end]" class="rounded-xl border border-slate-200 px-3 py-1.5 text-xs focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                        <button type="button" onclick="this.parentElement.remove()" class="rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 px-2.5 py-1 text-xs font-bold">-</button>
+                    `;
+                    container.appendChild(div);
+                    timeSlotIndex++;
+                }
+            </script>
 
             <!-- Áp dụng cơ sở -->
             <div class="border-t border-slate-100 pt-6">

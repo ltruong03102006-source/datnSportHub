@@ -30,6 +30,7 @@ class UpdateVoucherRequest extends FormRequest
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'usage_limit' => 'nullable|integer|min:0',
+            'max_uses_per_user' => 'nullable|integer|min:1',
             'applies_to_all_fields' => 'nullable|boolean',
             'venue_ids' => 'nullable|array',
             'venue_ids.*' => 'exists:venues,id',

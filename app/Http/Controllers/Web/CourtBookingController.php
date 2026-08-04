@@ -89,6 +89,7 @@ class CourtBookingController extends Controller
             'end_time'   => 'required|date_format:H:i|after:start_time',
             'note'       => 'nullable|string|max:1000',
             'payment_method' => 'nullable|in:COD,wallet',
+            'voucher_code' => 'nullable|string|exists:vouchers,code',
         ], [
             'court_id.required'    => 'Vui lòng chọn sân cần đặt.',
             'court_id.exists'      => 'Sân được chọn không tồn tại trong hệ thống.',
@@ -125,10 +126,11 @@ class CourtBookingController extends Controller
         $endTime   = $request->input('end_time');
         $note      = $request->input('note');
         $paymentMethod = $request->input('payment_method', 'COD');
+        $voucherCode = $request->input('voucher_code');
 
         try {
             // Thực hiện giao dịch DB Transaction để đảm bảo tính nhất quán dữ liệu
-            $booking = DB::transaction(function () use ($courtId, $userId, $slotDate, $startTime, $endTime, $note) {
+            $booking = DB::transaction(function () use ($courtId, $userId, $slotDate, $startTime, $endTime, $note, $paymentMethod, $voucherCode) {
                 
                 // 2. Áp dụng Pessimistic Locking (lockForUpdate) đối với Sân để chặn các tiến trình khác đặt cùng sân lúc này
                 $court = Court::with('venue')->where('id', $courtId)
@@ -205,10 +207,28 @@ class CourtBookingController extends Controller
                     $price     = round(max(0.5, $hours) * 150000); // 150k/giờ, tối thiểu nửa giờ
                 }
 
+                // Tính toán voucher giảm giá
+                $discount = 0.0;
+                $voucher = null;
+                if (!empty($voucherCode)) {
+                    $voucher = \App\Models\Voucher::where('code', $voucherCode)->first();
+                    if ($voucher) {
+                        $voucherService = app(\App\Services\VoucherService::class);
+                        $bookingSlots = [['start_time' => $startTime, 'end_time' => $endTime]];
+                        $eligibility = $voucherService->checkEligibility($voucher, $courtId, $slotDate, $bookingSlots, $price, $userId);
+                        if (!$eligibility['eligible']) {
+                            throw new Exception($eligibility['reason'], 422);
+                        }
+                        $discount = $eligibility['discount'];
+                    }
+                }
+
+                $finalPrice = $price - $discount;
+
                 // Check wallet balance if payment_method is wallet
                 $userModel = \App\Models\User::find($userId);
                 if ($paymentMethod === 'wallet') {
-                    if ($userModel->balance < $price) {
+                    if ($userModel->balance < $finalPrice) {
                         throw new Exception("Số dư ví không đủ để thanh toán. Vui lòng nạp thêm hoặc chọn phương thức khác.", 402);
                     }
                 }
@@ -220,21 +240,27 @@ class CourtBookingController extends Controller
                     'slot_date'   => $slotDate,
                     'start_time'  => $startTime,
                     'end_time'    => $endTime,
-                    'total_price' => $price,
+                    'total_price' => $finalPrice,
                     'status'      => $paymentMethod === 'wallet' ? 'confirmed' : 'pending', // Auto confirm if paid via wallet
                     'payment_status' => $paymentMethod === 'wallet' ? 'paid' : 'unpaid',
                     'note'        => $note
                 ]);
 
+                // Attach voucher if applied
+                if ($voucher) {
+                    $newBooking->vouchers()->attach($voucher->id, ['discount_amount' => $discount]);
+                    $voucher->increment('used_count');
+                }
+
                 // Deduct balance and record if wallet
                 if ($paymentMethod === 'wallet') {
-                    $userModel->balance -= $price;
+                    $userModel->balance -= $finalPrice;
                     $userModel->save();
 
                     \App\Models\WalletTransaction::create([
                         'user_id' => $userId,
                         'type' => 'payment',
-                        'amount' => $price,
+                        'amount' => $finalPrice,
                         'balance_after' => $userModel->balance,
                         'description' => 'Thanh toán đặt sân #' . $newBooking->id,
                     ]);

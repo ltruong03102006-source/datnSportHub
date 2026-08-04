@@ -23,6 +23,7 @@ class StoreVoucherRequest extends FormRequest
             'max_discount_amount' => ['nullable', 'numeric', 'min:0'],
             'min_booking_value' => ['nullable', 'numeric', 'min:0'],
             'usage_limit' => ['nullable', 'integer', 'min:1'],
+            'max_uses_per_user' => ['nullable', 'integer', 'min:1'],
             'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'venue_ids' => ['required', 'array', 'min:1'],

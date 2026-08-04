@@ -22,6 +22,7 @@ class BookingRequest extends FormRequest
             'slots.*.start_time' => 'required_with:slots|date_format:H:i',
             'slots.*.end_time' => 'required_with:slots|date_format:H:i|after:slots.*.start_time',
             'note' => 'nullable|string|max:500',
+            'voucher_code' => 'nullable|string|exists:vouchers,code',
         ];
     }
 

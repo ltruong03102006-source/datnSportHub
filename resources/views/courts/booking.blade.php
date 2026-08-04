@@ -230,6 +230,18 @@
                 </div>
                 @endif
                 <!-- KẾT THÚC: KHỐI CHỌN DỊCH VỤ MUA KÈM -->
+
+                <!-- BẮT ĐẦU: KHỐI CHỌN VOUCHER -->
+                <div class="mt-6 rounded-2xl border border-stone-200 bg-white p-5 sm:p-6 shadow-sm" id="voucherSection" style="display: none;">
+                    <h3 class="text-lg font-bold text-zinc-900 mb-4 flex items-center gap-2">
+                        <span>🎫</span> Voucher khả dụng cho sân:
+                    </h3>
+                    
+                    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" id="vouchersContainer">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+                <!-- KẾT THÚC: KHỐI CHỌN VOUCHER -->
         </div>
     </div>
 
@@ -619,10 +631,184 @@
             if(serviceCount > 0) textHtml += ` <span class="text-indigo-600 ml-2 text-sm">+${serviceCount} D.Vụ</span>`;
             
             summaryText.innerHTML = textHtml;
-            summaryPrice.textContent = totalPrice.toLocaleString('vi-VN') + '₫';
             submitBtn.disabled = false;
+
+            // Fetch available vouchers
+            fetchVouchers(totalPrice);
         } else {
             summaryDiv.style.display = 'none';
+            document.getElementById('voucherSection').style.display = 'none';
+            selectedVoucher = null;
+        }
+    }
+
+    let selectedVoucher = null;
+
+    async function fetchVouchers(orderTotal) {
+        const voucherSection = document.getElementById('voucherSection');
+        const vouchersContainer = document.getElementById('vouchersContainer');
+
+        if (selectedSlots.length === 0) {
+            voucherSection.style.display = 'none';
+            selectedVoucher = null;
+            return;
+        }
+
+        const selectedDate = datePicker.value;
+        const slotsParam = selectedSlots.map(slot => ({
+            start_time: slot.start_time,
+            end_time: slot.end_time
+        }));
+
+        try {
+            const response = await fetch(`/api/courts/${courtId}/available-vouchers?date=${selectedDate}&total_price=${orderTotal}&slots=${encodeURIComponent(JSON.stringify(slotsParam))}`);
+            if (!response.ok) throw new Error();
+            const res = await response.json();
+            const vouchers = res.data || [];
+
+            if (vouchers.length === 0) {
+                voucherSection.style.display = 'none';
+                selectedVoucher = null;
+                updatePricingSummary(orderTotal);
+                return;
+            }
+
+            voucherSection.style.display = 'block';
+            vouchersContainer.innerHTML = '';
+
+            vouchers.forEach(v => {
+                vouchersContainer.appendChild(createVoucherCard(v, orderTotal));
+            });
+
+            // Validate previously selected voucher
+            if (selectedVoucher) {
+                const stillValid = vouchers.find(v => v.code === selectedVoucher.code && v.is_applicable);
+                if (!stillValid) {
+                    selectedVoucher = null;
+                } else {
+                    selectedVoucher = stillValid;
+                }
+            }
+
+            updatePricingSummary(orderTotal);
+        } catch (e) {
+            console.error('Failed to load vouchers', e);
+            updatePricingSummary(orderTotal);
+        }
+    }
+
+    function createVoucherCard(v, orderTotal) {
+        const div = document.createElement('div');
+        const isSelected = selectedVoucher && selectedVoucher.code === v.code;
+        const discountText = v.discount_type === 'percent' 
+            ? `Giảm ${parseFloat(v.discount_value)}%` + (v.max_discount_amount ? ` tối đa ${parseInt(v.max_discount_amount).toLocaleString('vi-VN')}đ` : '')
+            : `Giảm ${parseInt(v.discount_value).toLocaleString('vi-VN')}đ`;
+
+        div.className = `border rounded-xl p-4 flex flex-col justify-between transition-all duration-200 ${
+            !v.is_applicable ? 'opacity-65 bg-stone-50 border-stone-200 grayscale' :
+            isSelected ? 'border-emerald-500 bg-emerald-50/30 ring-2 ring-emerald-500/20' : 'border-stone-200 bg-white hover:border-emerald-400 hover:shadow-sm'
+        }`;
+
+        let applyDaysText = 'Tất cả ngày';
+        if (v.apply_days && v.apply_days.length > 0) {
+            const dayNames = {1: 'T2', 2: 'T3', 3: 'T4', 4: 'T5', 5: 'T6', 6: 'T7', 0: 'CN'};
+            applyDaysText = v.apply_days.map(d => dayNames[d]).join(', ');
+        }
+
+        let timeSlotsText = 'Cả ngày';
+        if (v.time_slots && v.time_slots.length > 0) {
+            const valid = v.time_slots.filter(s => s.start && s.end);
+            if (valid.length > 0) {
+                timeSlotsText = valid.map(s => `${s.start}-${s.end}`).join(', ');
+            }
+        }
+
+        const dateStr = v.end_date ? new Date(v.end_date).toLocaleDateString('vi-VN') : 'Không giới hạn';
+        const minOrderStr = v.min_booking_value ? `${parseInt(v.min_booking_value).toLocaleString('vi-VN')}đ` : '0đ';
+        const remainingStr = v.usage_limit ? `${v.usage_limit - v.used_count} lượt` : 'Vô hạn';
+
+        // Escaped JSON string for click handler
+        const vDataStr = encodeURIComponent(JSON.stringify(v)).replace(/'/g, "%27");
+
+        div.innerHTML = `
+            <div>
+                <div class="flex items-start justify-between gap-2 mb-2">
+                    <span class="font-mono font-black text-sm text-zinc-900 bg-stone-100 px-2 py-0.5 rounded border border-stone-200 uppercase tracking-wider">${v.code}</span>
+                    <span class="text-xs font-black text-emerald-600">${discountText}</span>
+                </div>
+                <div class="space-y-1 text-xs text-stone-600 font-medium">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-emerald-500">${v.is_applicable ? '✅' : '❌'}</span>
+                        <span>Áp dụng: ${applyDaysText} (${timeSlotsText})</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-emerald-500">${orderTotal >= (v.min_booking_value || 0) ? '✅' : '❌'}</span>
+                        <span>Đơn từ ${minOrderStr} trở lên</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span>⏰</span>
+                        <span>Còn ${remainingStr}</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span>📅</span>
+                        <span>Hạn: ${dateStr}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4 pt-3 border-t border-stone-100/60 flex items-center justify-between gap-2">
+                ${!v.is_applicable 
+                    ? `<span class="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded border border-rose-100">${v.inapplicable_reason}</span>` 
+                    : isSelected 
+                        ? `<button type="button" onclick="selectVoucher(null)" class="w-full text-center rounded-lg bg-emerald-600 text-white py-1.5 text-xs font-bold transition shadow-sm hover:bg-emerald-700">ĐANG ÁP DỤNG</button>`
+                        : `<button type="button" onclick="selectVoucher('${vDataStr}')" class="w-full text-center rounded-lg border border-emerald-600 text-emerald-600 hover:bg-emerald-50 py-1.5 text-xs font-bold transition">SỬ DỤNG NGAY</button>`
+                }
+            </div>
+        `;
+        return div;
+    }
+
+    function selectVoucher(vDataStr) {
+        if (!vDataStr) {
+            selectedVoucher = null;
+        } else {
+            selectedVoucher = JSON.parse(decodeURIComponent(vDataStr));
+        }
+        updateSummaryUI(); 
+    }
+
+    function updatePricingSummary(orderTotal) {
+        const summaryPrice = document.getElementById('summaryPrice');
+        const summaryText = document.getElementById('summaryText');
+        
+        let discount = 0;
+        if (selectedVoucher) {
+            if (selectedVoucher.discount_type === 'percent') {
+                discount = (orderTotal * parseFloat(selectedVoucher.discount_value)) / 100;
+                if (selectedVoucher.max_discount_amount && discount > parseFloat(selectedVoucher.max_discount_amount)) {
+                    discount = parseFloat(selectedVoucher.max_discount_amount);
+                }
+            } else {
+                discount = parseFloat(selectedVoucher.discount_value);
+            }
+            if (discount > orderTotal) discount = orderTotal;
+        }
+
+        const finalPrice = orderTotal - discount;
+
+        if (discount > 0) {
+            summaryPrice.innerHTML = `
+                <span class="text-xs text-stone-400 font-semibold line-through block">${orderTotal.toLocaleString('vi-VN')}₫</span>
+                ${finalPrice.toLocaleString('vi-VN')}₫
+            `;
+            // Append voucher badge in summaryText
+            let currentText = summaryText.innerHTML;
+            currentText = currentText.replace(/<span class="voucher-badge.*<\/span>/, '');
+            summaryText.innerHTML = currentText + ` <span class="voucher-badge inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-xs font-bold border border-emerald-200 ml-2 animate-bounce">🎫 -${discount.toLocaleString('vi-VN')}₫ (${selectedVoucher.code})</span>`;
+        } else {
+            summaryPrice.textContent = orderTotal.toLocaleString('vi-VN') + '₫';
+            let currentText = summaryText.innerHTML;
+            summaryText.innerHTML = currentText.replace(/<span class="voucher-badge.*<\/span>/, '');
         }
     }
 
@@ -666,7 +852,8 @@
                         start_time: slot.start_time,
                         end_time: slot.end_time,
                     })),
-                    services: Object.values(selectedServices) // Gửi mảng dịch vụ về Backend
+                    services: Object.values(selectedServices), // Gửi mảng dịch vụ về Backend
+                    voucher_code: selectedVoucher ? selectedVoucher.code : null // Gửi mã giảm giá
                 }),
             });
 

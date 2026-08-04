@@ -349,4 +349,168 @@ class VoucherService
             'used_bookings' => $bookingList,
         ];
     }
+
+    /**
+     * Check if a voucher is eligible for booking
+     */
+    public function checkEligibility(Voucher $voucher, int $courtId, string $date, array $slots, float $totalPrice, ?int $userId): array
+    {
+        // 1. Status
+        if ($voucher->status !== 'active') {
+            return ['eligible' => false, 'discount' => 0, 'reason' => 'Voucher không hoạt động.'];
+        }
+
+        // 2. Date Range
+        $now = \Illuminate\Support\Carbon::now();
+        if ($voucher->start_date && $voucher->start_date->isFuture()) {
+            return ['eligible' => false, 'discount' => 0, 'reason' => 'Voucher chưa đến thời gian áp dụng.'];
+        }
+        if ($voucher->end_date && $voucher->end_date->isPast()) {
+            return ['eligible' => false, 'discount' => 0, 'reason' => 'Voucher đã hết hạn sử dụng.'];
+        }
+
+        // 3. Usage Limit
+        if (!is_null($voucher->usage_limit) && $voucher->used_count >= $voucher->usage_limit) {
+            return ['eligible' => false, 'discount' => 0, 'reason' => 'Voucher đã hết lượt sử dụng.'];
+        }
+
+        // 4. Venue/Field association
+        $court = \App\Models\Court::find($courtId);
+        if (!$court) {
+            return ['eligible' => false, 'discount' => 0, 'reason' => 'Sân không tồn tại.'];
+        }
+        $venueId = $court->venue_id;
+
+        if (!$voucher->applies_to_all_fields) {
+            $hasVenue = $voucher->venues()->where('venues.id', $venueId)->exists();
+            if (!$hasVenue) {
+                return ['eligible' => false, 'discount' => 0, 'reason' => 'Voucher không áp dụng cho cơ sở này.'];
+            }
+        } else {
+            // Check if voucher owner is the same as venue owner
+            if ($voucher->owner_id !== $court->venue->owner_id) {
+                return ['eligible' => false, 'discount' => 0, 'reason' => 'Voucher không thuộc cơ sở này.'];
+            }
+        }
+
+        // 5. Min Booking Value
+        if (!is_null($voucher->min_booking_value) && $totalPrice < $voucher->min_booking_value) {
+            return [
+                'eligible' => false, 
+                'discount' => 0, 
+                'reason' => 'Đơn từ ' . number_format($voucher->min_booking_value, 0, ',', '.') . 'đ trở lên.'
+            ];
+        }
+
+        // 6. Days of Week
+        $dayOfWeek = date('w', strtotime($date)); // 0 (CN) -> 6 (Thứ 7)
+        if (!empty($voucher->apply_days)) {
+            $applyDays = (array) $voucher->apply_days;
+            if (!in_array($dayOfWeek, $applyDays) && !in_array((string)$dayOfWeek, $applyDays)) {
+                $dayNames = [0 => 'Chủ Nhật', 1 => 'Thứ 2', 2 => 'Thứ 3', 3 => 'Thứ 4', 4 => 'Thứ 5', 5 => 'Thứ 6', 6 => 'Thứ 7'];
+                $allowedDays = array_map(fn($d) => $dayNames[$d] ?? $d, $applyDays);
+                return ['eligible' => false, 'discount' => 0, 'reason' => 'Không áp dụng cho ngày đã chọn (Chỉ áp dụng: ' . implode(', ', $allowedDays) . ').'];
+            }
+        }
+
+        // 7. Time Slots
+        if (!empty($voucher->time_slots)) {
+            $voucherTimeSlots = (array) $voucher->time_slots;
+            
+            $validVSlots = array_filter($voucherTimeSlots, function ($vs) {
+                return !empty($vs['start']) && !empty($vs['end']);
+            });
+
+            if (!empty($validVSlots)) {
+                foreach ($slots as $slot) {
+                    $slotStart = substr($slot['start_time'], 0, 5);
+                    $slotEnd = substr($slot['end_time'], 0, 5);
+                    
+                    $slotMatched = false;
+                    foreach ($validVSlots as $vSlot) {
+                        $vStart = substr($vSlot['start'], 0, 5);
+                        $vEnd = substr($vSlot['end'], 0, 5);
+                        
+                        if ($slotStart >= $vStart && $slotEnd <= $vEnd) {
+                            $slotMatched = true;
+                            break;
+                        }
+                    }
+                    if (!$slotMatched) {
+                        return ['eligible' => false, 'discount' => 0, 'reason' => 'Không áp dụng cho khung giờ đặt sân này.'];
+                    }
+                }
+            }
+        }
+
+        // 8. Max uses per user
+        if ($userId && !is_null($voucher->max_uses_per_user)) {
+            $userUses = \Illuminate\Support\Facades\DB::table('bookings')
+                ->join('booking_vouchers', 'bookings.id', '=', 'booking_vouchers.booking_id')
+                ->where('bookings.user_id', $userId)
+                ->where('booking_vouchers.voucher_id', $voucher->id)
+                ->whereNotIn('bookings.status', ['cancelled', 'rejected'])
+                ->count();
+
+            if ($userUses >= $voucher->max_uses_per_user) {
+                return ['eligible' => false, 'discount' => 0, 'reason' => 'Bạn đã dùng mã này tối đa ' . $voucher->max_uses_per_user . ' lần.'];
+            }
+        }
+
+        // Calculate discount
+        $discount = 0.0;
+        if ($voucher->discount_type === 'percent') {
+            $discount = ($totalPrice * (float)$voucher->discount_value) / 100.0;
+            if (!is_null($voucher->max_discount_amount) && $discount > $voucher->max_discount_amount) {
+                $discount = (float)$voucher->max_discount_amount;
+            }
+        } else {
+            $discount = (float)$voucher->discount_value;
+        }
+
+        if ($discount > $totalPrice) {
+            $discount = $totalPrice;
+        }
+
+        return [
+            'eligible' => true,
+            'discount' => $discount,
+            'reason' => null
+        ];
+    }
+
+    /**
+     * Get available vouchers for a court
+     */
+    public function getAvailableVouchersForCourt(int $courtId, string $date, array $slots, float $totalPrice, ?int $userId): \Illuminate\Support\Collection
+    {
+        $court = \App\Models\Court::with('venue')->find($courtId);
+        if (!$court || !$court->venue) {
+            return collect();
+        }
+
+        $venueId = $court->venue_id;
+        $ownerId = $court->venue->owner_id;
+
+        // Query active vouchers of owner
+        $vouchers = Voucher::where('owner_id', $ownerId)
+            ->where('status', 'active')
+            ->where(function ($q) use ($venueId) {
+                $q->where('applies_to_all_fields', true)
+                  ->orWhereHas('venues', function ($vq) use ($venueId) {
+                      $vq->where('venues.id', $venueId);
+                  });
+            })
+            ->get();
+
+        return $vouchers->map(function ($voucher) use ($courtId, $date, $slots, $totalPrice, $userId) {
+            $eligibility = $this->checkEligibility($voucher, $courtId, $date, $slots, $totalPrice, $userId);
+            
+            $voucher->is_applicable = $eligibility['eligible'];
+            $voucher->calculated_discount = $eligibility['discount'];
+            $voucher->inapplicable_reason = $eligibility['reason'];
+            
+            return $voucher;
+        });
+    }
 }

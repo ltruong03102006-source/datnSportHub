@@ -30,7 +30,7 @@ class UserBookingController extends Controller
     {
         $this->ensureOwner($booking);
 
-        $query = Booking::with(['court.venue.sport', 'court.venue.ownerRegistration'])
+        $query = Booking::with(['court.venue.sport', 'court.venue.ownerRegistration', 'vouchers'])
             ->where('user_id', Auth::id())
             ->where('court_id', $booking->court_id)
             ->where('slot_date', $booking->slot_date)
@@ -45,7 +45,7 @@ class UserBookingController extends Controller
 
         $bookingGroup = $query->orderBy('start_time')->get();
 
-        $booking->load(['court.venue.sport', 'court.venue.ownerRegistration', 'items.rescheduleRequests']);
+        $booking->load(['court.venue.sport', 'court.venue.ownerRegistration', 'items.rescheduleRequests', 'vouchers']);
         if ($booking->items->isNotEmpty()) {
             $bookingGroup = $booking->items->sortBy('start_time')->values()->each(function ($item) use ($booking) {
                 $item->setRelation('court', $booking->court);
