@@ -170,7 +170,11 @@
                             <td class="px-6 py-4 text-right">
                                 <div class="flex items-center justify-end gap-2">
                                     <a href="{{ route('owner.web.vouchers.show', $voucher->id) }}" class="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 transition">
-                                        Xem chi tiết
+                                        Chi tiết
+                                    </a>
+
+                                    <a href="{{ route('owner.web.vouchers.edit', $voucher->id) }}" class="rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-100 transition">
+                                        Sửa
                                     </a>
 
                                     <form method="POST" action="{{ route('owner.web.vouchers.toggle-status', $voucher->id) }}" class="inline">

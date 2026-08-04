@@ -176,6 +176,52 @@ class OwnerVoucherController extends Controller
     }
 
     /**
+     * Show the form for editing the specified voucher.
+     */
+    public function edit($id)
+    {
+        $ownerId = Auth::id();
+        $voucher = Voucher::with('venues')->where('id', $id)->where('owner_id', $ownerId)->firstOrFail();
+        $venues = Venue::where('owner_id', $ownerId)->get();
+
+        $hasBeenUsed = $voucher->used_count > 0 || \Illuminate\Support\Facades\DB::table('booking_vouchers')->where('voucher_id', $id)->exists();
+
+        return view('owner.vouchers.edit', compact('voucher', 'venues', 'hasBeenUsed'));
+    }
+
+    /**
+     * Update the specified voucher in storage.
+     */
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'discount_type' => 'nullable|in:percent,fixed',
+            'discount_value' => 'nullable|numeric|min:0',
+            'min_booking_value' => 'nullable|numeric|min:0',
+            'max_discount_amount' => 'nullable|numeric|min:0',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'usage_limit' => 'nullable|integer|min:0',
+            'applies_to_all_fields' => 'nullable|boolean',
+            'venue_ids' => 'nullable|array',
+            'venue_ids.*' => 'exists:venues,id',
+        ]);
+
+        try {
+            $data = $request->all();
+            $data['applies_to_all_fields'] = $request->has('applies_to_all_fields');
+
+            $this->voucherService->updateForOwner((int) $id, Auth::id(), $data);
+
+            return redirect()->route('owner.web.vouchers.index')
+                ->with('success', 'Cập nhật voucher thành công!');
+        } catch (Exception $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
      * Toggle status (Enable / Disable) of a voucher.
      */
     public function toggleStatus($id)

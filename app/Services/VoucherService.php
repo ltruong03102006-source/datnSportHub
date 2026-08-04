@@ -90,6 +90,57 @@ class VoucherService
     }
 
     /**
+     * Update an existing voucher for owner with strict business rules
+     *
+     * @param int $voucherId
+     * @param int $ownerId
+     * @param array $data
+     * @return Voucher
+     * @throws Exception
+     */
+    public function updateForOwner(int $voucherId, int $ownerId, array $data): Voucher
+    {
+        $voucher = Voucher::where('id', $voucherId)
+            ->where('owner_id', $ownerId)
+            ->first();
+
+        if (!$voucher) {
+            throw new Exception("Voucher không tồn tại hoặc truy cập bị từ chối.");
+        }
+
+        $hasBeenUsed = $voucher->used_count > 0 || DB::table('booking_vouchers')->where('voucher_id', $voucherId)->exists();
+
+        // Không cho phép sửa mã voucher
+        unset($data['code']);
+
+        // Nếu đã có giao dịch / lượt sử dụng: Không cho phép sửa discount_type, discount_value, venue_ids
+        if ($hasBeenUsed) {
+            unset($data['discount_type'], $data['discount_value'], $data['applies_to_all_fields'], $data['venue_ids']);
+        }
+
+        // Ràng buộc số lượng lượt dùng tối đa không được nhỏ hơn số lượt đã sử dụng
+        if (array_key_exists('usage_limit', $data) && !is_null($data['usage_limit'])) {
+            if ($data['usage_limit'] < $voucher->used_count) {
+                throw new Exception("Số lượng tối đa không được nhỏ hơn số lượt đã sử dụng ({$voucher->used_count}).");
+            }
+        }
+
+        return DB::transaction(function () use ($voucher, $data, $hasBeenUsed) {
+            $voucher->update($data);
+
+            if (!$hasBeenUsed && isset($data['venue_ids'])) {
+                $venueIds = (array) $data['venue_ids'];
+                if (!empty($venueIds)) {
+                    $this->validateOwnership($voucher->owner_id, $venueIds);
+                }
+                $voucher->venues()->sync($venueIds);
+            }
+
+            return $voucher->load('venues');
+        });
+    }
+
+    /**
      * Update an existing voucher
      *
      * @param int $voucherId

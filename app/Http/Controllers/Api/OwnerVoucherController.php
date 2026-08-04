@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Owner\StoreVoucherRequest;
+use App\Http\Requests\Owner\UpdateVoucherRequest;
 use App\Http\Resources\VoucherDetailResource;
 use App\Services\VoucherService;
 use Exception;
@@ -66,6 +67,28 @@ class OwnerVoucherController extends Controller
                 'success' => false,
                 'message' => $e->getMessage() ?: 'Failed to retrieve voucher details.',
             ], $statusCode);
+        }
+    }
+
+    /**
+     * Update the specified voucher in storage for the owner.
+     */
+    public function update(UpdateVoucherRequest $request, int $id): JsonResponse
+    {
+        try {
+            $ownerId = $request->user()->id;
+            $voucher = $this->voucherService->updateForOwner($id, $ownerId, $request->validated());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Voucher updated successfully.',
+                'data' => $voucher,
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage() ?: 'Failed to update voucher.',
+            ], 400);
         }
     }
 }

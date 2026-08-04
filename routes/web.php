@@ -302,6 +302,8 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
     Route::get('/vouchers/create', [WebOwnerVoucherController::class, 'create'])->name('vouchers.create');
     Route::post('/vouchers', [WebOwnerVoucherController::class, 'store'])->name('vouchers.store');
     Route::get('/vouchers/{id}', [WebOwnerVoucherController::class, 'show'])->name('vouchers.show');
+    Route::get('/vouchers/{id}/edit', [WebOwnerVoucherController::class, 'edit'])->name('vouchers.edit');
+    Route::put('/vouchers/{id}', [WebOwnerVoucherController::class, 'update'])->name('vouchers.update');
     Route::patch('/vouchers/{id}/toggle-status', [WebOwnerVoucherController::class, 'toggleStatus'])->name('vouchers.toggle-status');
     Route::delete('/vouchers/{id}', [WebOwnerVoucherController::class, 'destroy'])->name('vouchers.destroy');
 });

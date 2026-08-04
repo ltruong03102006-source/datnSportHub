@@ -23,9 +23,14 @@
                 Thông tin cấu hình chi tiết và báo cáo thống kê hiệu quả sử dụng voucher.
             </p>
         </div>
-        <a href="{{ route('owner.web.vouchers.index') }}" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition shadow-sm">
-            &larr; Quay lại danh sách
-        </a>
+        <div class="flex items-center gap-3">
+            <a href="{{ route('owner.web.vouchers.edit', $voucher->id) }}" class="inline-flex items-center gap-2 rounded-xl bg-amber-50 border border-amber-200 px-4 py-2.5 text-sm font-bold text-amber-800 hover:bg-amber-100 transition shadow-sm">
+                Chỉnh sửa voucher
+            </a>
+            <a href="{{ route('owner.web.vouchers.index') }}" class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition shadow-sm">
+                &larr; Quay lại danh sách
+            </a>
+        </div>
     </div>
 
     <!-- Thống kê sử dụng (Stats Cards) -->
