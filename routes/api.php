@@ -173,6 +173,7 @@ Route::middleware(['auth:sanctum', 'owner'])->prefix('owner')->group(function ()
 
     // Owner Vouchers
     Route::post('/vouchers', [OwnerVoucherController::class, 'store'])->name('owner.vouchers.store');
+    Route::get('/vouchers/{id}', [OwnerVoucherController::class, 'show'])->name('owner.vouchers.show');
 });
 
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {

@@ -27,6 +27,7 @@ use App\Http\Controllers\Web\OwnerBookingRescheduleController;
 use App\Http\Controllers\Web\VnPayController;
 use App\Http\Controllers\Web\OwnerVenuePackageController;
 use App\Http\Controllers\Web\OwnerWalletController;
+use App\Http\Controllers\Web\OwnerVoucherController as WebOwnerVoucherController;
 use App\Http\Controllers\Web\OwnerWalletTopupController;
 use App\Http\Controllers\Web\OwnerWithdrawalController;
 use App\Http\Controllers\Web\PackageBookingController;
@@ -295,6 +296,14 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
     // Xử lý Ký hợp đồng chuyển nhượng (Bên B)
     Route::post('venues/transfers/{transfer}/sign', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'signContract'])
         ->name('venues.transfers.sign');
+
+    // Quản lý Mã giảm giá (Vouchers)
+    Route::get('/vouchers', [WebOwnerVoucherController::class, 'index'])->name('vouchers.index');
+    Route::get('/vouchers/create', [WebOwnerVoucherController::class, 'create'])->name('vouchers.create');
+    Route::post('/vouchers', [WebOwnerVoucherController::class, 'store'])->name('vouchers.store');
+    Route::get('/vouchers/{id}', [WebOwnerVoucherController::class, 'show'])->name('vouchers.show');
+    Route::patch('/vouchers/{id}/toggle-status', [WebOwnerVoucherController::class, 'toggleStatus'])->name('vouchers.toggle-status');
+    Route::delete('/vouchers/{id}', [WebOwnerVoucherController::class, 'destroy'])->name('vouchers.destroy');
 });
 
 Route::middleware('auth')->group(function () {

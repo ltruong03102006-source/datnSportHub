@@ -56,4 +56,11 @@ class Voucher extends Model
         return $this->belongsToMany(Venue::class, 'venue_voucher')
             ->withTimestamps();
     }
+
+    public function bookings(): BelongsToMany
+    {
+        return $this->belongsToMany(Booking::class, 'booking_vouchers')
+            ->withPivot('discount_amount')
+            ->withTimestamps();
+    }
 }

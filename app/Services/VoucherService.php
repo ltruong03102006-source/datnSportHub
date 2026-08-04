@@ -171,4 +171,68 @@ class VoucherService
 
         return $voucher;
     }
+
+    /**
+     * Get detailed voucher information with statistics and usage history for owner
+     *
+     * @param int $voucherId
+     * @param int $ownerId
+     * @return array
+     * @throws Exception
+     */
+    public function getDetailForOwner(int $voucherId, int $ownerId): array
+    {
+        $voucher = Voucher::with(['venues', 'bookings.user', 'bookings.court.venue'])
+            ->where('id', $voucherId)
+            ->where('owner_id', $ownerId)
+            ->first();
+
+        if (!$voucher) {
+            throw new Exception("Voucher not found or access denied.", 404);
+        }
+
+        $usedBookings = $voucher->bookings;
+
+        $usedCount = $voucher->used_count ?? $usedBookings->count();
+        $totalDiscount = (float) $usedBookings->sum('pivot.discount_amount');
+
+        $maxRevenue = $usedBookings->isNotEmpty() ? (float) $usedBookings->max('total_price') : 0.00;
+        $minRevenue = $usedBookings->isNotEmpty() ? (float) $usedBookings->min('total_price') : 0.00;
+
+        $usageRate = null;
+        if (!is_null($voucher->usage_limit) && $voucher->usage_limit > 0) {
+            $usageRate = round(($usedCount / $voucher->usage_limit) * 100, 2);
+        }
+
+        $bookingList = $usedBookings->map(function ($booking) {
+            $discountAmount = (float) ($booking->pivot->discount_amount ?? 0);
+            $paidAmount = (float) $booking->total_price;
+            $originalAmount = $paidAmount + $discountAmount;
+
+            return [
+                'booking_id' => $booking->id,
+                'user_name' => $booking->user ? $booking->user->name : 'N/A',
+                'user_phone' => $booking->user ? $booking->user->phone : null,
+                'user_email' => $booking->user ? $booking->user->email : null,
+                'booking_date' => $booking->slot_date ? $booking->slot_date->format('Y-m-d') : ($booking->created_at ? $booking->created_at->format('Y-m-d H:i:s') : null),
+                'court_name' => $booking->court ? $booking->court->name : 'N/A',
+                'venue_name' => ($booking->court && $booking->court->venue) ? $booking->court->venue->name : 'N/A',
+                'original_amount' => $originalAmount,
+                'discount_amount' => $discountAmount,
+                'actual_paid_amount' => $paidAmount,
+            ];
+        });
+
+        return [
+            'voucher' => $voucher,
+            'statistics' => [
+                'used_count' => $usedCount,
+                'total_discount' => $totalDiscount,
+                'max_booking_revenue' => $maxRevenue,
+                'min_booking_revenue' => $minRevenue,
+                'usage_rate' => $usageRate,
+            ],
+            'used_bookings' => $bookingList,
+        ];
+    }
 }
