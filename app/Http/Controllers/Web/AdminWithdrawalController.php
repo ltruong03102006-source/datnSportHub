@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use App\Models\WalletTransaction;
 
 class AdminWithdrawalController extends Controller
 {
@@ -71,17 +72,33 @@ class AdminWithdrawalController extends Controller
 
     public function show(WithdrawalRequest $withdrawal): View
     {
-        $request->validate([
+        $withdrawal->load('owner');
+
+        $withdrawal->loadMissing('owner', 'wallet');
+
+        $wallet = $withdrawal->wallet ?? $withdrawal->owner?->getOrCreateWallet();
+        $walletBalance = (float) ($wallet?->balance ?? 0);
+
+        // Resolve owner's phone: user.phone -> ownerRegistration.phone -> first venue phone
+        $ownerPhone = $withdrawal->owner?->phone
+            ?? $withdrawal->owner?->ownerRegistration?->phone
+            ?? optional($withdrawal->owner?->venues()->first())->phone;
+
+        return view('admin.withdrawals.show', compact('withdrawal', 'walletBalance', 'ownerPhone'));
+    }
+
+    public function approve(Request $request, WithdrawalRequest $withdrawal): RedirectResponse
+    {
+        $data = $request->validate([
             'status' => 'required|in:approved,rejected',
             'admin_note' => 'nullable|string|max:500',
             'proof_image' => 'required_if:status,approved|image|mimes:jpeg,png,jpg,webp|max:5120'
+        ], [
+            'proof_image.required_if' => 'Ảnh minh chứng bắt buộc khi duyệt (approved).',
         ]);
 
-        return view('admin.withdrawals.show', compact('withdrawal'));
-    }
-
-        $newStatus = $request->input('status');
-        $adminNote = $request->input('admin_note');
+        $newStatus = $data['status'];
+        $adminNote = $data['admin_note'] ?? null;
 
         $proofImagePath = null;
         if ($newStatus === 'approved' && $request->hasFile('proof_image')) {
@@ -95,56 +112,65 @@ class AdminWithdrawalController extends Controller
                 if ($proofImagePath) {
                     $withdrawal->proof_image = $proofImagePath;
                 }
-                $withdrawal->save();
 
-                if ($newStatus === 'rejected') {
-                    // Hoàn lại tiền cho user
-                    $user = $withdrawal->user;
-                    $user->balance += $withdrawal->amount;
-                    $user->save();
+                if ($newStatus === 'approved') {
+                    $withdrawal->approved_by = \Illuminate\Support\Facades\Auth::id();
+                    $withdrawal->approved_at = now();
 
-                    // Log transaction
-                    WalletTransaction::create([
-                        'user_id' => $user->id,
-                        'type' => 'refund',
-                        'amount' => $withdrawal->amount,
-                        'balance_after' => $user->balance,
-                        'description' => 'Hoàn tiền do yêu cầu rút tiền bị từ chối. #' . $withdrawal->id,
-                    ]);
+                    $ownerWallet = $withdrawal->wallet;
+                    if (! $ownerWallet) {
+                        throw new \Exception('Không tìm thấy ví của chủ sân.');
+                    }
+
+                    app(WalletService::class)->processTransaction(
+                        wallet: $ownerWallet,
+                        type: TransactionType::WITHDRAWAL_DEBIT,
+                        amount: (float) $withdrawal->amount,
+                        description: 'Rút tiền chủ sân #' . $withdrawal->code,
+                        withdrawalRequestId: $withdrawal->id,
+                        metadata: [
+                            'reference_type' => 'withdrawal_request',
+                            'reference_id' => $withdrawal->id,
+                        ],
+                    );
                 }
+
+                $withdrawal->save();
             });
 
             // Gửi thông báo cho user
             $title = $newStatus === 'approved' ? 'Yêu cầu rút tiền thành công' : 'Yêu cầu rút tiền bị từ chối';
-            $message = $newStatus === 'approved' 
-                ? 'Yêu cầu rút ' . number_format($withdrawal->amount) . 'đ của bạn đã được chuyển khoản. Vui lòng kiểm tra tài khoản ngân hàng.' 
+            $message = $newStatus === 'approved'
+                ? 'Yêu cầu rút ' . number_format($withdrawal->amount) . 'đ của bạn đã được chuyển khoản. Vui lòng kiểm tra tài khoản ngân hàng.'
                 : 'Yêu cầu rút ' . number_format($withdrawal->amount) . 'đ bị từ chối. Số tiền đã được hoàn lại vào ví. Lý do: ' . $adminNote;
 
             if ($newStatus === 'approved' && $withdrawal->proof_image) {
                 $message .= ' (Minh chứng: ' . asset('storage/' . $withdrawal->proof_image) . ')';
             }
+
+            $ownerId = $withdrawal->owner_id ?? $withdrawal->owner?->id;
+            if (! $ownerId) {
+                throw new \Exception('Không tìm thấy chủ sân để gửi thông báo.');
+            }
+
             app(\App\Services\NotificationService::class)->create(
-                $withdrawal->user_id,
+                (int) $ownerId,
                 $title,
                 $message,
-                route('account.profile.show'), 
+                route('account.profile.show'),
                 'withdrawal_update'
             );
 
-            $lockedWithdrawal->update([
-                'status' => 'approved',
-                'approved_by' => auth()->id(),
-                'approved_at' => now(),
-            ]);
-
             if (class_exists(\App\Services\DebtService::class)) {
-                app(\App\Services\DebtService::class)->syncOwnerDebtStatus((int) $lockedWithdrawal->owner_id);
+                app(\App\Services\DebtService::class)->syncOwnerDebtStatus((int) $withdrawal->owner_id);
             }
-        });
 
-        return redirect()
-            ->route('admin.withdrawals.show', $withdrawal)
-            ->with('success', 'Đã duyệt yêu cầu rút tiền và trừ số dư ví chủ sân.');
+            return redirect()
+                ->route('admin.withdrawals.show', $withdrawal)
+                ->with('success', 'Đã xử lý yêu cầu rút tiền.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Lỗi khi xử lý yêu cầu: ' . $e->getMessage());
+        }
     }
 
     public function reject(Request $request, WithdrawalRequest $withdrawal): RedirectResponse

@@ -151,6 +151,11 @@
                     Yêu thích
                 </a>
                 @endauth
+                @auth
+                    @if (Auth::user()->role === 'owner')
+                        <a href="{{ route('owner.contracts.index') }}" class="nav-link {{ request()->routeIs('owner.contracts.*') ? 'active' : '' }}">Hợp đồng</a>
+                    @endif
+                @endauth
             </nav>
 
             <button
@@ -261,6 +266,7 @@
                 @endauth
                 @auth
                     @if (Auth::user()->role === 'owner')
+                        <a href="{{ route('owner.contracts.index') }}" class="rounded-lg px-3 py-2.5 transition {{ request()->routeIs('owner.contracts.*') ? 'text-emerald-700 bg-emerald-50 font-bold' : 'text-zinc-700 hover:bg-stone-100' }}">Hợp đồng</a>
                         <a href="{{ route('owner.dashboard') }}" class="rounded-lg px-3 py-2.5 font-semibold text-emerald-700 hover:bg-emerald-50">Quản lý sân</a>
                     @else
                         <a href="{{ route('owner.register.page') }}" class="rounded-lg px-3 py-2.5 text-blue-700 hover:bg-blue-50 font-semibold">Đăng ký làm chủ sân</a>

@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
 
+use App\Notifications\VenueTransferToNewOwnerNotification;
+use App\Notifications\VenueTransferResultToOldOwnerNotification;
+
 class AdminVenueTransferController extends Controller
 {
     /**
@@ -26,16 +29,22 @@ class AdminVenueTransferController extends Controller
 
     public function show(VenueTransferRequest $transfer)
     {
-        // Đã tạm ẩn load ví: 'fromOwner.wallet'
-        $transfer->load(['venue', 'fromOwner', 'toOwner']);
+        $transfer->load(['venue.legalDocument', 'fromOwner', 'toOwner']);
 
         return view('admin.venue_transfers.show', compact('transfer'));
     }
 
+    public function contract(VenueTransferRequest $transfer)
+    {
+        $transfer->load(['venue', 'fromOwner', 'toOwner']);
+
+        return view('owner.venues.transfers.show', compact('transfer'));
+    }
+
     public function approve(\App\Models\VenueTransferRequest $transfer)
     {
-        if ($transfer->status !== 'pending_admin') {
-            return back()->with('error', 'Yêu cầu này không ở trạng thái chờ duyệt.');
+        if (!in_array($transfer->status, ['signed', 'pending_admin'])) {
+            return back()->with('error', 'Yêu cầu này không ở trạng thái chờ duyệt (Chưa ký điện tử hoặc đã được xử lý).');
         }
 
         DB::beginTransaction();
@@ -43,51 +52,73 @@ class AdminVenueTransferController extends Controller
             $venue = $transfer->venue;
             $newOwnerData = $transfer->receiver_data; // Lấy cục JSON chứa SĐT, Email và Pháp lý ra
             
-            // 1. CẬP NHẬT THÔNG TIN CƠ BẢN CỦA SÂN
+            // 1. CẬP NHẬT THÔNG TIN CƠ BẢN CỦA SÂN (GIỮ TRẠNG THÁI 'approved', CHƯA HOẠT ĐỘNG 'active')
             $venue->update([
                 'owner_id' => $transfer->to_owner_id, 
                 'phone' => $newOwnerData['phone'] ?? $venue->phone, // Đổi sang SĐT mới
                 'email' => $newOwnerData['email'] ?? $venue->email, // Đổi sang Email mới
-                'status' => 'approved' // Đảm bảo sân tiếp tục hoạt động
+                'status' => 'approved' // Chờ Admin tạo hợp đồng mới và Chủ mới ký HĐ
             ]);
 
-            // 2. XÓA HỒ SƠ PHÁP LÝ CHỦ CŨ
-            if ($venue->legalDocument) {
-                // Xóa file vật lý của chủ cũ (Tuỳ chọn)
-                Storage::disk('public')->delete($venue->legalDocument->citizen_front_image);
-                // ... Xóa các file khác
-                $venue->legalDocument->delete();
-            }
+            // 1b. CHẤM DỨT TẤT CẢ HỢP ĐỒNG CŨ CỦA CHỦ CŨ ĐỐI VỚI CƠ SỞ NÀY
+            \App\Models\Contract::where('venue_id', $venue->id)
+                ->whereIn('status', ['draft', 'sent', 'accepted'])
+                ->update([
+                    'status' => 'terminated',
+                    'terminated_at' => now(),
+                    'note' => DB::raw("CONCAT(COALESCE(note, ''), '\n[Tự động chấm dứt do chuyển nhượng cơ sở cho chủ sân mới HDCN-#{$transfer->id}]')")
+                ]);
 
-            // 3. TẠO HỒ SƠ PHÁP LÝ CHO CHỦ MỚI
+            // 2. LẤY HỒ SƠ PHÁP LÝ CHỦ CŨ ĐỂ KẾ THỪA FILE
+            $oldLegal = $venue->legalDocument;
+
+            // 3. TẠO HỒ SƠ PHÁP LÝ CHO CHỦ MỚI (KẾ THỪA FILE GPKD, HỢP ĐỒNG THUÊ, SỔ ĐỎ TỪ CHỦ CŨ)
             $venue->legalDocument()->create([
-                'owner_name' => $newOwnerData['owner_name'],
-                'citizen_id' => $newOwnerData['citizen_id'],
-                
-                // ĐÃ SỬA: Lấy địa chỉ của cơ sở sân đắp vào để không bị lỗi thiếu cột address
-                'address' => $venue->address, 
-                
-                'business_license_number' => $newOwnerData['business_license_number'] ?? null,
-                'bank_name' => $newOwnerData['bank_name'],
-                'bank_account_number' => $newOwnerData['bank_account_number'],
-                'bank_account_holder' => $newOwnerData['bank_account_holder'],
-                'citizen_front_image' => $newOwnerData['citizen_front_image'],
-                'citizen_back_image' => $newOwnerData['citizen_back_image'],
-                'business_license_file' => $newOwnerData['business_license_file'] ?? null,
-                'rental_contract_file' => $newOwnerData['rental_contract_file'] ?? null,
-                'land_certificate_file' => $newOwnerData['land_certificate_file'] ?? null,
+                'owner_name' => $newOwnerData['owner_name'] ?? $venue->name,
+                'citizen_id' => $newOwnerData['citizen_id'] ?? '000000000000',
+                'address' => $newOwnerData['address'] ?? $venue->address, 
+                'business_license_number' => $newOwnerData['business_license_number'] ?? optional($oldLegal)->business_license_number ?? 'N/A',
+                'bank_name' => optional($oldLegal)->bank_name ?? 'N/A',
+                'bank_account_number' => optional($oldLegal)->bank_account_number ?? 'N/A',
+                'bank_account_holder' => optional($oldLegal)->bank_account_holder ?? 'N/A',
+                'citizen_front_image' => $newOwnerData['citizen_front_image'] ?? optional($oldLegal)->citizen_front_image ?? '',
+                'citizen_back_image' => $newOwnerData['citizen_back_image'] ?? optional($oldLegal)->citizen_back_image ?? '',
+                'business_license_file' => $newOwnerData['business_license_file'] ?? optional($oldLegal)->business_license_file ?? '',
+                'rental_contract_file' => $newOwnerData['rental_contract_file'] ?? optional($oldLegal)->rental_contract_file ?? '',
+                'land_certificate_file' => $newOwnerData['land_certificate_file'] ?? optional($oldLegal)->land_certificate_file ?? '',
                 'status' => 'approved'
             ]);
+
+            // Xóa hồ sơ cũ nếu có sau khi tạo mới xong
+            if ($oldLegal) {
+                $oldLegal->delete();
+            }
 
             // 4. CẬP NHẬT TRẠNG THÁI YÊU CẦU
             $transfer->update(['status' => 'approved']);
 
             // 5. XÓA CÁC YÊU CẦU CẬP NHẬT PHÁP LÝ ĐANG TREO (NẾU CÓ)
-            $venue->updateRequests()->delete();
+            if (method_exists($venue, 'updateRequests')) {
+                $venue->updateRequests()->delete();
+            }
 
             DB::commit();
 
-            return back()->with('success', 'Đã phê duyệt sang tên và cập nhật Hồ sơ pháp lý thành công!');
+            // 6. GỬI THÔNG BÁO VÀO QUẢ CHUÔNG CHO 2 CHỦ SÂN
+            try {
+                if ($transfer->toOwner) {
+                    $transfer->toOwner->notify(new VenueTransferToNewOwnerNotification($transfer));
+                }
+                if ($transfer->fromOwner) {
+                    $transfer->fromOwner->notify(new VenueTransferResultToOldOwnerNotification($transfer));
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Lỗi gửi thông báo chuyển nhượng: ' . $e->getMessage());
+            }
+
+            return redirect()->route('admin.venue-transfers.show', $transfer->id)
+                ->with('success', 'Đã phê duyệt chuyển nhượng thành công! Cơ sở đang ở trạng thái Chờ tạo hợp đồng. Vui lòng tạo hợp đồng mới cho chủ sân mới để kích hoạt hoạt động.')
+                ->with('create_contract_url', route('admin.contracts.create', ['owner_id' => $transfer->to_owner_id, 'venue_id' => $venue->id]));
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -101,7 +132,7 @@ class AdminVenueTransferController extends Controller
     public function reject(Request $request, VenueTransferRequest $transfer)
     {
         // Chặn nếu không phải trạng thái chờ Admin
-        if ($transfer->status !== 'pending_admin') {
+        if (!in_array($transfer->status, ['signed', 'pending_admin'])) {
             return back()->with('error', 'Yêu cầu này không ở trạng thái chờ duyệt.');
         }
 

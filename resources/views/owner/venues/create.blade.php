@@ -223,18 +223,6 @@
            required>
                                 </div>
                                 <div class="col-12 col-md-6">
-                                    <label class="form-label">Tên ngân hàng <span class="text-danger">*</span></label>
-                                    <input type="text" name="bank_name" class="form-control" value="{{ old('bank_name') }}" required>
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label">Số tài khoản ngân hàng <span class="text-danger">*</span></label>
-                                    <input type="text" name="bank_account_number" class="form-control" value="{{ old('bank_account_number') }}" required>
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label">Chủ tài khoản <span class="text-danger">*</span></label>
-                                    <input type="text" name="bank_account_holder" class="form-control" value="{{ old('bank_account_holder') }}" required>
-                                </div>
-                                <div class="col-12 col-md-6">
                                     <label class="form-label">CCCD mặt trước <span class="text-danger">*</span></label>
                                     <input type="file" name="citizen_front_image" class="form-control" accept="image/*" required>
                                 </div>

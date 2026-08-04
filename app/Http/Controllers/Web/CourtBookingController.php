@@ -24,6 +24,13 @@ class CourtBookingController extends Controller
      */
     public function show(Court $court): View
     {
+        $court->load('venue');
+
+        // Kiểm tra cơ sở sân thể thao có ở trạng thái hoạt động không
+        if ($court->venue?->status !== 'active') {
+            abort(404, 'Cơ sở sân thể thao này hiện không hoạt động hoặc chưa ký hợp đồng mới với Admin.');
+        }
+
         // Kiểm tra sân có hoạt động không
         if ($court->status !== 'active') {
             abort(404, 'Sân này hiện không hoạt động hoặc đã bị ẩn.');
@@ -124,9 +131,14 @@ class CourtBookingController extends Controller
             $booking = DB::transaction(function () use ($courtId, $userId, $slotDate, $startTime, $endTime, $note) {
                 
                 // 2. Áp dụng Pessimistic Locking (lockForUpdate) đối với Sân để chặn các tiến trình khác đặt cùng sân lúc này
-                $court = Court::where('id', $courtId)
+                $court = Court::with('venue')->where('id', $courtId)
                     ->lockForUpdate()
                     ->firstOrFail();
+
+                // Kiểm tra xem cơ sở có ở trạng thái hoạt động (đã ký hợp đồng với Admin) hay không
+                if ($court->venue?->status !== 'active') {
+                    throw new Exception("Cơ sở sân thể thao này hiện tại chưa ở trạng thái hoạt động (chưa ký hợp đồng với Admin). Vui lòng chọn cơ sở khác.", 403);
+                }
 
                 // Kiểm tra xem sân có hoạt động không
                 if ($court->status !== 'active') {

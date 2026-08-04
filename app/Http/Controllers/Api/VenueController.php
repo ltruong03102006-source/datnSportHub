@@ -27,7 +27,7 @@ class VenueController extends Controller
                 }])
                 ->withAvg('reviews', 'rating')
                 ->withCount('reviews')
-                ->whereIn('venues.status', ['active', 'approved'])
+                ->where('venues.status', 'active')
                 ->whereExists(function ($query) {
                     // Chỉ hiển thị các Cơ sở có ít nhất 1 Sân con đang hoạt động
                     $query->select(DB::raw(1))
@@ -117,9 +117,9 @@ class VenueController extends Controller
     public function show(int $id): JsonResponse
     {
         try {
-            $venue = Venue::with([
+            $venue = Venue::where('status', 'active')->with([
                 'sport',
-                'courts',
+                'courts' => fn($q) => $q->where('status', 'active')->where('is_bookable_online', true),
                 'ownerRegistration'
             ])->findOrFail($id);
 

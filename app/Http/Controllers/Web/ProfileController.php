@@ -17,24 +17,26 @@ class ProfileController extends Controller
     public function show(): View
     {
         $user = Auth::user();
+        $wallet = $user->getOrCreateWallet();
 
         $loginHistories = $user->loginHistories()
             ->latest('logged_in_at')
             ->limit(10)
             ->get();
 
-        $walletTransactions = \App\Models\WalletTransaction::where('user_id', $user->id)
+        $walletTransactions = \App\Models\WalletTransaction::where('wallet_id', $wallet->id)
             ->latest()
             ->limit(15)
             ->get();
 
-        $withdrawalRequests = \App\Models\WithdrawalRequest::where('user_id', $user->id)
+        $withdrawalRequests = \App\Models\WithdrawalRequest::where('owner_id', $user->id)
             ->latest()
             ->limit(10)
             ->get();
 
         return view('account.profile', [
             'user' => $user,
+            'wallet' => $wallet,
             'loginHistories' => $loginHistories,
             'walletTransactions' => $walletTransactions,
             'withdrawalRequests' => $withdrawalRequests,

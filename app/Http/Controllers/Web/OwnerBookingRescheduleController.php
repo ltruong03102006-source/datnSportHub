@@ -28,7 +28,14 @@ class OwnerBookingRescheduleController extends Controller
             })
             ->values();
 
-        return view('owner.reschedules.index', compact('requests'));
+        $stats = [
+            'total' => $requests->count(),
+            'pending' => $requests->where('status', 'pending')->count(),
+            'approved' => $requests->where('status', 'approved')->count(),
+            'rejected' => $requests->where('status', 'rejected')->count(),
+        ];
+
+        return view('owner.reschedules.index', compact('requests', 'stats'));
     }
 
     public function show(Request $request, string $requestCode)

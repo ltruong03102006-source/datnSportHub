@@ -196,7 +196,7 @@
                     <div class="mt-4 flex items-center justify-between p-4 bg-emerald-50 rounded-xl border border-emerald-100">
                         <div>
                             <p class="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Khả dụng</p>
-                            <p class="text-3xl font-black text-emerald-700">{{ number_format($user->balance ?? 0) }}đ</p>
+                            <p class="text-3xl font-black text-emerald-700">{{ number_format($wallet->balance ?? 0) }}đ</p>
                         </div>
                     </div>
                 </div>
@@ -224,8 +224,8 @@
                     <form method="POST" action="{{ route('account.wallet.withdraw') }}" class="mt-6 grid gap-4 sm:max-w-md">
                         @csrf
                         <div>
-                            <label for="withdraw_amount" class="mb-1.5 block text-xs font-semibold text-stone-500">Số tiền muốn rút (Tối đa {{ number_format($user->balance ?? 0) }}đ)</label>
-                            <input id="withdraw_amount" name="amount" type="number" min="10000" max="{{ $user->balance ?? 0 }}" required placeholder="Nhập số tiền..."
+                            <label for="withdraw_amount" class="mb-1.5 block text-xs font-semibold text-stone-500">Số tiền muốn rút (Tối đa {{ number_format($wallet->balance ?? 0) }}đ)</label>
+                            <input id="withdraw_amount" name="amount" type="number" min="10000" max="{{ $wallet->balance ?? 0 }}" required placeholder="Nhập số tiền..."
                                 class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10">
                             @error('amount') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>

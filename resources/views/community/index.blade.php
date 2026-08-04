@@ -30,7 +30,14 @@
                 @endforeach
             </select>
 
-            @if(request('sport_id') || request('province_code'))
+            <select name="ward_code" onchange="document.getElementById('filterForm').submit()" class="text-sm rounded-lg border-stone-300 focus:border-emerald-500 focus:ring-emerald-500">
+                <option value="">Phường/Xã: Tất cả</option>
+                @foreach($wards as $ward)
+                    <option value="{{ $ward->code }}" {{ request('ward_code') == $ward->code ? 'selected' : '' }}>{{ $ward->name }}</option>
+                @endforeach
+            </select>
+
+            @if(request('sport_id') || request('province_code') || request('ward_code'))
                 <a href="{{ route('community.index') }}" class="text-xs text-rose-500 hover:underline">Xóa lọc</a>
             @endif
         </form>
@@ -60,7 +67,7 @@
                     <p class="flex items-center gap-2"><svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> 
                         <span class="font-semibold text-zinc-900">{{ $post->play_date->format('d/m/Y') }}</span> lúc <span class="font-bold text-rose-600">{{ \Carbon\Carbon::parse($post->play_time)->format('H:i') }}</span>
                     </p>
-                    <p class="flex items-center gap-2"><svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>{{ $post->location }} - <strong>{{ $post->province->name ?? '' }}</strong></p>
+                    <p class="flex items-center gap-2"><svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>{{ $post->location }} - <strong>{{ $post->province->name ?? '' }}{{ $post->ward ? ' / ' . $post->ward->name : '' }}</strong></p>
                     <p class="flex items-center gap-2"><svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg> Trình độ: <strong>{{ $post->skill_level }}</strong></p>
                     
                     <!-- THÊM: Tiến độ người tham gia -->
@@ -200,13 +207,22 @@
                     </div>
                     <div>
                             <label class="block text-sm font-semibold text-zinc-700 mb-1">Tỉnh / Thành phố <span class="text-rose-500">*</span></label>
-                            <select name="province_code" class="w-full rounded-lg border-stone-300 focus:border-emerald-500 focus:ring-emerald-500 text-sm" required>
+                            <select name="province_code" id="createProvinceSelect" class="w-full rounded-lg border-stone-300 focus:border-emerald-500 focus:ring-emerald-500 text-sm" required>
                                 <option value="">Chọn khu vực...</option>
                                 @foreach($provinces as $p)
                                     <option value="{{ $p->code }}">{{ $p->name }}</option>
                                 @endforeach
                             </select>
                             <p class="mt-1 text-xs text-rose-500 hidden" id="err-province_code"></p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-zinc-700 mb-1">Phường/Xã <span class="text-rose-500">*</span></label>
+                            <select name="ward_code" id="createWardSelect" class="w-full rounded-lg border-stone-300 focus:border-emerald-500 focus:ring-emerald-500 text-sm" disabled required>
+                                <option value="">Chọn phường/xã...</option>
+                            </select>
+                            <p class="mt-1 text-xs text-rose-500 hidden" id="err-ward_code"></p>
+                        </div>
+                        <div>
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-zinc-700 mb-1">Địa chỉ (Sân / Phố) <span class="text-rose-500">*</span></label>
@@ -303,7 +319,43 @@
 
     playDateInput.addEventListener('change', checkTimeValidity);
     playTimeInput.addEventListener('change', checkTimeValidity);
+
     // 3. XỬ LÝ SUBMIT FORM (ĐÃ XÓA TRẠNG THÁI SÂN)
+    const createProvinceSelect = document.getElementById('createProvinceSelect');
+    const createWardSelect = document.getElementById('createWardSelect');
+
+    async function loadCreateWards(provinceCode) {
+        createWardSelect.innerHTML = '<option value="">Đang tải...</option>';
+        createWardSelect.disabled = true;
+
+        if (!provinceCode) {
+            createWardSelect.innerHTML = '<option value="">Chọn phường/xã...</option>';
+            createWardSelect.disabled = true;
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/provinces/${provinceCode}/wards`);
+            const data = await res.json();
+
+            createWardSelect.innerHTML = '<option value="">Chọn phường/xã...</option>';
+            data.data.forEach((ward) => {
+                const option = document.createElement('option');
+                option.value = ward.code;
+                option.textContent = ward.name;
+                createWardSelect.appendChild(option);
+            });
+            createWardSelect.disabled = false;
+        } catch (error) {
+            createWardSelect.innerHTML = '<option value="">Không tải được phường/xã</option>';
+            createWardSelect.disabled = true;
+        }
+    }
+
+    createProvinceSelect?.addEventListener('change', function() {
+        loadCreateWards(this.value);
+    });
+
     document.getElementById('formCreatePost').addEventListener('submit', async function(e) {
         e.preventDefault();
         const btn = document.getElementById('btnSubmitPost');
@@ -352,6 +404,11 @@
             btn.innerHTML = 'Đăng kèo ngay';
         }
     });
+
+    // Nếu trang được load với province đã chọn, nạp lại danh sách wards cho form tạo kèo
+    if (createProvinceSelect?.value) {
+        loadCreateWards(createProvinceSelect.value);
+    }
     async function joinMatch(postId) {
         if(!confirm('Bạn chắc chắn muốn xin tham gia kèo này?')) return;
         

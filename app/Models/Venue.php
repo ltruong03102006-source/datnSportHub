@@ -147,7 +147,8 @@ class Venue extends Model
     {
         return $query
             ->with('sport')
-            ->whereIn('status', ['active', 'approved'])
+            // CHỈ CHO PHÉP 'active' (Đã ký hợp đồng) MỚI ĐƯỢC HIỂN THỊ
+            ->where('status', 'active') 
             ->whereHas('courts', fn (Builder $courts) => $courts->where('status', 'active'))
             ->withAvg(['reviews as avg_rating' => fn (Builder $q) => $q->where('reviews.is_hidden', false)], 'rating')
             ->withCount(['reviews as reviews_count' => fn (Builder $q) => $q->where('reviews.is_hidden', false)])
@@ -163,9 +164,10 @@ class Venue extends Model
     }
 
     // Average rating + starting price columns for the public listing cards
-    public function scopeWithListingStats(Builder $query): Builder
+   public function scopeWithListingStats(Builder $query): Builder
     {
         return $query
+            ->where('venues.status', 'active') // THÊM DÒNG NÀY ĐỂ KHÓA CHẶT TRẠNG THÁI
             ->withAvg(['reviews as avg_rating' => fn (Builder $q) => $q->where('reviews.is_hidden', false)], 'rating')
             ->withCount(['reviews as reviews_count' => fn (Builder $q) => $q->where('reviews.is_hidden', false)])
             ->withCount(['bookings as bookings_count' => fn (Builder $q) => $q->whereNotIn('bookings.status', ['cancelled', 'rejected'])])
@@ -238,5 +240,12 @@ class Venue extends Model
     {
         return $this->belongsToMany(Voucher::class, 'venue_voucher')
             ->withTimestamps();
+    }
+    /**
+     * Lấy yêu cầu thay đổi thông tin đang chờ duyệt của cơ sở này
+     */
+    public function pendingUpdateRequest()
+    {
+        return $this->hasOne(VenueUpdateRequest::class)->where('status', 'pending')->latest();
     }
 }

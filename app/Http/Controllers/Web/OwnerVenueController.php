@@ -79,9 +79,9 @@ class OwnerVenueController extends Controller
                         'citizen_id' => $validated['citizen_id'],
                         'business_license_number' => $validated['business_license_number'],
                         'address' => $validated['address'],
-                        'bank_name' => $validated['bank_name'],
-                        'bank_account_number' => $validated['bank_account_number'],
-                        'bank_account_holder' => $validated['bank_account_holder'],
+                        'bank_name' => $validated['bank_name'] ?? '',
+                        'bank_account_number' => $validated['bank_account_number'] ?? '',
+                        'bank_account_holder' => $validated['bank_account_holder'] ?? '',
                         'citizen_front_image' => $request->file('citizen_front_image')->store('venue-documents', 'public'),
                         'citizen_back_image' => $request->file('citizen_back_image')->store('venue-documents', 'public'),
                         'business_license_file' => $request->file('business_license_file')->store('venue-documents', 'public'),
@@ -247,91 +247,75 @@ class OwnerVenueController extends Controller
 
     // Xóa mềm (Tạm ẩn điểm sân)
    public function destroy(Venue $venue)
-{
-    $this->authorizeOwner($venue);
+    {
+        $this->authorizeOwner($venue);
 
-    // ==========================
-    // PENDING / REJECTED => XÓA
-    // ==========================
-    if (in_array($venue->status, ['pending', 'rejected'])) {
+        // ==========================
+        // 1. PENDING / REJECTED => XÓA VĨNH VIỄN
+        // ==========================
+        if (in_array($venue->status, ['pending', 'rejected'])) {
 
-        $courtIds = $venue->courts()->pluck('id');
+            $courtIds = $venue->courts()->pluck('id');
 
-        // Đã từng phát sinh booking thì không cho xóa
-        $hasBookings = Booking::whereIn('court_id', $courtIds)->exists();
+            // Đã từng phát sinh booking (trong quá khứ hay tương lai) thì không cho xóa
+            $hasBookings = \App\Models\Booking::whereIn('court_id', $courtIds)->exists();
 
-        if ($hasBookings) {
-            return back()->with(
-                'error',
-                'Không thể xóa cơ sở đã phát sinh lịch đặt.'
-            );
+            if ($hasBookings) {
+                return back()->with(
+                    'error',
+                    'Không thể xóa cơ sở đã phát sinh lịch đặt.'
+                );
+            }
+
+            // Xóa sân con
+            $venue->courts()->delete();
+
+            // Nếu có quan hệ ảnh
+            if (method_exists($venue, 'images')) {
+                $venue->images()->delete();
+            }
+
+            // Nếu có quan hệ hồ sơ pháp lý
+            if (method_exists($venue, 'legalDocument')) {
+                optional($venue->legalDocument)->delete();
+            }
+
+            $venue->delete();
+
+            return back()->with('success', 'Đã xóa cơ sở thành công.');
         }
 
-        // Xóa sân con
-        $venue->courts()->delete();
+        // ==========================
+        // 2. APPROVED / ACTIVE => TẠM NGỪNG
+        // ==========================
+        elseif (in_array($venue->status, ['approved', 'active'])) {
+            
+            $courtIds = $venue->courts()->pluck('id');
 
-        // Nếu có quan hệ ảnh
-        if (method_exists($venue, 'images')) {
-            $venue->images()->delete();
+            // KIỂM TRA LỊCH ĐẶT TRONG TƯƠNG LAI
+            $hasUpcomingBookings = \App\Models\Booking::whereIn('court_id', $courtIds)
+                ->where('slot_date', '>=', now()->toDateString())
+                ->whereIn('status', ['pending', 'confirmed']) // Chỉ lấy lịch đang chờ hoặc đã chốt
+                ->exists();
+
+            if ($hasUpcomingBookings) {
+                return back()->with(
+                    'error',
+                    'Không thể tạm ngừng! Cơ sở này đang có lịch đặt của khách trong tương lai. Vui lòng hoàn tất hoặc hủy lịch trước.'
+                );
+            }
+
+            // Nếu không có lịch tương lai thì cho phép tạm ngừng
+            $venue->update(['status' => 'inactive']);
+            
+            return back()->with('success', 'Đã tạm ngừng hoạt động cơ sở thành công!');
         }
 
-        // Nếu có quan hệ hồ sơ pháp lý
-        if (method_exists($venue, 'legalDocument')) {
-            optional($venue->legalDocument)->delete();
-        }
-
-        $venue->delete();
-
-        return back()->with(
-            'success',
-            'Đã xóa cơ sở thành công.'
-        );
+        // ==========================
+        // 3. CÁC TRẠNG THÁI KHÁC (Bị admin khóa...)
+        // ==========================
+        return back()->with('error', 'Không thể thực hiện thao tác này với trạng thái hiện tại.');
     }
-
-    // ==========================
-    // SUSPENDED => KHÔNG CHO THAO TÁC
-    // ==========================
-    if ($venue->status === 'suspended') {
-        return back()->with(
-            'error',
-            'Cơ sở đang bị khóa bởi quản trị viên.'
-        );
-    }
-
-    // ==========================
-    // APPROVED => TẠM NGỪNG
-    // ==========================
-    if ($venue->status === 'approved') {
-
-        $courtIds = $venue->courts()->pluck('id');
-
-        $hasUpcomingBookings = Booking::whereIn('court_id', $courtIds)
-            ->where('slot_date', '>=', now()->toDateString())
-            ->whereIn('status', ['pending', 'confirmed'])
-            ->exists();
-
-        if ($hasUpcomingBookings) {
-            return back()->with(
-                'error',
-                'Không thể tạm ngừng vì đang có lịch đặt trong tương lai.'
-            );
-        }
-
-        $venue->update([
-            'status' => 'inactive'
-        ]);
-
-        return back()->with(
-            'success',
-            'Đã tạm ngừng hoạt động cơ sở.'
-        );
-    }
-
-    return back()->with(
-        'error',
-        'Không thể thực hiện thao tác này.'
-    );
-}
 
     // Hàm bảo mật: Kiểm tra xem user hiện tại có phải chủ của sân này không
     private function authorizeOwner(Venue $venue): void
@@ -350,19 +334,33 @@ class OwnerVenueController extends Controller
 
         return view('owner.venues.show', compact('venue'));
     }// Hàm khôi phục (Mở lại sân sau khi đã tạm ngừng)
-    public function restore(Venue $venue)
-{
-    $this->authorizeOwner($venue);
+    public function restore($id) // Hoặc (Venue $venue) tùy cách bạn viết
+    {
+        $venue = \App\Models\Venue::findOrFail($id);
 
-    $venue->update([
-        'status' => 'approved'
-    ]);
+        // 1. Kiểm tra quyền sở hữu (Giữ nguyên bảo mật)
+        if ((int) $venue->owner_id !== (int) Auth::id()) {
+            return back()->with('error', 'Bạn không có quyền thao tác trên cơ sở này.');
+        }
 
-    return back()->with(
-        'success',
-        'Đã mở lại cơ sở thành công.'
-    );
-}
+        // 2. TÌM HỢP ĐỒNG ĐÃ KÝ VÀ ĐANG TRONG THỜI GIAN HIỆU LỰC
+        $validContract = \App\Models\Contract::where('venue_id', $venue->id)
+            ->where('status', 'accepted')
+            ->whereDate('start_date', '<=', now())
+            ->whereDate('end_date', '>=', now())
+            ->first();
+
+        // 3. LOGIC MỞ LẠI THÔNG MINH
+        if ($validContract) {
+            // Nếu có hợp đồng hợp lệ & đã tới ngày -> Lên thẳng "Hoạt động"
+            $venue->update(['status' => 'active']);
+        } else {
+            // Nếu hợp đồng chưa tới ngày (Chờ hiệu lực) -> Chỉ về "Đã duyệt"
+            $venue->update(['status' => 'approved']);
+        }
+
+        return back()->with('success', 'Đã mở lại cơ sở thành công.');
+    }
     public function edit(Venue $venue): View
     {
         $this->authorizeOwner($venue);

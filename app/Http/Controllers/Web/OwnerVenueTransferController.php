@@ -8,47 +8,61 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueTransferRequest;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB; // Đã di chuyển lên đây đúng chuẩn
+use Illuminate\Support\Facades\DB;
 
 class OwnerVenueTransferController extends Controller
 {
     /**
-     * Hiển thị form tạo yêu cầu chuyển nhượng (Dành cho Chủ cũ)
+     * Hiển thị form tạo hợp đồng chuyển nhượng (Dành cho Chủ cũ)
      */
-    public function create(Venue $venue)
+    public function create(Request $request, ?Venue $venue = null)
     {
-        if ($venue->owner_id !== auth()->id()) {
+        $venues = Venue::where('owner_id', auth()->id())->get();
+
+        if ($venues->isEmpty()) {
+            return redirect()->route('owner.web.venues.index')
+                ->with('error', 'Bạn chưa có cơ sở nào để thực hiện chuyển nhượng.');
+        }
+
+        if ($venue && $venue->exists && $venue->owner_id !== auth()->id()) {
             abort(403, 'Bạn không có quyền truy cập cơ sở này.');
         }
 
-        $hasPending = \App\Models\VenueTransferRequest::where('venue_id', $venue->id)
-            ->whereIn('status', ['pending', 'pending_admin'])
-            ->exists();
+        $selectedVenueId = ($venue && $venue->exists) ? $venue->id : (int) $request->query('venue_id', $venues->first()->id);
 
-        if ($hasPending) {
-            return redirect()->route('owner.web.venues.index')
-                ->with('error', 'Cơ sở này đang có yêu cầu chuyển nhượng chờ xử lý. Bạn không thể tạo thêm!');
-        }
-
-        return view('owner.venues.transfer', compact('venue'));
+        return view('owner.venues.transfer', compact('venues', 'selectedVenueId', 'venue'));
     }
 
     /**
-     * Xử lý lưu yêu cầu chuyển nhượng (Dành cho Chủ cũ)
+     * Xử lý lưu hợp đồng chuyển nhượng
      */
-    public function store(StoreVenueTransferRequest $request, Venue $venue)
+    public function store(StoreVenueTransferRequest $request, ?Venue $venue = null)
     {
-        $receiver = User::where('email', $request->receiver_email)->first();
+        $venueId = $request->input('venue_id') ?? optional($venue)->id;
+        $targetVenue = Venue::where('id', $venueId)->where('owner_id', auth()->id())->firstOrFail();
 
-        VenueTransferRequest::create([
-            'venue_id'      => $venue->id,
-            'from_owner_id' => auth()->id(),
-            'to_owner_id'   => $receiver->id,
-            'status'        => 'pending', // Trạng thái chờ chủ mới phản hồi
+        $receiver = User::where('email', $request->receiver_email)->where('role', 'owner')->firstOrFail();
+
+        $transfer = VenueTransferRequest::create([
+            'venue_id'              => $targetVenue->id,
+            'from_owner_id'         => auth()->id(),
+            'to_owner_id'           => $receiver->id,
+            'price'                 => $request->input('price'),
+            'contract_date'         => $request->input('contract_date'),
+            'contract_location'     => $request->input('contract_location'),
+            'sender_data'           => [
+                'owner_name' => $request->input('sender_owner_name'),
+                'dob'        => $request->input('sender_dob'),
+                'address'    => $request->input('sender_address'),
+            ],
+            'sender_signed_at'      => now(),
+            'sender_signed_ip'      => $request->ip(),
+            'sender_signed_account' => auth()->user()->email ?? auth()->user()->name,
+            'status'                => 'draft',
         ]);
 
-        return redirect()->route('owner.web.venues.index')
-            ->with('success', 'Đã gửi yêu cầu chuyển nhượng thành công! Vui lòng chờ Chủ mới xác nhận.');
+        return redirect()->route('owner.web.venues.transfers.show', $transfer->id)
+            ->with('success', 'Đã tạo hợp đồng nháp thành công! Bạn có thể xem trước văn bản hợp đồng hoặc bấm "Gửi hợp đồng cho Bên B" khi đã sẵn sàng.');
     }
 
     public function checkEmail(Request $request)
@@ -63,37 +77,128 @@ class OwnerVenueTransferController extends Controller
             return response()->json(['success' => false, 'message' => 'Bạn không thể chuyển nhượng cho chính mình.']);
         }
 
-        return response()->json(['success' => true, 'name' => $receiver->name ?? $receiver->full_name ?? 'Chủ sân ẩn danh']);
+        return response()->json([
+            'success' => true,
+            'name' => $receiver->name ?? $receiver->full_name ?? 'Chủ sân',
+            'email' => $receiver->email,
+            'phone' => $receiver->phone ?? $receiver->phone_number ?? 'N/A',
+            'message' => 'Email tồn tại - Hợp pháp',
+        ]);
     }
 
     /**
-     * Hiển thị lịch sử chuyển nhượng (Của cả Chủ cũ và Chủ mới)
+     * Hiển thị trang Quản lý Hợp đồng chuyển nhượng (Của cả Chủ cũ và Chủ mới)
      */
-    public function history()
+    public function history(Request $request)
     {
         $userId = auth()->id();
         
-        $transfers = VenueTransferRequest::with(['venue', 'fromOwner', 'toOwner'])
-            ->where('from_owner_id', $userId)
-            ->orWhere('to_owner_id', $userId)
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        $query = VenueTransferRequest::with(['venue', 'fromOwner', 'toOwner'])
+            ->where(function ($q) use ($userId) {
+                $q->where('from_owner_id', $userId)
+                  ->orWhere('to_owner_id', $userId);
+            });
+
+        // Lọc theo Trạng thái
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        // Lọc theo Tìm kiếm
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $searchType = $request->input('search_type', 'all');
+
+            $query->where(function ($q) use ($search, $searchType) {
+                if ($searchType === 'code') {
+                    $cleanId = preg_replace('/[^0-9]/', '', $search);
+                    if ($cleanId !== '') {
+                        $q->where('id', $cleanId);
+                    } else {
+                        $q->where('id', $search);
+                    }
+                } elseif ($searchType === 'venue') {
+                    $q->whereHas('venue', function ($vq) use ($search) {
+                        $vq->where('name', 'like', "%{$search}%");
+                    });
+                } else {
+                    $cleanId = preg_replace('/[^0-9]/', '', $search);
+                    if ($cleanId !== '') {
+                        $q->where('id', $cleanId);
+                    }
+                    $q->orWhereHas('venue', function ($vq) use ($search) {
+                        $vq->where('name', 'like', "%{$search}%");
+                    });
+                }
+            });
+        }
+
+        $transfers = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
 
         return view('owner.venues.transfers.history', compact('transfers'));
     }
 
-    // =========================================================================
-    // PHẦN XỬ LÝ CỦA CHỦ MỚI (NGƯỜI NHẬN)
-    // =========================================================================
+    /**
+     * Hiển thị Chi tiết văn bản Hợp đồng chuyển nhượng cơ sở thể thao
+     */
+    public function show(VenueTransferRequest $transfer)
+    {
+        $userId = auth()->id();
+        $userRole = strtolower(optional(auth()->user())->role ?? '');
+        if ($transfer->from_owner_id !== $userId && $transfer->to_owner_id !== $userId && $userRole !== 'admin') {
+            abort(403, 'Bạn không có quyền xem hợp đồng này.');
+        }
+
+        $transfer->load(['venue', 'fromOwner', 'toOwner']);
+
+        return view('owner.venues.transfers.show', compact('transfer'));
+    }
 
     /**
-     * Hàm hiển thị Form điền pháp lý cho Chủ mới
+     * Gửi thông báo Hợp đồng chuyển nhượng đến Bên nhận
      */
+    public function sendNotification(VenueTransferRequest $transfer)
+    {
+        // Chỉ Bên A (người tạo hợp đồng) mới được gửi
+        if ($transfer->from_owner_id !== auth()->id()) {
+            abort(403, 'Bạn không có quyền thực hiện thao tác này.');
+        }
+
+        // Cho phép gửi khi trạng thái đang là draft hoặc pending
+        if (!in_array($transfer->status, ['draft', 'pending'])) {
+            return redirect()->back()
+                ->with('error', 'Hợp đồng này đã được gửi hoặc không còn ở trạng thái nháp.');
+        }
+
+        $transfer->update([
+            'status' => 'sent',
+            'notified_at' => now(),
+        ]);
+
+        // Gửi thông báo trong hệ thống cho Bên B
+        try {
+            $toOwner = $transfer->toOwner;
+            if ($toOwner) {
+                $toOwner->notify(new \App\Notifications\VenueTransferContractNotification($transfer));
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Gửi thông báo chuyển nhượng thất bại: ' . $e->getMessage());
+        }
+
+        return redirect()->back()
+            ->with('success', 'Đã gửi hợp đồng chuyển nhượng thành công đến Bên nhận!');
+    }
+
     public function showAcceptForm(VenueTransferRequest $transfer)
     {
-        // Kiểm tra đúng người nhận và đúng trạng thái chưa?
-        if ($transfer->to_owner_id !== auth()->id() || $transfer->status !== 'pending') {
-            abort(403, 'Bạn không có quyền thực hiện thao tác này hoặc yêu cầu đã hết hạn.');
+        if ($transfer->to_owner_id !== auth()->id()) {
+            return redirect()->route('owner.web.venues.transfers.history')
+                ->with('error', 'Form nhận chuyển nhượng này chỉ dành cho tài khoản Bên nhận (' . ($transfer->toOwner->email ?? 'Bên B') . '). Vui lòng đăng nhập đúng tài khoản Bên nhận để thực hiện.');
+        }
+
+        if (!in_array($transfer->status, ['sent', 'pending', 'draft'])) {
+            return redirect()->route('owner.web.venues.transfers.history')
+                ->with('error', 'Hồ sơ nhận chuyển nhượng cho cơ sở này đã được nộp hoặc không ở trạng thái chờ điền.');
         }
 
         return view('owner.venues.transfers.accept_form', compact('transfer'));
@@ -104,49 +209,75 @@ class OwnerVenueTransferController extends Controller
      */
     public function submitAcceptForm(Request $request, VenueTransferRequest $transfer)
     {
-        if ($transfer->to_owner_id !== auth()->id() || $transfer->status !== 'pending') {
-            abort(403);
+        if ($transfer->to_owner_id !== auth()->id()) {
+            return redirect()->route('owner.web.venues.transfers.history')
+                ->with('error', 'Bạn không có quyền nộp hồ sơ này.');
+        }
+
+        if (!in_array($transfer->status, ['sent', 'pending', 'draft'])) {
+            return redirect()->route('owner.web.venues.transfers.history')
+                ->with('error', 'Hồ sơ này đã được nộp trước đó.');
         }
 
         $validated = $request->validate([
             'phone' => ['required', 'string', 'regex:/^[0-9]+$/', 'max:20'],
             'email' => ['required', 'email', 'max:255'],
             'owner_name' => ['required', 'string', 'max:255'],
+            'dob' => ['required', 'date', 'before:today'],
+            'address' => ['required', 'string', 'max:255'],
             'citizen_id' => ['required', 'digits:12'],
-            // Thay đổi: Cho phép chữ cái (a-z, A-Z) và số (0-9). Mở rộng max lên 50 để tránh lỗi độ dài.
-            'business_license_number' => ['required', 'string', 'regex:/^[a-zA-Z0-9]+$/', 'max:50'],
-            'bank_name' => ['required', 'string', 'max:255'],
-            'bank_account_number' => ['required', 'regex:/^[0-9]+$/', 'max:50'],
-            'bank_account_holder' => ['required', 'string', 'max:255'],
             'citizen_front_image' => ['required', 'image', 'max:5120'],
             'citizen_back_image' => ['required', 'image', 'max:5120'], 
-            
-            // SIẾT CHẶT PHÁP LÝ Ở ĐÂY:
-            'business_license_file' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'], // Bắt buộc up GPKD
-            
-            // Bắt buộc phải có Hợp đồng thuê HOẶC Sổ đỏ (Nếu để trống cả 2 sẽ báo lỗi)
-            'rental_contract_file' => ['required_without:land_certificate_file', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
-            'land_certificate_file' => ['required_without:rental_contract_file', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ], [
-            // Thêm việt hóa câu thông báo lỗi cho 2 trường này
-            'rental_contract_file.required_without' => 'Bạn phải cung cấp Hợp đồng thuê mặt bằng hoặc Sổ đỏ.',
-            'land_certificate_file.required_without' => 'Bạn phải cung cấp Sổ đỏ hoặc Hợp đồng thuê mặt bằng.',
-            'business_license_file.required' => 'Vui lòng tải lên Giấy phép kinh doanh.'
+            'dob.required' => 'Vui lòng chọn ngày sinh.',
+            'dob.date' => 'Ngày sinh không đúng định dạng.',
+            'dob.before' => 'Ngày sinh phải là một ngày trong quá khứ.',
+            'address.required' => 'Vui lòng nhập chỗ ở hiện tại.',
         ]);
 
-        $fileFields = ['citizen_front_image', 'citizen_back_image', 'business_license_file', 'rental_contract_file', 'land_certificate_file'];
+        $fileFields = ['citizen_front_image', 'citizen_back_image'];
         foreach ($fileFields as $field) {
             if ($request->hasFile($field)) {
                 $validated[$field] = $request->file($field)->store('venue-documents/temp_transfers', 'public');
             }
         }
 
-        $transfer->update([
-            'status' => 'pending_admin', // Chuyển sang chờ Admin duyệt
+        $updateData = [
+            'status' => 'filled',
             'receiver_data' => $validated 
+        ];
+
+        $transfer->update($updateData);
+
+        return redirect()->route('owner.web.venues.transfers.show', $transfer->id)
+            ->with('success', 'Đã điền thông tin và nộp hồ sơ nhận sân thành công! Vui lòng kiểm tra lại văn bản hợp đồng và bấm "KÝ HỢP ĐỒNG" để hoàn tất.');
+    }
+
+    /**
+     * Xử lý Ký hợp đồng chuyển nhượng (Dành cho Bên B)
+     */
+    public function signContract(Request $request, VenueTransferRequest $transfer)
+    {
+        if ($transfer->to_owner_id !== auth()->id()) {
+            return redirect()->back()->with('error', 'Bạn không có quyền thực hiện ký hợp đồng này.');
+        }
+
+        if ($transfer->receiver_signed_at && in_array($transfer->status, ['signed', 'pending_admin', 'approved'])) {
+            return redirect()->back()->with('info', 'Hợp đồng này đã được bạn ký điện tử trước đó.');
+        }
+
+        // Chỉ được ký khi đã điền hồ sơ (filled) hoặc sent/pending
+        if (!in_array($transfer->status, ['filled', 'sent', 'pending'])) {
+            return redirect()->back()->with('error', 'Vui lòng điền thông tin hồ sơ nhận sân trước khi thực hiện ký hợp đồng.');
+        }
+
+        $transfer->update([
+            'status'                  => 'signed',
+            'receiver_signed_at'      => now(),
+            'receiver_signed_ip'      => $request->ip(),
+            'receiver_signed_account' => auth()->user()->email ?? auth()->user()->name,
         ]);
 
-        return redirect()->route('owner.web.venues.transfers.history')
-            ->with('success', 'Đã nộp thông tin liên hệ và hồ sơ pháp lý! Vui lòng chờ Admin phê duyệt để hoàn tất.');
+        return redirect()->back()->with('success', 'Đã ký hợp đồng điện tử thành công! Hợp đồng đã được chuyển tới Admin phê duyệt.');
     }
 }

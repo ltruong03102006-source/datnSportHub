@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,6 +14,15 @@ class Booking extends Model
     use HasFactory;
 
     protected $table = 'bookings';
+
+    /** Trạng thái được tính vào thống kê doanh thu/lượt đặt */
+    public const VALID_STATUSES = ['confirmed', 'completed'];
+
+    /** Trạng thái thanh toán được coi là đã thu tiền */
+    public const PAID_STATUSES = ['paid', 'completed', 'success'];
+
+    /** Hình thức thanh toán coi như đã thu tiền (trả tại sân, gói) */
+    public const PAID_METHODS = ['cod', 'cash', 'offline', 'package'];
 
     // ĐÂY LÀ CHUẨN CỦA LARAVEL
     protected $fillable = [
@@ -64,6 +74,37 @@ class Booking extends Model
     public function court(): BelongsTo
     {
         return $this->belongsTo(Court::class);
+    }
+
+    /**
+     * Scope: Lấy lịch đặt của các sân con chỉ định (dùng cho thống kê)
+     */
+    public function scopeForCourts(Builder $query, $courtIds): Builder
+    {
+        return $query->whereIn('court_id', $courtIds);
+    }
+
+    /**
+     * Scope: Lọc lịch đặt trong khoảng ngày chơi
+     */
+    public function scopeInPeriod(Builder $query, $startDate, $endDate): Builder
+    {
+        return $query->whereBetween('slot_date', [
+            $startDate instanceof \DateTimeInterface ? $startDate->format('Y-m-d') : $startDate,
+            $endDate instanceof \DateTimeInterface ? $endDate->format('Y-m-d') : $endDate,
+        ]);
+    }
+
+    /**
+     * Lịch đặt này đã được coi là thu tiền chưa
+     */
+    public function isPaid(): bool
+    {
+        if (in_array((string) $this->payment_status, self::PAID_STATUSES, true)) {
+            return true;
+        }
+
+        return in_array(strtolower((string) $this->payment_method), self::PAID_METHODS, true);
     }
 
     public function user(): BelongsTo

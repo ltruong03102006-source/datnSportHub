@@ -23,6 +23,12 @@ class PackageBookingController extends Controller
     public function create(Venue $venue): View
     {
         abort_unless(
+            $venue->status === 'active',
+            403,
+            'Cơ sở sân thể thao này hiện chưa ở trạng thái hoạt động (chưa ký hợp đồng mới với Admin).'
+        );
+
+        abort_unless(
             $venue->allow_package_booking,
             403,
             'Cơ sở sân chưa bật chức năng đặt theo gói.'

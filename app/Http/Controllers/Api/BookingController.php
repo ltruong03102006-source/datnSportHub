@@ -20,10 +20,10 @@ class BookingController extends Controller
 {
     public function store(BookingRequest $request)
     {
-        $court = Court::find($request->court_id);
+        $court = Court::with('venue')->find($request->court_id);
 
-        if (! $court || $court->status !== 'active' || ! $court->is_bookable_online) {
-            return response()->json(['message' => 'Sân không nhận đặt online'], 403);
+        if (! $court || $court->venue?->status !== 'active' || $court->status !== 'active' || ! $court->is_bookable_online) {
+            return response()->json(['message' => 'Cơ sở hoặc Sân hiện không ở trạng thái hoạt động (chưa ký hợp đồng với Admin)'], 403);
         }
 
         $slots = collect($request->slots ?? [[
