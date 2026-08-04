@@ -72,6 +72,26 @@ class ChatbotResponderService
                 'answer' => 'Sau khi booking hoàn thành, bạn có thể vào phần đánh giá để chấm sao và viết nhận xét cho cơ sở/sân đã sử dụng.',
             ],
             [
+                'intent' => 'checkin_help',
+                'keywords' => ['check in', 'check-in', 'khach den san', 'khong den'],
+                'answer' => 'Chức năng check-in dành cho chủ sân. Chủ sân mở trang Check-in để đánh dấu khách đã đến hoặc không đến theo booking trong ngày.',
+            ],
+            [
+                'intent' => 'package_help',
+                'keywords' => ['goi dat san', 'goi tuan', 'goi thang', 'dat theo goi'],
+                'answer' => 'Gói đặt sân giúp khách đặt khung giờ cố định theo tuần hoặc tháng. Nếu cơ sở bật gói, bạn sẽ thấy nút đặt theo gói ở trang chi tiết cơ sở.',
+            ],
+            [
+                'intent' => 'account_help',
+                'keywords' => ['tai khoan', 'dang nhap', 'dang ky', 'mat khau', 'ho so'],
+                'answer' => 'Bạn có thể đăng nhập hoặc đăng ký ở góc trên trang. Sau khi đăng nhập, vào Trang cá nhân để đổi thông tin, avatar, mật khẩu và xem lịch sử.',
+            ],
+            [
+                'intent' => 'owner_help',
+                'keywords' => ['chu san', 'quan ly san', 'dang ky chu san', 'owner'],
+                'answer' => 'Nếu bạn là chủ sân, hãy dùng khu vực đăng nhập chủ sân để quản lý cơ sở, lịch đặt, gói đặt sân, check-in và thanh toán.',
+            ],
+            [
                 'intent' => 'search_help',
                 'keywords' => ['tim san', 'gan day', 'noi bat', 'mon the thao', 'dia diem'],
                 'answer' => 'Bạn có thể tìm sân theo môn thể thao, khu vực hoặc xem bảng nổi bật để chọn cơ sở có đánh giá và lượt đặt tốt.',
