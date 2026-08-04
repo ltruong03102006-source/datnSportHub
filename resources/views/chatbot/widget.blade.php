@@ -72,6 +72,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     close?.addEventListener('click', () => panel.classList.add('hidden'));
 
+    window.addEventListener('sporthub-chatbot-open', (event) => {
+        panel.classList.remove('hidden');
+        const message = event.detail?.message;
+        if (message) input.value = message;
+        input?.focus();
+    });
+
     reset?.addEventListener('click', async () => {
         try {
             await fetch(@json(route('chatbot.reset')), {
