@@ -377,6 +377,7 @@
         </div>
     </footer>
     <div id="toast-container" class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-3 pointer-events-none"></div>
+    @include('chatbot.widget')
     @yield('scripts')
     <script>
         // HÀM TẠO THÔNG BÁO TOAST TOÀN CỤC
