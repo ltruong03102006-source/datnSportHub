@@ -24,6 +24,11 @@
             <div class="max-w-[85%] rounded-2xl rounded-bl-md bg-white px-3 py-2 text-slate-700 shadow-sm">
                 Xin chào, mình có thể hỗ trợ bạn về đặt sân, thanh toán, hủy lịch, đổi lịch và đánh giá.
             </div>
+            <div class="flex flex-wrap gap-2">
+                <button type="button" class="chatbot-suggestion rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700" data-message="Tôi muốn đặt sân">Đặt sân</button>
+                <button type="button" class="chatbot-suggestion rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700" data-message="Hướng dẫn thanh toán">Thanh toán</button>
+                <button type="button" class="chatbot-suggestion rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700" data-message="Tôi muốn đổi lịch">Đổi lịch</button>
+            </div>
         </div>
 
         <form id="chatbot-form" class="flex gap-2 border-t border-stone-200 bg-white p-3">
@@ -63,9 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     close?.addEventListener('click', () => panel.classList.add('hidden'));
 
-    form?.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const text = input.value.trim();
+    const sendMessage = async (text) => {
         if (!text) return;
 
         appendMessage(text, 'user');
@@ -94,6 +97,16 @@ document.addEventListener('DOMContentLoaded', () => {
             input.disabled = false;
             input.focus();
         }
+    };
+
+    document.querySelectorAll('.chatbot-suggestion').forEach((button) => {
+        button.addEventListener('click', () => sendMessage(button.dataset.message || button.textContent.trim()));
+    });
+
+    form?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const text = input.value.trim();
+        await sendMessage(text);
     });
 });
 </script>
