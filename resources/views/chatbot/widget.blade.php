@@ -13,11 +13,14 @@
                 <p class="text-sm font-extrabold">{{ config('chatbot.name', 'SportHub Bot') }}</p>
                 <p class="text-xs text-emerald-50">Hỗ trợ nhanh về đặt sân</p>
             </div>
-            <button type="button" id="chatbot-close" class="rounded-full p-1 text-white/90 hover:bg-white/15" aria-label="Đóng chatbot">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                </svg>
-            </button>
+            <div class="flex items-center gap-1">
+                <button type="button" id="chatbot-reset" class="rounded-full px-2 py-1 text-xs font-bold text-white/90 hover:bg-white/15">Reset</button>
+                <button type="button" id="chatbot-close" class="rounded-full p-1 text-white/90 hover:bg-white/15" aria-label="Đóng chatbot">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
         </div>
 
         <div id="chatbot-messages" class="max-h-96 min-h-72 space-y-3 overflow-y-auto bg-stone-50 p-4 text-sm">
@@ -44,6 +47,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const toggle = document.getElementById('chatbot-toggle');
     const close = document.getElementById('chatbot-close');
+    const reset = document.getElementById('chatbot-reset');
     const panel = document.getElementById('chatbot-panel');
     const form = document.getElementById('chatbot-form');
     const input = document.getElementById('chatbot-input');
@@ -67,6 +71,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     close?.addEventListener('click', () => panel.classList.add('hidden'));
+
+    reset?.addEventListener('click', async () => {
+        try {
+            await fetch(@json(route('chatbot.reset')), {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrf,
+                },
+                body: JSON.stringify({ conversation_id: conversationId }),
+            });
+        } catch (error) {}
+
+        conversationId = null;
+        localStorage.removeItem('sporthub_chatbot_conversation_id');
+        messages.innerHTML = '<div class="max-w-[85%] rounded-2xl rounded-bl-md bg-white px-3 py-2 text-slate-700 shadow-sm">Mình đã bắt đầu cuộc trò chuyện mới. Bạn muốn hỏi gì?</div>';
+    });
 
     const sendMessage = async (text) => {
         if (!text) return;

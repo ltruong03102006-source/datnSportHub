@@ -64,6 +64,20 @@ class ChatbotController extends Controller
         ]);
     }
 
+    public function reset(Request $request): JsonResponse
+    {
+        $conversationId = $request->integer('conversation_id');
+
+        if ($conversationId) {
+            ChatbotConversation::query()
+                ->where('id', $conversationId)
+                ->when($request->user(), fn($query) => $query->where('user_id', $request->user()->id))
+                ->update(['status' => 'closed']);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
     private function conversation(Request $request, ?int $conversationId): ChatbotConversation
     {
         if ($conversationId) {

@@ -74,6 +74,7 @@ Route::post('/save-recent-search', [\App\Http\Controllers\Web\CourtPageControlle
 Route::get('/rankings', [\App\Http\Controllers\Web\RankingController::class, 'index'])->name('rankings');
 
 Route::post('/chatbot/message', [ChatbotController::class, 'message'])->name('chatbot.message');
+Route::post('/chatbot/reset', [ChatbotController::class, 'reset'])->name('chatbot.reset');
 
 Route::get('/courts/{court}/booking', [CourtBookingController::class, 'show'])->name('web.courts.booking');
 Route::post('/courts/booking', [CourtBookingController::class, 'store'])->name('web.courts.booking.store');
