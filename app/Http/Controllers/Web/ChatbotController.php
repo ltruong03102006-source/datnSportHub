@@ -71,7 +71,11 @@ class ChatbotController extends Controller
         if ($conversationId) {
             ChatbotConversation::query()
                 ->where('id', $conversationId)
-                ->when($request->user(), fn($query) => $query->where('user_id', $request->user()->id))
+                ->when(
+                    $request->user(),
+                    fn($query) => $query->where('user_id', $request->user()->id),
+                    fn($query) => $query->where('session_id', $request->session()->getId())
+                )
                 ->update(['status' => 'closed']);
         }
 
@@ -83,7 +87,11 @@ class ChatbotController extends Controller
         if ($conversationId) {
             $conversation = ChatbotConversation::query()
                 ->where('id', $conversationId)
-                ->when($request->user(), fn($query) => $query->where('user_id', $request->user()->id))
+                ->when(
+                    $request->user(),
+                    fn($query) => $query->where('user_id', $request->user()->id),
+                    fn($query) => $query->where('session_id', $request->session()->getId())
+                )
                 ->first();
 
             if ($conversation) {
