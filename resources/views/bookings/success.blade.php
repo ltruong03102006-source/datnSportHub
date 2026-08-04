@@ -5,12 +5,16 @@
 @section('content')
 @php
     $slotDate = $booking->slot_date?->format('d/m/Y') ?? '';
-    $totalPriceStr = number_format((float) $totalGroupPrice, 0, ',', '.') . ' ₫';
+    
+    $finalPrice = $booking->items->isNotEmpty()
+        ? $booking->total_price
+        : collect($bookingGroup)->sum('total_price');
+
+    $totalPriceStr = number_format((float) $finalPrice, 0, ',', '.') . ' ₫';
     $statusLabel = $booking->status === 'pending' ? 'Chờ chủ sân xác nhận' : $statusMeta['label'];
     
     // Lấy thông tin môn thể thao và SĐT
     $sportName = $booking->court?->venue?->sport?->name ?? 'Thể thao';
-    // Ưu tiên lấy SĐT từ bảng OwnerRegistration, nếu không có mới tìm trong bảng Venue
     $venuePhone = $booking->court?->venue?->ownerRegistration?->phone ?? $booking->court?->venue?->phone ?? 'Chưa cập nhật';
     $userPhone = Auth::user()->phone ?? 'Chưa cập nhật';
 @endphp
@@ -127,7 +131,11 @@
                     $discountAmount = $appliedVoucher ? (float) $appliedVoucher->pivot->discount_amount : 0.0;
                     
                     // Tiền thuê sân gốc
-                    $courtPriceOriginal = max(0, $totalGroupPrice + $discountAmount - $servicesTotal);
+                    if ($booking->items->isNotEmpty()) {
+                        $courtPriceOriginal = max(0, $totalGroupPrice - $servicesTotal);
+                    } else {
+                        $courtPriceOriginal = max(0, $totalGroupPrice + $discountAmount - $servicesTotal);
+                    }
                 @endphp
 
                 <div class="flex items-start gap-x-4 mt-3">

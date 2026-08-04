@@ -661,7 +661,17 @@
         }));
 
         try {
-            const response = await fetch(`/api/courts/${courtId}/available-vouchers?date=${selectedDate}&total_price=${orderTotal}&slots=${encodeURIComponent(JSON.stringify(slotsParam))}`);
+            const headers = {
+                'Accept': 'application/json'
+            };
+            const token = localStorage.getItem('sporthub_token');
+            if (token) {
+                headers.Authorization = `Bearer ${token}`;
+            }
+
+            const response = await fetch(`/api/courts/${courtId}/available-vouchers?date=${selectedDate}&total_price=${orderTotal}&slots=${encodeURIComponent(JSON.stringify(slotsParam))}`, {
+                headers
+            });
             if (!response.ok) throw new Error();
             const res = await response.json();
             const vouchers = res.data || [];

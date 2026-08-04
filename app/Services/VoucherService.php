@@ -443,8 +443,10 @@ class VoucherService
             }
         }
 
-        // 8. Max uses per user
-        if ($userId && !is_null($voucher->max_uses_per_user)) {
+        // 8. Max uses per user (Default to 1 if not configured)
+        if ($userId) {
+            $maxUses = !is_null($voucher->max_uses_per_user) ? (int) $voucher->max_uses_per_user : 1;
+            
             $userUses = \Illuminate\Support\Facades\DB::table('bookings')
                 ->join('booking_vouchers', 'bookings.id', '=', 'booking_vouchers.booking_id')
                 ->where('bookings.user_id', $userId)
@@ -452,8 +454,8 @@ class VoucherService
                 ->whereNotIn('bookings.status', ['cancelled', 'rejected'])
                 ->count();
 
-            if ($userUses >= $voucher->max_uses_per_user) {
-                return ['eligible' => false, 'discount' => 0, 'reason' => 'Bạn đã dùng mã này tối đa ' . $voucher->max_uses_per_user . ' lần.'];
+            if ($userUses >= $maxUses) {
+                return ['eligible' => false, 'discount' => 0, 'reason' => 'Bạn đã dùng mã này tối đa ' . $maxUses . ' lần.'];
             }
         }
 
