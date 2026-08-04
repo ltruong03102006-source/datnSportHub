@@ -300,6 +300,9 @@
             <a href="{{ route('admin.packages.index') }}" class="nav-item {{ request()->routeIs('admin.packages.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-layer-group"></i> Quản lý gói
             </a>
+            <a href="{{ route('admin.chatbot.index') }}" class="nav-item {{ request()->routeIs('admin.chatbot.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-robot"></i> Chatbot logs
+            </a>
             <a href="{{ route('admin.transactions.index') }}" class="nav-item {{ request()->routeIs('admin.transactions.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-wallet"></i> Lịch sử giao dịch
             </a>
