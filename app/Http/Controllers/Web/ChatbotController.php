@@ -8,9 +8,20 @@ use App\Services\ChatbotResponderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\View\View;
 
 class ChatbotController extends Controller
 {
+    public function index(Request $request): View
+    {
+        $conversations = ChatbotConversation::query()
+            ->where('user_id', $request->user()->id)
+            ->latest('last_message_at')
+            ->paginate(10);
+
+        return view('chatbot.index', compact('conversations'));
+    }
+
     public function message(Request $request, ChatbotResponderService $responder): JsonResponse
     {
         abort_unless(config('chatbot.enabled'), 404);

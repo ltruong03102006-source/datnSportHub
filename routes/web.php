@@ -301,6 +301,8 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('/chatbot', [ChatbotController::class, 'index'])->name('chatbot.index');
+
     Route::get('/venues/{venue}/package-booking', [PackageBookingController::class, 'create'])
         ->name('package-bookings.create');
 
