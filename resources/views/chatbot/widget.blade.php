@@ -65,6 +65,17 @@ document.addEventListener('DOMContentLoaded', () => {
         messages.scrollTop = messages.scrollHeight;
     };
 
+    const appendTyping = () => {
+        const item = document.createElement('div');
+        item.id = 'chatbot-typing';
+        item.className = 'max-w-[85%] rounded-2xl rounded-bl-md bg-white px-3 py-2 text-slate-400 shadow-sm';
+        item.textContent = 'SportHub Bot đang trả lời...';
+        messages.appendChild(item);
+        messages.scrollTop = messages.scrollHeight;
+    };
+
+    const removeTyping = () => document.getElementById('chatbot-typing')?.remove();
+
     toggle?.addEventListener('click', () => {
         panel.classList.toggle('hidden');
         if (!panel.classList.contains('hidden')) input?.focus();
@@ -103,6 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appendMessage(text, 'user');
         input.value = '';
         input.disabled = true;
+        appendTyping();
 
         try {
             const response = await fetch(@json(route('chatbot.message')), {
@@ -119,8 +131,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             conversationId = data.conversation_id;
             localStorage.setItem('sporthub_chatbot_conversation_id', conversationId);
+            removeTyping();
             appendMessage(data.message.message, 'bot');
         } catch (error) {
+            removeTyping();
             appendMessage('Hiện tại chatbot chưa phản hồi được. Bạn thử lại sau nhé.', 'bot');
         } finally {
             input.disabled = false;
