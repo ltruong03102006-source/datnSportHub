@@ -30,6 +30,7 @@ use App\Http\Controllers\Web\OwnerWalletController;
 use App\Http\Controllers\Web\OwnerWalletTopupController;
 use App\Http\Controllers\Web\OwnerWithdrawalController;
 use App\Http\Controllers\Web\PackageBookingController;
+use App\Http\Controllers\Web\ChatbotController;
 use App\Http\Controllers\Web\AdminPackageController;
 use App\Http\Controllers\Web\AdminDebtController;
 use App\Http\Controllers\Web\AdminFinanceDashboardController;
@@ -71,6 +72,8 @@ Route::get('/', [CourtPageController::class, 'index'])->name('home');
 // API lÆ°u lá»‹ch sá»­ tÃ¬m kiáº¿m Session
 Route::post('/save-recent-search', [\App\Http\Controllers\Web\CourtPageController::class, 'saveSearch'])->name('search.save');
 Route::get('/rankings', [\App\Http\Controllers\Web\RankingController::class, 'index'])->name('rankings');
+
+Route::post('/chatbot/message', [ChatbotController::class, 'message'])->name('chatbot.message');
 
 Route::get('/courts/{court}/booking', [CourtBookingController::class, 'show'])->name('web.courts.booking');
 Route::post('/courts/booking', [CourtBookingController::class, 'store'])->name('web.courts.booking.store');
