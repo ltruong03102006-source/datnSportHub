@@ -494,9 +494,13 @@ class VoucherService
         $venueId = $court->venue_id;
         $ownerId = $court->venue->owner_id;
 
-        // Query active vouchers of owner
+        // Query active vouchers of owner that have remaining usages
         $vouchers = Voucher::where('owner_id', $ownerId)
             ->where('status', 'active')
+            ->where(function ($q) {
+                $q->whereNull('usage_limit')
+                  ->orWhereRaw('used_count < usage_limit');
+            })
             ->where(function ($q) use ($venueId) {
                 $q->where('applies_to_all_fields', true)
                   ->orWhereHas('venues', function ($vq) use ($venueId) {
@@ -514,5 +518,26 @@ class VoucherService
             
             return $voucher;
         });
+    }
+
+    /**
+     * Increment usage of a voucher and notify the owner if it runs out of stock.
+     */
+    public function incrementUsage(Voucher $voucher): void
+    {
+        $voucher->increment('used_count');
+        $voucher->refresh();
+
+        if (!is_null($voucher->usage_limit) && $voucher->used_count >= $voucher->usage_limit) {
+            try {
+                $notificationService = app(\App\Services\NotificationService::class);
+                $title = "Voucher {$voucher->code} đã hết lượt sử dụng";
+                $content = "Mã giảm giá '{$voucher->code}' của bạn đã đạt giới hạn sử dụng ({$voucher->used_count}/{$voucher->usage_limit}). Vui lòng bổ sung thêm lượt sử dụng hoặc gia hạn mã.";
+                $link = route('owner.web.vouchers.show', $voucher->id);
+                $notificationService->create($voucher->owner_id, $title, $content, $link, 'voucher_out_of_stock');
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Failed to send voucher out of stock notification: " . $e->getMessage());
+            }
+        }
     }
 }

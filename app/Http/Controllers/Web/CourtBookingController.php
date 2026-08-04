@@ -249,7 +249,7 @@ class CourtBookingController extends Controller
                 // Attach voucher if applied
                 if ($voucher) {
                     $newBooking->vouchers()->attach($voucher->id, ['discount_amount' => $discount]);
-                    $voucher->increment('used_count');
+                    app(\App\Services\VoucherService::class)->incrementUsage($voucher);
                 }
 
                 // Deduct balance and record if wallet
