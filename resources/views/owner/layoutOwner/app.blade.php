@@ -658,9 +658,7 @@
         <a href="{{ route('owner.contracts.index') }}">
             Hợp đồng
         </a>
-        <a href="{{ route('owner.web.vouchers.index') }}">
-            Vouchers
-        </a>
+        
     </div>
 </nav>
 <div class="d-flex">
