@@ -249,4 +249,25 @@ class OwnerVoucherController extends Controller
             return back()->with('error', $e->getMessage());
         }
     }
+
+    /**
+     * Extend voucher end date and/or increase usage limit.
+     */
+    public function extend(Request $request, $id)
+    {
+        $request->validate([
+            'extend_days' => 'nullable|integer|min:1',
+            'new_end_date' => 'nullable|date',
+            'add_quantity' => 'nullable|integer|min:1',
+            'new_usage_limit' => 'nullable|integer|min:0',
+        ]);
+
+        try {
+            $this->voucherService->extendForOwner((int) $id, Auth::id(), $request->all());
+
+            return back()->with('success', 'Gia hạn voucher thành công!');
+        } catch (Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
 }

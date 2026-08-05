@@ -173,6 +173,10 @@
                                         Chi tiết
                                     </a>
 
+                                    <button type="button" onclick="openExtendModal({{ $voucher->id }}, '{{ $voucher->code }}', '{{ $voucher->end_date ? $voucher->end_date->format('Y-m-d\TH:i') : '' }}', {{ $voucher->usage_limit ?? 'null' }})" class="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition">
+                                        Gia hạn
+                                    </button>
+
                                     <a href="{{ route('owner.web.vouchers.edit', $voucher->id) }}" class="rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-100 transition">
                                         Sửa
                                     </a>
@@ -214,5 +218,118 @@
             </div>
         @endif
     </div>
+
+    <!-- Modal Gia Hạn Voucher -->
+    <div id="extendModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+        <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                <h3 class="text-lg font-extrabold text-slate-900">
+                    Gia hạn Voucher: <span id="modalVoucherCode" class="font-mono text-emerald-600"></span>
+                </h3>
+                <button type="button" onclick="closeExtendModal()" class="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+                    &times;
+                </button>
+            </div>
+
+            <form id="extendForm" method="POST" action="" class="space-y-5">
+                @csrf
+
+                <!-- Kéo dài thời gian -->
+                <div>
+                    <label class="mb-2 block text-xs font-extrabold uppercase tracking-wider text-slate-700">1. Kéo dài thời gian áp dụng</label>
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-200 p-2.5 hover:bg-slate-50 cursor-pointer text-xs font-bold text-slate-700">
+                            <input type="radio" name="extend_type" value="days" checked onclick="toggleExtendMode('days')" class="text-emerald-600">
+                            Cộng thêm số ngày
+                        </label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-200 p-2.5 hover:bg-slate-50 cursor-pointer text-xs font-bold text-slate-700">
+                            <input type="radio" name="extend_type" value="date" onclick="toggleExtendMode('date')" class="text-emerald-600">
+                            Chọn ngày mới
+                        </label>
+                    </div>
+
+                    <div id="extendDaysInput">
+                        <select name="extend_days" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none">
+                            <option value="">Không kéo dài thêm ngày</option>
+                            <option value="7">+7 ngày</option>
+                            <option value="15">+15 ngày</option>
+                            <option value="30" selected>+30 ngày (Khuyến nghị)</option>
+                            <option value="60">+60 ngày</option>
+                            <option value="90">+90 ngày</option>
+                        </select>
+                    </div>
+
+                    <div id="extendDateInput" class="hidden">
+                        <input type="datetime-local" name="new_end_date" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Tăng thêm số lượng -->
+                <div class="border-t border-slate-100 pt-4">
+                    <label class="mb-2 block text-xs font-extrabold uppercase tracking-wider text-slate-700">2. Tăng thêm số lượng (Lượt dùng)</label>
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-200 p-2.5 hover:bg-slate-50 cursor-pointer text-xs font-bold text-slate-700">
+                            <input type="radio" name="qty_type" value="add" checked onclick="toggleQtyMode('add')" class="text-emerald-600">
+                            Cộng thêm lượt
+                        </label>
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-200 p-2.5 hover:bg-slate-50 cursor-pointer text-xs font-bold text-slate-700">
+                            <input type="radio" name="qty_type" value="limit" onclick="toggleQtyMode('limit')" class="text-emerald-600">
+                            Set giới hạn mới
+                        </label>
+                    </div>
+
+                    <div id="addQtyInput">
+                        <input type="number" name="add_quantity" placeholder="VD: 50 (để trống nếu không tăng)" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none">
+                    </div>
+
+                    <div id="limitQtyInput" class="hidden">
+                        <input type="number" name="new_usage_limit" placeholder="Nhập tổng số lượt mới" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 border-t border-slate-100 pt-4">
+                    <button type="button" onclick="closeExtendModal()" class="rounded-xl bg-slate-100 px-5 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200 transition">
+                        Hủy
+                    </button>
+                    <button type="submit" class="rounded-xl bg-emerald-600 px-5 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-700 transition">
+                        Xác nhận gia hạn
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openExtendModal(id, code, endDate, limit) {
+            document.getElementById('modalVoucherCode').innerText = code;
+            document.getElementById('extendForm').action = '/owner/vouchers/' + id + '/extend';
+            document.getElementById('extendModal').classList.remove('hidden');
+        }
+
+        function closeExtendModal() {
+            document.getElementById('extendModal').classList.add('hidden');
+        }
+
+        function toggleExtendMode(mode) {
+            if (mode === 'days') {
+                document.getElementById('extendDaysInput').classList.remove('hidden');
+                document.getElementById('extendDateInput').classList.add('hidden');
+            } else {
+                document.getElementById('extendDaysInput').classList.add('hidden');
+                document.getElementById('extendDateInput').classList.remove('hidden');
+            }
+        }
+
+        function toggleQtyMode(mode) {
+            if (mode === 'add') {
+                document.getElementById('addQtyInput').classList.remove('hidden');
+                document.getElementById('limitQtyInput').classList.add('hidden');
+            } else {
+                document.getElementById('addQtyInput').classList.add('hidden');
+                document.getElementById('limitQtyInput').classList.remove('hidden');
+            }
+        }
+    </script>
 </main>
 @endsection
+

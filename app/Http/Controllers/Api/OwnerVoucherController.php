@@ -91,4 +91,26 @@ class OwnerVoucherController extends Controller
             ], 400);
         }
     }
+
+    /**
+     * Extend voucher end date and/or add usage limit for the owner.
+     */
+    public function extend(Request $request, int $id): JsonResponse
+    {
+        try {
+            $ownerId = $request->user()->id;
+            $voucher = $this->voucherService->extendForOwner($id, $ownerId, $request->all());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Voucher extended successfully.',
+                'data' => $voucher,
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage() ?: 'Failed to extend voucher.',
+            ], 400);
+        }
+    }
 }
