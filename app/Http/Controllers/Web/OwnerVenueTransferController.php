@@ -17,15 +17,23 @@ class OwnerVenueTransferController extends Controller
      */
     public function create(Request $request, ?Venue $venue = null)
     {
-        $venues = Venue::where('owner_id', auth()->id())->get();
+        $venues = Venue::where('owner_id', auth()->id())
+            ->where('status', 'active')
+            ->get();
 
         if ($venues->isEmpty()) {
             return redirect()->route('owner.web.venues.index')
-                ->with('error', 'Bạn chưa có cơ sở nào để thực hiện chuyển nhượng.');
+                ->with('error', 'Chỉ những cơ sở ở trạng thái Hoạt động mới được phép chuyển nhượng. Bạn không có cơ sở nào đang hoạt động.');
         }
 
-        if ($venue && $venue->exists && $venue->owner_id !== auth()->id()) {
-            abort(403, 'Bạn không có quyền truy cập cơ sở này.');
+        if ($venue && $venue->exists) {
+            if ($venue->owner_id !== auth()->id()) {
+                abort(403, 'Bạn không có quyền truy cập cơ sở này.');
+            }
+            if ($venue->status !== 'active') {
+                return redirect()->route('owner.web.venues.index')
+                    ->with('error', 'Cơ sở "' . $venue->name . '" chưa ở trạng thái Hoạt động. Chỉ cơ sở đang Hoạt động mới được phép chuyển nhượng.');
+            }
         }
 
         $selectedVenueId = ($venue && $venue->exists) ? $venue->id : (int) $request->query('venue_id', $venues->first()->id);
@@ -39,7 +47,16 @@ class OwnerVenueTransferController extends Controller
     public function store(StoreVenueTransferRequest $request, ?Venue $venue = null)
     {
         $venueId = $request->input('venue_id') ?? optional($venue)->id;
-        $targetVenue = Venue::where('id', $venueId)->where('owner_id', auth()->id())->firstOrFail();
+        $targetVenue = Venue::where('id', $venueId)
+            ->where('owner_id', auth()->id())
+            ->where('status', 'active')
+            ->first();
+
+        if (!$targetVenue) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Cơ sở được chọn không tồn tại hoặc chưa ở trạng thái Hoạt động.');
+        }
 
         $receiver = User::where('email', $request->receiver_email)->where('role', 'owner')->firstOrFail();
 

@@ -227,9 +227,10 @@ class CourtBookingController extends Controller
 
                 // Check wallet balance if payment_method is wallet
                 $userModel = \App\Models\User::find($userId);
+                $customerWallet = $userModel ? $userModel->getOrCreateWallet() : null;
                 if ($paymentMethod === 'wallet') {
-                    if ($userModel->balance < $finalPrice) {
-                        throw new Exception("Số dư ví không đủ để thanh toán. Vui lòng nạp thêm hoặc chọn phương thức khác.", 402);
+                    if (!$customerWallet || (float)$customerWallet->balance < $finalPrice) {
+                        throw new Exception("Số dư ví không đủ để thanh toán (" . number_format($customerWallet?->balance ?? 0) . "đ). Vui lòng nạp thêm hoặc chọn phương thức khác.", 402);
                     }
                 }
 
@@ -241,6 +242,7 @@ class CourtBookingController extends Controller
                     'start_time'  => $startTime,
                     'end_time'    => $endTime,
                     'total_price' => $finalPrice,
+                    'payment_method' => $paymentMethod,
                     'status'      => $paymentMethod === 'wallet' ? 'confirmed' : 'pending', // Auto confirm if paid via wallet
                     'payment_status' => $paymentMethod === 'wallet' ? 'paid' : 'unpaid',
                     'note'        => $note
@@ -253,17 +255,23 @@ class CourtBookingController extends Controller
                 }
 
                 // Deduct balance and record if wallet
-                if ($paymentMethod === 'wallet') {
-                    $userModel->balance -= $finalPrice;
-                    $userModel->save();
+                if ($paymentMethod === 'wallet' && $customerWallet) {
+                    app(\App\Services\WalletService::class)->processTransaction(
+                        wallet: $customerWallet,
+                        type: \App\Enums\TransactionType::PAYMENT,
+                        amount: $finalPrice,
+                        description: "Thanh toán đặt sân #" . $newBooking->id,
+                        bookingId: $newBooking->id
+                    );
 
-                    \App\Models\WalletTransaction::create([
-                        'user_id' => $userId,
-                        'type' => 'payment',
-                        'amount' => $finalPrice,
-                        'balance_after' => $userModel->balance,
-                        'description' => 'Thanh toán đặt sân #' . $newBooking->id,
-                    ]);
+                    app(\App\Services\PlatformWalletService::class)->credit(
+                        amount: $finalPrice,
+                        type: 'booking_payment',
+                        description: "Thanh toán đặt sân bằng ví khách hàng #" . $newBooking->id,
+                        referenceType: 'booking',
+                        referenceId: $newBooking->id,
+                        reference: 'BOOKING-' . $newBooking->id
+                    );
                 }
 
                 // 6. Tạo bản ghi giao dịch ban đầu cho booking mới để lịch sử thanh toán có dữ liệu.

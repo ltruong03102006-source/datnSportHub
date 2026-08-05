@@ -223,231 +223,6 @@
                                 <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-700 border border-slate-200 shadow-sm backdrop-blur-md">{{ ucfirst($venue->status) }}</span>
                             @endif
                         </div>
-@extends('owner.layoutOwner.app')
- 
-@section('content')
- 
-{{-- CSS/JS riêng cho trang này, layout hiện tại không có @stack('styles') nên đặt trực tiếp ở đây --}}
-@vite(['resources/css/app.css', 'resources/js/app.js'])
-<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
-<style>
-    .glass-card {
-        background: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(226, 232, 240, 0.8);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-        transition: all 0.3s ease;
-    }
-    .glass-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        border-color: rgba(16, 185, 129, 0.3);
-    }
-</style>
- 
-<div class="flex-1 p-6 lg:p-10 max-w-7xl mx-auto w-full">
-    <!-- QUÉT VÀ HIỂN THỊ LỜI MỜI CHUYỂN NHƯỢNG ĐANG CHỜ CHỦ MỚI -->
-    @php
-        $pendingTransfers = \App\Models\VenueTransferRequest::with('venue')
-            ->where('to_owner_id', auth()->id())
-            ->whereIn('status', ['sent', 'pending'])
-            ->get();
-    @endphp
- 
-    @if($pendingTransfers->isNotEmpty())
-        @foreach($pendingTransfers as $pendingTransfer)
-            <div class="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-300 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div class="flex items-start">
-                    <div class="p-2 bg-amber-100 rounded-lg text-amber-600 mr-4">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-                    </div>
-                    <div>
-                        <h3 class="text-base font-bold text-amber-900">Bạn có lời mời tiếp quản cơ sở mới!</h3>
-                        <p class="text-sm text-amber-800 mt-1">
-                            Chủ sân hiện tại đang muốn chuyển nhượng cơ sở <strong>"{{ optional($pendingTransfer->venue)->name }}"</strong> cho bạn. Vui lòng hoàn tất hồ sơ để nhận sân.
-                        </p>
-                    </div>
-                </div>
- 
-                <a href="{{ route('owner.web.venues.transfers.accept', $pendingTransfer->id) }}"
-                   class="shrink-0 inline-flex items-center justify-center px-4 py-2 text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg shadow-sm transition-colors w-full sm:w-auto">
-                    Điền hồ sơ nhận sân
-                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                </a>
-            </div>
-        @endforeach
-    @endif
-    <!-- Header -->
-    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4 pb-4 border-b border-slate-200/60">
-        <div>
-            <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Cơ sở của bạn</h2>
-            <p class="text-slate-500 text-sm mt-1">Quản lý các điểm sân hiện tại hoặc thêm mới cơ sở kinh doanh.</p>
-        </div>
-        <div class="flex flex-wrap lg:flex-nowrap items-center gap-3 shrink-0">
-            <!-- NÚT CHUYỂN NHƯỢNG CƠ SỞ -->
-            <a href="{{ route('owner.web.venues.transfer.general_create') }}" 
-               class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-semibold text-amber-700 bg-amber-50/90 border border-amber-300 hover:bg-amber-100 rounded-xl shadow-sm transition-all whitespace-nowrap">
-                <svg class="w-4 h-4 mr-2 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-                Chuyển nhượng cơ sở
-            </a>
-            <!-- NÚT XEM LỊCH SỬ CHUYỂN NHƯỢNG -->
-            <a href="{{ route('owner.web.venues.transfers.history') }}" 
-               class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 hover:text-slate-900 rounded-xl shadow-sm transition-all whitespace-nowrap">
-                <svg class="w-4 h-4 mr-2 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                Lịch sử chuyển nhượng
-            </a>
-            <!-- NÚT THÊM CƠ SỞ MỚI -->
-            <a href="{{ route('owner.web.venues.create') }}" 
-               class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md hover:shadow-lg transition-all whitespace-nowrap">
-                <svg class="w-4 h-4 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                Thêm cơ sở mới
-            </a>
-        </div>
-    </div>
- 
-    <!-- Alerts Thông báo -->
-    @if (session('success') || request('created') == '1' || request('updated') == 'basic')
-        {{-- CHỈ SỬA CƠ BẢN (MÀU XANH LÁ) --}}
-        <div class="mb-6 p-4 rounded-lg bg-emerald-50 border border-emerald-200 flex items-start" x-data="{ show: true }" x-show="show">
-            <svg class="w-5 h-5 text-emerald-500 mt-0.5 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <div class="flex-1">
-                <h3 class="text-sm font-medium text-emerald-800">Thành công</h3>
-                <p class="text-sm text-emerald-700 mt-1">
-                    {{ session('success') ?? (request('created') == '1' ? 'Đã tạo điểm sân thành công.' : 'Đã cập nhật thông tin điểm sân thành công!') }}
-                </p>
-            </div>
-        </div>
- 
-    @elseif (request('updated') == 'pending_legal')
-        {{-- CHỈ SỬA PHÁP LÝ (MÀU XANH DƯƠNG) --}}
-        <div class="mb-6 p-4 rounded-lg bg-blue-50 border border-blue-200 flex items-start" x-data="{ show: true }" x-show="show">
-            <svg class="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <div class="flex-1">
-                <h3 class="text-sm font-medium text-blue-800">Gửi yêu cầu pháp lý thành công</h3>
-                <p class="text-sm text-blue-700 mt-1">
-                    Những thay đổi liên quan đến <strong>Hồ sơ pháp lý</strong> đã được gửi lên hệ thống và đang chờ Admin phê duyệt.
-                </p>
-            </div>
-        </div>
- 
-    @elseif (request('updated') == 'both')
-        {{-- SỬA CẢ 2 (MÀU VÀNG) --}}
-        <div class="mb-6 p-4 rounded-lg bg-amber-50 border border-amber-200 flex items-start" x-data="{ show: true }" x-show="show">
-            <svg class="w-5 h-5 text-amber-500 mt-0.5 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <div class="flex-1">
-                <h3 class="text-sm font-medium text-amber-800">Cập nhật thành công</h3>
-                <p class="text-sm text-amber-700 mt-1">
-                    Các thông tin cơ bản đã được áp dụng. Riêng các thay đổi về <strong>Hồ sơ pháp lý</strong> đang được tạm khóa để chờ Admin phê duyệt.
-                </p>
-            </div>
-        </div>
-    @endif
-    @if (session('error'))
-        <div class="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 flex items-start" x-data="{ show: true }" x-show="show">
-            <svg class="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-            <div class="flex-1">
-                <h3 class="text-sm font-medium text-red-800">Đã xảy ra lỗi</h3>
-                <p class="text-sm text-red-700 mt-1">{{ session('error') }}</p>
-            </div>
-            <button @click="show = false" class="text-red-500 hover:text-red-700">
-                <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
-            </button>
-        </div>
-    @endif
- 
-    <!-- Venues Grid -->
-    @if(isset($venues) && $venues->isEmpty())
-        <div class="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center">
-            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-100 mb-4">
-                <svg class="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-            </div>
-            <h3 class="text-lg font-medium text-slate-900 mb-1">Chưa có cơ sở nào</h3>
-            <p class="text-slate-500 mb-6">Bạn chưa tạo điểm sân nào. Hãy bắt đầu bằng cách thêm cơ sở mới.</p>
-            <a href="{{ route('owner.web.venues.create') }}" class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition-colors">
-                Thêm cơ sở đầu tiên
-            </a>
-        </div>
-    @elseif(isset($venues))
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            @foreach($venues as $venue)
-                
-                {{-- BƯỚC 1: TÌM HỢP ĐỒNG ĐI KÈM CỦA CƠ SỞ --}}
-                @php
-                    $activeContract = \App\Models\Contract::where('venue_id', $venue->id)
-                        ->where('owner_id', $venue->owner_id)
-                        ->whereIn('status', ['draft', 'sent', 'accepted', 'terminated'])
-                        ->orderBy('id', 'desc')
-                        ->first();
-                @endphp
-
-                <div class="glass-card rounded-2xl overflow-hidden flex flex-col group relative">
-                    
-                    <!-- Hình ảnh và Trạng thái -->
-                    <div class="relative h-48 w-full bg-slate-100 overflow-hidden">
-                       {{-- CHỈ HIỂN THỊ KHI ĐÃ CÓ HỢP ĐỒNG (GỬI ĐI, ĐÃ KÝ, HOẶC CHẤM DỨT) --}}
-                        @if($activeContract && in_array($activeContract->status, ['sent', 'accepted', 'terminated']))
-                            <div class="absolute top-4 left-4 z-10">
-                                <span class="px-2.5 py-1 text-xs font-bold rounded-md bg-black/60 text-white backdrop-blur-md shadow-sm border border-white/10 flex items-center gap-1" 
-                                      title="Mức phí hoa hồng theo Hợp đồng">
-                                    Phí: <span class="text-amber-400">
-                                        {{ $activeContract->commission_rate + 0 }}%
-                                    </span>
-                                </span>
-                            </div>
-                        @endif
-                        @if($venue->banner)
-                            <img src="{{ asset('storage/' . $venue->banner) }}" alt="{{ $venue->name }}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                            <div class="hidden absolute inset-0 bg-slate-100 flex-col items-center justify-center text-slate-400">
-                                <svg class="w-10 h-10 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                <span class="text-xs font-medium">Lỗi tải ảnh</span>
-                            </div>
-                        @else
-                            <div class="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-gradient-to-br from-slate-50 to-slate-200">
-                                <svg class="w-10 h-10 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                                <span class="text-xs font-medium">Không có ảnh</span>
-                            </div>
-                        @endif
- 
-                        <!-- Status Badge -->
-                        <div class="absolute top-4 right-4 z-10">
-                            @if($venue->status === 'active')
-                                <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 shadow-sm flex items-center gap-1.5 backdrop-blur-md">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Hoạt động
-                                </span>
-                            @elseif($venue->status === 'approved')
-                                @if($activeContract && $activeContract->status === 'sent')
-                                    <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-purple-100 text-purple-700 border border-purple-200 shadow-sm flex items-center gap-1.5 backdrop-blur-md">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg> Chờ ký HĐ
-                                    </span>
-                                @elseif($activeContract && $activeContract->status === 'draft')
-                                    <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-200 text-slate-700 border border-slate-300 shadow-sm flex items-center gap-1.5 backdrop-blur-md">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> Đang nháp HĐ
-                                    </span>
-                                @elseif($activeContract && $activeContract->status === 'accepted')
-                                    <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-teal-100 text-teal-700 border border-teal-200 shadow-sm flex items-center gap-1.5 backdrop-blur-md" title="Đã ký hợp đồng nhưng đang chờ hiệu lực / chờ Admin duyệt lại">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Đã ký HĐ
-                                    </span>
-                                @else
-                                    <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-sky-100 text-sky-700 border border-sky-200 shadow-sm flex items-center gap-1.5 backdrop-blur-md">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Chờ tạo & ký HĐ
-                                    </span>
-                                @endif
-                            @elseif($venue->status === 'pending')
-                                <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-700 border border-amber-200 shadow-sm flex items-center gap-1.5 backdrop-blur-md">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Chờ duyệt
-                                </span>
-                            @elseif($venue->status === 'rejected')
-                                <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-red-100 text-red-700 border border-red-200 shadow-sm flex items-center gap-1.5 backdrop-blur-md">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg> Từ chối
-                                </span>
-                            @elseif($venue->status === 'inactive')
-                                <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-600 border border-slate-200 shadow-sm flex items-center gap-1.5 backdrop-blur-md">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg> Tạm ngừng
-                                </span>
-                            @else
-                                <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-700 border border-slate-200 shadow-sm backdrop-blur-md">{{ ucfirst($venue->status) }}</span>
-                            @endif
-                        </div>
                     </div>
  
                     <!-- Content -->
@@ -477,14 +252,15 @@
                             @endif
                             
                             <!-- 3. NÚT CHUYỂN NHƯỢNG VÀ NÚT SỬA -->
-                            @if(in_array($venue->status, ['approved', 'active', 'inactive']))
+                            @if($venue->status === 'active')
                                 @php
-                                    $hasPendingTransfer = \App\Models\VenueTransferRequest::where('venue_id', $venue->id)->where('status', 'pending')->exists();
+                                    $hasPendingTransfer = \App\Models\VenueTransferRequest::where('venue_id', $venue->id)->whereIn('status', ['draft', 'sent', 'pending', 'filled', 'signed', 'pending_admin'])->exists();
                                 @endphp
                             
                                 @if($hasPendingTransfer)
-                                    <button disabled class="w-full inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-slate-500 bg-slate-100 border border-slate-200 rounded-lg cursor-not-allowed shadow-sm" title="Đang chờ duyệt">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <button disabled class="w-full inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-slate-500 bg-slate-100 border border-slate-200 rounded-lg cursor-not-allowed shadow-sm" title="Cơ sở đang trong quá trình xử lý chuyển nhượng">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                        Đang xử lý
                                     </button>
                                 @else
                                     <a href="{{ route('owner.web.venues.transfer.create', $venue->id) }}" class="w-full inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors shadow-sm">
@@ -493,7 +269,10 @@
                                     </a>
                                 @endif
                             @else
-                                <div></div>
+                                <button disabled class="w-full inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-slate-400 bg-slate-100 border border-slate-200 rounded-lg cursor-not-allowed shadow-sm opacity-60" title="Chỉ cơ sở ở trạng thái Hoạt động mới được phép chuyển nhượng">
+                                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                                    Chuyển nhượng
+                                </button>
                             @endif
                         
                             <a href="{{ route('owner.web.venues.edit', $venue->id) }}" class="inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">

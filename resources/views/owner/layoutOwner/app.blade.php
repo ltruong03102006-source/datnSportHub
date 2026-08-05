@@ -655,6 +655,9 @@
         <a href="{{ route('owner.web.vouchers.index') }}">
             Voucher
         </a>
+        <a href="{{ route('owner.web.vouchers.report') }}">
+            Báo cáo Voucher
+        </a>
         <a href="{{ route('owner.contracts.index') }}">
             Hợp đồng
         </a>

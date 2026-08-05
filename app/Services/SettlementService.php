@@ -151,6 +151,7 @@ class SettlementService
             'online',
             'bank_transfer',
             'platform_transfer',
+            'wallet',
         ], true);
     }
 
