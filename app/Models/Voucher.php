@@ -31,6 +31,7 @@ class Voucher extends Model
         'usage_limit',
         'used_count',
         'status',
+        'max_uses_per_user',
     ];
 
     protected $casts = [
@@ -44,6 +45,7 @@ class Voucher extends Model
         'end_date' => 'datetime',
         'usage_limit' => 'integer',
         'used_count' => 'integer',
+        'max_uses_per_user' => 'integer',
     ];
 
     public function owner(): BelongsTo
