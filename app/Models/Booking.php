@@ -40,6 +40,11 @@ class Booking extends Model
         'vnpay_tran_id',
         'paid_at',
         'review_reminder_sent_at',
+        'checked_in_at',
+        'checked_in_by',
+        'checkin_note',
+        'no_show_at',
+        'no_show_by',
         'note',
         'cancel_reason',
         'cancellation_fee',
@@ -57,6 +62,8 @@ class Booking extends Model
         'slot_date' => 'date',
         'paid_at' => 'datetime',
         'review_reminder_sent_at' => 'datetime',
+        'checked_in_at' => 'datetime',
+        'no_show_at' => 'datetime',
         'platform_fee' => 'decimal:0',
         'owner_earnings' => 'decimal:0',
         'commission_rate' => 'decimal:2',
@@ -103,6 +110,16 @@ class Booking extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function checkedInBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'checked_in_by');
+    }
+
+    public function noShowBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'no_show_by');
     }
 
     public function transactions(): HasMany
