@@ -1,112 +1,91 @@
 <?php
+// app/Http/Controllers/Web/OwnerVoucherController.php
 
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Venue;
-use App\Models\Voucher;
 use App\Services\VoucherService;
-use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use App\Models\Voucher;
 
 class OwnerVoucherController extends Controller
 {
-    protected VoucherService $voucherService;
+    protected $voucherService;
 
     public function __construct(VoucherService $voucherService)
     {
         $this->voucherService = $voucherService;
+        $this->middleware('auth');
     }
 
-    /**
-     * Display a listing of vouchers for the logged-in owner.
-     */
     public function index(Request $request)
     {
         $ownerId = Auth::id();
-
-        // Get owner venues for filter
         $venues = Venue::where('owner_id', $ownerId)->get();
 
-        $query = Voucher::with(['venues'])
+        $query = Voucher::with('venues')
             ->where('owner_id', $ownerId);
+
+        // Search by code or name
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('code', 'like', "%{$search}%")
+                  ->orWhere('name', 'like', "%{$search}%");
+            });
+        }
 
         // Filter by venue
         if ($request->filled('venue_id')) {
-            $venueId = $request->input('venue_id');
-            $query->where(function ($q) use ($venueId) {
-                $q->whereHas('venues', function ($vq) use ($venueId) {
-                    $vq->where('venues.id', $venueId);
-                })->orWhere('sport_field_id', $venueId);
+            $venueId = $request->venue_id;
+            $query->whereHas('venues', function($q) use ($venueId) {
+                $q->where('venues.id', $venueId);
             });
-        }
-
-        // Filter by search keyword (code or name)
-        if ($request->filled('keyword')) {
-            $keyword = trim($request->input('keyword'));
-            $query->where(function ($q) use ($keyword) {
-                $q->where('code', 'like', "%{$keyword}%")
-                  ->orWhere('name', 'like', "%{$keyword}%");
-            });
-        }
-
-        // Filter by date range
-        if ($request->filled('start_date')) {
-            $query->where('start_date', '>=', $request->input('start_date'));
-        }
-        if ($request->filled('end_date')) {
-            $query->where('end_date', '<=', $request->input('end_date') . ' 23:59:59');
         }
 
         // Filter by status
         if ($request->filled('status')) {
-            $now = Carbon::now();
-            $status = $request->input('status');
-
+            $status = $request->status;
+            $now = now();
             switch ($status) {
-                case 'active': // Đang áp dụng
+                case 'active':
                     $query->where('status', 'active')
-                          ->where(function ($q) use ($now) {
+                          ->where(function($q) use ($now) {
                               $q->whereNull('start_date')->orWhere('start_date', '<=', $now);
                           })
-                          ->where(function ($q) use ($now) {
+                          ->where(function($q) use ($now) {
                               $q->whereNull('end_date')->orWhere('end_date', '>=', $now);
                           })
-                          ->where(function ($q) {
+                          ->where(function($q) {
                               $q->whereNull('usage_limit')
-                                ->orWhereRaw('used_count < usage_limit');
+                                ->orWhereColumn('used_count', '<', 'usage_limit');
                           });
                     break;
-
-                case 'expired': // Hết hạn
-                    $query->where(function ($q) use ($now) {
-                        $q->where('status', 'expired')
-                          ->orWhere(function ($sub) use ($now) {
-                              $sub->whereNotNull('end_date')->where('end_date', '<', $now);
-                          });
-                    });
-                    break;
-
-                case 'out_of_stock': // Hết lượt
+                case 'used_up':
                     $query->whereNotNull('usage_limit')
-                          ->whereRaw('used_count >= usage_limit');
+                          ->whereColumn('used_count', '>=', 'usage_limit');
                     break;
-
-                case 'disabled': // Chưa kích hoạt / Tắt
-                case 'inactive':
-                    $query->where('status', 'disabled');
+                case 'expired':
+                    $query->whereNotNull('end_date')->where('end_date', '<', $now);
                     break;
-
-                case 'upcoming': // Sắp áp dụng
-                    $query->whereNotNull('start_date')->where('start_date', '>', $now);
+                case 'pending':
+                    $query->whereNotNull('start_date')->where('start_date', '>', $now)
+                          ->where('status', 'active');
                     break;
             }
         }
 
-        $vouchers = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
+        // Filter by time
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $vouchers = $query->latest()->paginate(10)->withQueryString();
 
         return view('owner.vouchers.index', compact('vouchers', 'venues'));
     }
@@ -118,7 +97,7 @@ class OwnerVoucherController extends Controller
     {
         $ownerId = Auth::id();
         $venues = Venue::where('owner_id', $ownerId)->get();
-
+        
         return view('owner.vouchers.create', compact('venues'));
     }
 
@@ -127,12 +106,11 @@ class OwnerVoucherController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:50|unique:vouchers,code',
-            'discount_type' => 'required|in:percent,fixed',
+            'discount_type' => 'required|in:percentage,fixed',
             'discount_value' => 'required|numeric|min:0',
-            'min_booking_value' => 'nullable|numeric|min:0',
             'max_discount_amount' => 'nullable|numeric|min:0',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
@@ -218,15 +196,14 @@ class OwnerVoucherController extends Controller
             'discount_type' => 'nullable|in:percent,fixed',
             'discount_value' => 'nullable|numeric|min:0',
             'min_booking_value' => 'nullable|numeric|min:0',
-            'max_discount_amount' => 'nullable|numeric|min:0',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'usage_limit' => 'nullable|integer|min:0',
-            'max_uses_per_user' => 'nullable|integer|min:1',
+            'usage_limit' => 'required|integer|min:1',
+            'start_date' => 'required|date|after_or_equal:today',
+            'end_date' => 'required|date|after:start_date',
+            'start_time' => 'nullable|date_format:H:i',
+            'end_time' => 'nullable|date_format:H:i|after:start_time',
             'apply_days' => 'nullable|array',
-            'time_slots' => 'nullable|array',
-            'applies_to_all_fields' => 'nullable|boolean',
-            'venue_ids' => 'nullable|array',
+            'apply_days.*' => 'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+            'venue_ids' => 'required|array|min:1',
             'venue_ids.*' => 'exists:venues,id',
             'target_user_input' => 'nullable|string',
         ]);
@@ -434,56 +411,16 @@ class OwnerVoucherController extends Controller
         }
         $noVoucherRevenue = $noVoucherQuery->sum('bookings.total_price');
 
-        // 5. Bar Chart: Peak vs Normal Time Slots count
-        $timeSlotQuery = DB::table('bookings')
-            ->join('booking_vouchers', 'bookings.id', '=', 'booking_vouchers.booking_id')
-            ->join('vouchers', 'booking_vouchers.voucher_id', '=', 'vouchers.id')
-            ->leftJoin('slot_prices', function ($join) {
-                $join->on('bookings.time_slot_id', '=', 'slot_prices.time_slot_id')
-                     ->on(DB::raw('slot_prices.day_of_week'), '=', DB::raw('(DAYOFWEEK(bookings.slot_date) - 1)'));
-            })
-            ->select(DB::raw("COALESCE(slot_prices.price_type, 'normal') as calculated_price_type"), DB::raw('count(*) as count'))
-            ->where('vouchers.owner_id', $ownerId)
-            ->whereNotIn('bookings.status', ['cancelled', 'rejected']);
+            $voucher = $this->voucherService->create($validated);
 
-        if ($monthYear) {
-            $timeSlotQuery->whereRaw("DATE_FORMAT(bookings.created_at, '%Y-%m') = ?", [$monthYear]);
+            return redirect()
+                ->route('owner.web.vouchers.create')
+                ->with('success', 'Voucher đã được tạo thành công! Mã: ' . $voucher->code);
+        } catch (\Exception $e) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Có lỗi xảy ra khi tạo voucher: ' . $e->getMessage());
         }
-        if ($venueId) {
-            $timeSlotQuery->join('courts', 'bookings.court_id', '=', 'courts.id')
-                ->where('courts.venue_id', $venueId);
-        }
-
-        $timeSlotStats = $timeSlotQuery->groupBy(DB::raw("COALESCE(slot_prices.price_type, 'normal')"))->get();
-        $peakCount = $timeSlotStats->firstWhere('calculated_price_type', 'peak')?->count ?? 0;
-        $normalCount = $timeSlotStats->firstWhere('calculated_price_type', 'normal')?->count ?? 0;
-
-        // 6. Voucher usage limit fill rates (Conversion/Usage rate)
-        $limitRates = $allOwnerVouchers->filter(fn($v) => !is_null($v->usage_limit) && $v->usage_limit > 0)
-            ->map(function($v) {
-                return (object) [
-                    'code' => $v->code,
-                    'rate' => round(($v->used_count / $v->usage_limit) * 100, 1)
-                ];
-            })->values()->take(8);
-
-        return view('owner.vouchers.report', compact(
-            'venues',
-            'monthYear',
-            'venueId',
-            'totalVouchers',
-            'totalUses',
-            'totalDiscount',
-            'totalRevenue',
-            'avgDiscount',
-            'mostEffective',
-            'leastEffective',
-            'dailyLabels',
-            'dailyValues',
-            'noVoucherRevenue',
-            'peakCount',
-            'normalCount',
-            'limitRates'
-        ));
     }
 }

@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\OwnerRegistrationController;
 use App\Http\Controllers\Web\OwnerPasswordSetupController;
 use App\Http\Controllers\Web\OwnerBookingCalendarController;
 use App\Http\Controllers\Web\OwnerVenueController;
+use App\Http\Controllers\Web\OwnerVoucherController;
 use App\Http\Controllers\Web\UserBookingController;
 use App\Http\Controllers\Web\UserReviewController;
 use App\Http\Controllers\Web\VenueController;
@@ -280,6 +281,11 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
     Route::put('/services/{service}', [\App\Http\Controllers\Web\OwnerServiceController::class, 'update'])->name('services.update');
     Route::patch('/services/{service}/toggle', [\App\Http\Controllers\Web\OwnerServiceController::class, 'toggleActive'])->name('services.toggle');
     Route::delete('/services/{service}', [\App\Http\Controllers\Web\OwnerServiceController::class, 'destroy'])->name('services.destroy');
+
+    // Quản lý Vouchers
+    Route::get('/vouchers', [OwnerVoucherController::class, 'index'])->name('vouchers.index');
+    Route::get('/vouchers/create', [OwnerVoucherController::class, 'create'])->name('vouchers.create');
+    Route::post('/vouchers', [OwnerVoucherController::class, 'store'])->name('vouchers.store');
 
     // API Check Email (Phải đặt trước route có tham số {venue})
     Route::post('/venues/transfer/check-email', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'checkEmail'])->name('venues.transfer.check-email');
