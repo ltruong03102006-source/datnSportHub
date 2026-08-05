@@ -5,12 +5,16 @@
 @section('content')
 @php
     $slotDate = $booking->slot_date?->format('d/m/Y') ?? '';
-    $totalPriceStr = number_format((float) $totalGroupPrice, 0, ',', '.') . ' ₫';
+    
+    $finalPrice = $booking->items->isNotEmpty()
+        ? $booking->total_price
+        : collect($bookingGroup)->sum('total_price');
+
+    $totalPriceStr = number_format((float) $finalPrice, 0, ',', '.') . ' ₫';
     $statusLabel = $booking->status === 'pending' ? 'Chờ chủ sân xác nhận' : $statusMeta['label'];
     
     // Lấy thông tin môn thể thao và SĐT
     $sportName = $booking->court?->venue?->sport?->name ?? 'Thể thao';
-    // Ưu tiên lấy SĐT từ bảng OwnerRegistration, nếu không có mới tìm trong bảng Venue
     $venuePhone = $booking->court?->venue?->ownerRegistration?->phone ?? $booking->court?->venue?->phone ?? 'Chưa cập nhật';
     $userPhone = Auth::user()->phone ?? 'Chưa cập nhật';
 @endphp
@@ -121,13 +125,30 @@
                     // Tính toán bóc tách tiền sân và tiền dịch vụ
                     $purchasedServices = collect($bookingGroup ?? [$booking])->flatMap->services;
                     $servicesTotal = $purchasedServices->sum('pivot.price');
-                    $courtPrice = max(0, $totalGroupPrice - $servicesTotal);
+                    
+                    // Lấy voucher đã áp dụng
+                    $appliedVoucher = $booking->vouchers->first();
+                    $discountAmount = $appliedVoucher ? (float) $appliedVoucher->pivot->discount_amount : 0.0;
+                    
+                    // Tiền thuê sân gốc
+                    if ($booking->items->isNotEmpty()) {
+                        $courtPriceOriginal = max(0, $totalGroupPrice - $servicesTotal);
+                    } else {
+                        $courtPriceOriginal = max(0, $totalGroupPrice + $discountAmount - $servicesTotal);
+                    }
                 @endphp
 
                 <div class="flex items-start gap-x-4 mt-3">
                     <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Tiền thuê sân:</p>
-                    <p class="text-sm font-bold text-zinc-900">{{ number_format($courtPrice, 0, ',', '.') }} đ</p>
+                    <p class="text-sm font-bold text-zinc-900">{{ number_format($courtPriceOriginal, 0, ',', '.') }} đ</p>
                 </div>
+
+                @if($discountAmount > 0)
+                <div class="flex items-start gap-x-4 mt-2">
+                    <p class="w-28 shrink-0 text-sm font-medium text-emerald-600">Giảm giá ({{ $appliedVoucher->code }}):</p>
+                    <p class="text-sm font-bold text-emerald-600">-{{ number_format($discountAmount, 0, ',', '.') }} đ</p>
+                </div>
+                @endif
 
                 @if($servicesTotal > 0)
                 <div class="flex items-start gap-x-4 mt-2">

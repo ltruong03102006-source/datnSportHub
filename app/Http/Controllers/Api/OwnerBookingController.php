@@ -229,7 +229,8 @@ class OwnerBookingController extends Controller
             }
 
             $result = DB::transaction(function () use ($booking, $user, $reason) {
-                $lockedBooking = Booking::where('id', $booking->id)->lockForUpdate()->first();
+                // SỬA: Load kèm vouchers
+                $lockedBooking = Booking::with('vouchers')->where('id', $booking->id)->lockForUpdate()->first();
 
                 if (!$lockedBooking) {
                     throw new HttpException(404, 'Booking không được tìm thấy');
@@ -243,7 +244,18 @@ class OwnerBookingController extends Controller
                 $lockedBooking->status = 'cancelled';
                 $lockedBooking->save();
 
-                $lockedBooking->recordStatusChange($user->id, $oldStatus, 'cancelled', $reason ?: 'Owner cancelled booking');
+                // HOÀN VOUCHER
+                $voucherNote = '';
+                if ($lockedBooking->vouchers->isNotEmpty()) {
+                    foreach ($lockedBooking->vouchers as $voucher) {
+                        if ($voucher->used_count > 0) {
+                            $voucher->decrement('used_count');
+                        }
+                        $voucherNote .= " Hoàn voucher {$voucher->code}.";
+                    }
+                }
+
+                $lockedBooking->recordStatusChange($user->id, $oldStatus, 'cancelled', ($reason ?: 'Owner cancelled booking') . $voucherNote);
                 dispatch(new SendBookingCancelledMail($lockedBooking));
 
                 return $lockedBooking;

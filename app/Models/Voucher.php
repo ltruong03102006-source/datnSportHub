@@ -31,6 +31,8 @@ class Voucher extends Model
         'usage_limit',
         'used_count',
         'status',
+        'max_uses_per_user',
+        'target_user_id',
     ];
 
     protected $casts = [
@@ -44,6 +46,8 @@ class Voucher extends Model
         'end_date' => 'datetime',
         'usage_limit' => 'integer',
         'used_count' => 'integer',
+        'max_uses_per_user' => 'integer',
+        'target_user_id' => 'integer',
     ];
 
     public function owner(): BelongsTo
@@ -51,9 +55,21 @@ class Voucher extends Model
         return $this->belongsTo(User::class, 'owner_id');
     }
 
+    public function targetUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'target_user_id');
+    }
+
     public function venues(): BelongsToMany
     {
         return $this->belongsToMany(Venue::class, 'venue_voucher')
+            ->withTimestamps();
+    }
+
+    public function bookings(): BelongsToMany
+    {
+        return $this->belongsToMany(Booking::class, 'booking_vouchers')
+            ->withPivot('discount_amount')
             ->withTimestamps();
     }
 }

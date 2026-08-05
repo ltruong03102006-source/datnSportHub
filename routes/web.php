@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\OwnerRegistrationController;
 use App\Http\Controllers\Web\OwnerPasswordSetupController;
 use App\Http\Controllers\Web\OwnerBookingCalendarController;
 use App\Http\Controllers\Web\OwnerVenueController;
+use App\Http\Controllers\Web\OwnerVoucherController;
 use App\Http\Controllers\Web\UserBookingController;
 use App\Http\Controllers\Web\UserReviewController;
 use App\Http\Controllers\Web\VenueController;
@@ -27,6 +28,7 @@ use App\Http\Controllers\Web\OwnerBookingRescheduleController;
 use App\Http\Controllers\Web\VnPayController;
 use App\Http\Controllers\Web\OwnerVenuePackageController;
 use App\Http\Controllers\Web\OwnerWalletController;
+use App\Http\Controllers\Web\OwnerVoucherController as WebOwnerVoucherController;
 use App\Http\Controllers\Web\OwnerWalletTopupController;
 use App\Http\Controllers\Web\OwnerWithdrawalController;
 use App\Http\Controllers\Web\PackageBookingController;
@@ -36,6 +38,7 @@ use App\Http\Controllers\Web\AdminDebtController;
 use App\Http\Controllers\Web\AdminFinanceDashboardController;
 use App\Http\Controllers\Web\TransactionController;
 use App\Http\Controllers\Web\AdminTransactionController;
+use App\Http\Controllers\Web\AdminVoucherController;
 
 /*
 |--------------------------------------------------------------------------
@@ -143,6 +146,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Quáº£n lÃ½ Lá»‹ch Ä‘áº·t
         Route::get('/bookings', [AdminBookingController::class, 'index'])->name('bookings.index');
         Route::post('/bookings/{booking}/refund', [AdminBookingController::class, 'refund'])->name('bookings.refund');
+
+        // Vouchers (Hệ thống)
+        Route::get('/vouchers', [AdminVoucherController::class, 'index'])->name('vouchers.index');
+        Route::get('/vouchers/create', [AdminVoucherController::class, 'create'])->name('vouchers.create');
+        Route::post('/vouchers', [AdminVoucherController::class, 'store'])->name('vouchers.store');
+        Route::get('/vouchers/{id}', [AdminVoucherController::class, 'show'])->name('vouchers.show');
+        Route::get('/vouchers/{id}/edit', [AdminVoucherController::class, 'edit'])->name('vouchers.edit');
+        Route::put('/vouchers/{id}', [AdminVoucherController::class, 'update'])->name('vouchers.update');
+        Route::post('/vouchers/{id}/extend', [AdminVoucherController::class, 'extend'])->name('vouchers.extend');
+        Route::patch('/vouchers/{id}/toggle-status', [AdminVoucherController::class, 'toggleStatus'])->name('vouchers.toggle-status');
+        Route::delete('/vouchers/{id}', [AdminVoucherController::class, 'destroy'])->name('vouchers.destroy');
 
         // Quáº£n lÃ½ SÃ¢n con (Courts)
         Route::get('/courts', [AdminCourtController::class, 'index'])->name('courts.index');
@@ -273,6 +287,11 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
     Route::patch('/services/{service}/toggle', [\App\Http\Controllers\Web\OwnerServiceController::class, 'toggleActive'])->name('services.toggle');
     Route::delete('/services/{service}', [\App\Http\Controllers\Web\OwnerServiceController::class, 'destroy'])->name('services.destroy');
 
+    // Quản lý Vouchers
+    Route::get('/vouchers', [OwnerVoucherController::class, 'index'])->name('vouchers.index');
+    Route::get('/vouchers/create', [OwnerVoucherController::class, 'create'])->name('vouchers.create');
+    Route::post('/vouchers', [OwnerVoucherController::class, 'store'])->name('vouchers.store');
+
     // API Check Email (Phải đặt trước route có tham số {venue})
     Route::post('/venues/transfer/check-email', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'checkEmail'])->name('venues.transfer.check-email');
     // Chuyển nhượng cơ sở (Hợp đồng chuyển nhượng)
@@ -300,6 +319,18 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
     // Xử lý Ký hợp đồng chuyển nhượng (Bên B)
     Route::post('venues/transfers/{transfer}/sign', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'signContract'])
         ->name('venues.transfers.sign');
+
+    // Quản lý Mã giảm giá (Vouchers)
+    Route::get('/vouchers/report', [WebOwnerVoucherController::class, 'report'])->name('vouchers.report');
+    Route::get('/vouchers', [WebOwnerVoucherController::class, 'index'])->name('vouchers.index');
+    Route::get('/vouchers/create', [WebOwnerVoucherController::class, 'create'])->name('vouchers.create');
+    Route::post('/vouchers', [WebOwnerVoucherController::class, 'store'])->name('vouchers.store');
+    Route::get('/vouchers/{id}', [WebOwnerVoucherController::class, 'show'])->name('vouchers.show');
+    Route::get('/vouchers/{id}/edit', [WebOwnerVoucherController::class, 'edit'])->name('vouchers.edit');
+    Route::put('/vouchers/{id}', [WebOwnerVoucherController::class, 'update'])->name('vouchers.update');
+    Route::post('/vouchers/{id}/extend', [WebOwnerVoucherController::class, 'extend'])->name('vouchers.extend');
+    Route::patch('/vouchers/{id}/toggle-status', [WebOwnerVoucherController::class, 'toggleStatus'])->name('vouchers.toggle-status');
+    Route::delete('/vouchers/{id}', [WebOwnerVoucherController::class, 'destroy'])->name('vouchers.destroy');
 });
 
 Route::middleware('auth')->group(function () {
