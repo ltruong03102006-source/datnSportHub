@@ -298,10 +298,7 @@
                 <i class="fa-regular fa-calendar-check"></i> Quản lý đặt sân
             </a>
             <a href="{{ route('admin.packages.index') }}" class="nav-item {{ request()->routeIs('admin.packages.*') ? 'active' : '' }}">
-                <i class="fa-solid fa-box"></i> Gói dịch vụ
-            </a>
-            <a href="{{ route('admin.vouchers.index') }}" class="nav-item {{ request()->routeIs('admin.vouchers.*') ? 'active' : '' }}">
-                <i class="fa-solid fa-ticket"></i> Mã khuyến mãi
+                <i class="fa-solid fa-layer-group"></i> Quản lý gói
             </a>
             <a href="{{ route('admin.transactions.index') }}" class="nav-item {{ request()->routeIs('admin.transactions.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-wallet"></i> Lịch sử giao dịch

@@ -148,7 +148,6 @@ class SettlementService
     {
         return in_array(strtolower((string) $booking->payment_method), [
             'vnpay',
-            'wallet',
             'online',
             'bank_transfer',
             'platform_transfer',

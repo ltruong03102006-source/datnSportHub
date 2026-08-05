@@ -39,24 +39,18 @@ class ContractLifecycleService
             /* ... code cũ giữ nguyên ... */
         }
 
-        // 1. SINH FILE PDF TĨNH NGAY KHI KÝ (NẾU ĐÃ CÀI THƯ VIỆN DOMPDF)
-        $filePath = null;
-        if (class_exists(\Barryvdh\DomPDF\Facade\Pdf::class)) {
-            try {
-                $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.contracts.partials.body', [
-                    'contract' => $lockedContract,
-                    'owner' => $lockedContract->owner,
-                    'venue' => $lockedContract->venue,
-                ]);
-                
-                $fileName = 'HD-' . $lockedContract->contract_code . '-' . time() . '.pdf';
-                $filePath = 'contracts/' . $fileName;
-                
-                Storage::disk('public')->put($filePath, $pdf->output());
-            } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning('Không thể tạo file PDF hợp đồng: ' . $e->getMessage());
-            }
-        }
+        // 1. SINH FILE PDF TĨNH NGAY KHI KÝ
+        $pdf = Pdf::loadView('admin.contracts.partials.body', [ // Trỏ thẳng vào body hoặc tạo 1 file in pdf riêng
+            'contract' => $lockedContract,
+            'owner' => $lockedContract->owner,
+            'venue' => $lockedContract->venue,
+        ]);
+        
+        $fileName = 'HD-' . $lockedContract->contract_code . '-' . time() . '.pdf';
+        $filePath = 'contracts/' . $fileName;
+        
+        // Lưu vào storage/app/public/contracts
+        Storage::disk('public')->put($filePath, $pdf->output());
 
         // 2. CẬP NHẬT TRẠNG THÁI & BẰNG CHỨNG SỐ
         $lockedContract->update([
@@ -64,7 +58,7 @@ class ContractLifecycleService
             'signed_at' => now(),
             'signed_ip' => $request->ip(),
             'signed_user_agent' => $request->userAgent(),
-            'pdf_path' => $filePath ?? $lockedContract->pdf_path,
+            'pdf_path' => $filePath,
             'rejection_reason' => null,
             'rejected_at' => null,
         ]);

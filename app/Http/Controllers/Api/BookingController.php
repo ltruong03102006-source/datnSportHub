@@ -149,131 +149,25 @@ class BookingController extends Controller
                     }
                 }
 
-                // TÍNH TỔNG TIỀN DỊCH VỤ ĐI KÈM (NẾU CÓ)
-                $servicesCost = 0;
-                $servicesData = [];
-                if (!empty($request->services) && is_array($request->services)) {
-                    foreach ($request->services as $srv) {
-                        $serviceId = $srv['id'] ?? $srv['service_id'] ?? null;
-                        $quantity = (int) ($srv['quantity'] ?? 1);
-                        if ($serviceId && $quantity > 0) {
-                            $serviceModel = \App\Models\Service::find($serviceId);
-                            if ($serviceModel && $serviceModel->is_active) {
-                                $servicePrice = (float) $serviceModel->price;
-                                $servicesCost += $servicePrice * $quantity;
-                                $servicesData[$serviceId] = [
-                                    'quantity' => $quantity,
-                                    'price' => $servicePrice,
-                                ];
-                                if ($serviceModel->stock !== null) {
-                                    if ($serviceModel->stock < $quantity) {
-                                        throw new HttpException(422, "Dịch vụ {$serviceModel->name} không đủ số lượng trong kho.");
-                                    }
-                                    $serviceModel->decrement('stock', $quantity);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                $totalPrice = max(0, $originalPrice + $servicesCost - $discount);
-                $paymentMethod = $request->input('payment_method', 'COD');
-                /** @var \App\Models\User $user */
-                $user = Auth::user();
-
-                $wallet = method_exists($user, 'getOrCreateWallet') ? $user->getOrCreateWallet() : null;
-                $currentWalletBalance = (float) ($wallet?->balance ?? $user->balance ?? 0);
-
-                // Kiểm tra số dư ví nếu chọn phương thức thanh toán qua ví
-                if ($paymentMethod === 'wallet') {
-                    if ($currentWalletBalance < $totalPrice) {
-                        throw new HttpException(400, 'Số dư ví không đủ để thanh toán (Số dư hiện có: ' . number_format($currentWalletBalance) . '₫, Cần thanh toán: ' . number_format($totalPrice) . '₫). Vui lòng nạp thêm tiền vào ví hoặc chọn phương thức khác.');
-                    }
-                }
-
                 $booking = new Booking();
                 $booking->court_id = $request->court_id;
                 $booking->time_slot_id = $items->first()['time_slot_id'];
-                $booking->user_id = $user->id;
+                $booking->user_id = Auth::id();
                 $booking->slot_date = $request->slot_date;
                 $booking->start_time = $items->first()['start_time'];
                 $booking->end_time = $items->last()['end_time'];
-                $booking->total_price = $totalPrice;
-                $booking->payment_method = $paymentMethod;
-
-                if ($paymentMethod === 'wallet') {
-                    $booking->status = 'confirmed';
-                    $booking->payment_status = 'paid';
-                } else {
-                    $booking->status = 'pending';
-                    $booking->payment_status = 'unpaid';
-                }
-
+                $booking->total_price = $originalPrice - $discount;
+                $booking->status = 'pending';
+                $booking->payment_status = 'unpaid';
                 $booking->note = $request->note;
                 $booking->timestamps = false;
                 $booking->created_at = $now;
                 $booking->updated_at = $now;
                 $booking->save();
 
-                // Xử lý trừ tiền ví & ghi nhận giao dịch
-                if ($paymentMethod === 'wallet') {
-                    if ($wallet) {
-                        $wallet->balance -= $totalPrice;
-                        $wallet->available_balance = max(0, (float) $wallet->available_balance - $totalPrice);
-                        $wallet->save();
-                        $newBalance = $wallet->balance;
-                    } else {
-                        $user->balance -= $totalPrice;
-                        $newBalance = $user->balance;
-                    }
-
-                    // Đồng bộ lại bảng users.balance
-                    $user->balance = $newBalance;
-                    $user->save();
-
-                    \App\Models\WalletTransaction::create([
-                        'user_id' => $user->id,
-                        'wallet_id' => $wallet?->id,
-                        'booking_id' => $booking->id,
-                        'type' => 'payment',
-                        'amount' => $totalPrice,
-                        'balance_after' => $newBalance,
-                        'description' => 'Thanh toán đơn đặt sân #' . $booking->id . ' qua số dư ví',
-                    ]);
-
-                    \App\Models\Transaction::create([
-                        'booking_id' => $booking->id,
-                        'user_id' => $user->id,
-                        'transaction_code' => 'TXN-' . $booking->id . '-' . $now->format('YmdHis'),
-                        'amount' => $totalPrice,
-                        'payment_method' => 'wallet',
-                        'payment_gateway' => 'WALLET',
-                        'payment_status' => 'success',
-                        'transaction_time' => $now,
-                        'note' => 'Thanh toán bằng số dư ví.',
-                    ]);
-
-                    // Ghi nhận cộng tiền vào Ví Nền Tảng của Admin
-                    app(\App\Services\PlatformWalletService::class)->credit(
-                        amount: $totalPrice,
-                        type: \App\Models\PlatformWalletTransaction::TYPE_CUSTOMER_ONLINE_PAYMENT_IN,
-                        description: 'Khách thanh toán booking online: BOOKING-' . $booking->id,
-                        referenceType: 'booking',
-                        referenceId: $booking->id,
-                        reference: 'BOOKING-' . $booking->id,
-                        metadata: [
-                            'payment_method' => 'wallet',
-                        ]
-                    );
-                }
-
                 if ($voucher) {
                     $booking->vouchers()->attach($voucher->id, ['discount_amount' => $discount]);
                     app(\App\Services\VoucherService::class)->incrementUsage($voucher);
-                }
-
-                if (!empty($servicesData)) {
-                    $booking->services()->attach($servicesData);
                 }
 
                 $booking->items()->createMany($items->map(function ($item) {
@@ -281,7 +175,7 @@ class BookingController extends Controller
                     return $item;
                 })->all());
 
-                $booking->recordStatusChange($user->id, '', $booking->status, $paymentMethod === 'wallet' ? 'Thanh toán thành công qua số dư ví' : 'Người dùng tạo booking', $now);
+                $booking->recordStatusChange(Auth::id(), '', 'pending', 'Người dùng tạo booking', $now);
 
                 return $booking;
             });

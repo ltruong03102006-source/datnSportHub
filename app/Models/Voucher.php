@@ -32,7 +32,6 @@ class Voucher extends Model
         'used_count',
         'status',
         'max_uses_per_user',
-        'target_user_id',
     ];
 
     protected $casts = [
@@ -47,17 +46,11 @@ class Voucher extends Model
         'usage_limit' => 'integer',
         'used_count' => 'integer',
         'max_uses_per_user' => 'integer',
-        'target_user_id' => 'integer',
     ];
 
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
-    }
-
-    public function targetUser(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'target_user_id');
     }
 
     public function venues(): BelongsToMany
