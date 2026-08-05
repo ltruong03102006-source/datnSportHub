@@ -1,61 +1,35 @@
 @extends('owner.layoutOwner.app')
 
-@section('title', 'Quản lý mã giảm giá | SportHub')
-@section('breadcrumb', 'Mã giảm giá')
-
 @section('content')
-
-@vite(['resources/css/app.css', 'resources/js/app.js'])
-
-<main class="mx-auto max-w-7xl px-6 py-8 font-[Inter] text-slate-800">
+<div class="flex-1 p-6 lg:p-10 max-w-7xl mx-auto w-full">
     <!-- Header -->
-    <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4 pb-4 border-b border-slate-200/60">
         <div>
-            <h1 class="text-3xl font-extrabold text-slate-900">
-                Danh sách voucher của sân
-            </h1>
-            <p class="mt-2 text-sm text-slate-500">
-                Quản lý các mã giảm giá, theo dõi trạng thái áp dụng và thống kê lượt sử dụng.
-            </p>
+            <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Danh sách Voucher</h2>
+            <p class="text-slate-500 text-sm mt-1">Quản lý và theo dõi các mã giảm giá của bạn.</p>
         </div>
-        <div class="flex items-center gap-3">
-            <a href="{{ route('owner.web.vouchers.report') }}" class="inline-flex items-center gap-2 rounded-xl bg-indigo-50 border border-indigo-200 px-5 py-2.5 text-sm font-bold text-indigo-700 shadow-sm transition hover:bg-indigo-100">
-                <span>📊</span> Xem báo cáo hiệu quả
-            </a>
-            <a href="{{ route('owner.web.vouchers.create') }}" class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700">
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                </svg>
-                Tạo voucher mới
+        <div class="flex items-center gap-3 shrink-0">
+            <a href="{{ route('owner.web.vouchers.create') }}" 
+               class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md transition-all whitespace-nowrap">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Tạo Voucher mới
             </a>
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
-            {{ session('success') }}
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="mb-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
-            {{ session('error') }}
-        </div>
-    @endif
-
-    <!-- Bộ lọc -->
-    <div class="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <form method="GET" action="{{ route('owner.web.vouchers.index') }}" class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-5">
-            <!-- Tìm kiếm code/tên -->
+    <!-- Filters -->
+    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-6">
+        <form action="{{ route('owner.web.vouchers.index') }}" method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <!-- Search -->
             <div>
-                <label class="mb-1 block text-xs font-semibold uppercase text-slate-500">Tìm kiếm</label>
-                <input type="text" name="keyword" value="{{ request('keyword') }}" placeholder="Mã hoặc tên voucher..." class="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                <label class="block text-sm font-medium text-slate-700 mb-1">Tìm kiếm</label>
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Mã, tên voucher..." class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500">
             </div>
-
-            <!-- Lọc theo sân -->
+            
+            <!-- Venue Filter -->
             <div>
-                <label class="mb-1 block text-xs font-semibold uppercase text-slate-500">Lọc theo sân</label>
-                <select name="venue_id" class="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                <label class="block text-sm font-medium text-slate-700 mb-1">Cơ sở</label>
+                <select name="venue_id" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500">
                     <option value="">Tất cả cơ sở</option>
                     @foreach($venues as $venue)
                         <option value="{{ $venue->id }}" {{ request('venue_id') == $venue->id ? 'selected' : '' }}>
@@ -64,275 +38,115 @@
                     @endforeach
                 </select>
             </div>
-
-            <!-- Lọc theo trạng thái -->
+            
+            <!-- Status Filter -->
             <div>
-                <label class="mb-1 block text-xs font-semibold uppercase text-slate-500">Trạng thái</label>
-                <select name="status" class="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                <label class="block text-sm font-medium text-slate-700 mb-1">Trạng thái</label>
+                <select name="status" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500">
                     <option value="">Tất cả trạng thái</option>
                     <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Đang áp dụng</option>
+                    <option value="used_up" {{ request('status') == 'used_up' ? 'selected' : '' }}>Hết lượt</option>
                     <option value="expired" {{ request('status') == 'expired' ? 'selected' : '' }}>Hết hạn</option>
-                    <option value="out_of_stock" {{ request('status') == 'out_of_stock' ? 'selected' : '' }}>Hết lượt</option>
-                    <option value="disabled" {{ request('status') == 'disabled' ? 'selected' : '' }}>Chưa kích hoạt / Tắt</option>
-                    <option value="upcoming" {{ request('status') == 'upcoming' ? 'selected' : '' }}>Sắp áp dụng</option>
+                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Chưa kích hoạt</option>
                 </select>
             </div>
 
-            <!-- Lọc ngày bắt đầu -->
+            <!-- Date From -->
             <div>
-                <label class="mb-1 block text-xs font-semibold uppercase text-slate-500">Từ ngày</label>
-                <input type="date" name="start_date" value="{{ request('start_date') }}" class="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                <label class="block text-sm font-medium text-slate-700 mb-1">Từ ngày (tạo)</label>
+                <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500">
             </div>
 
-            <!-- Lọc ngày kết thúc & Submit -->
+            <!-- Buttons -->
             <div class="flex items-end gap-2">
-                <div class="w-full">
-                    <label class="mb-1 block text-xs font-semibold uppercase text-slate-500">Đến ngày</label>
-                    <input type="date" name="end_date" value="{{ request('end_date') }}" class="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                </div>
-                <button type="submit" class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white transition hover:bg-slate-800">
+                <button type="submit" class="flex-1 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition-colors">
                     Lọc
                 </button>
+                <a href="{{ route('owner.web.vouchers.index') }}" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors" title="Xóa bộ lọc">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </a>
             </div>
         </form>
     </div>
 
-    <!-- Bảng danh sách -->
-    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <!-- Table -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm text-slate-600">
-                <thead class="bg-slate-50 text-xs font-extrabold uppercase text-slate-500 border-b border-slate-200">
-                    <tr>
-                        <th class="px-6 py-4">#</th>
-                        <th class="px-6 py-4">Mã</th>
-                        <th class="px-6 py-4">Tên Voucher</th>
-                        <th class="px-6 py-4">Giảm</th>
-                        <th class="px-6 py-4 text-center">Số lượng</th>
-                        <th class="px-6 py-4 text-center">Đã dùng/Còn lại</th>
-                        <th class="px-6 py-4 text-center">Trạng thái</th>
-                        <th class="px-6 py-4 text-right">Thao tác</th>
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200 text-sm text-slate-500">
+                        <th class="px-6 py-4 font-medium">#</th>
+                        <th class="px-6 py-4 font-medium">Mã</th>
+                        <th class="px-6 py-4 font-medium">Tên</th>
+                        <th class="px-6 py-4 font-medium">Giảm</th>
+                        <th class="px-6 py-4 font-medium">Số lượng</th>
+                        <th class="px-6 py-4 font-medium">Đã dùng/Còn lại</th>
+                        <th class="px-6 py-4 font-medium">Trạng thái</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-slate-200 text-sm text-slate-700">
                     @forelse($vouchers as $index => $voucher)
-                        @php
-                            $now = \Illuminate\Support\Carbon::now();
-                            $isExpired = $voucher->end_date && $voucher->end_date < $now;
-                            $isUpcoming = $voucher->start_date && $voucher->start_date > $now;
-                            $isOutOfStock = !is_null($voucher->usage_limit) && $voucher->used_count >= $voucher->usage_limit;
-                            $isDisabled = $voucher->status === 'disabled';
-
-                            if ($isDisabled) {
-                                $badgeClass = 'bg-slate-100 text-slate-600';
-                                $badgeLabel = 'Chưa kích hoạt';
-                            } elseif ($isOutOfStock) {
-                                $badgeClass = 'bg-amber-100 text-amber-700';
-                                $badgeLabel = 'Hết lượt';
-                            } elseif ($isExpired) {
-                                $badgeClass = 'bg-rose-100 text-rose-700';
-                                $badgeLabel = 'Hết hạn';
-                            } elseif ($isUpcoming) {
-                                $badgeClass = 'bg-blue-100 text-blue-700';
-                                $badgeLabel = 'Sắp áp dụng';
-                            } else {
-                                $badgeClass = 'bg-emerald-100 text-emerald-700';
-                                $badgeLabel = 'Đang áp dụng';
-                            }
-
-                            $remaining = is_null($voucher->usage_limit) ? '∞' : max(0, $voucher->usage_limit - $voucher->used_count);
-                        @endphp
                         <tr class="hover:bg-slate-50 transition-colors">
-                            <td class="px-6 py-4 font-medium text-slate-400">
-                                {{ $vouchers->firstItem() + $index }}
-                            </td>
-                            <td class="px-6 py-4 font-mono font-bold text-emerald-600">
-                                {{ $voucher->code }}
-                            </td>
-                            <td class="px-6 py-4 font-semibold text-slate-800">
-                                {{ $voucher->name ?? 'Mã giảm giá' }}
-                            </td>
-                            <td class="px-6 py-4 font-bold text-slate-900">
-                                @if($voucher->discount_type === 'percent')
-                                    {{ (float)$voucher->discount_value }}%
+                            <td class="px-6 py-4">{{ $vouchers->firstItem() + $index }}</td>
+                            <td class="px-6 py-4 font-bold text-slate-800">{{ $voucher->code }}</td>
+                            <td class="px-6 py-4">{{ $voucher->name }}</td>
+                            <td class="px-6 py-4 text-emerald-600 font-medium">
+                                @if($voucher->discount_type == 'percentage')
+                                    {{ $voucher->discount_value + 0 }}%
                                 @else
                                     {{ number_format($voucher->discount_value, 0, ',', '.') }}đ
                                 @endif
                             </td>
-                            <td class="px-6 py-4 text-center font-semibold text-slate-700">
-                                {{ $voucher->usage_limit ?? 'Không giới hạn' }}
+                            <td class="px-6 py-4">
+                                {{ $voucher->usage_limit ? $voucher->usage_limit : '∞' }}
                             </td>
-                            <td class="px-6 py-4 text-center font-bold text-slate-700">
-                                <span class="text-emerald-600">{{ $voucher->used_count }}</span> / 
-                                <span class="text-slate-500">{{ $remaining }}</span>
+                            <td class="px-6 py-4">
+                                {{ $voucher->used_count }} / 
+                                {{ $voucher->usage_limit ? ($voucher->usage_limit - $voucher->used_count) : '∞' }}
                             </td>
-                            <td class="px-6 py-4 text-center">
-                                <span class="inline-flex rounded-full px-3 py-1 text-xs font-bold {{ $badgeClass }}">
-                                    {{ $badgeLabel }}
+                            <td class="px-6 py-4">
+                                @php
+                                    $now = now();
+                                    $statusClass = 'bg-slate-100 text-slate-700';
+                                    $statusText = 'Không xác định';
+
+                                    if ($voucher->status === 'disabled') {
+                                        $statusClass = 'bg-slate-100 text-slate-600';
+                                        $statusText = 'Vô hiệu hóa';
+                                    } elseif ($voucher->usage_limit && $voucher->used_count >= $voucher->usage_limit) {
+                                        $statusClass = 'bg-red-100 text-red-700';
+                                        $statusText = 'Hết lượt';
+                                    } elseif ($voucher->end_date && $voucher->end_date < $now) {
+                                        $statusClass = 'bg-amber-100 text-amber-700';
+                                        $statusText = 'Hết hạn';
+                                    } elseif ($voucher->start_date && $voucher->start_date > $now) {
+                                        $statusClass = 'bg-blue-100 text-blue-700';
+                                        $statusText = 'Chưa kích hoạt';
+                                    } else {
+                                        $statusClass = 'bg-emerald-100 text-emerald-700';
+                                        $statusText = 'Đang áp dụng';
+                                    }
+                                @endphp
+                                <span class="px-2.5 py-1 rounded-full text-xs font-semibold {{ $statusClass }}">
+                                    {{ $statusText }}
                                 </span>
-                            </td>
-                            <td class="px-6 py-4 text-right">
-                                <div class="flex items-center justify-end gap-2">
-                                    <a href="{{ route('owner.web.vouchers.show', $voucher->id) }}" class="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-emerald-50 hover:text-emerald-600 transition">
-                                        Chi tiết
-                                    </a>
-
-                                    <button type="button" onclick="openExtendModal({{ $voucher->id }}, '{{ $voucher->code }}', '{{ $voucher->end_date ? $voucher->end_date->format('Y-m-d\TH:i') : '' }}', {{ $voucher->usage_limit ?? 'null' }})" class="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition">
-                                        Gia hạn
-                                    </button>
-
-                                    <a href="{{ route('owner.web.vouchers.edit', $voucher->id) }}" class="rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-100 transition">
-                                        Sửa
-                                    </a>
-
-                                    <form method="POST" action="{{ route('owner.web.vouchers.toggle-status', $voucher->id) }}" class="inline">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit" class="rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-200 transition" title="Bật/Tắt trạng thái">
-                                            {{ $voucher->status === 'active' ? 'Tắt' : 'Bật' }}
-                                        </button>
-                                    </form>
-
-                                    @if($voucher->used_count == 0)
-                                        <form method="POST" action="{{ route('owner.web.vouchers.destroy', $voucher->id) }}" onsubmit="return confirm('Bạn có chắc chắn muốn xóa voucher này?');" class="inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="rounded-lg bg-rose-50 px-2.5 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-100 transition">
-                                                Xóa
-                                            </button>
-                                        </form>
-                                    @endif
-                                </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-12 text-center text-slate-400">
-                                Không tìm thấy voucher nào phù hợp.
+                            <td colspan="7" class="px-6 py-8 text-center text-slate-500">
+                                Không tìm thấy voucher nào.
                             </td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-
         @if($vouchers->hasPages())
-            <div class="border-t border-slate-200 px-6 py-4">
+            <div class="px-6 py-4 border-t border-slate-200">
                 {{ $vouchers->links() }}
             </div>
         @endif
     </div>
-
-    <!-- Modal Gia Hạn Voucher -->
-    <div id="extendModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-        <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
-                <h3 class="text-lg font-extrabold text-slate-900">
-                    Gia hạn Voucher: <span id="modalVoucherCode" class="font-mono text-emerald-600"></span>
-                </h3>
-                <button type="button" onclick="closeExtendModal()" class="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
-                    &times;
-                </button>
-            </div>
-
-            <form id="extendForm" method="POST" action="" class="space-y-5">
-                @csrf
-
-                <!-- Kéo dài thời gian -->
-                <div>
-                    <label class="mb-2 block text-xs font-extrabold uppercase tracking-wider text-slate-700">1. Kéo dài thời gian áp dụng</label>
-                    <div class="grid grid-cols-2 gap-3 mb-3">
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-200 p-2.5 hover:bg-slate-50 cursor-pointer text-xs font-bold text-slate-700">
-                            <input type="radio" name="extend_type" value="days" checked onclick="toggleExtendMode('days')" class="text-emerald-600">
-                            Cộng thêm số ngày
-                        </label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-200 p-2.5 hover:bg-slate-50 cursor-pointer text-xs font-bold text-slate-700">
-                            <input type="radio" name="extend_type" value="date" onclick="toggleExtendMode('date')" class="text-emerald-600">
-                            Chọn ngày mới
-                        </label>
-                    </div>
-
-                    <div id="extendDaysInput">
-                        <select name="extend_days" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none">
-                            <option value="">Không kéo dài thêm ngày</option>
-                            <option value="7">+7 ngày</option>
-                            <option value="15">+15 ngày</option>
-                            <option value="30" selected>+30 ngày (Khuyến nghị)</option>
-                            <option value="60">+60 ngày</option>
-                            <option value="90">+90 ngày</option>
-                        </select>
-                    </div>
-
-                    <div id="extendDateInput" class="hidden">
-                        <input type="datetime-local" name="new_end_date" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none">
-                    </div>
-                </div>
-
-                <!-- Tăng thêm số lượng -->
-                <div class="border-t border-slate-100 pt-4">
-                    <label class="mb-2 block text-xs font-extrabold uppercase tracking-wider text-slate-700">2. Tăng thêm số lượng (Lượt dùng)</label>
-                    <div class="grid grid-cols-2 gap-3 mb-3">
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-200 p-2.5 hover:bg-slate-50 cursor-pointer text-xs font-bold text-slate-700">
-                            <input type="radio" name="qty_type" value="add" checked onclick="toggleQtyMode('add')" class="text-emerald-600">
-                            Cộng thêm lượt
-                        </label>
-                        <label class="flex items-center gap-2 rounded-xl border border-slate-200 p-2.5 hover:bg-slate-50 cursor-pointer text-xs font-bold text-slate-700">
-                            <input type="radio" name="qty_type" value="limit" onclick="toggleQtyMode('limit')" class="text-emerald-600">
-                            Set giới hạn mới
-                        </label>
-                    </div>
-
-                    <div id="addQtyInput">
-                        <input type="number" name="add_quantity" placeholder="VD: 50 (để trống nếu không tăng)" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none">
-                    </div>
-
-                    <div id="limitQtyInput" class="hidden">
-                        <input type="number" name="new_usage_limit" placeholder="Nhập tổng số lượt mới" class="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none">
-                    </div>
-                </div>
-
-                <div class="flex justify-end gap-3 border-t border-slate-100 pt-4">
-                    <button type="button" onclick="closeExtendModal()" class="rounded-xl bg-slate-100 px-5 py-2 text-sm font-bold text-slate-700 hover:bg-slate-200 transition">
-                        Hủy
-                    </button>
-                    <button type="submit" class="rounded-xl bg-emerald-600 px-5 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-700 transition">
-                        Xác nhận gia hạn
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script>
-        function openExtendModal(id, code, endDate, limit) {
-            document.getElementById('modalVoucherCode').innerText = code;
-            document.getElementById('extendForm').action = '/owner/vouchers/' + id + '/extend';
-            document.getElementById('extendModal').classList.remove('hidden');
-        }
-
-        function closeExtendModal() {
-            document.getElementById('extendModal').classList.add('hidden');
-        }
-
-        function toggleExtendMode(mode) {
-            if (mode === 'days') {
-                document.getElementById('extendDaysInput').classList.remove('hidden');
-                document.getElementById('extendDateInput').classList.add('hidden');
-            } else {
-                document.getElementById('extendDaysInput').classList.add('hidden');
-                document.getElementById('extendDateInput').classList.remove('hidden');
-            }
-        }
-
-        function toggleQtyMode(mode) {
-            if (mode === 'add') {
-                document.getElementById('addQtyInput').classList.remove('hidden');
-                document.getElementById('limitQtyInput').classList.add('hidden');
-            } else {
-                document.getElementById('addQtyInput').classList.add('hidden');
-                document.getElementById('limitQtyInput').classList.remove('hidden');
-            }
-        }
-    </script>
-</main>
+</div>
 @endsection
-
