@@ -270,8 +270,8 @@
         <div class="hidden sm:block border-l border-stone-200/60 pl-6 pr-4">
             <p class="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1">Thanh toán</p>
             <select id="paymentMethod" class="rounded-lg border border-stone-200 bg-stone-50 px-2 py-1.5 text-sm font-medium text-zinc-900 outline-none">
-                <option value="COD">Thanh toán sau (COD)</option>
-                <option value="wallet">Số dư ví ({{ number_format(Auth::user()?->balance ?? 0) }}₫)</option>
+                <option value="COD">Thanh toán</option>
+                <option value="wallet">Số dư ví ({{ number_format(Auth::user()?->getOrCreateWallet()?->balance ?? Auth::user()?->balance ?? 0) }}₫)</option>
             </select>
         </div>
         
@@ -755,10 +755,7 @@
                         <span class="text-emerald-500">${orderTotal >= (v.min_booking_value || 0) ? '✅' : '❌'}</span>
                         <span>Đơn từ ${minOrderStr} trở lên</span>
                     </div>
-                    <div class="flex items-center gap-1.5">
-                        <span>⏰</span>
-                        <span>Còn ${remainingStr}</span>
-                    </div>
+                    
                     <div class="flex items-center gap-1.5">
                         <span>📅</span>
                         <span>Hạn: ${dateStr}</span>
