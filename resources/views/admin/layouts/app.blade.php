@@ -303,9 +303,6 @@
             <a href="{{ route('admin.vouchers.index') }}" class="nav-item {{ request()->routeIs('admin.vouchers.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-ticket"></i> Mã khuyến mãi
             </a>
-            <a href="{{ route('admin.chatbot.index') }}" class="nav-item {{ request()->routeIs('admin.chatbot.*') ? 'active' : '' }}">
-                <i class="fa-solid fa-robot"></i> Chatbot logs
-            </a>
             <a href="{{ route('admin.transactions.index') }}" class="nav-item {{ request()->routeIs('admin.transactions.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-wallet"></i> Lịch sử giao dịch
             </a>

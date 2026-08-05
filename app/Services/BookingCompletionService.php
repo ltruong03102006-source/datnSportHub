@@ -6,7 +6,6 @@ use App\Models\Booking;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class BookingCompletionService
 {
@@ -40,10 +39,6 @@ class BookingCompletionService
 
     public function settleCompletedBookings(?int $ownerId = null, ?int $userId = null): int
     {
-        if (! $this->canSettleBookings()) {
-            return 0;
-        }
-
         $query = Booking::query()
             ->where('status', 'completed')
             ->where(function ($query) {
@@ -87,9 +82,8 @@ class BookingCompletionService
     private function completeGroup(Collection $group, Carbon $now): int
     {
         $ids = $group->pluck('id')->all();
-        $canSettleBookings = $this->canSettleBookings();
 
-        return DB::transaction(function () use ($ids, $now, $canSettleBookings): int {
+        return DB::transaction(function () use ($ids, $now): int {
             $bookings = Booking::query()
                 ->whereIn('id', $ids)
                 ->lockForUpdate()
@@ -111,14 +105,12 @@ class BookingCompletionService
                     $now
                 );
 
-                if ($canSettleBookings) {
-                    try {
-                        $this->settlementService->settleBooking($booking->fresh());
-                    } catch (\Throwable $e) {
-                        \Log::channel('settlement')->error("Lỗi đối soát Booking #{$booking->id}: " . $e->getMessage());
+                try {
+                    $this->settlementService->settleBooking($booking->fresh());
+                } catch (\Throwable $e) {
+                    \Log::channel('settlement')->error("Lỗi đối soát Booking #{$booking->id}: " . $e->getMessage());
 
-                        $booking->update(['settlement_status' => \App\Enums\SettlementStatus::FAILED]);
-                    }
+                    $booking->update(['settlement_status' => \App\Enums\SettlementStatus::FAILED]);
                 }
             }
 
@@ -151,31 +143,6 @@ class BookingCompletionService
             $booking->slot_date->format('Y-m-d'),
             $booking->created_at?->format('Y-m-d H:i:s.u') ?? $booking->id,
         ]);
-    }
-
-    private function canSettleBookings(): bool
-    {
-        if (! Schema::hasTable('bookings')) {
-            return false;
-        }
-
-        foreach (['settlement_status', 'settled_at', 'platform_fee', 'owner_earnings'] as $column) {
-            if (! Schema::hasColumn('bookings', $column)) {
-                return false;
-            }
-        }
-
-        if (! Schema::hasTable('wallets') || ! Schema::hasTable('wallet_transactions')) {
-            return false;
-        }
-
-        foreach (['wallet_id', 'booking_id', 'reference', 'balance_before', 'metadata'] as $column) {
-            if (! Schema::hasColumn('wallet_transactions', $column)) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     public function cancelExpiredPendingBookings(?int $ownerId = null, ?int $userId = null): int

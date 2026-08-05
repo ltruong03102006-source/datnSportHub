@@ -25,12 +25,6 @@
                 <div class="flex items-center justify-between w-full pr-2">
                     <h1 class="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">{{ $venue->name }}</h1>
                     
-                    <button type="button"
-                        onclick="window.dispatchEvent(new CustomEvent('sporthub-chatbot-open', { detail: { message: 'Tôi muốn hỏi về cơ sở {{ addslashes($venue->name) }}' } }))"
-                        class="mr-3 hidden rounded-full bg-emerald-500/90 px-4 py-2 text-sm font-bold text-white shadow-lg backdrop-blur-md transition hover:bg-emerald-600 sm:inline-flex">
-                        Hỏi chatbot
-                    </button>
-
                     @auth
                     <button onclick="toggleFavorite({{ $venue->id }})" class="group flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/20 backdrop-blur-md transition-all hover:bg-white/40 hover:scale-105 shadow-lg">
                         <svg id="iconFavorite" class="h-6 w-6 transition-colors duration-300 {{ $venue->isFavoritedBy(Auth::user()) ? 'text-rose-500 fill-rose-500' : 'text-white' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
