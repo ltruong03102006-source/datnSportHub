@@ -53,4 +53,12 @@ Schedule::call(function () {
     }
 })->everyMinute();
 Schedule::command('contracts:sync-statuses')->hourly();
+
+// --- AUTO EXPIRE VOUCHERS QUÁ HẠN SỬ DỤNG ---
+Schedule::call(function () {
+    \App\Models\Voucher::where('status', 'active')
+        ->whereNotNull('end_date')
+        ->where('end_date', '<', now())
+        ->update(['status' => 'expired']);
+})->everyMinute();
 // --------------------------------------------------
