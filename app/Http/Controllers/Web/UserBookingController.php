@@ -369,8 +369,8 @@ class UserBookingController extends Controller
 
         try {
             DB::transaction(function () use ($booking, $reason): void {
-                // SỬA: Thêm with('services') để load dữ liệu dịch vụ từ bảng trung gian
-                $groupBookings = Booking::with(['services', 'court.venue.owner'])->where('user_id', Auth::id())
+                // SỬA: Thêm with('services', 'vouchers') để load dữ liệu dịch vụ và voucher từ bảng trung gian
+                $groupBookings = Booking::with(['services', 'vouchers', 'court.venue.owner'])->where('user_id', Auth::id())
                     ->where('court_id', $booking->court_id)->where('slot_date', $booking->slot_date)
                     ->where('created_at', $booking->created_at)
                     ->whereIn('status', self::CANCELLABLE_STATUSES)->lockForUpdate()->get();
@@ -458,12 +458,23 @@ class UserBookingController extends Controller
                         'refund_status' => $refundStatus
                     ]);
 
+                    // HOÀN VOUCHER
+                    $voucherNote = '';
+                    if ($b->vouchers->isNotEmpty()) {
+                        foreach ($b->vouchers as $voucher) {
+                            if ($voucher->used_count > 0) {
+                                $voucher->decrement('used_count');
+                            }
+                            $voucherNote .= " Hoàn voucher {$voucher->code}.";
+                        }
+                    }
+
                     BookingLog::create([
                         'booking_id' => $b->id,
                         'changed_by' => Auth::id(),
                         'old_status' => $oldStatus,
                         'new_status' => 'cancelled',
-                        'note' => "Khách hủy. Phạt {$feePercent}%. Lý do: {$reason}",
+                        'note' => "Khách hủy. Phạt {$feePercent}%. Lý do: {$reason}." . $voucherNote,
                     ]);
                 }
             });

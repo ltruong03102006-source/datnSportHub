@@ -167,7 +167,7 @@ class BookingController extends Controller
 
                 if ($voucher) {
                     $booking->vouchers()->attach($voucher->id, ['discount_amount' => $discount]);
-                    $voucher->increment('used_count');
+                    app(\App\Services\VoucherService::class)->incrementUsage($voucher);
                 }
 
                 $booking->items()->createMany($items->map(function ($item) {
