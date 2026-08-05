@@ -36,6 +36,7 @@ use App\Http\Controllers\Web\AdminDebtController;
 use App\Http\Controllers\Web\AdminFinanceDashboardController;
 use App\Http\Controllers\Web\TransactionController;
 use App\Http\Controllers\Web\AdminTransactionController;
+use App\Http\Controllers\Web\AdminVoucherController;
 
 /*
 |--------------------------------------------------------------------------
@@ -140,6 +141,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Quáº£n lÃ½ Lá»‹ch Ä‘áº·t
         Route::get('/bookings', [AdminBookingController::class, 'index'])->name('bookings.index');
         Route::post('/bookings/{booking}/refund', [AdminBookingController::class, 'refund'])->name('bookings.refund');
+
+        // Vouchers (Hệ thống)
+        Route::get('/vouchers', [AdminVoucherController::class, 'index'])->name('vouchers.index');
+        Route::get('/vouchers/create', [AdminVoucherController::class, 'create'])->name('vouchers.create');
+        Route::post('/vouchers', [AdminVoucherController::class, 'store'])->name('vouchers.store');
+        Route::get('/vouchers/{id}', [AdminVoucherController::class, 'show'])->name('vouchers.show');
+        Route::get('/vouchers/{id}/edit', [AdminVoucherController::class, 'edit'])->name('vouchers.edit');
+        Route::put('/vouchers/{id}', [AdminVoucherController::class, 'update'])->name('vouchers.update');
+        Route::post('/vouchers/{id}/extend', [AdminVoucherController::class, 'extend'])->name('vouchers.extend');
+        Route::patch('/vouchers/{id}/toggle-status', [AdminVoucherController::class, 'toggleStatus'])->name('vouchers.toggle-status');
+        Route::delete('/vouchers/{id}', [AdminVoucherController::class, 'destroy'])->name('vouchers.destroy');
 
         // Quáº£n lÃ½ SÃ¢n con (Courts)
         Route::get('/courts', [AdminCourtController::class, 'index'])->name('courts.index');

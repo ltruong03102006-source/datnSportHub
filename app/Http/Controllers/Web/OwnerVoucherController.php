@@ -143,12 +143,26 @@ class OwnerVoucherController extends Controller
             'applies_to_all_fields' => 'nullable|boolean',
             'venue_ids' => 'nullable|array',
             'venue_ids.*' => 'exists:venues,id',
+            'target_user_input' => 'nullable|string',
         ]);
 
         try {
             $data = $request->all();
             $data['owner_id'] = Auth::id();
             $data['applies_to_all_fields'] = $request->has('applies_to_all_fields');
+
+            if ($request->filled('target_user_input')) {
+                $targetUserInput = $request->input('target_user_input');
+                $targetUser = \App\Models\User::where('email', $targetUserInput)
+                    ->orWhere('phone', $targetUserInput)
+                    ->first();
+                if (!$targetUser) {
+                    return back()->withInput()->with('error', 'Không tìm thấy khách hàng nào với Email/Số điện thoại: ' . $targetUserInput);
+                }
+                $data['target_user_id'] = $targetUser->id;
+            } else {
+                $data['target_user_id'] = null;
+            }
 
             $this->voucherService->create($data);
 
@@ -189,8 +203,9 @@ class OwnerVoucherController extends Controller
         $venues = Venue::where('owner_id', $ownerId)->get();
 
         $hasBeenUsed = $voucher->used_count > 0 || \Illuminate\Support\Facades\DB::table('booking_vouchers')->where('voucher_id', $id)->exists();
+        $targetUserInput = $voucher->targetUser ? ($voucher->targetUser->email ?? $voucher->targetUser->phone) : '';
 
-        return view('owner.vouchers.edit', compact('voucher', 'venues', 'hasBeenUsed'));
+        return view('owner.vouchers.edit', compact('voucher', 'venues', 'hasBeenUsed', 'targetUserInput'));
     }
 
     /**
@@ -213,11 +228,25 @@ class OwnerVoucherController extends Controller
             'applies_to_all_fields' => 'nullable|boolean',
             'venue_ids' => 'nullable|array',
             'venue_ids.*' => 'exists:venues,id',
+            'target_user_input' => 'nullable|string',
         ]);
 
         try {
             $data = $request->all();
             $data['applies_to_all_fields'] = $request->has('applies_to_all_fields');
+
+            if ($request->filled('target_user_input')) {
+                $targetUserInput = $request->input('target_user_input');
+                $targetUser = \App\Models\User::where('email', $targetUserInput)
+                    ->orWhere('phone', $targetUserInput)
+                    ->first();
+                if (!$targetUser) {
+                    return back()->withInput()->with('error', 'Không tìm thấy khách hàng nào với Email/Số điện thoại: ' . $targetUserInput);
+                }
+                $data['target_user_id'] = $targetUser->id;
+            } else {
+                $data['target_user_id'] = null;
+            }
 
             $this->voucherService->updateForOwner((int) $id, Auth::id(), $data);
 
