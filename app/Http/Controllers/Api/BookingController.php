@@ -20,10 +20,10 @@ class BookingController extends Controller
 {
     public function store(BookingRequest $request)
     {
-        $court = Court::find($request->court_id);
+        $court = Court::with('venue')->find($request->court_id);
 
-        if (! $court || $court->status !== 'active' || ! $court->is_bookable_online) {
-            return response()->json(['message' => 'Sân không nhận đặt online'], 403);
+        if (! $court || $court->venue?->status !== 'active' || $court->status !== 'active' || ! $court->is_bookable_online) {
+            return response()->json(['message' => 'Cơ sở hoặc Sân hiện không ở trạng thái hoạt động (chưa ký hợp đồng với Admin)'], 403);
         }
 
         $slots = collect($request->slots ?? [[
@@ -133,6 +133,22 @@ class BookingController extends Controller
                     ]);
                 }
 
+                $originalPrice = $items->sum('price');
+                $discount = 0.0;
+                $voucher = null;
+                if ($request->filled('voucher_code')) {
+                    $voucher = \App\Models\Voucher::where('code', $request->voucher_code)->first();
+                    if ($voucher) {
+                        $voucherService = app(\App\Services\VoucherService::class);
+                        $bookingSlots = $slots->toArray();
+                        $eligibility = $voucherService->checkEligibility($voucher, $request->court_id, $request->slot_date, $bookingSlots, $originalPrice, Auth::id());
+                        if (!$eligibility['eligible']) {
+                            throw new HttpException(422, $eligibility['reason']);
+                        }
+                        $discount = $eligibility['discount'];
+                    }
+                }
+
                 $booking = new Booking();
                 $booking->court_id = $request->court_id;
                 $booking->time_slot_id = $items->first()['time_slot_id'];
@@ -140,7 +156,7 @@ class BookingController extends Controller
                 $booking->slot_date = $request->slot_date;
                 $booking->start_time = $items->first()['start_time'];
                 $booking->end_time = $items->last()['end_time'];
-                $booking->total_price = $items->sum('price');
+                $booking->total_price = $originalPrice - $discount;
                 $booking->status = 'pending';
                 $booking->payment_status = 'unpaid';
                 $booking->note = $request->note;
@@ -148,6 +164,11 @@ class BookingController extends Controller
                 $booking->created_at = $now;
                 $booking->updated_at = $now;
                 $booking->save();
+
+                if ($voucher) {
+                    $booking->vouchers()->attach($voucher->id, ['discount_amount' => $discount]);
+                    app(\App\Services\VoucherService::class)->incrementUsage($voucher);
+                }
 
                 $booking->items()->createMany($items->map(function ($item) {
                     unset($item['created_at'], $item['updated_at']);

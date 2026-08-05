@@ -51,6 +51,10 @@ class OwnerServiceController extends Controller
             abort(403, 'Bạn không có quyền thêm dịch vụ cho cơ sở này.');
         }
 
+        if ($venue->status !== 'active') {
+            return back()->with('error', 'Cơ sở chưa ký hợp đồng hợp tác với Admin (chưa ở trạng thái hoạt động) nên chưa thể thêm dịch vụ.');
+        }
+
         $data = $request->except('image');
 
         if ($request->hasFile('image')) {

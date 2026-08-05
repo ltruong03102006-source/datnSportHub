@@ -196,7 +196,7 @@
                     <div class="mt-4 flex items-center justify-between p-4 bg-emerald-50 rounded-xl border border-emerald-100">
                         <div>
                             <p class="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Khả dụng</p>
-                            <p class="text-3xl font-black text-emerald-700">{{ number_format($user->balance ?? 0) }}đ</p>
+                            <p class="text-3xl font-black text-emerald-700">{{ number_format($wallet->balance ?? 0) }}đ</p>
                         </div>
                     </div>
                 </div>
@@ -224,8 +224,8 @@
                     <form method="POST" action="{{ route('account.wallet.withdraw') }}" class="mt-6 grid gap-4 sm:max-w-md">
                         @csrf
                         <div>
-                            <label for="withdraw_amount" class="mb-1.5 block text-xs font-semibold text-stone-500">Số tiền muốn rút (Tối đa {{ number_format($user->balance ?? 0) }}đ)</label>
-                            <input id="withdraw_amount" name="amount" type="number" min="10000" max="{{ $user->balance ?? 0 }}" required placeholder="Nhập số tiền..."
+                            <label for="withdraw_amount" class="mb-1.5 block text-xs font-semibold text-stone-500">Số tiền muốn rút (Tối đa {{ number_format($wallet->balance ?? 0) }}đ)</label>
+                            <input id="withdraw_amount" name="amount" type="number" min="10000" max="{{ $wallet->balance ?? 0 }}" required placeholder="Nhập số tiền..."
                                 class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10">
                             @error('amount') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
@@ -275,7 +275,9 @@
                                         <th class="py-2 pr-4">Mã YC</th>
                                         <th class="py-2 pr-4">Số tiền</th>
                                         <th class="py-2 pr-4">Trạng thái</th>
-                                        <th class="py-2">Thời gian</th>
+                                        <th class="py-2 pr-4">Ghi chú</th>
+                                        <th class="py-2 pr-4">Thời gian</th>
+                                        <th class="py-2">Minh chứng</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-stone-100">
@@ -292,7 +294,22 @@
                                                     <span class="inline-flex rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">Từ chối</span>
                                                 @endif
                                             </td>
-                                            <td class="whitespace-nowrap py-2.5 text-zinc-500">{{ $req->created_at->format('H:i d/m/Y') }}</td>
+                                            <td class="py-2.5 pr-4 text-zinc-600 text-xs max-w-[150px] truncate" title="{{ $req->admin_note }}">
+                                                {{ $req->admin_note ?? '—' }}
+                                            </td>
+                                            <td class="whitespace-nowrap py-2.5 pr-4 text-zinc-500">{{ $req->created_at->format('H:i d/m/Y') }}</td>
+                                            <td class="whitespace-nowrap py-2.5">
+                                                @if($req->proof_image)
+                                                    <button type="button" onclick="openBillModal('{{ asset('storage/' . $req->proof_image) }}')" class="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                        </svg>
+                                                        Xem bill
+                                                    </button>
+                                                @else
+                                                    <span class="text-stone-400">—</span>
+                                                @endif
+                                            </td>
                                         </tr>
                                     @endforeach
                                 </tbody>
@@ -435,4 +452,55 @@
         </div>
     </div>
 </div>
+
+<!-- Modal xem ảnh Bill -->
+<div id="billImageModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/70 p-4 backdrop-blur-sm transition-opacity" onclick="closeBillModal()">
+    <div class="relative max-h-full max-w-3xl w-full mx-auto" onclick="event.stopPropagation()">
+        <button type="button" class="absolute -right-3 -top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white text-stone-500 shadow-md hover:bg-stone-100 hover:text-stone-900 focus:outline-none" onclick="closeBillModal()">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+        </button>
+        <div class="overflow-hidden rounded-xl bg-white shadow-2xl">
+            <div class="p-3 bg-stone-100 border-b border-stone-200 flex justify-between items-center">
+                <h3 class="text-sm font-bold text-stone-700">Minh chứng giao dịch</h3>
+                <a id="downloadBillBtn" href="#" download="minh-chung.jpg" class="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Tải về
+                </a>
+            </div>
+            <div class="p-4 bg-stone-50 flex justify-center items-center min-h-[200px]">
+                <img id="billImagePreview" src="" alt="Bill" class="max-h-[70vh] max-w-full object-contain rounded-lg">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openBillModal(imageUrl) {
+        document.getElementById('billImagePreview').src = imageUrl;
+        document.getElementById('downloadBillBtn').href = imageUrl;
+        const modal = document.getElementById('billImageModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeBillModal() {
+        const modal = document.getElementById('billImageModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        setTimeout(() => {
+            document.getElementById('billImagePreview').src = '';
+        }, 300);
+    }
+    
+    // Đóng modal khi ấn phím Escape
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeBillModal();
+        }
+    });
+</script>
 @endsection

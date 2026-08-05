@@ -11,13 +11,13 @@ use App\Models\Venue;
 use App\Models\VenuePackage;
 use App\Services\PackageBookingService;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class PackageBookingPaymentFlowTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     public function test_package_booking_starts_as_pending_and_requires_payment(): void
     {

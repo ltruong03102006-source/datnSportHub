@@ -10,13 +10,13 @@ use App\Models\User;
 use App\Models\Venue;
 use App\Services\BookingCompletionService;
 use Carbon\Carbon;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class BookingFlowTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     public function test_booking_is_auto_confirmed_and_logged(): void
     {

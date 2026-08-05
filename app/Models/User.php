@@ -22,7 +22,7 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     // 3. Khai báo sử dụng trait HasApiTokens
-    use HasApiTokens, HasFactory, Notifiable, HasWallet;
+   use HasApiTokens, HasFactory, Notifiable, HasWallet, SoftDeletes;
 
     /**
      * Get the attributes that should be cast.
@@ -62,23 +62,24 @@ class User extends Authenticatable
         return $this->hasMany(BookingPackage::class);
     }
 
-    public function topupTransactions(): HasMany
+    public function createdVouchers(): HasMany
     {
-        return $this->hasMany(TopupTransaction::class, 'owner_id');
+        return $this->hasMany(Voucher::class, 'created_by_id');
     }
 
-    public function withdrawalRequests(): HasMany
+    /**
+     * Contracts where the user is the venue owner.
+     */
+    public function ownedContracts(): HasMany
     {
-        return $this->hasMany(WithdrawalRequest::class, 'owner_id');
+        return $this->hasMany(Contract::class, 'owner_id');
     }
 
-    public function performedPlatformWalletTransactions(): HasMany
+    /**
+     * Contracts created by the admin user.
+     */
+    public function createdContracts(): HasMany
     {
-        return $this->hasMany(PlatformWalletTransaction::class, 'performed_by');
-    }
-
-    public function wallet(): HasOne
-    {
-        return $this->hasOne(Wallet::class, 'owner_id');
+        return $this->hasMany(Contract::class, 'created_by');
     }
 }

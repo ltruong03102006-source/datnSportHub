@@ -24,11 +24,19 @@ class CustomerBookingRescheduleController extends Controller
             return redirect()->route('account.bookings.index')->with('error', $message);
         }
 
-        $booking->load(['court.venue', 'items.timeSlot']);
+        $booking->load(['court.venue', 'items.timeSlot.prices']);
+
+        $bookingItems = $booking->items->where('status', 'booked')->sortBy('start_time')->values();
+
+        foreach ($bookingItems as $item) {
+            $dayOfWeek = $item->slot_date ? $item->slot_date->dayOfWeek : 0;
+            $slotPrice = $item->timeSlot?->prices?->firstWhere('day_of_week', $dayOfWeek);
+            $item->price_type = $slotPrice?->price_type ?? 'normal';
+        }
 
         return view('customer.bookings.reschedule', [
             'booking' => $booking,
-            'bookingItems' => $booking->items->where('status', 'booked')->sortBy('start_time')->values(),
+            'bookingItems' => $bookingItems,
         ]);
     }
 
@@ -64,6 +72,7 @@ class CustomerBookingRescheduleController extends Controller
         $items = BookingItem::whereIn('id', $bookingItemIds)
             ->where('booking_id', $booking->id)
             ->where('status', 'booked')
+            ->with(['timeSlot.prices'])
             ->orderBy('slot_date')
             ->orderBy('start_time')
             ->get();
@@ -82,6 +91,7 @@ class CustomerBookingRescheduleController extends Controller
 
         $newSlots = TimeSlot::whereIn('id', $newTimeSlotIds)
             ->where('court_id', $booking->court_id)
+            ->with(['prices'])
             ->orderBy('start_time')
             ->get();
 
@@ -91,6 +101,26 @@ class CustomerBookingRescheduleController extends Controller
 
         if (! $this->slotsAreConsecutive($newSlots)) {
             return back()->withInput()->with('error', 'Các ca mới phải liền nhau, không được chọn các ca rời nhau.');
+        }
+
+        $newSlotDate = Carbon::parse($data['new_slot_date']);
+        $newDayOfWeek = $newSlotDate->dayOfWeek;
+
+        $orderedItems = $items->values();
+        $orderedSlots = $newSlots->values();
+
+        foreach ($orderedItems as $index => $item) {
+            $oldDayOfWeek = $item->slot_date->dayOfWeek;
+            $oldSlotPrice = $item->timeSlot?->prices?->firstWhere('day_of_week', $oldDayOfWeek);
+            $oldPriceType = $oldSlotPrice?->price_type ?? 'normal';
+
+            $slot = $orderedSlots[$index];
+            $newSlotPrice = $slot->prices?->firstWhere('day_of_week', $newDayOfWeek);
+            $newPriceType = $newSlotPrice?->price_type ?? 'normal';
+
+            if ($oldPriceType === 'normal' && $newPriceType === 'peak') {
+                return back()->withInput()->with('error', 'Ca cũ là ca thường, không thể đổi sang ca cao điểm.');
+            }
         }
 
         foreach ($newSlots as $slot) {

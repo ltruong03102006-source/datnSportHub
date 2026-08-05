@@ -90,6 +90,12 @@
                 <div class="info-label">Số tiền muốn rút</div>
                 <div class="info-value money">{{ number_format($withdrawal->amount, 0, ',', '.') }}đ</div>
             </div>
+            @if($withdrawal->owner_note)
+            <div class="info-row">
+                <div class="info-label">Ghi chú người gửi</div>
+                <div class="info-value">{{ $withdrawal->owner_note }}</div>
+            </div>
+            @endif
             <div class="info-row">
                 <div class="info-label">Trạng thái</div>
                 <div class="info-value"><span class="badge-status {{ $statusClass }}">{{ $statusText }}</span></div>
@@ -127,11 +133,11 @@
             </div>
             <div class="info-row">
                 <div class="info-label">Số điện thoại</div>
-                <div class="info-value">{{ $withdrawal->owner?->phone ?? 'Chưa cập nhật' }}</div>
+                    <div class="info-value">{{ $ownerPhone ?? 'Chưa cập nhật' }}</div>
             </div>
             <div class="info-row">
                 <div class="info-label">Số dư ví hiện tại</div>
-                <div class="info-value money">{{ number_format($walletBalance, 0, ',', '.') }}đ</div>
+                <div class="info-value money">{{ number_format($walletBalance ?? 0, 0, ',', '.') }}đ</div>
             </div>
         </section>
     </div>
@@ -193,9 +199,19 @@
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('admin.withdrawals.approve', $withdrawal) }}">
+                <form method="POST" action="{{ route('admin.withdrawals.approve', $withdrawal) }}" enctype="multipart/form-data">
                     @csrf
-                    <button class="btn-approve" type="submit">Duyệt, trừ ví chủ sân và ví nền tảng</button>
+                    <input type="hidden" name="status" value="approved">
+
+                    <div class="info-row">
+                        <div class="info-label">Ảnh minh chứng</div>
+                        <div class="info-value">
+                            <input type="file" name="proof_image" accept="image/jpeg,image/png,image/jpg,image/webp" class="form-control-soft">
+                            <div class="muted" style="margin-top: 6px;">Ảnh minh chứng bắt buộc khi duyệt yêu cầu (JPEG, PNG, JPG, WEBP).</div>
+                        </div>
+                    </div>
+
+                    <button class="btn-approve" type="submit" @if($walletBalance < $withdrawAmount) disabled @endif>Duyệt, trừ ví chủ sân và ví nền tảng</button>
                 </form>
 
                 <form method="POST" action="{{ route('admin.withdrawals.reject', $withdrawal) }}" style="margin-top: 18px;">
@@ -224,6 +240,21 @@
                     <div class="info-label">Trạng thái hiện tại</div>
                     <div class="info-value"><span class="badge-status {{ $statusClass }}">{{ $statusText }}</span></div>
                 </div>
+                @if($withdrawal->admin_note)
+                    <div class="info-row">
+                        <div class="info-label">Lý do / Ghi chú</div>
+                        <div class="info-value">{{ $withdrawal->admin_note }}</div>
+                    </div>
+                @endif
+                @if($withdrawal->proof_image)
+                    <div class="info-row">
+                        <div class="info-label">Ảnh minh chứng</div>
+                        <div class="info-value">
+                            <a href="{{ asset('storage/' . $withdrawal->proof_image) }}" target="_blank" class="btn-outline-soft" style="padding: 8px 12px; display: inline-block; margin-bottom: 10px;">Xem ảnh</a>
+                            <img src="{{ asset('storage/' . $withdrawal->proof_image) }}" alt="Ảnh minh chứng" style="max-width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 3px 8px rgba(0,0,0,0.06);">
+                        </div>
+                    </div>
+                @endif
             </section>
         @endif
     </div>

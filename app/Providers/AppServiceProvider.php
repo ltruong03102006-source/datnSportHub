@@ -22,6 +22,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        \App\Models\Venue::observe(\App\Observers\VenueObserver::class);
+
         View::composer(['owner.*'], function ($view) {
             if (! Auth::check()) {
                 return;

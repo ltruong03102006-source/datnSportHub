@@ -10,13 +10,17 @@ use App\Models\Court;
 use App\Models\Booking;
 use App\Models\TimeSlot;
 use App\Services\BookingCompletionService;
+use App\Services\CourtStatisticsService;
 use Carbon\Carbon;
 use Illuminate\View\View;
 
 class OwnerDashboardController extends Controller
 {
-    public function index(Request $request, BookingCompletionService $completionService): View
-    {
+    public function index(
+        Request $request,
+        BookingCompletionService $completionService,
+        CourtStatisticsService $courtStatistics
+    ): View {
         $ownerId = Auth::id();
 
         $completionService->completeExpiredBookings(ownerId: $ownerId);
@@ -34,6 +38,19 @@ class OwnerDashboardController extends Controller
             $selectedVenueId = 'all';
         }
         
+        // Court Filter: chỉ chọn được sân con khi đã chọn 1 cơ sở cụ thể
+        $courtsOfVenue = $selectedVenueId !== 'all'
+            ? Court::forVenues([$selectedVenueId])->orderedByName()->get()
+            : collect();
+
+        // Chỉ nhận court_id là số và phải thuộc cơ sở đang chọn, còn lại coi như xem tất cả
+        $requestedCourtId = $request->query('court_id');
+        $selectedCourtId = 'all';
+        if (is_scalar($requestedCourtId) && ctype_digit((string) $requestedCourtId)
+            && $courtsOfVenue->contains('id', (int) $requestedCourtId)) {
+            $selectedCourtId = (int) $requestedCourtId;
+        }
+
         // Date Period Filter
         $period = $request->query('period', 'month');
         $customStart = $request->query('start_date');
@@ -83,6 +100,8 @@ class OwnerDashboardController extends Controller
             ->whereHas('court', function ($query) use ($venueIds) {
                 $query->whereIn('venue_id', $venueIds);
             })
+            // Khi chọn 1 sân con cụ thể thì toàn bộ chỉ số chỉ tính trên sân đó
+            ->when($selectedCourtId !== 'all', fn ($query) => $query->forCourts([$selectedCourtId]))
             ->whereBetween('slot_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
             ->get();
 
@@ -133,6 +152,16 @@ class OwnerDashboardController extends Controller
             'cancelled' => $bookings->where('status', 'cancelled')->count(),
         ];
 
+        // Phân loại Lượt đặt lẻ vs Lượt đặt gói
+        $singleBookings = $validBookings->filter(fn (Booking $b) => empty($b->booking_package_id) || strtolower((string) $b->payment_method) !== 'package');
+        $packageBookings = $validBookings->filter(fn (Booking $b) => ! empty($b->booking_package_id) && strtolower((string) $b->payment_method) === 'package');
+
+        $singleBookingsCount = $singleBookings->count();
+        $singleBookingsCompletedCount = $singleBookings->where('status', 'completed')->count();
+
+        $packageBookingsCount = $packageBookings->count();
+        $packageBookingsCompletedCount = $packageBookings->where('status', 'completed')->count();
+
         // 4. Revenue by Day for Line Chart
         $revenueByDay = $completedPaidBookings->groupBy(function($b) {
             return Carbon::parse($b->slot_date)->format('Y-m-d');
@@ -161,7 +190,9 @@ class OwnerDashboardController extends Controller
         // Calculate Occupancy Rate (Tỷ lệ lấp đầy)
         // Find total available hours in the period
         $daysInPeriod = max(1, $startDate->diffInDays($endDate) + 1); // at least 1 day
-        $courtIds = Court::whereIn('venue_id', $venueIds)->pluck('id');
+        $courtIds = Court::whereIn('venue_id', $venueIds)
+            ->when($selectedCourtId !== 'all', fn ($query) => $query->where('id', $selectedCourtId))
+            ->pluck('id');
         
         // Calculate daily capacity across all filtered courts based on time_slots
         $totalDailyMinutesCapacity = TimeSlot::whereIn('court_id', $courtIds)->sum('duration_minutes');
@@ -181,6 +212,7 @@ class OwnerDashboardController extends Controller
         $prevRevenue = Booking::whereHas('court', function ($query) use ($venueIds) {
                 $query->whereIn('venue_id', $venueIds);
             })
+            ->when($selectedCourtId !== 'all', fn ($query) => $query->forCourts([$selectedCourtId]))
             ->where('status', 'completed')
             ->where(function ($query) {
                 $query->whereIn('payment_status', ['paid', 'completed', 'success'])
@@ -221,6 +253,22 @@ class OwnerDashboardController extends Controller
         })->sortByDesc('revenue')->take(5)->values();
 
 
+        // 11. Thống kê chi tiết từng sân con của cơ sở đang chọn.
+        // Bảng này luôn tính trên toàn bộ sân con để so sánh được với nhau,
+        // kể cả khi phía trên đang lọc riêng một sân.
+        $courtStats = collect();
+        $courtHeatmap = ['hours' => [], 'rows' => [], 'max' => 0];
+        if ($courtsOfVenue->isNotEmpty()) {
+            $venueBookings = $selectedCourtId === 'all'
+                ? $bookings
+                : Booking::forCourts($courtsOfVenue->pluck('id'))
+                    ->inPeriod($startDate, $endDate)
+                    ->get();
+
+            $courtStats = $courtStatistics->statsByCourt($courtsOfVenue, $venueBookings, $daysInPeriod);
+            $courtHeatmap = $courtStatistics->bookingHeatmap($courtsOfVenue, $venueBookings);
+        }
+
         $chartData = [
             'revenueDates' => $revenueByDay->keys()->toArray(),
             'revenueValues' => $revenueByDay->values()->toArray(),
@@ -236,9 +284,17 @@ class OwnerDashboardController extends Controller
             'customEnd',
             'allVenues',
             'selectedVenueId',
+            'courtsOfVenue',
+            'selectedCourtId',
+            'courtStats',
+            'courtHeatmap',
             'totalRevenue',
             'packageBookingRevenue',
             'totalBookings',
+            'singleBookingsCount',
+            'singleBookingsCompletedCount',
+            'packageBookingsCount',
+            'packageBookingsCompletedCount',
             'bookingStatuses',
             'uniqueCustomers',
             'totalHours',

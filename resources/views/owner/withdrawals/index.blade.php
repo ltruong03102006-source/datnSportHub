@@ -127,6 +127,14 @@
                                     <span class="inline-flex rounded-full px-3 py-1 text-xs font-black ring-1 {{ $statusClass }}">
                                         {{ $statusText }}
                                     </span>
+                                    @if($withdrawal->admin_note)
+                                        <div class="mt-2 text-xs text-slate-500" title="{{ $withdrawal->admin_note }}">Ghi chú admin: {{ \Illuminate\Support\Str::limit($withdrawal->admin_note, 60) }}</div>
+                                    @endif
+                                    @if($withdrawal->proof_image)
+                                        <div class="mt-2 text-xs">
+                                            <a href="{{ asset('storage/' . $withdrawal->proof_image) }}" target="_blank" class="text-emerald-600 font-semibold">Xem ảnh minh chứng</a>
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="whitespace-nowrap px-5 py-4 text-sm font-semibold text-slate-600">
                                     {{ $withdrawal->created_at?->format('d/m/Y H:i') }}

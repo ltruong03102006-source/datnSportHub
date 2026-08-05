@@ -288,6 +288,9 @@
                style="display:flex; align-items:center; width:100%; text-decoration:none;">
                 <i class="fa-solid fa-building"></i> Quản lý cơ sở
             </a>
+            <a href="{{ route('admin.venue-transfers.index') }}" class="nav-item {{ request()->routeIs('admin.venue-transfers.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-arrow-right-arrow-left"></i> Chuyển nhượng cơ sở
+            </a>
             <a href="{{ route('admin.courts.index') }}" class="nav-item {{ request()->routeIs('admin.courts.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-list-check"></i> Quản lý sân
             </a>
@@ -296,6 +299,9 @@
             </a>
             <a href="{{ route('admin.packages.index') }}" class="nav-item {{ request()->routeIs('admin.packages.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-layer-group"></i> Quản lý gói
+            </a>
+            <a href="{{ route('admin.chatbot.index') }}" class="nav-item {{ request()->routeIs('admin.chatbot.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-robot"></i> Chatbot logs
             </a>
             <a href="{{ route('admin.transactions.index') }}" class="nav-item {{ request()->routeIs('admin.transactions.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-wallet"></i> Lịch sử giao dịch
@@ -309,10 +315,9 @@
             <a href="{{ route('admin.withdrawals.index') }}" class="nav-item {{ request()->routeIs('admin.withdrawals.*') ? 'active' : '' }}">
                 <i class="fa-solid fa-money-bill-transfer"></i> Yêu cầu rút tiền
             </a>
-            <!-- MENU MỚI: CHUYỂN NHƯỢNG CƠ SỞ -->
-            <a href="{{ route('admin.venue-transfers.index') }}" 
-               class="nav-item {{ request()->routeIs('admin.venue-transfers.*') ? 'active' : '' }}">
-                <i class="fa-solid fa-right-left"></i> Chuyển nhượng cơ sở
+            <!-- THÊM NÚT NÀY VÀO ĐÂY -->
+            <a href="{{ route('admin.financial-settings.index') }}" class="nav-item {{ request()->routeIs('admin.financial-settings.*') ? 'active' : '' }}">
+                <i class="fa-solid fa-money-bill-transfer"></i> Cấu hình tài chính
             </a>
             <!-- Mock links matching the screenshot -->
             {{-- <a href="#" class="nav-item"><i class="fa-solid fa-wallet"></i> Thanh toán</a>

@@ -4,12 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\OwnerRegistration;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class OwnerLoginWebTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     public function test_owner_login_page_is_available(): void
     {

@@ -7,12 +7,14 @@ use App\Http\Controllers\Api\OwnerAuthController;
 use App\Http\Controllers\Api\OwnerVenueController;
 use App\Http\Controllers\Api\OwnerCourtController;
 use App\Http\Controllers\Api\OwnerBookingController;
+use App\Http\Controllers\Api\OwnerVoucherController;
 use App\Http\Controllers\Api\SportController;
 use App\Http\Controllers\Api\VenueController;
 use App\Http\Controllers\Api\CourtAvailabilityController;
 use App\Http\Controllers\Api\AdminOwnerRegistrationController;
 use App\Http\Controllers\Api\AdminVenueController;
 use App\Http\Controllers\CourtController;
+use App\Http\Controllers\Api\AdminBillController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\PackageBookingController;
 use App\Http\Controllers\Api\ReviewController;
@@ -97,6 +99,8 @@ Route::get('/courts/{courtId}', [CourtController::class, 'show'])
 // Court Availability API
 Route::get('/courts/{courtId}/availability', [CourtAvailabilityController::class, 'show'])
     ->name('courts.availability');
+Route::get('/courts/{courtId}/available-vouchers', [\App\Http\Controllers\Api\VoucherEligibilityController::class, 'getAvailableVouchers'])
+    ->name('courts.available_vouchers');
 // Venues API
 Route::get('/venues/nearby', [VenueController::class, 'nearby'])->name('venues.nearby_api');
 
@@ -168,6 +172,12 @@ Route::middleware(['auth:sanctum', 'owner'])->prefix('owner')->group(function ()
     Route::post('/bookings/{id}/cancel', [OwnerBookingController::class, 'cancel'])->name('owner.bookings.cancel');
     Route::get('/venues/{venueId}/bookings', [OwnerBookingController::class, 'venueBookings'])->name('owner.venues.bookings');
     Route::get('/courts/{courtId}/bookings', [OwnerBookingController::class, 'courtBookings'])->name('owner.courts.bookings');
+
+    // Owner Vouchers
+    Route::post('/vouchers', [OwnerVoucherController::class, 'store'])->name('owner.vouchers.store');
+    Route::get('/vouchers/{id}', [OwnerVoucherController::class, 'show'])->name('owner.vouchers.show');
+    Route::put('/vouchers/{id}', [OwnerVoucherController::class, 'update'])->name('owner.vouchers.update');
+    Route::post('/vouchers/{id}/extend', [OwnerVoucherController::class, 'extend'])->name('owner.vouchers.extend');
 });
 
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
@@ -180,4 +190,8 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     // Route::post('/venues/{venue}/activate', [AdminVenueController::class, 'activate'])->name('admin.venues.activate');
     // Route::post('/venues/{venue}/deactivate', [AdminVenueController::class, 'deactivate'])->name('admin.venues.deactivate');
     // Route::get('/venues/{venue}/logs', [AdminVenueController::class, 'logs'])->name('admin.venues.logs');
+});
+
+Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+    Route::put('/bills/{billId}/confirm-payment', [AdminBillController::class, 'confirmPayment']);
 });

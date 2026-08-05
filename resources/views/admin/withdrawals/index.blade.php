@@ -199,6 +199,135 @@
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
     }
+    .alert-success { background: #eafaf1; color: #2ecc71; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; }
+    .alert-error { background: #fdedec; color: #e74c3c; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; }
+
+    /* Custom File Upload */
+    .upload-zone {
+        border: 2px dashed #cbd5e1;
+        border-radius: 12px;
+        padding: 32px 24px;
+        text-align: center;
+        background: #f8fafc;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+        border-color: var(--primary, #10b981);
+        background: #f0fdf4;
+    }
+
+    .user-info {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+    .user-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid #e2e8f0;
+    }
+    .user-details h4 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 800;
+    }
+    .user-details p {
+        margin: 4px 0 0;
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+    .btn-action {
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        border: none;
+        transition: transform .15s ease, box-shadow .15s ease;
+        background: #f8fafc;
+        color: var(--text-dark);
+    }
+    .btn-action:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 20px rgba(15, 23, 42, .08);
+    }
+    .btn-action.primary {
+        background: var(--primary);
+        color: #fff;
+    }
+    .table-wrap .data-table td:last-child {
+        white-space: nowrap;
+    }
+    .table-wrap .data-table td {
+        vertical-align: middle;
+    }
+    .details-additional {
+        display: grid;
+        gap: 4px;
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+        font-size: 32px;
+        color: #64748b;
+        margin-bottom: 12px;
+    }
+    .upload-text {
+        font-size: 14px;
+        color: #334155;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+    .upload-hint {
+        font-size: 12px;
+        color: #94a3b8;
+    }
+    .upload-zone input[type="file"] {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        opacity: 0;
+        cursor: pointer;
+        width: 100%;
+    }
+    
+    .image-preview-container {
+        display: none;
+        margin-top: 12px;
+        position: relative;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+    }
+    .image-preview-container img {
+        width: 100%;
+        max-height: 200px;
+        object-fit: contain;
+        display: block;
+        background: #f1f5f9;
+    }
+    .remove-image-btn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(0,0,0,0.6);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .remove-image-btn:hover {
+        background: rgba(220, 38, 38, 0.9);
+    }
 </style>
 @endpush
 
@@ -284,38 +413,52 @@
             </tr>
         </thead>
         <tbody>
-            @forelse($withdrawals as $withdrawal)
+            @forelse($withdrawals as $w)
+            <tr>
+                <td style="color: var(--text-muted); font-weight: 500;">#{{ $w->id }}</td>
+                <td>
+                    <div class="user-info">
+                        <img src="https://ui-avatars.com/api/?name={{ urlencode($w->owner->name ?? 'Owner') }}&background=random" class="user-avatar" alt="Avatar">
+                        <div class="user-details">
+                            <h4>{{ $w->owner->name ?? 'N/A' }}</h4>
+                            <p>{{ $w->owner->email ?? '' }}</p>
+                            @if($w->owner_note)
+                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 6px;" title="{{ $w->owner_note }}">Ghi chú chủ sân: {{ \Illuminate\Support\Str::limit($w->owner_note, 80) }}</div>
+                            @endif
+                            <span style="color: #2ecc71; font-weight: 600; font-size: 11px;">Số dư ví: {{ number_format(optional($w->owner)->getOrCreateWallet()->balance ?? 0, 0, ',', '.') }}đ</span>
+                        </div>
+                    </div>
+                </td>
+                <td style="font-weight: 600; color: #e74c3c;">{{ number_format($w->amount) }}đ</td>
+                <td>
+                    <div class="user-details">
+                        <h4>{{ $w->bank_name }}</h4>
+                        <p>STK: <strong>{{ $w->bank_account_no }}</strong></p>
+                        <p>Tên: {{ $w->bank_account_name }}</p>
+                    </div>
+                </td>
                 @php
-                    $statusValue = $withdrawal->status instanceof \BackedEnum ? $withdrawal->status->value : $withdrawal->status;
-                    [$statusText, $statusClass] = $statusLabels[$statusValue] ?? [$statusValue, 'status-cancelled'];
+                    $statusValue = $w->status instanceof \BackedEnum ? $w->status->value : (string) $w->status;
                 @endphp
-                <tr>
-                    <td>
-                        <strong>{{ $withdrawal->code }}</strong>
-                        <div class="muted">#{{ $withdrawal->id }}</div>
-                    </td>
-                    <td>
-                        <strong>{{ $withdrawal->owner?->name ?? 'Không rõ' }}</strong>
-                        <div class="muted">{{ $withdrawal->owner?->email }}</div>
-                    </td>
-                    <td class="money">{{ number_format($withdrawal->amount, 0, ',', '.') }}đ</td>
-                    <td>
-                        <strong>{{ $withdrawal->bank_name }}</strong>
-                        <div class="muted">{{ $withdrawal->bank_account_number ?? $withdrawal->bank_account_no }}</div>
-                    </td>
-                    <td>
-                        <span class="badge-status {{ $statusClass }}">{{ $statusText }}</span>
-                    </td>
-                    <td>
-                        <strong>{{ $withdrawal->created_at?->format('d/m/Y') }}</strong>
-                        <div class="muted">{{ $withdrawal->created_at?->format('H:i') }}</div>
-                    </td>
-                    <td>
-                        <a class="btn-outline-soft" href="{{ route('admin.withdrawals.show', $withdrawal) }}">
-                            Xem chi tiết
-                        </a>
-                    </td>
-                </tr>
+                <td>
+                    @if($statusValue === 'pending')
+                        <span class="badge-status status-pending">Đang chờ</span>
+                    @elseif($statusValue === 'approved')
+                        <span class="badge-status status-approved">Đã duyệt</span>
+                    @elseif($statusValue === 'rejected')
+                        <span class="badge-status status-rejected">Từ chối</span>
+                    @else
+                        <span class="badge-status status-cancelled">{{ ucfirst($statusValue) }}</span>
+                    @endif
+                    @if($w->admin_note)
+                        <div style="font-size: 10px; color: var(--text-muted); margin-top: 4px;" title="{{ $w->admin_note }}">Có ghi chú admin</div>
+                    @endif
+                </td>
+                <td style="color: var(--text-muted); font-size: 12px;">{{ $w->created_at->format('H:i d/m/Y') }}</td>
+                <td style="text-align: right;">
+                    <a href="{{ route('admin.withdrawals.show', $w) }}" class="btn-action primary" style="text-decoration: none;">Chi tiết</a>
+                </td>
+            </tr>
             @empty
                 <tr>
                     <td colspan="7" style="padding: 42px; text-align: center;">
@@ -331,4 +474,5 @@
 <div style="margin-top: 20px;">
     {{ $withdrawals->links() }}
 </div>
+
 @endsection

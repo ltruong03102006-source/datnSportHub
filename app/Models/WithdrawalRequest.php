@@ -18,14 +18,10 @@ class WithdrawalRequest extends Model
         'bank_account_holder',
         'bank_account_no',
         'bank_account_name',
-        'status',
         'owner_note',
+        'status',
         'admin_note',
-        'approved_by',
-        'approved_at',
-        'rejected_at',
-        'cancelled_at',
-        'processed_at',
+        'proof_image'
     ];
 
     protected $casts = [
