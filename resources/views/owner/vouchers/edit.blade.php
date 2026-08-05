@@ -206,15 +206,6 @@
                 }
             </script>
 
-            <!-- Voucher đích danh (Tùy chọn) -->
-            <div class="border-t border-slate-100 pt-6">
-                <label class="mb-3 block text-xs font-extrabold uppercase tracking-wider {{ $hasBeenUsed ? 'text-slate-500' : 'text-slate-700' }}">Dành riêng cho khách hàng (Tùy chọn)</label>
-                <div class="mb-2">
-                    <input type="text" name="target_user_input" value="{{ old('target_user_input', $targetUserInput) }}" placeholder="Nhập Số điện thoại hoặc Email khách hàng" {{ $hasBeenUsed ? 'readonly' : '' }} class="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium transition focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 {{ $hasBeenUsed ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-slate-50/50 text-slate-800 focus:bg-white' }}">
-                    <p class="mt-1.5 text-[13px] text-slate-500">Nếu nhập, mã voucher này sẽ được cấp ĐỘC QUYỀN cho khách hàng này. Người khác không thể lấy mã để sử dụng.</p>
-                </div>
-            </div>
-
             <!-- Áp dụng cơ sở -->
             <div class="border-t border-slate-100 pt-6">
                 <label class="mb-3 block text-xs font-extrabold uppercase tracking-wider {{ $hasBeenUsed ? 'text-slate-500' : 'text-slate-700' }}">Áp dụng cho cơ sở</label>
