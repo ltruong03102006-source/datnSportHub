@@ -99,6 +99,8 @@ Route::get('/courts/{courtId}', [CourtController::class, 'show'])
 // Court Availability API
 Route::get('/courts/{courtId}/availability', [CourtAvailabilityController::class, 'show'])
     ->name('courts.availability');
+Route::get('/courts/{courtId}/available-vouchers', [\App\Http\Controllers\Api\VoucherEligibilityController::class, 'getAvailableVouchers'])
+    ->name('courts.available_vouchers');
 // Venues API
 Route::get('/venues/nearby', [VenueController::class, 'nearby'])->name('venues.nearby_api');
 
@@ -173,6 +175,9 @@ Route::middleware(['auth:sanctum', 'owner'])->prefix('owner')->group(function ()
 
     // Owner Vouchers
     Route::post('/vouchers', [OwnerVoucherController::class, 'store'])->name('owner.vouchers.store');
+    Route::get('/vouchers/{id}', [OwnerVoucherController::class, 'show'])->name('owner.vouchers.show');
+    Route::put('/vouchers/{id}', [OwnerVoucherController::class, 'update'])->name('owner.vouchers.update');
+    Route::post('/vouchers/{id}/extend', [OwnerVoucherController::class, 'extend'])->name('owner.vouchers.extend');
 });
 
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {

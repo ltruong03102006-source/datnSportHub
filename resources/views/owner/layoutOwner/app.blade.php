@@ -658,6 +658,7 @@
         <a href="{{ route('owner.contracts.index') }}">
             Hợp đồng
         </a>
+        
     </div>
 </nav>
 <div class="d-flex">
