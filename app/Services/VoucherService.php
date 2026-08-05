@@ -29,14 +29,14 @@ class VoucherService
             }
         }
 
-        // Đảm bảo owner_id hợp lệ
-        if (empty($data['owner_id'])) {
-            throw new Exception("Owner ID is required.");
+        // Đảm bảo owner_id hợp lệ nếu không phải là system voucher
+        if (empty($data['is_system_voucher']) && empty($data['owner_id'])) {
+            throw new Exception("owner_id is required for non-system vouchers.");
         }
 
         // Validate venues ownership
         $venueIds = $data['venue_ids'] ?? [];
-        if (!empty($venueIds)) {
+        if (empty($data['is_system_voucher']) && !empty($venueIds)) {
             $this->validateOwnership($data['owner_id'], $venueIds);
         }
 
@@ -287,6 +287,68 @@ class VoucherService
     }
 
     /**
+     * Extend voucher end date and/or add usage limit for admin (system vouchers)
+     *
+     * @param int $voucherId
+     * @param array $data
+     * @return Voucher
+     * @throws Exception
+     */
+    public function extendForAdmin(int $voucherId, array $data): Voucher
+    {
+        $voucher = Voucher::where('id', $voucherId)
+            ->whereNull('owner_id')
+            ->first();
+
+        if (!$voucher) {
+            throw new Exception("System Voucher không tồn tại.");
+        }
+
+        // Kéo dài thời gian áp dụng
+        if (!empty($data['new_end_date'])) {
+            $voucher->end_date = $data['new_end_date'];
+        } elseif (!empty($data['extend_days'])) {
+            $days = (int) $data['extend_days'];
+            if ($voucher->end_date && \Illuminate\Support\Carbon::parse($voucher->end_date)->isFuture()) {
+                $voucher->end_date = \Illuminate\Support\Carbon::parse($voucher->end_date)->addDays($days);
+            } else {
+                $voucher->end_date = \Illuminate\Support\Carbon::now()->addDays($days);
+            }
+        }
+
+        // Tăng thêm số lượng lượt sử dụng
+        if (!empty($data['add_quantity'])) {
+            $addQty = (int) $data['add_quantity'];
+            if (is_null($voucher->usage_limit)) {
+                $voucher->usage_limit = $voucher->used_count + $addQty;
+            } else {
+                $voucher->usage_limit += $addQty;
+            }
+        } elseif (array_key_exists('new_usage_limit', $data) && !is_null($data['new_usage_limit'])) {
+            $newLimit = (int) $data['new_usage_limit'];
+            if ($newLimit < $voucher->used_count) {
+                throw new Exception("Giới hạn lượt dùng mới phải lớn hơn hoặc bằng số lượt đã dùng ({$voucher->used_count}).");
+            }
+            $voucher->usage_limit = $newLimit;
+        }
+
+        // Tự động kích hoạt lại nếu voucher đang hết hạn hoặc tắt do hết lượt
+        if (in_array($voucher->status, ['expired', 'disabled'], true)) {
+            $now = \Illuminate\Support\Carbon::now();
+            $hasEndDateValid = is_null($voucher->end_date) || $voucher->end_date >= $now;
+            $hasUsageValid = is_null($voucher->usage_limit) || $voucher->used_count < $voucher->usage_limit;
+
+            if ($hasEndDateValid && $hasUsageValid) {
+                $voucher->status = 'active';
+            }
+        }
+
+        $voucher->save();
+
+        return $voucher;
+    }
+
+    /**
      * Get detailed voucher information with statistics and usage history for owner
      *
      * @param int $voucherId
@@ -355,7 +417,12 @@ class VoucherService
      */
     public function checkEligibility(Voucher $voucher, int $courtId, string $date, array $slots, float $totalPrice, ?int $userId): array
     {
-        // 1. Status
+        // 1. Bảo vệ voucher đích danh
+        if (!is_null($voucher->target_user_id) && (int)$userId !== (int)$voucher->target_user_id) {
+            return ['eligible' => false, 'discount' => 0, 'reason' => 'Voucher này được phát hành độc quyền cho một tài khoản khác.'];
+        }
+
+        // 2. Status
         if ($voucher->status !== 'active') {
             return ['eligible' => false, 'discount' => 0, 'reason' => 'Voucher không hoạt động.'];
         }
@@ -387,8 +454,8 @@ class VoucherService
                 return ['eligible' => false, 'discount' => 0, 'reason' => 'Voucher không áp dụng cho cơ sở này.'];
             }
         } else {
-            // Check if voucher owner is the same as venue owner
-            if ($voucher->owner_id !== $court->venue->owner_id) {
+            // Check if voucher owner is the same as venue owner (unless system voucher)
+            if (!is_null($voucher->owner_id) && $voucher->owner_id !== $court->venue->owner_id) {
                 return ['eligible' => false, 'discount' => 0, 'reason' => 'Voucher không thuộc cơ sở này.'];
             }
         }
@@ -494,8 +561,10 @@ class VoucherService
         $venueId = $court->venue_id;
         $ownerId = $court->venue->owner_id;
 
-        // Query active vouchers of owner that have remaining usages
-        $vouchers = Voucher::where('owner_id', $ownerId)
+        // Query active vouchers of owner that have remaining usages, AND system vouchers
+        $vouchers = Voucher::where(function ($q) use ($ownerId) {
+                $q->where('owner_id', $ownerId)->orWhereNull('owner_id');
+            })
             ->where('status', 'active')
             ->where(function ($q) {
                 $q->whereNull('usage_limit')
@@ -506,6 +575,12 @@ class VoucherService
                   ->orWhereHas('venues', function ($vq) use ($venueId) {
                       $vq->where('venues.id', $venueId);
                   });
+            })
+            ->where(function ($q) use ($userId) {
+                $q->whereNull('target_user_id');
+                if ($userId) {
+                    $q->orWhere('target_user_id', $userId);
+                }
             })
             ->get();
 
@@ -525,18 +600,33 @@ class VoucherService
      */
     public function incrementUsage(Voucher $voucher): void
     {
-        $voucher->increment('used_count');
+        // Khắc phục Race Condition bằng Truy vấn nguyên tử (Atomic Update)
+        if (!is_null($voucher->usage_limit)) {
+            $updated = \Illuminate\Support\Facades\DB::table('vouchers')
+                ->where('id', $voucher->id)
+                ->whereRaw('used_count < usage_limit')
+                ->increment('used_count');
+
+            if (!$updated) {
+                throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, 'Rất tiếc, mã giảm giá này vừa được người khác sử dụng hết lượt trong lúc bạn đang thanh toán.');
+            }
+        } else {
+            $voucher->increment('used_count');
+        }
+        
         $voucher->refresh();
 
         if (!is_null($voucher->usage_limit) && $voucher->used_count >= $voucher->usage_limit) {
-            try {
-                $notificationService = app(\App\Services\NotificationService::class);
-                $title = "Voucher {$voucher->code} đã hết lượt sử dụng";
-                $content = "Mã giảm giá '{$voucher->code}' của bạn đã đạt giới hạn sử dụng ({$voucher->used_count}/{$voucher->usage_limit}). Vui lòng bổ sung thêm lượt sử dụng hoặc gia hạn mã.";
-                $link = route('owner.web.vouchers.show', $voucher->id);
-                $notificationService->create($voucher->owner_id, $title, $content, $link, 'voucher_out_of_stock');
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error("Failed to send voucher out of stock notification: " . $e->getMessage());
+            if ($voucher->owner_id) {
+                try {
+                    $notificationService = app(\App\Services\NotificationService::class);
+                    $title = "Voucher {$voucher->code} đã hết lượt sử dụng";
+                    $content = "Mã giảm giá '{$voucher->code}' của bạn đã đạt giới hạn sử dụng ({$voucher->used_count}/{$voucher->usage_limit}). Vui lòng bổ sung thêm lượt sử dụng hoặc gia hạn mã.";
+                    $link = route('owner.web.vouchers.show', $voucher->id);
+                    $notificationService->create($voucher->owner_id, $title, $content, $link, 'voucher_out_of_stock');
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error("Failed to send voucher out of stock notification: " . $e->getMessage());
+                }
             }
         }
     }

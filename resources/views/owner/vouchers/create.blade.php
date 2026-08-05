@@ -151,24 +151,50 @@
                     <p class="col-span-2 text-xs text-slate-500 mt-1">Để trống nếu áp dụng cả ngày.</p>
                 </div>
 
-                <!-- Ngày trong tuần -->
-                <div class="col-span-2">
-                    <label class="block text-sm font-semibold text-slate-700 mb-2">Ngày áp dụng trong tuần</label>
-                    @php
-                        $days = [
-                            'monday' => 'Thứ 2', 'tuesday' => 'Thứ 3', 'wednesday' => 'Thứ 4',
-                            'thursday' => 'Thứ 5', 'friday' => 'Thứ 6', 'saturday' => 'Thứ 7', 'sunday' => 'Chủ nhật'
-                        ];
-                        $oldDays = old('apply_days', array_keys($days)); // Mặc định tick hết
-                    @endphp
-                    <div class="flex flex-wrap gap-3">
-                        @foreach($days as $key => $label)
-                            <label class="inline-flex items-center cursor-pointer px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors">
-                                <input type="checkbox" name="apply_days[]" value="{{ $key }}" class="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500" {{ in_array($key, $oldDays) ? 'checked' : '' }}>
-                                <span class="ml-2 text-sm font-medium text-slate-700">{{ $label }}</span>
-                            </label>
-                        @endforeach
-                    </div>
+            <script>
+                let timeSlotIndex = 1;
+                function addTimeSlotRow() {
+                    const container = document.getElementById('time-slots-container');
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center gap-2 time-slot-row';
+                    div.innerHTML = `
+                        <input type="time" name="time_slots[${timeSlotIndex}][start]" class="rounded-xl border border-slate-200 px-3 py-1.5 text-xs focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                        <span class="text-xs text-slate-400">đến</span>
+                        <input type="time" name="time_slots[${timeSlotIndex}][end]" class="rounded-xl border border-slate-200 px-3 py-1.5 text-xs focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                        <button type="button" onclick="this.parentElement.remove()" class="rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 px-2.5 py-1 text-xs font-bold">-</button>
+                    `;
+                    container.appendChild(div);
+                    timeSlotIndex++;
+                }
+            </script>
+
+            <!-- Voucher đích danh (Tùy chọn) -->
+            <div class="border-t border-slate-100 pt-6">
+                <label class="mb-3 block text-xs font-extrabold uppercase tracking-wider text-slate-700">Dành riêng cho khách hàng (Tùy chọn)</label>
+                <div class="mb-2">
+                    <input type="text" name="target_user_input" value="{{ old('target_user_input') }}" placeholder="Nhập Số điện thoại hoặc Email khách hàng" class="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-800 transition focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    <p class="mt-1.5 text-[13px] text-slate-500">Nếu nhập, mã voucher này sẽ được cấp ĐỘC QUYỀN cho khách hàng này. Người khác không thể lấy mã để sử dụng.</p>
+                </div>
+            </div>
+
+            <!-- Áp dụng cơ sở -->
+            <div class="border-t border-slate-100 pt-6">
+                <label class="mb-3 block text-xs font-extrabold uppercase tracking-wider text-slate-700">Áp dụng cho cơ sở</label>
+
+                <div class="mb-4 flex items-center gap-2">
+                    <input type="checkbox" id="applies_to_all_fields" name="applies_to_all_fields" value="1" {{ old('applies_to_all_fields') ? 'checked' : '' }} class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                    <label for="applies_to_all_fields" class="text-sm font-semibold text-slate-700">
+                        Áp dụng cho tất cả cơ sở thuộc sở hữu của tôi
+                    </label>
+                </div>
+
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                    @foreach($venues as $venue)
+                        <label class="flex items-center gap-3 rounded-xl border border-slate-200 p-3 hover:bg-slate-50 cursor-pointer">
+                            <input type="checkbox" name="venue_ids[]" value="{{ $venue->id }}" {{ is_array(old('venue_ids')) && in_array($venue->id, old('venue_ids')) ? 'checked' : '' }} class="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                            <span class="text-sm font-medium text-slate-800">{{ $venue->name }}</span>
+                        </label>
+                    @endforeach
                 </div>
             </div>
         </div>
