@@ -403,10 +403,18 @@ class VoucherService
         }
 
         // 6. Days of Week
-        $dayOfWeek = date('w', strtotime($date)); // 0 (CN) -> 6 (Thứ 7)
+        $dayOfWeek = (int) date('w', strtotime($date)); // 0 (CN) -> 6 (Thứ 7)
         if (!empty($voucher->apply_days)) {
-            $applyDays = (array) $voucher->apply_days;
-            if (!in_array($dayOfWeek, $applyDays) && !in_array((string)$dayOfWeek, $applyDays)) {
+            $dayNameMap = [
+                'sunday' => 0, 'monday' => 1, 'tuesday' => 2, 'wednesday' => 3,
+                'thursday' => 4, 'friday' => 5, 'saturday' => 6
+            ];
+            $applyDays = array_map(function($d) use ($dayNameMap) {
+                $lower = strtolower((string)$d);
+                return isset($dayNameMap[$lower]) ? $dayNameMap[$lower] : (int)$d;
+            }, (array) $voucher->apply_days);
+
+            if (!in_array($dayOfWeek, $applyDays, true)) {
                 $dayNames = [0 => 'Chủ Nhật', 1 => 'Thứ 2', 2 => 'Thứ 3', 3 => 'Thứ 4', 4 => 'Thứ 5', 5 => 'Thứ 6', 6 => 'Thứ 7'];
                 $allowedDays = array_map(fn($d) => $dayNames[$d] ?? $d, $applyDays);
                 return ['eligible' => false, 'discount' => 0, 'reason' => 'Không áp dụng cho ngày đã chọn (Chỉ áp dụng: ' . implode(', ', $allowedDays) . ').'];

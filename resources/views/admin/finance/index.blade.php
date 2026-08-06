@@ -559,10 +559,10 @@
             {{-- @if(Route::has('admin.debts.index'))
                 <a class="btn-soft" href="{{ route('admin.debts.index') }}">Công nợ owner</a>
             @endif --}}
-            <button type="button" class="btn-primary-soft" onclick="document.getElementById('withdrawModal').style.display='block'">
+            {{-- <button type="button" class="btn-primary-soft" onclick="document.getElementById('withdrawModal').style.display='block'">
                 Rút doanh thu
             </button>
-            <a class="btn-soft" href="{{ route('admin.finance.withdraw_history') }}">Lịch sử rút tiền</a>
+            <a class="btn-soft" href="{{ route('admin.finance.withdraw_history') }}">Lịch sử rút tiền</a> --}}
             @if(Route::has('admin.withdrawals.index'))
                 <a class="btn-soft" href="{{ route('admin.withdrawals.index') }}">Yêu cầu rút tiền</a>
             @endif

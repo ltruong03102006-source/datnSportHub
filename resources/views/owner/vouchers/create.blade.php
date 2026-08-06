@@ -156,8 +156,8 @@
                     <label class="block text-sm font-semibold text-slate-700 mb-2">Ngày áp dụng trong tuần</label>
                     @php
                         $days = [
-                            'monday' => 'Thứ 2', 'tuesday' => 'Thứ 3', 'wednesday' => 'Thứ 4',
-                            'thursday' => 'Thứ 5', 'friday' => 'Thứ 6', 'saturday' => 'Thứ 7', 'sunday' => 'Chủ nhật'
+                            '1' => 'Thứ 2', '2' => 'Thứ 3', '3' => 'Thứ 4',
+                            '4' => 'Thứ 5', '5' => 'Thứ 6', '6' => 'Thứ 7', '0' => 'Chủ nhật'
                         ];
                         $oldDays = old('apply_days', array_keys($days)); // Mặc định tick hết
                     @endphp

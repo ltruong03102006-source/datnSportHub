@@ -120,7 +120,7 @@ class OwnerVoucherController extends Controller
             'start_time' => 'nullable|date_format:H:i',
             'end_time' => 'nullable|date_format:H:i|after:start_time',
             'apply_days' => 'nullable|array',
-            'apply_days.*' => 'in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+            'apply_days.*' => 'in:0,1,2,3,4,5,6,monday,tuesday,wednesday,thursday,friday,saturday,sunday',
             'venue_ids' => 'required|array|min:1',
             'venue_ids.*' => 'exists:venues,id',
         ]);

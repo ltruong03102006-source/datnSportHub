@@ -721,8 +721,11 @@
 
         let applyDaysText = 'Tất cả ngày';
         if (v.apply_days && v.apply_days.length > 0) {
-            const dayNames = {1: 'T2', 2: 'T3', 3: 'T4', 4: 'T5', 5: 'T6', 6: 'T7', 0: 'CN'};
-            applyDaysText = v.apply_days.map(d => dayNames[d]).join(', ');
+            const dayNames = {
+                1: 'T2', 2: 'T3', 3: 'T4', 4: 'T5', 5: 'T6', 6: 'T7', 0: 'CN',
+                'monday': 'T2', 'tuesday': 'T3', 'wednesday': 'T4', 'thursday': 'T5', 'friday': 'T6', 'saturday': 'T7', 'sunday': 'CN'
+            };
+            applyDaysText = v.apply_days.map(d => dayNames[d] || d).join(', ');
         }
 
         let timeSlotsText = 'Cả ngày';
@@ -755,10 +758,7 @@
                         <span class="text-emerald-500">${orderTotal >= (v.min_booking_value || 0) ? '✅' : '❌'}</span>
                         <span>Đơn từ ${minOrderStr} trở lên</span>
                     </div>
-                    <div class="flex items-center gap-1.5">
-                        <span>⏰</span>
-                        <span>Còn ${remainingStr}</span>
-                    </div>
+                    
                     <div class="flex items-center gap-1.5">
                         <span>📅</span>
                         <span>Hạn: ${dateStr}</span>
