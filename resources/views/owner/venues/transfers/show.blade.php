@@ -140,15 +140,12 @@
 
         <!-- ĐIỀU 2 -->
         <div class="mb-6 space-y-2 text-sm">
-            <h4 class="font-bold text-slate-900">ĐIỀU 2: GIÁ CHUYỂN NHƯỢNG VÀ PHƯƠNG THỨC THANH TOÁN</h4>
+            <h4 class="font-bold text-slate-900">ĐIỀU 2: BÀN GIAO VÀ QUYỀN SỞ HỮU CƠ SỞ</h4>
             <p class="text-justify">
-                1. Giá chuyển nhượng toàn bộ là: <strong class="text-emerald-800 text-base font-sans">{{ number_format($transfer->price ?? 0, 0, ',', '.') }} VNĐ</strong>. Giá trên chưa bao gồm các khoản thuế, phí, lệ phí phát sinh khác theo quy định pháp luật.
+                1. Bên A có trách nhiệm bàn giao toàn bộ cơ sở thể thao <strong>{{ $transfer->venue->name ?? '' }}</strong>, trang thiết bị đi kèm và các giấy tờ pháp lý liên quan cho Bên B theo đúng thỏa thuận của hai bên.
             </p>
             <p class="text-justify">
-                2. Bên B sẽ giao cho bên A số tiền <strong class="font-sans">{{ number_format($transfer->price ?? 0, 0, ',', '.') }} VNĐ</strong> chậm nhất là 3 ngày kể từ ngày giao kết Hợp đồng này.
-            </p>
-            <p class="text-justify">
-                3. Phương thức thanh toán: Thanh toán một lần bằng tiền mặt hoặc chuyển khoản ngân hàng. Sau khi bên B hoàn tất thanh toán số tiền trên cho bên A, bên A có trách nhiệm bàn giao toàn bộ cơ sở thể thao <strong>{{ $transfer->venue->name ?? '' }}</strong> và các giấy tờ pháp lý có liên quan ngay cho bên B.
+                2. Kể từ thời điểm hợp đồng này được ký kết điện tử và được Admin phê duyệt trên hệ thống SportHub, quyền sở hữu, vận hành và khai thác cơ sở thể thao <strong>{{ $transfer->venue->name ?? '' }}</strong> chính thức thuộc về Bên B.
             </p>
         </div>
 
@@ -161,14 +158,14 @@
                 <li>Bảo đảm quyền sử dụng trọn vẹn hợp pháp và tạo mọi điều kiện thuận lợi, hỗ trợ để Bên B vận hành, kinh doanh đạt hiệu quả.</li>
                 <li>Hỗ trợ, bảo đảm cho Bên B nguồn nhân lực, lao động hiện có tại điểm sân tối thiểu 01 tháng sau khi chuyển nhượng.</li>
                 <li>Đã hoàn thành đầy đủ các nghĩa vụ tài chính của cơ sở đối với các bên thứ ba từ trước cho đến thời điểm ký hợp đồng này.</li>
-                <li>Yêu cầu Bên B trả đủ tiền chuyển nhượng theo đúng thời hạn thỏa thuận.</li>
+                <li>Yêu cầu Bên B tiếp nhận bàn giao và vận hành cơ sở theo đúng thỏa thuận.</li>
                 <li>Bàn giao toàn bộ trang thiết bị đồ dùng hiện có ngay sau khi ký kết hợp đồng, đảm bảo trung thực không giấu diếm.</li>
             </ul>
 
             <p class="font-bold text-slate-800 mt-3">2. Trách nhiệm của Bên B:</p>
             <ul class="list-disc list-inside space-y-1 text-justify pl-2">
                 <li>Nhận chuyển nhượng sang cơ sở thể thao <strong>{{ $transfer->venue->name ?? '' }}</strong> và trang thiết bị theo đúng thỏa thuận.</li>
-                <li>Thanh toán tiền chuyển nhượng đầy đủ và đúng thời hạn.</li>
+                <li>Tiếp nhận bàn giao cơ sở và tuân thủ các quy định vận hành trên nền tảng.</li>
                 <li>Chịu trách nhiệm về toàn bộ hoạt động kinh doanh và pháp lý của mình từ thời điểm nhận bàn giao.</li>
                 <li>Yêu cầu Bên A hỗ trợ đối soát dữ liệu và bàn giao đầy đủ chứng từ cần thiết.</li>
             </ul>

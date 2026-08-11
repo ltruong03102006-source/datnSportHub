@@ -64,7 +64,7 @@ class OwnerVenueTransferController extends Controller
             'venue_id'              => $targetVenue->id,
             'from_owner_id'         => auth()->id(),
             'to_owner_id'           => $receiver->id,
-            'price'                 => $request->input('price'),
+            'price'                 => $request->input('price', 0),
             'contract_date'         => $request->input('contract_date'),
             'contract_location'     => $request->input('contract_location'),
             'sender_data'           => [
