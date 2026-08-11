@@ -295,6 +295,12 @@ class OwnerVenueTransferController extends Controller
             'receiver_signed_account' => auth()->user()->email ?? auth()->user()->name,
         ]);
 
+        try {
+            app(\App\Services\NotificationService::class)->notifyAdminVenueTransfer($transfer);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Gửi thông báo chuyển nhượng cho admin thất bại: ' . $e->getMessage());
+        }
+
         return redirect()->back()->with('success', 'Đã ký hợp đồng điện tử thành công! Hợp đồng đã được chuyển tới Admin phê duyệt.');
     }
 }
