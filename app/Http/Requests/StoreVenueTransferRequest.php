@@ -38,7 +38,7 @@ class StoreVenueTransferRequest extends FormRequest
                     }
                 },
             ],
-            'price' => ['required', 'numeric', 'min:0'],
+            'price' => ['nullable', 'numeric', 'min:0'],
             'contract_date' => ['required', 'date'],
             'contract_location' => ['required', 'string', 'max:255'],
         ];
@@ -56,7 +56,6 @@ class StoreVenueTransferRequest extends FormRequest
             'sender_address.required' => 'Vui lòng nhập chỗ ở hiện tại của bên chuyển nhượng.',
             'receiver_email.required' => 'Vui lòng nhập Email bên nhận.',
             'receiver_email.email' => 'Địa chỉ Email không đúng định dạng.',
-            'price.required' => 'Vui lòng nhập giá chuyển nhượng.',
             'price.numeric' => 'Giá chuyển nhượng phải là số.',
             'price.min' => 'Giá chuyển nhượng không được nhỏ hơn 0.',
             'contract_date.required' => 'Vui lòng nhập ngày tạo hợp đồng.',

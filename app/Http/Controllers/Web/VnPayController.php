@@ -215,6 +215,7 @@ class VnPayController extends Controller
         $secureHash = hash_hmac('sha512', $hashData, $vnp_HashSecret);
         $txnRef = (string) $request->input('vnp_TxnRef', '');
         $isPackageTransaction = str_starts_with($txnRef, 'PKG-');
+        $isRescheduleTransaction = str_starts_with($txnRef, 'RS-');
         $orderId = null;
 
         if ($txnRef !== '') {
@@ -229,6 +230,21 @@ class VnPayController extends Controller
 
         if ($secureHash == $vnp_SecureHash) {
             if ($request->vnp_ResponseCode == '00') {
+                if ($isRescheduleTransaction) {
+                    try {
+                        $rawCode = explode('_', $txnRef)[0];
+                        \App\Models\BookingRescheduleRequest::where('request_code', $rawCode)
+                            ->update(['payment_status' => 'paid']);
+
+                        return redirect()->route('account.bookings.index')
+                            ->with('success', 'Thanh toán tiền chênh lệch đổi lịch qua VNPay thành công! Vui lòng chờ chủ sân duyệt.');
+                    } catch (\Throwable $e) {
+                        Log::error('Lỗi xử lý callback VNPay đổi lịch: ' . $e->getMessage());
+                        return redirect()->route('account.bookings.index')
+                            ->with('error', 'Thanh toán VNPay thành công nhưng chưa cập nhật được yêu cầu.');
+                    }
+                }
+
                 if ($isPackageTransaction) {
                     try {
                         $bookingPackage = BookingPackage::findOrFail($orderId);

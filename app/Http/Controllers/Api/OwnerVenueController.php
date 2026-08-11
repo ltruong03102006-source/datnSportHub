@@ -117,6 +117,12 @@ class OwnerVenueController extends Controller
             ]);
         }
 
+        try {
+            app(\App\Services\NotificationService::class)->notifyAdminNewVenue($venue);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Gửi thông báo tạo venue cho admin thất bại: ' . $e->getMessage());
+        }
+
         return response()->json([
             'message' => 'Venue created successfully',
             'data' => [

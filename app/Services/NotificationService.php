@@ -6,6 +6,8 @@ use App\Models\Notification;
 use App\Models\Booking;
 use App\Models\BookingPackage;
 use App\Models\Review;
+use App\Models\Venue;
+use App\Models\User;
 use Illuminate\Support\Carbon;
 
 class NotificationService
@@ -157,5 +159,43 @@ class NotificationService
         }
 
         return $this->create($ownerId, $title, $content, route('owner.web.wallet.topup.create'), 'debt_warning');
+    }
+
+    public function notifyAdminNewVenue(Venue $venue): void
+    {
+        $admins = User::where('role', 'admin')->get();
+        $ownerName = $venue->owner->name ?? 'Chủ sân';
+        $title = 'Cơ sở & Hồ sơ pháp lý mới cần duyệt';
+        $content = "Chủ sân {$ownerName} vừa tạo cơ sở \"{$venue->name}\" kèm hồ sơ pháp lý, đang chờ bạn duyệt.";
+        $link = route('admin.venues.documents', $venue->id);
+
+        foreach ($admins as $admin) {
+            $this->create($admin->id, $title, $content, $link, 'admin_new_venue');
+        }
+    }
+
+    public function notifyAdminVenueLegalUpdate(Venue $venue): void
+    {
+        $admins = User::where('role', 'admin')->get();
+        $title = 'Yêu cầu cập nhật hồ sơ pháp lý mới';
+        $content = "Cơ sở \"{$venue->name}\" vừa gửi yêu cầu cập nhật hồ sơ pháp lý, đang chờ bạn duyệt.";
+        $link = route('admin.venues.documents', $venue->id);
+
+        foreach ($admins as $admin) {
+            $this->create($admin->id, $title, $content, $link, 'admin_venue_legal_update');
+        }
+    }
+
+    public function notifyAdminVenueTransfer($transfer): void
+    {
+        $admins = User::where('role', 'admin')->get();
+        $venueName = $transfer->venue->name ?? 'Cơ sở';
+        $title = 'Yêu cầu chuyển nhượng cơ sở mới';
+        $content = "Hợp đồng chuyển nhượng cơ sở \"{$venueName}\" đã được các bên hoàn tất và đang chờ bạn duyệt.";
+        $link = route('admin.venue-transfers.show', $transfer->id);
+
+        foreach ($admins as $admin) {
+            $this->create($admin->id, $title, $content, $link, 'admin_venue_transfer');
+        }
     }
 }

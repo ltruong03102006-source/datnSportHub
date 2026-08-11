@@ -193,19 +193,6 @@
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Giá chuyển nhượng -->
-                            <div class="md:col-span-2">
-                                <label for="price" class="block text-sm font-semibold text-slate-700 mb-2">
-                                    Giá chuyển nhượng (VNĐ) <span class="text-red-500">*</span>
-                                </label>
-                                <div class="relative">
-                                    <input type="number" step="1000" min="0" name="price" id="price" value="{{ old('price') }}" required
-                                           class="w-full rounded-xl border-slate-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 px-4 py-3 pl-4 pr-16 text-slate-800 border font-medium"
-                                           placeholder="Ví dụ: 50000000">
-                                    <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-sm font-semibold text-slate-500 pointer-events-none">VNĐ</span>
-                                </div>
-                            </div>
-
                             <!-- Ngày tạo hợp đồng -->
                             <div>
                                 <label for="contract_date" class="block text-sm font-semibold text-slate-700 mb-2">

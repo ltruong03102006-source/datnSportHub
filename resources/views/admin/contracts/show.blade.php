@@ -1,6 +1,10 @@
 @extends('admin.layouts.app')
 
 @section('content')
+<style>
+    .center { text-align: center !important; }
+    .bold { font-weight: bold !important; }
+</style>
 <div class="container-fluid py-4">
     <div class="row mb-3">
         <div class="col-12">

@@ -97,6 +97,14 @@ class OwnerVenueController extends Controller
 
                 $createdVenue = $venue;
             });
+
+            if ($createdVenue) {
+                try {
+                    app(\App\Services\NotificationService::class)->notifyAdminNewVenue($createdVenue);
+                } catch (\Throwable $e) {
+                    Log::warning('Gửi thông báo tạo venue cho admin thất bại: ' . $e->getMessage());
+                }
+            }
         } catch (\Throwable $e) {
             Log::error('Owner venue creation failed.', [
                 'owner_id' => Auth::id(),
@@ -212,6 +220,12 @@ class OwnerVenueController extends Controller
                     'requested_data' => $legalData,
                     'status' => 'pending'
                 ]);
+
+                try {
+                    app(\App\Services\NotificationService::class)->notifyAdminVenueLegalUpdate($venue);
+                } catch (\Throwable $e) {
+                    Log::warning('Gửi thông báo cập nhật hồ sơ pháp lý cho admin thất bại: ' . $e->getMessage());
+                }
             }
 
             DB::commit();

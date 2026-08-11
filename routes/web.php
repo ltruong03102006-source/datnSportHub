@@ -308,6 +308,10 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
     Route::post('venues/transfers/{transfer}/sign', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'signContract'])
         ->name('venues.transfers.sign');
 
+    // Xử lý Hủy hợp đồng chuyển nhượng
+    Route::post('venues/transfers/{transfer}/cancel', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'cancelTransfer'])
+        ->name('venues.transfers.cancel');
+
     // Quản lý Mã giảm giá (Vouchers)
     Route::get('/vouchers/report', [WebOwnerVoucherController::class, 'report'])->name('vouchers.report');
     Route::get('/vouchers', [WebOwnerVoucherController::class, 'index'])->name('vouchers.index');
