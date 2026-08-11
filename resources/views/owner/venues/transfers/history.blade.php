@@ -262,6 +262,22 @@
                                                 Ký HĐ
                                             </a>
                                         @endif
+
+                                        {{-- Nút HỦY: Dành cho cả Bên A hoặc Bên B khi đang trong quá trình chuyển nhượng --}}
+                                        @if(in_array($transfer->status, ['draft', 'sent', 'pending', 'filled', 'signed', 'pending_admin']) && ($transfer->from_owner_id === auth()->id() || $transfer->to_owner_id === auth()->id()))
+                                            <form action="{{ route('owner.web.venues.transfers.cancel', $transfer->id) }}" 
+                                                  method="POST" 
+                                                  id="cancel-form-{{ $transfer->id }}"
+                                                  class="inline-block m-0">
+                                                @csrf
+                                                <button type="button"
+                                                        onclick="confirmCancel({{ $transfer->id }}, '{{ addslashes($transfer->venue->name ?? 'cơ sở') }}')"
+                                                        class="inline-flex items-center px-3 py-1.5 bg-red-50 hover:bg-red-600 hover:text-white text-red-700 text-xs font-bold rounded-lg transition-colors border border-red-200 shadow-sm">
+                                                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                                    Hủy
+                                                </button>
+                                            </form>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
@@ -321,8 +337,39 @@
         </div>
     </div>
 
+    <!-- MODAL XÁC NHẬN HỦY CHUYỂN NHƯỢNG -->
+    <div id="cancelConfirmModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md mx-4 p-8 text-center">
+            <div class="flex items-center justify-center mb-4">
+                <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+                    <svg class="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </div>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900 mb-2">Xác nhận hủy chuyển nhượng</h3>
+            <p class="text-sm text-slate-600 mb-1">Bạn có chắc chắn muốn hủy yêu cầu chuyển nhượng cho cơ sở</p>
+            <p id="cancelModalVenueName" class="text-base font-bold text-red-700 mb-1"></p>
+            <p class="text-sm text-slate-600 mb-5">Hành động này sẽ dừng quá trình chuyển nhượng và giải phóng cơ sở.<br>
+                <span class="text-xs text-slate-400 mt-1 inline-block">Cơ sở sẽ không còn trong trạng thái chờ chuyển nhượng.</span>
+            </p>
+            <div class="flex justify-center gap-3">
+                <button type="button" onclick="closeCancelModal()"
+                        class="px-6 py-2.5 text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">
+                    Đóng
+                </button>
+                <button type="button" id="confirmCancelBtn" onclick="submitCancelForm()"
+                        class="px-6 py-2.5 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-sm flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    Xác nhận Hủy
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let currentSendFormId = null;
+        let currentCancelFormId = null;
 
         function confirmSend(transferId, venueName, receiverEmail) {
             currentSendFormId = 'send-form-' + transferId;
@@ -347,9 +394,34 @@
             }
         }
 
+        function confirmCancel(transferId, venueName) {
+            currentCancelFormId = 'cancel-form-' + transferId;
+            document.getElementById('cancelModalVenueName').textContent = '"' + venueName + '"';
+            document.getElementById('cancelConfirmModal').classList.remove('hidden');
+            document.getElementById('cancelConfirmModal').classList.add('flex');
+        }
+
+        function closeCancelModal() {
+            document.getElementById('cancelConfirmModal').classList.add('hidden');
+            document.getElementById('cancelConfirmModal').classList.remove('flex');
+            currentCancelFormId = null;
+        }
+
+        function submitCancelForm() {
+            if (currentCancelFormId) {
+                const btn = document.getElementById('confirmCancelBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Đang hủy...';
+                document.getElementById(currentCancelFormId).submit();
+            }
+        }
+
         // Đóng modal khi bấm ngoài vùng
         document.getElementById('sendConfirmModal').addEventListener('click', function(e) {
             if (e.target === this) closeSendModal();
+        });
+        document.getElementById('cancelConfirmModal').addEventListener('click', function(e) {
+            if (e.target === this) closeCancelModal();
         });
     </script>
 </body>

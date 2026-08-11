@@ -303,4 +303,30 @@ class OwnerVenueTransferController extends Controller
 
         return redirect()->back()->with('success', 'Đã ký hợp đồng điện tử thành công! Hợp đồng đã được chuyển tới Admin phê duyệt.');
     }
+
+    /**
+     * Hủy yêu cầu chuyển nhượng (Bên A hủy gửi/hủy hợp đồng hoặc Bên B từ chối nhận)
+     */
+    public function cancelTransfer(Request $request, VenueTransferRequest $transfer)
+    {
+        $userId = auth()->id();
+
+        if ($transfer->from_owner_id !== $userId && $transfer->to_owner_id !== $userId) {
+            return redirect()->back()->with('error', 'Bạn không có quyền thực hiện hủy hợp đồng chuyển nhượng này.');
+        }
+
+        if (in_array($transfer->status, ['approved', 'rejected'])) {
+            return redirect()->back()->with('error', 'Hợp đồng chuyển nhượng này đã kết thúc hoặc đã bị hủy trước đó.');
+        }
+
+        $reason = $request->input('reason') ?: ($transfer->from_owner_id === $userId ? 'Đã hủy chuyển nhượng bởi Bên chuyển nhượng.' : 'Đã bị từ chối bởi Bên nhận.');
+
+        $transfer->update([
+            'status' => 'rejected',
+            'admin_note' => $reason,
+        ]);
+
+        return redirect()->route('owner.web.venues.transfers.history')
+            ->with('success', 'Đã hủy hợp đồng chuyển nhượng thành công. Cơ sở hiện không còn trong quá trình chuyển nhượng.');
+    }
 }

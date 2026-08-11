@@ -63,6 +63,18 @@
                 </span>
             @endif
 
+            {{-- Nút HỦY CHUYỂN NHƯỢNG: Dành cho cả 2 bên khi chưa approved/rejected --}}
+            @if(in_array($transfer->status, ['draft', 'sent', 'pending', 'filled', 'signed', 'pending_admin']) && ($transfer->from_owner_id === auth()->id() || $transfer->to_owner_id === auth()->id()))
+                <form action="{{ route('owner.web.venues.transfers.cancel', $transfer->id) }}" method="POST" class="inline" onsubmit="return confirm('Bạn có chắc chắn muốn hủy hợp đồng chuyển nhượng này? Cơ sở sẽ không còn trong quá trình chuyển nhượng.');">
+                    @csrf
+                    <button type="submit" 
+                            class="inline-flex items-center px-4 py-2 bg-red-50 hover:bg-red-600 hover:text-white text-red-700 text-sm font-bold rounded-xl border border-red-200 shadow-sm transition">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        Hủy chuyển nhượng
+                    </button>
+                </form>
+            @endif
+
             <button onclick="window.print()" 
                     class="inline-flex items-center px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-sm font-bold rounded-xl shadow-sm transition">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>

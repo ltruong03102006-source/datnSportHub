@@ -34,9 +34,12 @@ class CustomerBookingRescheduleController extends Controller
             $item->price_type = $slotPrice?->price_type ?? 'normal';
         }
 
+        $userWallet = auth()->user()->getOrCreateWallet();
+
         return view('customer.bookings.reschedule', [
             'booking' => $booking,
             'bookingItems' => $bookingItems,
+            'userWallet' => $userWallet,
         ]);
     }
 
@@ -55,6 +58,7 @@ class CustomerBookingRescheduleController extends Controller
             'new_slot_date' => ['required', 'date', 'after_or_equal:today'],
             'new_time_slot_ids' => ['required', 'array', 'min:1'],
             'new_time_slot_ids.*' => ['integer', 'exists:time_slots,id'],
+            'payment_method' => ['nullable', 'string', 'in:wallet,vnpay'],
             'reason' => ['nullable', 'string', 'max:1000'],
         ]);
 
@@ -109,17 +113,40 @@ class CustomerBookingRescheduleController extends Controller
         $orderedItems = $items->values();
         $orderedSlots = $newSlots->values();
 
+        $totalOldPrice = 0.0;
+        $totalNewPrice = 0.0;
+        $itemPrices = [];
+
         foreach ($orderedItems as $index => $item) {
-            $oldDayOfWeek = $item->slot_date->dayOfWeek;
-            $oldSlotPrice = $item->timeSlot?->prices?->firstWhere('day_of_week', $oldDayOfWeek);
-            $oldPriceType = $oldSlotPrice?->price_type ?? 'normal';
-
             $slot = $orderedSlots[$index];
-            $newSlotPrice = $slot->prices?->firstWhere('day_of_week', $newDayOfWeek);
-            $newPriceType = $newSlotPrice?->price_type ?? 'normal';
+            $oldPrice = (float) ($item->price ?? 0);
 
-            if ($oldPriceType === 'normal' && $newPriceType === 'peak') {
-                return back()->withInput()->with('error', 'Ca cũ là ca thường, không thể đổi sang ca cao điểm.');
+            $newSlotPriceObj = $slot->prices?->firstWhere('day_of_week', $newDayOfWeek);
+            $newPrice = (float) ($newSlotPriceObj?->price ?? $oldPrice);
+
+            $diff = $newPrice - $oldPrice;
+
+            $totalOldPrice += $oldPrice;
+            $totalNewPrice += $newPrice;
+
+            $itemPrices[$index] = [
+                'old_price' => $oldPrice,
+                'new_price' => $newPrice,
+                'price_difference' => $diff,
+            ];
+        }
+
+        $totalPriceDiff = $totalNewPrice - $totalOldPrice;
+        $paymentMethod = $data['payment_method'] ?? 'wallet';
+
+        // Nếu tổng tiền ca mới cao hơn ca cũ và chọn thanh toán qua Ví, kiểm tra số dư ví
+        if ($totalPriceDiff > 0 && $paymentMethod === 'wallet') {
+            $userWallet = $request->user()->getOrCreateWallet();
+            if ($userWallet->balance < $totalPriceDiff) {
+                return back()->withInput()->with(
+                    'error',
+                    'Số dư ví của bạn (' . number_format($userWallet->balance, 0, ',', '.') . ' VNĐ) không đủ để thanh toán số tiền chênh lệch ' . number_format($totalPriceDiff, 0, ',', '.') . ' VNĐ. Vui lòng chọn thanh toán qua VNPay hoặc nạp thêm tiền vào ví.'
+                );
             }
         }
 
@@ -134,14 +161,37 @@ class CustomerBookingRescheduleController extends Controller
             }
         }
 
-        $firstRequest = DB::transaction(function () use ($booking, $items, $newSlots, $data, $request) {
+        $firstRequest = DB::transaction(function () use ($booking, $items, $newSlots, $data, $request, $itemPrices, $totalPriceDiff, $paymentMethod) {
             $requestCode = 'RS-'.now('Asia/Ho_Chi_Minh')->format('YmdHis').'-'.$request->user()->id;
+
+            // Nếu thanh toán qua Ví và có tiền chênh lệch
+            if ($totalPriceDiff > 0 && $paymentMethod === 'wallet') {
+                $userWallet = $request->user()->getOrCreateWallet();
+                app(\App\Services\WalletService::class)->processTransaction(
+                    wallet: $userWallet,
+                    type: \App\Enums\TransactionType::PAYMENT,
+                    amount: $totalPriceDiff,
+                    description: 'Thanh toán tiền chênh lệch đổi ca đặt sân (Mã: ' . $requestCode . ')',
+                    bookingId: $booking->id,
+                    metadata: ['request_code' => $requestCode, 'total_price_diff' => $totalPriceDiff]
+                );
+            }
+
             $created = null;
             $orderedItems = $items->values();
             $orderedSlots = $newSlots->values();
 
             foreach ($orderedItems as $index => $item) {
                 $slot = $orderedSlots[$index];
+                $priceInfo = $itemPrices[$index];
+
+                $paymentStatus = 'none';
+                if ($totalPriceDiff > 0) {
+                    $paymentStatus = ($paymentMethod === 'vnpay') ? 'pending_vnpay' : 'paid';
+                } elseif ($totalPriceDiff < 0) {
+                    $paymentStatus = 'pending_refund';
+                }
+
                 $rescheduleRequest = BookingRescheduleRequest::create([
                     'request_code' => $requestCode,
                     'booking_id' => $booking->id,
@@ -155,6 +205,10 @@ class CustomerBookingRescheduleController extends Controller
                     'new_time_slot_id' => $slot->id,
                     'new_start_time' => $slot->start_time,
                     'new_end_time' => $slot->end_time,
+                    'old_price' => $priceInfo['old_price'],
+                    'new_price' => $priceInfo['new_price'],
+                    'price_difference' => $priceInfo['price_difference'],
+                    'payment_status' => $paymentStatus,
                     'reason' => $data['reason'] ?? null,
                     'status' => 'pending',
                 ]);
@@ -165,6 +219,11 @@ class CustomerBookingRescheduleController extends Controller
 
             return $created;
         });
+
+        if ($totalPriceDiff > 0 && $paymentMethod === 'vnpay' && $firstRequest) {
+            $vnpayUrl = $this->buildRescheduleVnpayUrl($request, $firstRequest->request_code, $totalPriceDiff);
+            return redirect()->away($vnpayUrl);
+        }
 
         try {
             $ownerId = $booking->load('court.venue.owner')->court->venue->owner?->id ?? null;
@@ -281,5 +340,57 @@ class CustomerBookingRescheduleController extends Controller
     private function normalizeTime(?string $time): ?string
     {
         return $time ? date('H:i:s', strtotime($time)) : null;
+    }
+
+    private function buildRescheduleVnpayUrl(Request $request, string $requestCode, float $amount): string
+    {
+        $vnp_TmnCode = config('vnpay.vnp_TmnCode');
+        $vnp_HashSecret = config('vnpay.vnp_HashSecret');
+        $vnp_Url = config('vnpay.vnp_Url');
+        $vnp_Returnurl = route('vnpay.callback');
+
+        $vnp_TxnRef = $requestCode . '_' . time();
+        $vnp_OrderInfo = 'Thanh toan chenh lech doi lich ' . $requestCode;
+        $vnp_OrderType = 'billpayment';
+        $vnp_Amount = (int) round($amount * 100);
+        $vnp_Locale = 'vn';
+        $vnp_IpAddr = $request->ip();
+
+        $inputData = array(
+            "vnp_Version" => "2.1.0",
+            "vnp_TmnCode" => $vnp_TmnCode,
+            "vnp_Amount" => $vnp_Amount,
+            "vnp_Command" => "pay",
+            "vnp_CreateDate" => date('YmdHis'),
+            "vnp_CurrCode" => "VND",
+            "vnp_IpAddr" => $vnp_IpAddr,
+            "vnp_Locale" => $vnp_Locale,
+            "vnp_OrderInfo" => $vnp_OrderInfo,
+            "vnp_OrderType" => $vnp_OrderType,
+            "vnp_ReturnUrl" => $vnp_Returnurl,
+            "vnp_TxnRef" => $vnp_TxnRef,
+        );
+
+        ksort($inputData);
+        $query = "";
+        $i = 0;
+        $hashdata = "";
+        foreach ($inputData as $key => $value) {
+            if ($i == 1) {
+                $hashdata .= '&' . urlencode($key) . "=" . urlencode($value);
+            } else {
+                $hashdata .= urlencode($key) . "=" . urlencode($value);
+                $i = 1;
+            }
+            $query .= urlencode($key) . "=" . urlencode($value) . '&';
+        }
+
+        $vnp_Url = $vnp_Url . "?" . $query;
+        if (isset($vnp_HashSecret)) {
+            $vnpSecureHash = hash_hmac('sha512', $hashdata, $vnp_HashSecret);
+            $vnp_Url .= 'vnp_SecureHash=' . $vnpSecureHash;
+        }
+
+        return $vnp_Url;
     }
 }
