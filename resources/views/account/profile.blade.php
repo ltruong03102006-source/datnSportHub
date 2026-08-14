@@ -253,7 +253,7 @@
                             @error('bank_account_name') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <button type="submit" class="rounded-lg bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800" {{ ($user->balance ?? 0) < 10000 ? 'disabled' : '' }}>
+                            <button type="submit" class="rounded-lg bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed" {{ ($wallet->balance ?? 0) < 10000 ? 'disabled' : '' }}>
                                 Gửi yêu cầu rút tiền
                             </button>
                         </div>
@@ -286,10 +286,17 @@
                                             <td class="whitespace-nowrap py-2.5 pr-4 text-zinc-600">#{{ $req->id }}</td>
                                             <td class="whitespace-nowrap py-2.5 pr-4 font-semibold text-emerald-600">{{ number_format($req->amount) }}đ</td>
                                             <td class="whitespace-nowrap py-2.5 pr-4">
-                                                @if($req->status === 'pending')
+                                                @php
+                                                    $statusVal = $req->status instanceof \BackedEnum ? $req->status->value : $req->status;
+                                                @endphp
+                                                @if($statusVal === 'pending')
                                                     <span class="inline-flex rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">Đang chờ</span>
-                                                @elseif($req->status === 'approved')
+                                                @elseif(in_array($statusVal, ['approved', 'paid']))
                                                     <span class="inline-flex rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">Đã chuyển</span>
+                                                @elseif($statusVal === 'processing')
+                                                    <span class="inline-flex rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">Đang xử lý</span>
+                                                @elseif($statusVal === 'cancelled')
+                                                    <span class="inline-flex rounded-full bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700 ring-1 ring-inset ring-slate-600/20">Đã hủy</span>
                                                 @else
                                                     <span class="inline-flex rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">Từ chối</span>
                                                 @endif
