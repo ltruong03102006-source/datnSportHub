@@ -1,14 +1,14 @@
 <div class="contract-document">
-    <div class="center mb-3">
-        <p class="bold">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
-        <p class="bold">Độc lập - Tự do - Hạnh phúc</p>
-        <p>----------------------</p>
+    <div class="center text-center mb-3" style="text-align: center;">
+        <p class="bold" style="text-align: center; font-weight: bold; margin: 0 0 4px 0;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
+        <p class="bold" style="text-align: center; font-weight: bold; margin: 0 0 4px 0;">Độc lập - Tự do - Hạnh phúc</p>
+        <p style="text-align: center; margin: 0 0 12px 0;">----------------------</p>
     </div>
 
-    <div class="center mb-3">
-        <h1>{{ strtoupper($contract->title ?? 'HỢP ĐỒNG HỢP TÁC KINH DOANH') }}</h1>
-        <p>Số: {{ $contract->contract_code ?? '...' }}</p>
-        <p>Ngày lập: {{ $contract->created_at ? $contract->created_at->format('d/m/Y') : now()->format('d/m/Y') }}</p>
+    <div class="center text-center mb-3" style="text-align: center;">
+        <h1 style="text-align: center; font-size: 20px; font-weight: bold; margin: 0 0 8px 0;">{{ strtoupper($contract->title ?? 'HỢP ĐỒNG HỢP TÁC KINH DOANH') }}</h1>
+        <p style="text-align: center; margin: 0 0 4px 0;">Số: {{ $contract->contract_code ?? '...' }}</p>
+        <p style="text-align: center; margin: 0 0 12px 0;">Ngày lập: {{ $contract->created_at ? $contract->created_at->format('d/m/Y') : now()->format('d/m/Y') }}</p>
     </div>
 
     <div class="section">

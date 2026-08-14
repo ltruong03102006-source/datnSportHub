@@ -233,6 +233,16 @@
                             <svg class="w-4 h-4 mr-1.5 mt-0.5 flex-shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                             <span class="line-clamp-2 leading-relaxed" title="{{ $venue->address }}">{{ $venue->address }}</span>
                         </div>
+
+                        @if($venue->status === 'rejected' && $venue->legalDocument?->reject_reason)
+                            <div class="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
+                                <strong class="font-bold flex items-center gap-1 text-red-800 mb-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                    Lý do từ chối:
+                                </strong>
+                                {{ $venue->legalDocument->reject_reason }}
+                            </div>
+                        @endif
  
                         <hr class="border-slate-100 my-4 -mx-5">
  

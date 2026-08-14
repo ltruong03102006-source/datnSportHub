@@ -124,6 +124,18 @@ class AdminVenueController extends Controller
         }
     });
 
+    try {
+        app(\App\Services\NotificationService::class)->create(
+            $venue->owner_id,
+            'Cơ sở đã được duyệt',
+            "Cơ sở \"{$venue->name}\" và hồ sơ pháp lý đã được Admin phê duyệt thành công.",
+            route('owner.web.venues.show', $venue->id),
+            'owner_venue_approved'
+        );
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::warning('Gửi notification cho owner thất bại: ' . $e->getMessage());
+    }
+
     return redirect()->route('admin.venues.index')->with('success', 'Đã duyệt cơ sở thành công.');
 }
 
@@ -151,6 +163,18 @@ class AdminVenueController extends Controller
             'reviewed_at' => now(),
             'reject_reason' => $validated['reject_reason'],
         ]);
+    }
+
+    try {
+        app(\App\Services\NotificationService::class)->create(
+            $venue->owner_id,
+            'Cơ sở bị từ chối',
+            "Cơ sở \"{$venue->name}\" bị từ chối duyệt. Lý do: {$validated['reject_reason']}",
+            route('owner.web.venues.edit', $venue->id),
+            'owner_venue_rejected'
+        );
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::warning('Gửi notification cho owner thất bại: ' . $e->getMessage());
     }
 
     return redirect()->route('admin.venues.index')->with('success', 'Đã từ chối cơ sở thành công.');
@@ -237,6 +261,18 @@ class AdminVenueController extends Controller
             $updateRequest->update(['status' => 'approved']);
         });
 
+        try {
+            app(\App\Services\NotificationService::class)->create(
+                $updateRequest->venue->owner_id,
+                'Hồ sơ pháp lý được phê duyệt',
+                "Yêu cầu cập nhật thông tin/hồ sơ cho cơ sở \"{$updateRequest->venue->name}\" đã được Admin phê duyệt.",
+                route('owner.web.venues.show', $updateRequest->venue_id),
+                'owner_legal_approved'
+            );
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Gửi notification cho owner thất bại: ' . $e->getMessage());
+        }
+
         return back()->with('success', 'Đã phê duyệt và ghi đè thông tin mới cho sân thành công!');
     }
 
@@ -259,6 +295,18 @@ class AdminVenueController extends Controller
             'status' => 'rejected',
             'admin_note' => $request->admin_note
         ]);
+
+        try {
+            app(\App\Services\NotificationService::class)->create(
+                $updateRequest->venue->owner_id,
+                'Yêu cầu thay đổi thông tin bị từ chối',
+                "Yêu cầu cập nhật thông tin cho cơ sở \"{$updateRequest->venue->name}\" bị từ chối. Lý do: {$request->admin_note}",
+                route('owner.web.venues.edit', $updateRequest->venue_id),
+                'owner_legal_rejected'
+            );
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Gửi notification cho owner thất bại: ' . $e->getMessage());
+        }
 
         return back()->with('success', 'Đã từ chối bản nháp thay đổi thông tin của cơ sở này.');
     }

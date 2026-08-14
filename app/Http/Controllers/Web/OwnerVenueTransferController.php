@@ -64,7 +64,7 @@ class OwnerVenueTransferController extends Controller
             'venue_id'              => $targetVenue->id,
             'from_owner_id'         => auth()->id(),
             'to_owner_id'           => $receiver->id,
-            'price'                 => $request->input('price'),
+            'price'                 => $request->input('price', 0),
             'contract_date'         => $request->input('contract_date'),
             'contract_location'     => $request->input('contract_location'),
             'sender_data'           => [
@@ -295,6 +295,38 @@ class OwnerVenueTransferController extends Controller
             'receiver_signed_account' => auth()->user()->email ?? auth()->user()->name,
         ]);
 
+        try {
+            app(\App\Services\NotificationService::class)->notifyAdminVenueTransfer($transfer);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Gửi thông báo chuyển nhượng cho admin thất bại: ' . $e->getMessage());
+        }
+
         return redirect()->back()->with('success', 'Đã ký hợp đồng điện tử thành công! Hợp đồng đã được chuyển tới Admin phê duyệt.');
+    }
+
+    /**
+     * Hủy yêu cầu chuyển nhượng (Bên A hủy gửi/hủy hợp đồng hoặc Bên B từ chối nhận)
+     */
+    public function cancelTransfer(Request $request, VenueTransferRequest $transfer)
+    {
+        $userId = auth()->id();
+
+        if ($transfer->from_owner_id !== $userId && $transfer->to_owner_id !== $userId) {
+            return redirect()->back()->with('error', 'Bạn không có quyền thực hiện hủy hợp đồng chuyển nhượng này.');
+        }
+
+        if (in_array($transfer->status, ['approved', 'rejected'])) {
+            return redirect()->back()->with('error', 'Hợp đồng chuyển nhượng này đã kết thúc hoặc đã bị hủy trước đó.');
+        }
+
+        $reason = $request->input('reason') ?: ($transfer->from_owner_id === $userId ? 'Đã hủy chuyển nhượng bởi Bên chuyển nhượng.' : 'Đã bị từ chối bởi Bên nhận.');
+
+        $transfer->update([
+            'status' => 'rejected',
+            'admin_note' => $reason,
+        ]);
+
+        return redirect()->route('owner.web.venues.transfers.history')
+            ->with('success', 'Đã hủy hợp đồng chuyển nhượng thành công. Cơ sở hiện không còn trong quá trình chuyển nhượng.');
     }
 }

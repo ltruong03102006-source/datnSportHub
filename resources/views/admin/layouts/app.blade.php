@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Sport Booking - Admin Dashboard</title>
     
     <!-- Google Fonts: Inter -->
@@ -216,21 +217,152 @@
             gap: 24px;
         }
 
-        .notification {
+        /* ----- NOTIFICATION DROPDOWN ----- */
+        .admin-notification {
+            position: relative;
+        }
+
+        .admin-notification__button {
+            background: transparent;
+            border: none;
             position: relative;
             color: var(--text-muted);
             font-size: 18px;
             cursor: pointer;
-        }
-        .notification .badge {
-            position: absolute;
-            top: -4px;
-            right: -4px;
-            width: 8px;
-            height: 8px;
-            background-color: #e74c3c;
+            padding: 8px;
             border-radius: 50%;
+            transition: background-color 0.2s, color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .admin-notification__button:hover {
+            background-color: #f1f2f6;
+            color: var(--text-dark);
+        }
+
+        .admin-notification__badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 4px;
+            background-color: #e74c3c;
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            border-radius: 999px;
             border: 2px solid white;
+            display: none;
+            line-height: 14px;
+            text-align: center;
+        }
+
+        .admin-notification__dropdown {
+            position: absolute;
+            top: calc(100% + 12px);
+            right: 0;
+            width: 360px;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            z-index: 1000;
+        }
+
+        .admin-notification__dropdown[hidden] {
+            display: none;
+        }
+
+        .admin-notification__head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+            background: #fdfdfd;
+        }
+
+        .admin-notification__title {
+            margin: 0;
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--text-dark);
+        }
+
+        .admin-notification__action {
+            border: none;
+            background: transparent;
+            color: var(--primary);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .admin-notification__action:hover {
+            text-decoration: underline;
+        }
+
+        .admin-notification__list {
+            max-height: 340px;
+            overflow-y: auto;
+        }
+
+        .admin-notification__item {
+            display: block;
+            padding: 12px 16px;
+            border-bottom: 1px solid #f1f2f6;
+            color: inherit;
+            text-decoration: none;
+            transition: background 0.15s ease;
+        }
+
+        .admin-notification__item:hover {
+            background-color: #f8f9fa;
+            text-decoration: none;
+        }
+
+        .admin-notification__item.is-unread {
+            background-color: #eafaf1;
+            border-left: 3px solid var(--primary);
+        }
+
+        .admin-notification__item-title {
+            margin: 0;
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-dark);
+        }
+
+        .admin-notification__item-content {
+            margin: 4px 0 0;
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .admin-notification__item-time {
+            margin: 4px 0 0;
+            font-size: 11px;
+            color: #bdc3c7;
+        }
+
+        .admin-notification__empty {
+            padding: 24px 16px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .admin-notification__foot {
+            padding: 10px 16px;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+            background: #fdfdfd;
         }
 
         .header-user {
@@ -354,9 +486,28 @@
             </div>
 
             <div class="header-actions">
-                <div class="notification">
-                    <i class="fa-regular fa-bell"></i>
-                    <span class="badge"></span>
+                <div class="admin-notification" id="admin-notification-root">
+                    <button type="button" class="admin-notification__button" id="admin-notification-button" aria-label="Thông báo">
+                        <i class="fa-regular fa-bell"></i>
+                        <span class="admin-notification__badge" id="admin-notification-badge">0</span>
+                    </button>
+
+                    <div class="admin-notification__dropdown" id="admin-notification-dropdown" hidden>
+                        <div class="admin-notification__head">
+                            <p class="admin-notification__title">Thông báo hệ thống</p>
+                            <button type="button" class="admin-notification__action" id="admin-notification-read-all">
+                                Đánh dấu đã đọc
+                            </button>
+                        </div>
+
+                        <div class="admin-notification__list" id="admin-notification-list">
+                            <div class="admin-notification__empty">Đang tải...</div>
+                        </div>
+
+                        <div class="admin-notification__foot">
+                            <a href="{{ route('admin.venues.index') }}" class="admin-notification__action">Danh sách cơ sở cần duyệt</a>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="header-user">
@@ -383,5 +534,152 @@
     @stack('scripts')
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    @auth
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const root = document.getElementById('admin-notification-root');
+                const button = document.getElementById('admin-notification-button');
+                const dropdown = document.getElementById('admin-notification-dropdown');
+                const list = document.getElementById('admin-notification-list');
+                const badge = document.getElementById('admin-notification-badge');
+                const readAllButton = document.getElementById('admin-notification-read-all');
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+                if (!root || !button || !dropdown || !list || !badge) return;
+
+                const latestUrl = @json(route('notifications.latest', ['context' => 'admin']));
+                const unreadCountUrl = @json(route('notifications.unread-count', ['context' => 'admin']));
+                const markAllReadUrl = @json(route('notifications.read-all', ['context' => 'admin']));
+                const readUrlPrefix = @json(url('/notifications'));
+
+                const headers = {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                };
+
+                function formatTime(value) {
+                    if (!value) return '';
+                    return new Intl.DateTimeFormat('vi-VN', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                    }).format(new Date(value));
+                }
+
+                function renderEmpty(message) {
+                    list.replaceChildren();
+                    const empty = document.createElement('div');
+                    empty.className = 'admin-notification__empty';
+                    empty.textContent = message;
+                    list.appendChild(empty);
+                }
+
+                function renderNotifications(items) {
+                    if (!items || !items.length) {
+                        renderEmpty('Chưa có thông báo nào.');
+                        return;
+                    }
+
+                    list.replaceChildren();
+
+                    items.forEach((notification) => {
+                        const item = document.createElement('a');
+                        item.href = notification.link || '#';
+                        item.className = `admin-notification__item ${notification.is_read ? '' : 'is-unread'}`;
+
+                        const title = document.createElement('p');
+                        title.className = 'admin-notification__item-title';
+                        title.textContent = notification.title || 'Thông báo';
+
+                        const content = document.createElement('p');
+                        content.className = 'admin-notification__item-content';
+                        content.textContent = notification.content || '';
+
+                        const time = document.createElement('p');
+                        time.className = 'admin-notification__item-time';
+                        time.textContent = formatTime(notification.created_at);
+
+                        item.append(title, content, time);
+                        item.addEventListener('click', async (event) => {
+                            if (!notification.link) {
+                                event.preventDefault();
+                            }
+
+                            if (!notification.is_read) {
+                                try {
+                                    await fetch(`${readUrlPrefix}/${notification.id}/read`, {
+                                        method: 'POST',
+                                        headers,
+                                    });
+                                } catch (error) {
+                                    // Ignore fetch error, still allow navigation
+                                }
+                            }
+                        });
+
+                        list.appendChild(item);
+                    });
+                }
+
+                async function loadUnreadCount() {
+                    try {
+                        const response = await fetch(unreadCountUrl, { headers: { 'Accept': 'application/json' } });
+                        if (!response.ok) throw new Error();
+                        const data = await response.json();
+                        const count = Number(data.count || 0);
+                        badge.textContent = count > 99 ? '99+' : count;
+                        badge.style.display = count > 0 ? 'inline-block' : 'none';
+                    } catch (error) {
+                        badge.style.display = 'none';
+                    }
+                }
+
+                async function loadNotifications() {
+                    renderEmpty('Đang tải...');
+                    try {
+                        const response = await fetch(latestUrl, { headers: { 'Accept': 'application/json' } });
+                        if (!response.ok) throw new Error();
+                        renderNotifications(await response.json());
+                    } catch (error) {
+                        renderEmpty('Không thể tải thông báo.');
+                    }
+                }
+
+                button.addEventListener('click', async (event) => {
+                    event.stopPropagation();
+                    const isOpening = dropdown.hasAttribute('hidden');
+                    dropdown.toggleAttribute('hidden');
+
+                    if (isOpening) {
+                        await Promise.all([loadNotifications(), loadUnreadCount()]);
+                    }
+                });
+
+                document.addEventListener('click', (event) => {
+                    if (!root.contains(event.target)) {
+                        dropdown.setAttribute('hidden', '');
+                    }
+                });
+
+                readAllButton?.addEventListener('click', async () => {
+                    try {
+                        const response = await fetch(markAllReadUrl, {
+                            method: 'POST',
+                            headers,
+                        });
+                        if (!response.ok) throw new Error();
+                        await Promise.all([loadNotifications(), loadUnreadCount()]);
+                    } catch (error) {
+                        renderEmpty('Không thể đánh dấu đã đọc.');
+                    }
+                });
+
+                loadUnreadCount();
+            });
+        </script>
+    @endauth
 </body>
 </html>
