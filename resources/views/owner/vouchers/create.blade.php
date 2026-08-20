@@ -83,12 +83,12 @@
         <div>
             <h3 class="text-lg font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Thiết lập mức giảm</h3>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6" x-data="{ type: '{{ old('discount_type', 'percentage') }}' }">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6" x-data="{ type: '{{ old('discount_type', 'percent') }}' }">
                 <!-- Loại giảm giá -->
                 <div class="col-span-2 md:col-span-1">
                     <label class="block text-sm font-semibold text-slate-700 mb-1">Loại giảm giá <span class="text-red-500">*</span></label>
                     <select name="discount_type" x-model="type" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors" required>
-                        <option value="percentage">Giảm theo phần trăm (%)</option>
+                        <option value="percent">Giảm theo phần trăm (%)</option>
                         <option value="fixed">Giảm số tiền cố định (đ)</option>
                     </select>
                 </div>
@@ -99,13 +99,13 @@
                     <div class="relative">
                         <input type="number" name="discount_value" value="{{ old('discount_value') }}" min="0" step="any" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors" required>
                         <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                            <span class="text-slate-500 font-medium" x-text="type == 'percentage' ? '%' : 'đ'"></span>
+                            <span class="text-slate-500 font-medium" x-text="(type == 'percent' || type == 'percentage') ? '%' : 'đ'"></span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Giảm tối đa (Chỉ hiển thị khi chọn loại %) -->
-                <div class="col-span-2 md:col-span-1" x-show="type == 'percentage'">
+                <div class="col-span-2 md:col-span-1" x-show="type == 'percent' || type == 'percentage'">
                     <label class="block text-sm font-semibold text-slate-700 mb-1">Giảm tối đa (đ)</label>
                     <input type="number" name="max_discount_amount" value="{{ old('max_discount_amount') }}" min="0" placeholder="VD: 50000" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
                     <p class="text-xs text-slate-500 mt-1">Để trống nếu không muốn giới hạn mức giảm tối đa.</p>

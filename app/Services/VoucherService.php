@@ -469,9 +469,9 @@ class VoucherService
 
         // Calculate discount
         $discount = 0.0;
-        if ($voucher->discount_type === 'percent') {
+        if (in_array($voucher->discount_type, ['percent', 'percentage'], true)) {
             $discount = ($totalPrice * (float)$voucher->discount_value) / 100.0;
-            if (!is_null($voucher->max_discount_amount) && $discount > $voucher->max_discount_amount) {
+            if (!is_null($voucher->max_discount_amount) && (float)$voucher->max_discount_amount > 0 && $discount > (float)$voucher->max_discount_amount) {
                 $discount = (float)$voucher->max_discount_amount;
             }
         } else {

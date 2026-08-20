@@ -98,7 +98,7 @@
                             <td class="px-6 py-4 font-bold text-slate-800">{{ $voucher->code }}</td>
                             <td class="px-6 py-4">{{ $voucher->name }}</td>
                             <td class="px-6 py-4 text-emerald-600 font-medium">
-                                @if($voucher->discount_type == 'percentage')
+                                @if(in_array($voucher->discount_type, ['percent', 'percentage']))
                                     {{ $voucher->discount_value + 0 }}%
                                 @else
                                     {{ number_format($voucher->discount_value, 0, ',', '.') }}đ

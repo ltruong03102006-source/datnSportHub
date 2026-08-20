@@ -110,7 +110,7 @@ class OwnerVoucherController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:50|unique:vouchers,code',
-            'discount_type' => 'required|in:percentage,fixed',
+            'discount_type' => 'required|in:percent,percentage,fixed',
             'discount_value' => 'required|numeric|min:0',
             'max_discount_amount' => 'nullable|numeric|min:0',
             'min_booking_value' => 'nullable|numeric|min:0',
@@ -124,6 +124,14 @@ class OwnerVoucherController extends Controller
             'venue_ids' => 'required|array|min:1',
             'venue_ids.*' => 'exists:venues,id',
         ]);
+
+        if ($validated['discount_type'] === 'percentage') {
+            $validated['discount_type'] = 'percent';
+        }
+
+        if (array_key_exists('max_discount_amount', $validated) && (is_null($validated['max_discount_amount']) || (float)$validated['max_discount_amount'] <= 0)) {
+            $validated['max_discount_amount'] = null;
+        }
 
         try {
             // Add owner_id to validated data
@@ -320,12 +328,20 @@ class OwnerVoucherController extends Controller
                 'name' => 'sometimes|required|string|max:255',
                 'end_date' => 'nullable|date',
                 'usage_limit' => 'nullable|integer|min:0',
-                'discount_type' => 'nullable|string|in:percentage,fixed',
+                'discount_type' => 'nullable|string|in:percent,percentage,fixed',
                 'discount_value' => 'nullable|numeric|min:0',
                 'max_discount_amount' => 'nullable|numeric|min:0',
                 'min_booking_value' => 'nullable|numeric|min:0',
                 'venue_ids' => 'nullable|array',
             ]);
+
+            if (isset($validated['discount_type']) && $validated['discount_type'] === 'percentage') {
+                $validated['discount_type'] = 'percent';
+            }
+
+            if (array_key_exists('max_discount_amount', $validated) && (is_null($validated['max_discount_amount']) || (float)$validated['max_discount_amount'] <= 0)) {
+                $validated['max_discount_amount'] = null;
+            }
 
             $this->voucherService->updateForOwner((int)$id, $ownerId, $validated);
 

@@ -710,8 +710,10 @@
     function createVoucherCard(v, orderTotal) {
         const div = document.createElement('div');
         const isSelected = selectedVoucher && selectedVoucher.code === v.code;
-        const discountText = v.discount_type === 'percent' 
-            ? `Giảm ${parseFloat(v.discount_value)}%` + (v.max_discount_amount ? ` tối đa ${parseInt(v.max_discount_amount).toLocaleString('vi-VN')}đ` : '')
+        const isPercent = v.discount_type === 'percent' || v.discount_type === 'percentage';
+        const maxAmt = v.max_discount_amount ? parseFloat(v.max_discount_amount) : 0;
+        const discountText = isPercent 
+            ? `Giảm ${parseFloat(v.discount_value)}%` + (maxAmt > 0 ? ` tối đa ${parseInt(maxAmt).toLocaleString('vi-VN')}đ` : '')
             : `Giảm ${parseInt(v.discount_value).toLocaleString('vi-VN')}đ`;
 
         div.className = `border rounded-xl p-4 flex flex-col justify-between transition-all duration-200 ${
@@ -793,10 +795,11 @@
         
         let discount = 0;
         if (selectedVoucher) {
-            if (selectedVoucher.discount_type === 'percent') {
+            if (selectedVoucher.discount_type === 'percent' || selectedVoucher.discount_type === 'percentage') {
                 discount = (orderTotal * parseFloat(selectedVoucher.discount_value)) / 100;
-                if (selectedVoucher.max_discount_amount && discount > parseFloat(selectedVoucher.max_discount_amount)) {
-                    discount = parseFloat(selectedVoucher.max_discount_amount);
+                const maxAmt = selectedVoucher.max_discount_amount ? parseFloat(selectedVoucher.max_discount_amount) : 0;
+                if (maxAmt > 0 && discount > maxAmt) {
+                    discount = maxAmt;
                 }
             } else {
                 discount = parseFloat(selectedVoucher.discount_value);
