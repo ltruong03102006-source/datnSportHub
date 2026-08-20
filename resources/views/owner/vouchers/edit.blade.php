@@ -75,10 +75,10 @@
                 <div>
                     <label class="mb-2 block text-xs font-extrabold uppercase tracking-wider {{ $hasBeenUsed ? 'text-slate-500' : 'text-slate-700' }}">Loại giảm giá</label>
                     @if($hasBeenUsed)
-                        <input type="text" value="{{ $voucher->discount_type === 'percent' ? 'Theo phần trăm (%)' : 'Theo số tiền cố định (VNĐ)' }}" disabled class="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-600">
+                        <input type="text" value="{{ in_array($voucher->discount_type, ['percent', 'percentage']) ? 'Theo phần trăm (%)' : 'Theo số tiền cố định (VNĐ)' }}" disabled class="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-600">
                     @else
                         <select name="discount_type" class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
-                            <option value="percent" {{ old('discount_type', $voucher->discount_type) == 'percent' ? 'selected' : '' }}>Theo phần trăm (%)</option>
+                            <option value="percent" {{ in_array(old('discount_type', $voucher->discount_type), ['percent', 'percentage']) ? 'selected' : '' }}>Theo phần trăm (%)</option>
                             <option value="fixed" {{ old('discount_type', $voucher->discount_type) == 'fixed' ? 'selected' : '' }}>Theo số tiền cố định (VNĐ)</option>
                         </select>
                     @endif
@@ -88,7 +88,7 @@
                 <div>
                     <label class="mb-2 block text-xs font-extrabold uppercase tracking-wider {{ $hasBeenUsed ? 'text-slate-500' : 'text-slate-700' }}">Giá trị giảm</label>
                     @if($hasBeenUsed)
-                        <input type="text" value="{{ $voucher->discount_type === 'percent' ? (float)$voucher->discount_value . '%' : number_format($voucher->discount_value, 0, ',', '.') . 'đ' }}" disabled class="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-600">
+                        <input type="text" value="{{ in_array($voucher->discount_type, ['percent', 'percentage']) ? (float)$voucher->discount_value . '%' : number_format($voucher->discount_value, 0, ',', '.') . 'đ' }}" disabled class="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-600">
                     @else
                         <input type="number" step="0.01" name="discount_value" value="{{ old('discount_value', $voucher->discount_value) }}" class="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
                     @endif

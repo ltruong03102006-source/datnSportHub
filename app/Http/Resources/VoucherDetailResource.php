@@ -26,7 +26,7 @@ class VoucherDetailResource extends JsonResource
                 'discount_type' => $voucher->discount_type,
                 'discount_value' => (float) $voucher->discount_value,
                 'min_booking_value' => $voucher->min_booking_value ? (float) $voucher->min_booking_value : null,
-                'max_discount_amount' => $voucher->max_discount_amount ? (float) $voucher->max_discount_amount : null,
+                'max_discount_amount' => ($voucher->max_discount_amount && (float)$voucher->max_discount_amount > 0) ? (float) $voucher->max_discount_amount : null,
                 'applies_to_all_fields' => (bool) $voucher->applies_to_all_fields,
                 'time_slots' => $voucher->time_slots,
                 'apply_days' => $voucher->apply_days,
