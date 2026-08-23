@@ -56,7 +56,7 @@ class OwnerAuthController extends Controller
             ]);
 
             // Tạo OwnerRegistration request
-            OwnerRegistration::create([
+            $registration = OwnerRegistration::create([
                 'user_id' => $user->id,
                 'name' => $validated['name'],
                 'email' => $validated['email'],

@@ -2,13 +2,17 @@
 
 namespace App\Services;
 
+use App\Mail\AdminNewVenueMail;
+use App\Mail\AdminVenueTransferMail;
 use App\Models\Notification;
 use App\Models\Booking;
 use App\Models\BookingPackage;
+use App\Models\OwnerRegistration;
 use App\Models\Review;
 use App\Models\Venue;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
 
 class NotificationService
 {
@@ -167,10 +171,30 @@ class NotificationService
         $ownerName = $venue->owner->name ?? 'Chủ sân';
         $title = 'Cơ sở & Hồ sơ pháp lý mới cần duyệt';
         $content = "Chủ sân {$ownerName} vừa tạo cơ sở \"{$venue->name}\" kèm hồ sơ pháp lý, đang chờ bạn duyệt.";
-        $link = route('admin.venues.documents', $venue->id);
+        $link = route('admin.venues.index');
 
-        foreach ($admins as $admin) {
-            $this->create($admin->id, $title, $content, $link, 'admin_new_venue');
+        if ($admins->isNotEmpty()) {
+            foreach ($admins as $admin) {
+                $this->create($admin->id, $title, $content, $link, 'admin_new_venue');
+
+                if ($admin->email) {
+                    try {
+                        Mail::to($admin->email)->send(new AdminNewVenueMail($venue, $link));
+                    } catch (\Throwable $exception) {
+                        report($exception);
+                    }
+                }
+            }
+        } else {
+            // Nếu chưa có tài khoản admin nào trong DB, gửi fallback về mail hệ thống (MAIL_FROM_ADDRESS)
+            $fallbackEmail = config('mail.from.address');
+            if ($fallbackEmail) {
+                try {
+                    Mail::to($fallbackEmail)->send(new AdminNewVenueMail($venue, $link));
+                } catch (\Throwable $exception) {
+                    report($exception);
+                }
+            }
         }
     }
 
@@ -194,8 +218,27 @@ class NotificationService
         $content = "Hợp đồng chuyển nhượng cơ sở \"{$venueName}\" đã được các bên hoàn tất và đang chờ bạn duyệt.";
         $link = route('admin.venue-transfers.show', $transfer->id);
 
-        foreach ($admins as $admin) {
-            $this->create($admin->id, $title, $content, $link, 'admin_venue_transfer');
+        if ($admins->isNotEmpty()) {
+            foreach ($admins as $admin) {
+                $this->create($admin->id, $title, $content, $link, 'admin_venue_transfer');
+
+                if ($admin->email) {
+                    try {
+                        Mail::to($admin->email)->send(new AdminVenueTransferMail($transfer, $link));
+                    } catch (\Throwable $exception) {
+                        report($exception);
+                    }
+                }
+            }
+        } else {
+            $fallbackEmail = config('mail.from.address');
+            if ($fallbackEmail) {
+                try {
+                    Mail::to($fallbackEmail)->send(new AdminVenueTransferMail($transfer, $link));
+                } catch (\Throwable $exception) {
+                    report($exception);
+                }
+            }
         }
     }
 }

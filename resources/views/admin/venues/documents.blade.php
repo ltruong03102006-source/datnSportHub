@@ -291,6 +291,46 @@
         </div>
     </div>
 @endif
+
+{{-- XỬ LÝ DUYỆT / TỪ CHỐI CƠ SỞ --}}
+@if($venue->status === 'pending')
+    <div style="background: #eff6ff; border: 1px solid #93c5fd; border-radius: 12px; padding: 20px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <h5 style="margin: 0 0 4px 0; color: #1e40af; font-size: 18px; font-weight: 700;">
+                <i class="fa-solid fa-clock-rotate-left" style="margin-right: 8px;"></i>Cơ sở đang chờ bạn duyệt!
+            </h5>
+            <p style="margin: 0; color: #1e3a8a; font-size: 14px;">
+                Vui lòng kiểm tra kỹ thông tin cơ sở & hồ sơ đính kèm bên dưới trước khi phê duyệt hoặc từ chối.
+            </p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <form action="{{ route('admin.venues.approve', $venue->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn phê duyệt cơ sở sân này?');" style="margin:0;">
+                @csrf
+                <button type="submit" class="btn-approve" style="display: flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-check"></i> Duyệt cơ sở
+                </button>
+            </form>
+            <form action="{{ route('admin.venues.reject', $venue->id) }}" method="POST" onsubmit="return promptRejectReason(this);" style="margin:0;">
+                @csrf
+                <input type="hidden" name="reject_reason" class="reject-reason-input">
+                <button type="submit" class="btn-reject" style="display: flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-xmark"></i> Từ chối
+                </button>
+            </form>
+        </div>
+    </div>
+@elseif($venue->status === 'approved' || $venue->status === 'active')
+    <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 12px; padding: 16px 20px; margin-bottom: 25px; color: #166534; font-weight: 600; display: flex; align-items: center; gap: 10px;">
+        <i class="fa-solid fa-circle-check" style="font-size: 20px;"></i>
+        <span>Cơ sở này đã được phê duyệt (Trạng thái: <strong>{{ strtoupper($venue->status) }}</strong>).</span>
+    </div>
+@elseif($venue->status === 'rejected')
+    <div style="background: #fef2f2; border: 1px solid #fca5a5; border-radius: 12px; padding: 16px 20px; margin-bottom: 25px; color: #991b1b; font-weight: 600; display: flex; align-items: center; gap: 10px;">
+        <i class="fa-solid fa-circle-xmark" style="font-size: 20px;"></i>
+        <span>Cơ sở này đã bị từ chối. {{ $venue->legalDocument?->reject_reason ? 'Lý do: ' . $venue->legalDocument->reject_reason : '' }}</span>
+    </div>
+@endif
+
 {{-- 2. THÔNG TIN CƠ SỞ (Đã bổ sung SĐT, Email) --}}
 <div class="section-card">
     <div class="section-title">Thông tin cơ sở</div>
@@ -349,18 +389,6 @@
         <tr>
             <td class="info-label">Giấy phép KD / Mã số thuế</td>
             <td class="info-value">{{ $venue->legalDocument?->business_license_number ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td class="info-label">Ngân hàng</td>
-            <td class="info-value">{{ $venue->legalDocument?->bank_name ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td class="info-label">Số tài khoản</td>
-            <td class="info-value fw-bold text-success">{{ $venue->legalDocument?->bank_account_number ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td class="info-label">Tên chủ tài khoản</td>
-            <td class="info-value">{{ $venue->legalDocument?->bank_account_holder ?? '-' }}</td>
         </tr>
     </table>
 </div>

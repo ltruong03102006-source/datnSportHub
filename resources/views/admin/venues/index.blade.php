@@ -1,4 +1,4 @@
-﻿@extends('admin.layouts.app')
+@extends('admin.layouts.app')
 
 @push('styles')
 <style>
@@ -671,9 +671,6 @@
                 <div class="col-12 col-md-6"><strong>Chủ sở hữu:</strong> ${docs.owner_name || '-'}</div>
                 <div class="col-12 col-md-6"><strong>CCCD:</strong> ${docs.citizen_id || '-'}</div>
                 <div class="col-12 col-md-6"><strong>Số giấy phép:</strong> ${docs.business_license_number || '-'}</div>
-                <div class="col-12 col-md-6"><strong>Ngân hàng:</strong> ${docs.bank_name || '-'}</div>
-                <div class="col-12 col-md-6"><strong>Số tài khoản:</strong> ${docs.bank_account_number || '-'}</div>
-                <div class="col-12 col-md-6"><strong>Chủ tài khoản:</strong> ${docs.bank_account_holder || '-'}</div>
                 ${docs.reject_reason ? `<div class="col-12"><div class="alert alert-danger mb-0">Lý do từ chối: ${docs.reject_reason}</div></div>` : ''}
             </div>
             <div class="mt-3">${fileHtml}</div>
