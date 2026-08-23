@@ -516,7 +516,7 @@
 
                             <form action="{{ route('admin.venues.reject', $venue->id) }}"
                                   method="POST"
-                                  onsubmit="return rejectVenueConfirm(this);">
+                                  onsubmit="return rejectVenueConfirm(this, event);">
                                 @csrf
                                 <input type="hidden" name="reject_reason" class="reject-reason-input">
                                 <button type="submit" class="venue-action-btn venue-action-reject">
@@ -677,15 +677,79 @@
         `;
     }
     
-    function rejectVenueConfirm(form) {
-        const reason = prompt('Nhập lý do từ chối cơ sở sân:');
-        if (reason === null) return false;
-        if (reason.trim().length < 5) {
-            alert('Lý do từ chối phải có ít nhất 5 ký tự.');
-            return false;
+    let currentRejectVenueForm = null;
+
+    function rejectVenueConfirm(form, event) {
+        if (event) event.preventDefault();
+        currentRejectVenueForm = form;
+        
+        const textarea = document.getElementById('rejectVenueReasonTextarea');
+        const errorDiv = document.getElementById('rejectVenueReasonError');
+        if (textarea) textarea.value = '';
+        if (errorDiv) errorDiv.style.display = 'none';
+        
+        const modalEl = document.getElementById('rejectVenueModal');
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        } else {
+            modalEl.classList.add('show');
+            modalEl.style.display = 'block';
         }
-        form.querySelector('.reject-reason-input').value = reason.trim();
-        return confirm('Bạn có chắc chắn muốn từ chối cơ sở sân này không?');
+        
+        return false;
+    }
+
+    function submitRejectVenueForm() {
+        const textarea = document.getElementById('rejectVenueReasonTextarea');
+        const errorDiv = document.getElementById('rejectVenueReasonError');
+        const reason = textarea ? textarea.value.trim() : '';
+        
+        if (reason.length < 5) {
+            if (errorDiv) errorDiv.style.display = 'block';
+            return;
+        }
+        
+        if (errorDiv) errorDiv.style.display = 'none';
+        if (currentRejectVenueForm) {
+            currentRejectVenueForm.querySelector('.reject-reason-input').value = reason;
+            const modalEl = document.getElementById('rejectVenueModal');
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+            }
+            currentRejectVenueForm.submit();
+        }
     }
 </script>
+
+<!-- Modal Nhập Lý Do Từ Chối Cơ Sở -->
+<div class="modal fade" id="rejectVenueModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header bg-danger text-white border-0 py-3">
+                <h5 class="modal-title fw-bold">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i>Từ chối phê duyệt cơ sở
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted small mb-3">Vui lòng nhập lý do từ chối chi tiết bên dưới để gửi thông báo cho Chủ sân:</p>
+                <div class="mb-3">
+                    <label for="rejectVenueReasonTextarea" class="form-label fw-bold text-dark">Lý do từ chối <span class="text-danger">*</span></label>
+                    <textarea id="rejectVenueReasonTextarea" 
+                              class="form-control" 
+                              rows="5" 
+                              style="border-radius: 10px; resize: vertical; padding: 12px; font-size: 14px;" 
+                              placeholder="Nhập lý do từ chối chi tiết (VD: Giấy phép kinh doanh đã hết hạn, Hình chụp CCCD bị mờ/mất góc, Địa chỉ sân không chính xác...)"></textarea>
+                    <div id="rejectVenueReasonError" class="text-danger small mt-1" style="display: none;">Vui lòng nhập lý do từ chối ít nhất 5 ký tự.</div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0 py-3 px-4">
+                <button type="button" class="btn btn-secondary px-4 fw-semibold" data-bs-dismiss="modal" style="border-radius: 8px;">Hủy bỏ</button>
+                <button type="button" onclick="submitRejectVenueForm()" class="btn btn-danger px-4 fw-bold" style="border-radius: 8px;">Xác nhận từ chối</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endpush

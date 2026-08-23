@@ -186,7 +186,7 @@
                 </p>
             </div>
             <div style="display: flex; gap: 10px;">
-                <form action="{{ route('admin.venues.update-requests.reject', $venue->pendingUpdateRequest->id) }}" method="POST" onsubmit="return promptRejectReason(this);" style="margin: 0;">
+                <form action="{{ route('admin.venues.update-requests.reject', $venue->pendingUpdateRequest->id) }}" method="POST" onsubmit="return promptRejectReason(this, event);" style="margin: 0;">
                     @csrf
                     <input type="hidden" name="admin_note" class="reject-reason-input">
                     <button type="submit" style="background: #dc2626; color: white; border: none; padding: 9px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);">
@@ -310,7 +310,7 @@
                     <i class="fa-solid fa-check"></i> Duyệt cơ sở
                 </button>
             </form>
-            <form action="{{ route('admin.venues.reject', $venue->id) }}" method="POST" onsubmit="return promptRejectReason(this);" style="margin:0;">
+            <form action="{{ route('admin.venues.reject', $venue->id) }}" method="POST" onsubmit="return promptRejectReason(this, event);" style="margin:0;">
                 @csrf
                 <input type="hidden" name="reject_reason" class="reject-reason-input">
                 <button type="submit" class="btn-reject" style="display: flex; align-items: center; gap: 6px;">
@@ -459,24 +459,79 @@
 </div>
 
 <script>
-    // Hàm hiển thị Popup yêu cầu nhập lý do từ chối
-    function promptRejectReason(form) {
-        const reason = prompt('Vui lòng nhập lý do từ chối yêu cầu thay đổi thông tin (VD: CCCD bị mờ, Sai số tài khoản...):');
+    let currentDocRejectForm = null;
+
+    function promptRejectReason(form, event) {
+        if (event) event.preventDefault();
+        currentDocRejectForm = form;
         
-        // Nếu bấm Hủy
-        if (reason === null) {
-            return false; 
+        const textarea = document.getElementById('rejectDocReasonTextarea');
+        const errorDiv = document.getElementById('rejectDocReasonError');
+        if (textarea) textarea.value = '';
+        if (errorDiv) errorDiv.style.display = 'none';
+        
+        const modalEl = document.getElementById('rejectDocModal');
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        } else {
+            modalEl.classList.add('show');
+            modalEl.style.display = 'block';
         }
         
-        // Nếu nhập quá ngắn
-        if (reason.trim().length < 5) {
-            alert('Vui lòng nhập lý do rõ ràng (ít nhất 5 ký tự) để chủ sân biết cách sửa.');
-            return false;
+        return false;
+    }
+
+    function submitRejectDocForm() {
+        const textarea = document.getElementById('rejectDocReasonTextarea');
+        const errorDiv = document.getElementById('rejectDocReasonError');
+        const reason = textarea ? textarea.value.trim() : '';
+        
+        if (reason.length < 5) {
+            if (errorDiv) errorDiv.style.display = 'block';
+            return;
         }
         
-        // Gán lý do vào input ẩn và cho phép form submit
-        form.querySelector('.reject-reason-input').value = reason.trim();
-        return true;
+        if (errorDiv) errorDiv.style.display = 'none';
+        if (currentDocRejectForm) {
+            currentDocRejectForm.querySelector('.reject-reason-input').value = reason;
+            const modalEl = document.getElementById('rejectDocModal');
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+            }
+            currentDocRejectForm.submit();
+        }
     }
 </script>
+
+<!-- Modal Nhập Lý Do Từ Chối Hồ Sơ / Cơ Sở -->
+<div class="modal fade" id="rejectDocModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header bg-danger text-white border-0 py-3">
+                <h5 class="modal-title fw-bold">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i>Từ chối yêu cầu / Hồ sơ
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted small mb-3">Vui lòng nhập lý do từ chối chi tiết bên dưới để thông báo cho Chủ sân:</p>
+                <div class="mb-3">
+                    <label for="rejectDocReasonTextarea" class="form-label fw-bold text-dark">Lý do từ chối <span class="text-danger">*</span></label>
+                    <textarea id="rejectDocReasonTextarea" 
+                              class="form-control" 
+                              rows="5" 
+                              style="border-radius: 10px; resize: vertical; padding: 12px; font-size: 14px;" 
+                              placeholder="Vui lòng nhập lý do rõ ràng (VD: CCCD bị mờ, Sai số tài khoản ngân hàng, Giấy phép kinh doanh không khớp thông tin...)"></textarea>
+                    <div id="rejectDocReasonError" class="text-danger small mt-1" style="display: none;">Vui lòng nhập lý do từ chối ít nhất 5 ký tự.</div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0 py-3 px-4">
+                <button type="button" class="btn btn-secondary px-4 fw-semibold" data-bs-dismiss="modal" style="border-radius: 8px;">Hủy bỏ</button>
+                <button type="button" onclick="submitRejectDocForm()" class="btn btn-danger px-4 fw-bold" style="border-radius: 8px;">Xác nhận từ chối</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection

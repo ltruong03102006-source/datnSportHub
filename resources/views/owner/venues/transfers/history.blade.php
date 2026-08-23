@@ -213,8 +213,16 @@
                                         <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                                             Đã hoàn thành
                                         </span>
+                                    @elseif($transfer->status === 'rejected')
+                                        <button type="button" 
+                                                onclick="openRejectionModal('{{ addslashes($transfer->admin_note ?? 'Admin đã từ chối yêu cầu chuyển nhượng này.') }}')"
+                                                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-200 hover:bg-red-200 transition-all cursor-pointer shadow-sm"
+                                                title="Bấm để xem lý do từ chối của Admin">
+                                            <svg class="w-3.5 h-3.5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                            <span>Bị Admin từ chối</span>
+                                        </button>
                                     @else
-                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-200">
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
                                             Đã hủy
                                         </span>
                                     @endif
@@ -367,9 +375,43 @@
         </div>
     </div>
 
+    <!-- Modal xem lý do Admin từ chối -->
+    <div id="rejectionModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 transform transition-all animate-in fade-in zoom-in duration-200">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                <h3 class="text-base font-bold text-red-700 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    Lý do Admin từ chối
+                </h3>
+                <button type="button" onclick="closeRejectionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold p-1 leading-none">&times;</button>
+            </div>
+            <div class="p-4 bg-red-50/80 border border-red-200 rounded-xl mb-5">
+                <p id="rejectionReasonText" class="text-sm text-red-900 leading-relaxed font-medium whitespace-pre-line"></p>
+            </div>
+            <div class="flex justify-end">
+                <button type="button" onclick="closeRejectionModal()" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let currentSendFormId = null;
         let currentCancelFormId = null;
+
+        function openRejectionModal(reason) {
+            document.getElementById('rejectionReasonText').textContent = reason || 'Admin đã từ chối yêu cầu này nhưng không ghi lý do chi tiết.';
+            const modal = document.getElementById('rejectionModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeRejectionModal() {
+            const modal = document.getElementById('rejectionModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
 
         function confirmSend(transferId, venueName, receiverEmail) {
             currentSendFormId = 'send-form-' + transferId;
@@ -422,6 +464,9 @@
         });
         document.getElementById('cancelConfirmModal').addEventListener('click', function(e) {
             if (e.target === this) closeCancelModal();
+        });
+        document.getElementById('rejectionModal').addEventListener('click', function(e) {
+            if (e.target === this) closeRejectionModal();
         });
     </script>
 </body>

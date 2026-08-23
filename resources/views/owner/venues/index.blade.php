@@ -212,9 +212,12 @@
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Chờ duyệt
                                 </span>
                             @elseif($venue->status === 'rejected')
-                                <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-red-100 text-red-700 border border-red-200 shadow-sm flex items-center gap-1.5 backdrop-blur-md">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg> Từ chối
-                                </span>
+                                <button type="button" 
+                                        onclick="openVenueRejectionModal('{{ addslashes($venue->name) }}', '{{ addslashes($venue->legalDocument->reject_reason ?? 'Admin đã từ chối duyệt cơ sở này.') }}')"
+                                        class="px-3 py-1.5 text-xs font-semibold rounded-full bg-red-100 text-red-700 hover:bg-red-200 border border-red-200 shadow-sm flex items-center gap-1.5 backdrop-blur-md transition-colors cursor-pointer"
+                                        title="Bấm để xem lý do từ chối">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg> Bị Admin từ chối
+                                </button>
                             @elseif($venue->status === 'inactive')
                                 <span class="px-3 py-1.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-600 border border-slate-200 shadow-sm flex items-center gap-1.5 backdrop-blur-md">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg> Tạm ngừng
@@ -235,13 +238,19 @@
                         </div>
 
                         @if($venue->status === 'rejected' && $venue->legalDocument?->reject_reason)
-                            <div class="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
-                                <strong class="font-bold flex items-center gap-1 text-red-800 mb-1">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                                    Lý do từ chối:
-                                </strong>
-                                {{ $venue->legalDocument->reject_reason }}
-                            </div>
+                            <button type="button" 
+                                    onclick="openVenueRejectionModal('{{ addslashes($venue->name) }}', '{{ addslashes($venue->legalDocument->reject_reason) }}')"
+                                    class="w-full text-left mb-3 px-3 py-2 bg-red-50 hover:bg-red-100/90 border border-red-200 rounded-xl text-xs font-bold text-red-700 transition-all cursor-pointer flex items-center justify-between group shadow-xs"
+                                    title="Bấm để xem lý do từ chối của Admin">
+                                <span class="flex items-center gap-1.5 text-red-800">
+                                    <svg class="w-4 h-4 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                    Bị Admin từ chối
+                                </span>
+                                <span class="text-[11px] font-semibold text-red-600 group-hover:underline flex items-center gap-0.5">
+                                    Xem lý do
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                </span>
+                            </button>
                         @endif
  
                         <hr class="border-slate-100 my-4 -mx-5">
@@ -337,5 +346,55 @@
         <div class="p-4 bg-red-50 text-red-600 rounded-lg">Lỗi: Không thể lấy dữ liệu cơ sở từ server.</div>
     @endif
 </div>
+
+<!-- Modal xem lý do Admin từ chối cơ sở -->
+<div id="venueRejectionModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 transform transition-all animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <h3 class="text-base font-bold text-red-700 flex items-center gap-2">
+                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                Lý do Admin từ chối cơ sở
+            </h3>
+            <button type="button" onclick="closeVenueRejectionModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold p-1 leading-none">&times;</button>
+        </div>
+        <div class="mb-3">
+            <span class="text-xs text-slate-500 font-medium">Cơ sở: </span>
+            <strong id="venueRejectionName" class="text-sm font-bold text-slate-800"></strong>
+        </div>
+        <div class="p-4 bg-red-50/80 border border-red-200 rounded-xl mb-5">
+            <p id="venueRejectionReasonText" class="text-sm text-red-900 leading-relaxed font-medium whitespace-pre-line"></p>
+        </div>
+        <div class="flex justify-end">
+            <button type="button" onclick="closeVenueRejectionModal()" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors">
+                Đóng
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openVenueRejectionModal(venueName, reason) {
+        document.getElementById('venueRejectionName').textContent = venueName;
+        document.getElementById('venueRejectionReasonText').textContent = reason || 'Admin đã từ chối duyệt cơ sở này.';
+        const modal = document.getElementById('venueRejectionModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeVenueRejectionModal() {
+        const modal = document.getElementById('venueRejectionModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('venueRejectionModal');
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) closeVenueRejectionModal();
+            });
+        }
+    });
+</script>
  
 @endsection

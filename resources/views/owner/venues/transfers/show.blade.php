@@ -83,6 +83,17 @@
         </div>
     </div>
 
+    <!-- BANNER LÝ DO TỪ CHỐI CỦA ADMIN -->
+    @if($transfer->status === 'rejected')
+        <div class="max-w-4xl mx-auto mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-800 shadow-sm flex items-start gap-3">
+            <svg class="w-5 h-5 text-red-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            <div>
+                <strong class="font-bold text-red-900 block mb-1">Bị Admin từ chối:</strong>
+                <p class="whitespace-pre-line text-red-800">{{ $transfer->admin_note ?? 'Admin đã từ chối yêu cầu chuyển nhượng này.' }}</p>
+            </div>
+        </div>
+    @endif
+
     <!-- TỜ VĂN BẢN HỢP ĐỒNG (A4 STYLE) -->
     <div class="max-w-4xl mx-auto bg-white border border-slate-300 rounded-xl shadow-lg p-8 md:p-14 contract-card font-serif-legal leading-relaxed text-slate-900">
         
@@ -264,8 +275,10 @@
                     <div class="text-xs text-blue-600 font-semibold mt-1">⏳ Đã gửi (Chờ Bên B điền hồ sơ)</div>
                 @elseif($transfer->status === 'draft')
                     <div class="text-xs text-amber-600 font-semibold mt-1">⏳ Hợp đồng nháp (Chưa gửi)</div>
+                @elseif($transfer->status === 'rejected')
+                    <div class="text-xs text-red-600 font-bold mt-1">✗ Bị Admin từ chối</div>
                 @else
-                    <div class="text-xs text-red-600 font-semibold mt-1">✗ Đã hủy/Từ chối</div>
+                    <div class="text-xs text-slate-500 font-semibold mt-1">✗ Đã hủy</div>
                 @endif
             </div>
         </div>
