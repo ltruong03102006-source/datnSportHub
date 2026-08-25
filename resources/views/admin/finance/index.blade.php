@@ -544,6 +544,26 @@
     $ownerFilterLabel = $selectedOwner
         ? ('Chủ sân: ' . $selectedOwner->name)
         : 'Tất cả chủ sân';
+        // BỔ SUNG THÊM 2 DÒNG NÀY ĐỂ TÍNH LỢI NHUẬN RÒNG
+    // BỔ SUNG THÊM ĐỂ TÍNH LỢI NHUẬN RÒNG (CHUẨN XÁC 100%)
+    $totalSystemLiability = \App\Models\Wallet::where('balance', '>', 0)->sum('balance');
+    
+    // Tính tiền Booking đã thanh toán nhưng chưa đá xong
+    $unsettledQuery = \App\Models\Booking::query();
+    if (\Illuminate\Support\Facades\Schema::hasColumn('bookings', 'payment_status')) {
+        $unsettledQuery->where('payment_status', 'paid');
+    }
+    if (\Illuminate\Support\Facades\Schema::hasColumn('bookings', 'settlement_status')) {
+        $unsettledQuery->where('settlement_status', '!=', 'settled');
+    } else {
+        $unsettledQuery->whereNotIn('status', ['completed', 'cancelled']); 
+    }
+    $amountCol = \Illuminate\Support\Facades\Schema::hasColumn('bookings', 'gross_amount') ? 'gross_amount' : 'total_price';
+    $unsettledFunds = (float) $unsettledQuery->sum($amountCol);
+
+    // Lợi nhuận an toàn = Tổng ví - Tiền trong ví người dùng - Tiền Booking chờ đối soát
+    $safeToWithdraw = ($platformWalletBalance ?? 0) - $totalSystemLiability - $unsettledFunds;
+    $displaySafeAmount = $safeToWithdraw > 0 ? $safeToWithdraw : 0;
 @endphp
 
 <div class="finance-page">
@@ -588,8 +608,9 @@
         <div class="range-pill">{{ $filterLabel }} · {{ $ownerFilterLabel }}</div>
     </div>
 
-    <!-- ĐÃ ĐỔI: Lưới 4 cột thành 3 cột vì bỏ cột Công Nợ -->
-    <div class="kpi-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
+    <!-- LƯỚI KPI THÔNG MINH TỰ ĐỘNG THÍCH ỨNG THEO BỘ LỌC -->
+    <div class="kpi-grid">
+        <!-- 2 Thẻ này luôn hiển thị (Thay đổi số theo chủ sân) -->
         <div class="kpi-card">
             <div class="kpi-top">
                 <div class="kpi-label">GMV</div>
@@ -608,18 +629,156 @@
             <div class="kpi-note">Doanh thu SportHub ghi nhận sau settlement.</div>
         </div>
 
-        <div class="kpi-card">
-            <div class="kpi-top">
-                <div class="kpi-label">Ví nền tảng</div>
-                <div class="kpi-icon bg-green">V</div>
+        <!-- LOGIC KIỂM TRA BỘ LỌC CHỦ SÂN -->
+        @if(!$selectedOwner)
+            <!-- NẾU XEM TOÀN BỘ (KHÔNG LỌC): HIỆN VÍ VÀ LỢI NHUẬN CỦA NỀN TẢNG -->
+            <div class="kpi-card">
+                <div class="kpi-top">
+                    <div class="kpi-label">Ví nền tảng</div>
+                    <div class="kpi-icon bg-green">V</div>
+                </div>
+                <div class="kpi-value {{ ($platformWalletBalance ?? 0) < 0 ? 'tone-red' : 'tone-green' }}">{{ $money($platformWalletBalance ?? 0) }}</div>
+                <div class="kpi-note">Số tiền thật SportHub đang giữ hiện tại.</div>
             </div>
-            <div class="kpi-value {{ ($platformWalletBalance ?? 0) < 0 ? 'tone-red' : 'tone-green' }}">{{ $money($platformWalletBalance ?? 0) }}</div>
-            <div class="kpi-note">Số tiền thật SportHub đang giữ hiện tại.</div>
-        </div>
 
-        {{-- ĐÃ ẨN: Thẻ KPI Công nợ owner --}}
+            <div class="kpi-card" style="border: 2px solid #10b981; background: #ecfdf5; position: relative;">
+                <div class="kpi-top">
+                    <div class="kpi-label" style="color: #047857;">Lợi nhuận có thể rút</div>
+                    <div class="kpi-icon" style="background: #10b981; color: white;"><i class="fa-solid fa-sack-dollar"></i></div>
+                </div>
+                <div class="kpi-value tone-green">{{ $money($displaySafeAmount) }}</div>
+                <div class="kpi-note" style="color: #059669; font-weight: 800; padding-right: 85px;">
+                    Tiền thực tế Admin sở hữu sau khi trừ tiền chờ đối soát.
+                </div>
+                
+                <button type="button" onclick="document.getElementById('withdrawModal').style.display='block'" 
+                        style="position: absolute; bottom: 16px; right: 16px; border: none; background: #10b981; color: white; border-radius: 8px; font-size: 11px; font-weight: 800; padding: 7px 14px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4);">
+                    Rút ngay
+                </button>
+            </div>
+        @else
+            <!-- NẾU ĐANG LỌC 1 CHỦ SÂN: ĐỔI THÀNH KPI CỦA RIÊNG CHỦ SÂN ĐÓ -->
+            <div class="kpi-card">
+                <div class="kpi-top">
+                    <div class="kpi-label">Tiền Online thu hộ</div>
+                    <div class="kpi-icon bg-blue"><i class="fa-solid fa-credit-card"></i></div>
+                </div>
+                <div class="kpi-value tone-blue">{{ $money($onlineBookingCredit ?? 0) }}</div>
+                <div class="kpi-note">Tổng tiền khách đã thanh toán qua VNPay.</div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-top">
+                    <div class="kpi-label">Số dư khả dụng của Chủ sân</div>
+                    <div class="kpi-icon bg-green"><i class="fa-solid fa-wallet"></i></div>
+                </div>
+                <div class="kpi-value tone-green">{{ $money($totalWalletBalance ?? 0) }}</div>
+                <div class="kpi-note">Tiền chủ sân đang có trong ví nền tảng.</div>
+            </div>
+        @endif
     </div>
+    <!-- BẢNG THỐNG KÊ CHI TIẾT THEO TỪNG CƠ SỞ (CHỈ HIỆN KHI LỌC 1 CHỦ SÂN) -->
+    @if($selectedOwner)
+    <div class="panel" style="margin-top: 24px; margin-bottom: 24px;">
+        <div class="panel-head">
+            <div>
+                <h3 class="panel-title">Phân bổ doanh thu theo Cơ sở</h3>
+                <p class="panel-desc">Chi tiết đóng góp GMV và Hoa hồng từ các sân của {{ $selectedOwner->name }}.</p>
+            </div>
+            <div class="range-pill">{{ $dateFrom || $dateTo ? $filterLabel : 'Toàn thời gian' }}</div>
+        </div>
+        <div class="panel-body" style="padding: 0;">
+            @php
+                // Tự động nhận diện cột trong Database để tránh lỗi
+                $gmvCol = \Illuminate\Support\Facades\Schema::hasColumn('bookings', 'gross_amount') ? 'gross_amount' : 'total_price';
+                $feeCol = \Illuminate\Support\Facades\Schema::hasColumn('bookings', 'platform_fee') ? 'platform_fee' : 'commission_amount';
+                $dateCol = \Illuminate\Support\Facades\Schema::hasColumn('bookings', 'settled_at') ? 'settled_at' : 'created_at';
 
+                // Truy vấn danh sách cơ sở của Chủ sân này
+                $ownerVenues = \App\Models\Venue::where('owner_id', $selectedOwner->id)->get();
+                $venueStats = [];
+
+                foreach($ownerVenues as $venue) {
+                    $vBookings = \App\Models\Booking::whereHas('court', function($q) use ($venue) {
+                        $q->where('venue_id', $venue->id);
+                    })
+                    ->when($dateFrom, fn($q) => $q->whereDate($dateCol, '>=', $dateFrom))
+                    ->when($dateTo, fn($q) => $q->whereDate($dateCol, '<=', $dateTo));
+
+                    // Lọc trạng thái thành công giống như Controller
+                    if (\Illuminate\Support\Facades\Schema::hasColumn('bookings', 'settlement_status')) {
+                        $vBookings->where('settlement_status', 'settled');
+                    } else {
+                        $vBookings->whereIn('status', ['completed', 'confirmed']);
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('bookings', 'payment_status')) {
+                            $vBookings->where('payment_status', 'paid');
+                        }
+                    }
+
+                    $vGmv = (float) (clone $vBookings)->sum($gmvCol);
+                    $vFee = (float) (clone $vBookings)->sum($feeCol);
+                    $vCount = (clone $vBookings)->count();
+
+                    // Chỉ hiển thị sân nào có phát sinh giao dịch hoặc đang hoạt động
+                    if ($vCount > 0 || $venue->status === 'active') {
+                        $venueStats[] = [
+                            'name' => $venue->name,
+                            'status' => $venue->status,
+                            'count' => $vCount,
+                            'gmv' => $vGmv,
+                            'fee' => $vFee,
+                            'net' => $vGmv - $vFee
+                        ];
+                    }
+                }
+                
+                // Sắp xếp sân có GMV cao nhất lên đầu
+                usort($venueStats, fn($a, $b) => $b['gmv'] <=> $a['gmv']);
+            @endphp
+
+            <div class="table-card">
+                <table class="data-table">
+                    <thead style="background: #f8fafc;">
+                        <tr>
+                            <th>TÊN CƠ SỞ</th>
+                            <th style="text-align: center;">SỐ LƯỢNG ĐƠN</th>
+                            <th style="text-align: right;">GMV (DOANH THU)</th>
+                            <th style="text-align: right;">HOA HỒNG ADMIN</th>
+                            <th style="text-align: right;">TIỀN THU HỘ CỦA SÂN</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($venueStats as $stat)
+                            <tr>
+                                <td>
+                                    <strong style="color: #0f172a; font-size: 13px;">{{ $stat['name'] }}</strong>
+                                    <div style="margin-top: 4px;">
+                                        @if($stat['status'] === 'active')
+                                            <span class="badge-status status-good">Đang hoạt động</span>
+                                        @else
+                                            <span class="badge-status" style="background: #e2e8f0; color: #475569;">Tạm ngừng</span>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td style="text-align: center; font-weight: 700;">{{ $stat['count'] }}</td>
+                                <td style="text-align: right;" class="tone-blue"><strong>{{ $money($stat['gmv']) }}</strong></td>
+                                <td style="text-align: right;" class="tone-green"><strong>{{ $money($stat['fee']) }}</strong></td>
+                                <td style="text-align: right;" class="tone-amber"><strong>{{ $money($stat['net']) }}</strong></td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 40px; color: #64748b;">
+                                    <i class="fa-solid fa-folder-open mb-2" style="font-size: 24px; opacity: 0.5;"></i><br>
+                                    Chủ sân này chưa có cơ sở nào phát sinh doanh thu.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    @endif
     <div class="main-grid">
         <div class="panel">
             <div class="panel-head">
@@ -846,10 +1005,7 @@
             <!-- BƯỚC 1: NHẬP SỐ TIỀN -->
             <div id="wd-step-1">
                 <h3 style="margin:0 0 6px 0; font-size:18px; color:#0f172a;">Rút Doanh Thu Nền Tảng</h3>
-                @php
-                    $safeToWithdraw = ($platformWalletBalance ?? 0) - ($totalWalletBalance ?? 0);
-                    $displaySafeAmount = $safeToWithdraw > 0 ? $safeToWithdraw : 0;
-                @endphp
+               
                 <p style="color:#64748b; font-size:13px; margin-bottom:24px;">
                     Số dư khả dụng: <strong class="{{ $safeToWithdraw > 0 ? 'tone-green' : 'tone-red' }}">{{ $money($displaySafeAmount) }}</strong>
                 </p>
