@@ -1,393 +1,413 @@
 @extends('owner.layoutOwner.app')
 
-@section('title', 'Dashboard')
+@section('title', 'Tổng quan kinh doanh')
 
 @section('content')
 
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+
+<!-- Tích hợp Font Inter cho dữ liệu hiển thị sắc nét -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
 <style>
-    .glass-card {
-        background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-        transition: all 0.3s ease;
+    body { font-family: 'Inter', sans-serif; }
+    
+    .saas-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.03);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .glass-card:hover {
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    .saas-card:hover {
+        box-shadow: 0 10px 25px -3px rgba(15, 23, 42, 0.08);
     }
-    input[type="date"]::-webkit-calendar-picker-indicator {
-        cursor: pointer;
-        opacity: 0.6;
-        transition: 0.2s;
+    
+    .filter-select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.5rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
     }
-    input[type="date"]::-webkit-calendar-picker-indicator:hover {
-        opacity: 1;
-    }
+
+    /* Ẩn thanh cuộn cho bảng */
+    .hide-scroll::-webkit-scrollbar { height: 6px; }
+    .hide-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+    .hide-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .hide-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 </style>
 
-<div class="flex-1 p-6 lg:p-10 max-w-7xl mx-auto w-full" x-data="{ filterType: '{{ $period == "custom" ? "custom" : "quick" }}' }">
+@php
+    // GOM DỮ LIỆU THÔNG MINH BẰNG PHP BLADE (Không chạm vào Controller)
+    $totalBookings = $singleBookingsCount + $packageBookingsCount;
+    $totalCompleted = $singleBookingsCompletedCount + $packageBookingsCompletedCount;
+    $failedBookings = $totalBookings - $totalCompleted;
+    $completionRate = $totalBookings > 0 ? ($totalCompleted / $totalBookings) * 100 : 0;
+@endphp
 
-    {{-- @include('owner.partials.debt-warning') --}}
+<div class="flex-1 p-4 lg:p-8 max-w-[1600px] mx-auto w-full bg-slate-50/50 min-h-screen" x-data="{ filterType: '{{ $period == "custom" ? "custom" : "quick" }}' }">
+
     @include('owner.partials.wallet-summary')
 
-    <!-- Header & Filters Form -->
+    <!-- BỘ LỌC ĐIỀU HƯỚNG (CONTROL PANEL) -->
+    <!-- BỘ LỌC ĐIỀU HƯỚNG (CONTROL PANEL) -->
     <form method="GET" action="{{ route('owner.dashboard') }}" class="mb-8">
-        <div class="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-
-            <div>
-                <h2 class="text-2xl font-bold text-slate-800 mb-1">Xin chào, {{ Auth::user()->name ?? 'Chủ sân' }}</h2>
-                <p class="text-sm text-slate-500">Tùy chỉnh bộ lọc để xem thống kê chi tiết.</p>
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col 2xl:flex-row justify-between items-start 2xl:items-center gap-6">
+            
+            <!-- Phần Tiêu đề -->
+            <div class="shrink-0">
+                <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Tổng quan kinh doanh</h1>
+                <p class="text-sm font-medium text-slate-500 mt-1">
+                    Theo dõi hiệu suất hoạt động của các cơ sở thể thao.
+                </p>
             </div>
 
-            <div class="flex flex-col lg:flex-row items-end gap-4 w-full xl:w-auto">
-                <!-- Venue Filter -->
-                <div class="w-full lg:w-48">
-                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Cơ sở</label>
-                    <select name="venue_id" class="w-full rounded-lg border-slate-300 text-sm focus:border-emerald-500 focus:ring-emerald-500 shadow-sm py-2 px-3 outline-none border transition-colors bg-slate-50 hover:bg-white">
-                        <option value="all">Tất cả cơ sở</option>
-                        @foreach($allVenues as $v)
-                            <option value="{{ $v->id }}" {{ $selectedVenueId == $v->id ? 'selected' : '' }}>{{ $v->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <!-- Court Filter: chỉ bật khi đã chọn 1 cơ sở cụ thể -->
-                <div class="w-full lg:w-48">
-                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Sân con</label>
-                    <select name="court_id" id="courtSelect"
-                            @disabled($courtsOfVenue->isEmpty())
-                            class="w-full rounded-lg border-slate-300 text-sm focus:border-emerald-500 focus:ring-emerald-500 shadow-sm py-2 px-3 outline-none border transition-colors bg-slate-50 hover:bg-white disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed">
-                        @if ($courtsOfVenue->isEmpty())
-                            <option value="all">Chọn cơ sở trước</option>
-                        @else
-                            <option value="all">Tất cả sân con</option>
-                            @foreach($courtsOfVenue as $court)
-                                <option value="{{ $court->id }}" {{ (string) $selectedCourtId === (string) $court->id ? 'selected' : '' }}>{{ $court->name }}</option>
+            <div class="flex flex-wrap items-center gap-3 w-full 2xl:w-auto">
+                
+                <!-- NHÓM 1: Lọc Cơ sở + Sân con (Luôn đi liền nhau) -->
+                <div class="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full lg:w-auto">
+                    <!-- Lọc Cơ sở -->
+                    <div class="relative w-full sm:w-48 shrink-0">
+                        <select name="venue_id" class="filter-select w-full rounded-xl border-slate-200 text-sm font-semibold text-slate-700 focus:border-emerald-500 focus:ring-emerald-500 bg-slate-50 py-2.5 pl-4 pr-10 outline-none transition-all cursor-pointer hover:bg-slate-100">
+                            <option value="all">🏢 Tất cả cơ sở</option>
+                            @foreach($allVenues as $v)
+                                <option value="{{ $v->id }}" {{ $selectedVenueId == $v->id ? 'selected' : '' }}>{{ $v->name }}</option>
                             @endforeach
-                        @endif
-                    </select>
+                        </select>
+                    </div>
+
+                    <!-- Lọc Sân con -->
+                    <div class="relative w-full sm:w-44 shrink-0">
+                        <select name="court_id" id="courtSelect" @disabled($courtsOfVenue->isEmpty())
+                                class="filter-select w-full rounded-xl border-slate-200 text-sm font-semibold text-slate-700 focus:border-emerald-500 focus:ring-emerald-500 bg-slate-50 py-2.5 pl-4 pr-10 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:bg-slate-100">
+                            @if ($courtsOfVenue->isEmpty())
+                                <option value="all">📍 Chọn cơ sở trước</option>
+                            @else
+                                <option value="all">📍 Tất cả sân con</option>
+                                @foreach($courtsOfVenue as $court)
+                                    <option value="{{ $court->id }}" {{ (string) $selectedCourtId === (string) $court->id ? 'selected' : '' }}>{{ $court->name }}</option>
+                                @endforeach
+                            @endif
+                        </select>
+                    </div>
                 </div>
 
-                <!-- Period Type Selection -->
-                <div class="w-full lg:w-auto">
-                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Thời gian</label>
-                    <div class="flex rounded-lg border border-slate-300 p-0.5 bg-slate-50 shadow-sm">
-                        <button type="button" @click="filterType = 'quick'; $nextTick(() => { document.getElementById('periodSelect').value = 'month'; document.getElementById('filterFormBtn').click() })"
-                                :class="filterType === 'quick' ? 'bg-white shadow text-emerald-700 font-medium' : 'text-slate-500 hover:text-slate-700'"
-                                class="px-4 py-1.5 text-sm rounded-md transition-all">Lọc nhanh</button>
+                <!-- NHÓM 2: Lọc Thời gian + Nút Lọc (Gom chung để nút không bị rớt lẻ loi) -->
+                <div class="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full lg:w-auto">
+                    <!-- Tab Chọn kiểu thời gian -->
+                    <div class="flex bg-slate-100 p-1 rounded-xl shrink-0">
+                        <button type="button" @click="filterType = 'quick'"
+                                :class="filterType === 'quick' ? 'bg-white text-emerald-700 shadow-sm font-bold' : 'text-slate-500 hover:text-slate-700 font-medium'"
+                                class="px-4 py-1.5 text-sm rounded-lg transition-all">Bộ lọc</button>
                         <button type="button" @click="filterType = 'custom'"
-                                :class="filterType === 'custom' ? 'bg-white shadow text-emerald-700 font-medium' : 'text-slate-500 hover:text-slate-700'"
-                                class="px-4 py-1.5 text-sm rounded-md transition-all">Tùy chọn</button>
+                                :class="filterType === 'custom' ? 'bg-white text-emerald-700 shadow-sm font-bold' : 'text-slate-500 hover:text-slate-700 font-medium'"
+                                class="px-4 py-1.5 text-sm rounded-lg transition-all">Tùy chỉnh</button>
                     </div>
+
+                    <!-- Select Lọc nhanh -->
+                    <div x-show="filterType === 'quick'" class="w-full sm:w-36 shrink-0">
+                        <select name="period" id="periodSelect" onchange="this.form.submit()" class="filter-select w-full rounded-xl border-slate-200 text-sm font-semibold text-emerald-700 bg-emerald-50 focus:border-emerald-500 focus:ring-emerald-500 py-2.5 pl-4 pr-10 outline-none cursor-pointer">
+                            <option value="today" {{ $period == 'today' ? 'selected' : '' }}>Hôm nay</option>
+                            <option value="week" {{ $period == 'week' ? 'selected' : '' }}>Tuần này</option>
+                            <option value="month" {{ $period == 'month' ? 'selected' : '' }}>Tháng này</option>
+                            <option value="year" {{ $period == 'year' ? 'selected' : '' }}>Năm nay</option>
+                            <option value="custom" class="hidden" {{ $period == 'custom' ? 'selected' : '' }}></option>
+                        </select>
+                    </div>
+
+                    <!-- Date Picker (Tùy chỉnh) - Đã khóa width cố định để không bị phình to -->
+                    <div x-show="filterType === 'custom'" x-cloak class="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                        <input type="hidden" name="period" value="custom" :disabled="filterType !== 'custom'">
+                        <input type="date" name="start_date" value="{{ $customStart }}" class="rounded-xl border-slate-200 text-sm font-medium py-2 px-3 outline-none focus:border-emerald-500 focus:ring-emerald-500 w-[130px]">
+                        <span class="text-slate-400 font-medium">-</span>
+                        <input type="date" name="end_date" value="{{ $customEnd }}" class="rounded-xl border-slate-200 text-sm font-medium py-2 px-3 outline-none focus:border-emerald-500 focus:ring-emerald-500 w-[130px]">
+                    </div>
+
+                    <!-- Nút lọc (Luôn dính liền với Nhóm 2) -->
+                    <button type="submit" id="filterFormBtn" class="px-5 py-2.5 text-sm font-bold text-white bg-slate-900 hover:bg-emerald-600 rounded-xl shadow-sm transition-all h-[42px] shrink-0 w-full sm:w-auto">
+                        Lọc dữ liệu
+                    </button>
                 </div>
 
-                <!-- Quick Filter Dropdown -->
-                <div class="w-full lg:w-32" x-show="filterType === 'quick'">
-                    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">&nbsp;</label>
-                    <select name="period" id="periodSelect" onchange="this.form.submit()" class="w-full rounded-lg border-slate-300 text-sm focus:border-emerald-500 focus:ring-emerald-500 shadow-sm py-2 px-3 outline-none border transition-colors bg-slate-50 hover:bg-white">
-                        <option value="today" {{ $period == 'today' ? 'selected' : '' }}>Hôm nay</option>
-                        <option value="week" {{ $period == 'week' ? 'selected' : '' }}>Tuần này</option>
-                        <option value="month" {{ $period == 'month' ? 'selected' : '' }}>Tháng này</option>
-                        <option value="year" {{ $period == 'year' ? 'selected' : '' }}>Năm nay</option>
-                        <option value="custom" class="hidden" {{ $period == 'custom' ? 'selected' : '' }}></option>
-                    </select>
-                </div>
-
-                <!-- Custom Date Range -->
-                <div class="flex gap-2 w-full lg:w-auto" x-show="filterType === 'custom'" style="display: none;">
-                    <input type="hidden" name="period" value="custom" :disabled="filterType !== 'custom'">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Từ ngày</label>
-                        <input type="date" name="start_date" value="{{ $customStart }}" class="w-full rounded-lg border-slate-300 text-sm py-2 px-3 border outline-none focus:border-emerald-500 focus:ring-emerald-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Đến ngày</label>
-                        <input type="date" name="end_date" value="{{ $customEnd }}" class="w-full rounded-lg border-slate-300 text-sm py-2 px-3 border outline-none focus:border-emerald-500 focus:ring-emerald-500">
-                    </div>
-                </div>
-
-                <!-- Submit Button -->
-                <button type="submit" id="filterFormBtn" class="px-5 py-2.2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-colors h-[38px] flex items-center justify-center min-w-[80px]">
-                    Lọc
-                </button>
             </div>
         </div>
     </form>
-
-    <!-- Summary Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
-        <!-- Revenue Card -->
-        <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
-            <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                <svg class="w-16 h-16 text-emerald-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-            </div>
-            <p class="text-sm font-medium text-slate-500 mb-1">Tổng doanh thu</p>
-            <h3 class="text-3xl font-bold text-slate-800">{{ number_format($totalRevenue, 0, ',', '.') }} <span class="text-lg text-slate-500 font-normal">VNĐ</span></h3>
-
-            <div class="mt-2 flex items-center">
-                @if($revenueChange > 0)
-                    <span class="inline-flex items-center text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
-                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
-                        +{{ number_format($revenueChange, 1) }}%
-                    </span>
-                @elseif($revenueChange < 0)
-                    <span class="inline-flex items-center text-xs font-medium text-red-600 bg-red-50 px-2 py-1 rounded-md">
-                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
-                        {{ number_format($revenueChange, 1) }}%
-                    </span>
-                @else
-                    <span class="inline-flex items-center text-xs font-medium text-slate-500 bg-slate-50 px-2 py-1 rounded-md">0%</span>
-                @endif
-                <span class="text-xs text-slate-400 ml-2">so với kỳ trước</span>
-            </div>
-        </div>
-
-        <!-- Package Revenue Card -->
-        <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
-            <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                <svg class="w-16 h-16 text-violet-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l8 4v6c0 5.25-3.44 9.92-8 11-4.56-1.08-8-5.75-8-11V6l8-4zm0 3.18L6 7.24v3.36c0 3.84 2.4 7.34 6 8.44 3.6-1.1 6-4.6 6-8.44V7.24l-6-2.06z"/></svg>
-            </div>
-            <p class="text-sm font-medium text-slate-500 mb-1">Doanh thu gói</p>
-            <h3 class="text-3xl font-bold text-slate-800">{{ number_format($packageBookingRevenue, 0, ',', '.') }} <span class="text-lg text-slate-500 font-normal">VNĐ</span></h3>
-            <p class="text-xs text-violet-600 mt-2 font-medium bg-violet-50 inline-block px-2 py-1 rounded-md">Từ booking phát sinh từ gói</p>
-        </div>
-
-        <!-- Single Bookings Card -->
-        <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
-            <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                <svg class="w-16 h-16 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10z"/></svg>
-            </div>
-            <p class="text-sm font-medium text-slate-500 mb-1">Tổng lượt đặt lẻ</p>
-            <h3 class="text-3xl font-bold text-slate-800">{{ $singleBookingsCount }}</h3>
-            <p class="text-xs text-blue-600 mt-2 font-medium bg-blue-50 inline-block px-2 py-1 rounded-md">
-                {{ $singleBookingsCompletedCount }} lượt hoàn tất
-            </p>
-        </div>
-
-        <!-- Package Bookings Card -->
-        <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
-            <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                <svg class="w-16 h-16 text-teal-600" fill="currentColor" viewBox="0 0 24 24"><path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/></svg>
-            </div>
-            <p class="text-sm font-medium text-slate-500 mb-1">Tổng lượt đặt gói</p>
-            <h3 class="text-3xl font-bold text-slate-800">{{ $packageBookingsCount }}</h3>
-            <p class="text-xs text-teal-600 mt-2 font-medium bg-teal-50 inline-block px-2 py-1 rounded-md">
-                {{ $packageBookingsCompletedCount }} lượt hoàn tất
-            </p>
-        </div>
-
-        <!-- Occupancy & Hours Card -->
-        <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
-            <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                <svg class="w-16 h-16 text-indigo-600" fill="currentColor" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
-            </div>
-            <div class="flex justify-between items-start">
+    <!-- 4 THẺ CHỈ SỐ CỐT LÕI (KPIs) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+        
+        <!-- KPI 1: Doanh Thu -->
+        <div class="saas-card p-6 flex flex-col justify-between">
+            <div class="flex justify-between items-start mb-4">
                 <div>
-                    <p class="text-sm font-medium text-slate-500 mb-1">Tỷ lệ lấp đầy</p>
-                    <h3 class="text-3xl font-bold text-slate-800">{{ number_format($occupancyRate, 1) }}<span class="text-lg text-slate-500 font-normal">%</span></h3>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Tổng Doanh Thu</p>
+                    <h3 class="text-3xl font-black text-slate-900 tracking-tight">{{ number_format($totalRevenue, 0, ',', '.') }}<span class="text-base text-slate-400 font-semibold ml-1">đ</span></h3>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
             </div>
-            <p class="text-xs text-indigo-600 mt-2 font-medium bg-indigo-50 inline-block px-2 py-1 rounded-md">Đã thuê: {{ number_format($totalHours, 1) }} giờ</p>
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    @if($revenueChange > 0)
+                        <span class="inline-flex items-center text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                            +{{ number_format($revenueChange, 1) }}%
+                        </span>
+                    @elseif($revenueChange < 0)
+                        <span class="inline-flex items-center text-xs font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-md">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>
+                            {{ number_format($revenueChange, 1) }}%
+                        </span>
+                    @else
+                        <span class="inline-flex items-center text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">0%</span>
+                    @endif
+                    <span class="text-xs font-medium text-slate-400 ml-2">so với kỳ trước</span>
+                </div>
+                <!-- Thông tin phụ -->
+                <div class="text-[10px] font-bold text-slate-400 uppercase text-right" title="Doanh thu từ Đặt gói">
+                    Gói: {{ number_format($packageBookingRevenue, 0, ',', '.') }}đ
+                </div>
+            </div>
         </div>
 
-        <!-- Unique Customers Card -->
-        <div class="glass-card rounded-2xl p-6 relative overflow-hidden group">
-            <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                <svg class="w-16 h-16 text-orange-600" fill="currentColor" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        <!-- KPI 2: Lượt Booking & Hiệu suất -->
+        <div class="saas-card p-6 flex flex-col justify-between">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Tổng Lượt Đặt</p>
+                    <div class="flex items-baseline gap-2">
+                        <h3 class="text-3xl font-black text-slate-900 tracking-tight">{{ $totalBookings }}</h3>
+                        <span class="text-sm font-semibold text-slate-400">lượt</span>
+                    </div>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                </div>
             </div>
-            <p class="text-sm font-medium text-slate-500 mb-1">Khách hàng mới</p>
-            <h3 class="text-3xl font-bold text-slate-800">{{ $uniqueCustomers }}</h3>
-            <p class="text-xs text-orange-600 mt-2 font-medium bg-orange-50 inline-block px-2 py-1 rounded-md">Khách hàng riêng biệt</p>
+            
+            <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden mb-2">
+                <div class="bg-blue-500 h-full rounded-full" style="width: {{ $completionRate }}%"></div>
+            </div>
+            <div class="flex justify-between text-xs font-semibold">
+                <span class="text-emerald-600">{{ $totalCompleted }} Hoàn tất</span>
+                <span class="text-rose-500">{{ $failedBookings }} Hủy/Bùng</span>
+            </div>
         </div>
+
+        <!-- KPI 3: Tỷ lệ lấp đầy & Thời lượng -->
+        <div class="saas-card p-6 flex flex-col justify-between">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Tỷ Lệ Lấp Đầy</p>
+                    <h3 class="text-3xl font-black text-slate-900 tracking-tight">{{ number_format($occupancyRate, 1) }}<span class="text-lg text-slate-400 font-semibold">%</span></h3>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" /><path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" /></svg>
+                </div>
+            </div>
+            <div class="flex items-center justify-between border-t border-slate-100 pt-3">
+                <span class="text-xs font-semibold text-slate-500">Tổng thời gian cho thuê</span>
+                <span class="text-sm font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">{{ number_format($totalHours, 1) }} giờ</span>
+            </div>
+        </div>
+
+        <!-- KPI 4: Khách hàng -->
+        <div class="saas-card p-6 flex flex-col justify-between">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Khách Hàng</p>
+                    <div class="flex items-baseline gap-2">
+                        <h3 class="text-3xl font-black text-slate-900 tracking-tight">{{ $uniqueCustomers }}</h3>
+                        <span class="text-sm font-semibold text-slate-400">người</span>
+                    </div>
+                </div>
+                <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                </div>
+            </div>
+            <div class="flex items-center justify-between border-t border-slate-100 pt-3">
+                <span class="text-xs font-semibold text-slate-500">Khách phát sinh giao dịch</span>
+                <span class="text-[10px] font-bold text-orange-600 uppercase tracking-wider">Unique</span>
+            </div>
+        </div>
+
     </div>
 
-    <!-- Charts & Peak Hours Section -->
+    <!-- KHU VỰC BIỂU ĐỒ (Row 1) -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <!-- Revenue Line Chart -->
-        <div class="glass-card rounded-2xl p-6 lg:col-span-2">
-            <h3 class="text-lg font-bold text-slate-800 mb-4">Biểu đồ doanh thu</h3>
+        
+        <!-- Biểu đồ Doanh thu (Line Chart) -->
+        <div class="saas-card p-6 lg:col-span-2">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900">Xu hướng Doanh thu</h3>
+                    <p class="text-xs font-medium text-slate-500">Thống kê theo dòng thời gian bạn đã chọn.</p>
+                </div>
+            </div>
             <div class="relative h-72 w-full">
                 <canvas id="revenueChart"></canvas>
             </div>
         </div>
 
-        <!-- Peak Hours Ranking -->
-        <div class="glass-card rounded-2xl p-6 flex flex-col">
-            <h3 class="text-lg font-bold text-slate-800 mb-4">Top khung giờ "hot"</h3>
-            <p class="text-xs text-slate-500 mb-4">Các khung giờ được đặt nhiều nhất.</p>
-
-            <div class="flex-1 overflow-y-auto pr-2" style="max-height: 280px;">
-                @forelse($peakHours->take(5) as $time => $count)
-                    <div class="flex items-center justify-between mb-3 p-3 rounded-lg bg-slate-50 border border-slate-100 hover:border-indigo-200 transition-colors">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm">
-                                {{ $time }}
-                            </div>
-                            <div>
-                                <p class="text-sm font-bold text-slate-800">Giờ vàng</p>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <span class="text-sm font-bold text-indigo-600">{{ $count }}</span>
-                            <span class="text-xs text-slate-500 ml-1">lượt đặt</span>
-                        </div>
-                    </div>
-                @empty
-                    <div class="text-center text-slate-500 py-8 text-sm">Chưa có dữ liệu.</div>
-                @endforelse
-            </div>
-        </div>
-
-        <!-- Booking Status Chart -->
-        <div class="glass-card rounded-2xl p-6">
-            <h3 class="text-lg font-bold text-slate-800 mb-4">Tỷ lệ trạng thái</h3>
-            <div class="relative h-64 w-full flex justify-center">
+        <!-- Biểu đồ Trạng thái (Doughnut) -->
+        <div class="saas-card p-6 flex flex-col">
+            <h3 class="text-base font-bold text-slate-900 mb-1">Tỷ lệ Trạng thái</h3>
+            <p class="text-xs font-medium text-slate-500 mb-6">Mức độ hoàn thành của các booking.</p>
+            <div class="relative flex-1 w-full min-h-[220px] flex items-center justify-center">
                 <canvas id="statusChart"></canvas>
-            </div>
-        </div>
-
-        <!-- Peak Hours Bar Chart -->
-        <div class="glass-card rounded-2xl p-6 lg:col-span-2">
-            <h3 class="text-lg font-bold text-slate-800 mb-4">Mật độ khung giờ đặt sân</h3>
-            <div class="relative h-64 w-full">
-                <canvas id="peakChart"></canvas>
             </div>
         </div>
     </div>
 
-    <!-- Tables Section -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- KHU VỰC BẢNG THỐNG KÊ CHI TIẾT (Row 2) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
 
-        <!-- Top Venues Table -->
-        <div class="glass-card rounded-2xl p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-slate-800">Cơ sở hiệu quả nhất</h3>
+        <!-- Top Cơ sở (Venues) -->
+        <div class="saas-card p-0 overflow-hidden flex flex-col">
+            <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <h3 class="text-base font-bold text-slate-900">🏆 Cơ Sở Hiệu Quả Nhất</h3>
             </div>
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto hide-scroll flex-1">
                 <table class="w-full text-sm text-left">
-                    <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
+                    <thead class="text-[10px] text-slate-400 uppercase tracking-wider bg-white">
                         <tr>
-                            <th class="px-4 py-3 rounded-tl-lg">Tên cơ sở</th>
-                            <th class="px-4 py-3 text-center">Lượt đặt</th>
-                            <th class="px-4 py-3 text-right rounded-tr-lg">Doanh thu</th>
+                            <th class="px-6 py-4 font-bold">Tên cơ sở</th>
+                            <th class="px-6 py-4 font-bold text-center">Lượt đặt</th>
+                            <th class="px-6 py-4 font-bold text-right">Doanh thu</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="divide-y divide-slate-50">
                         @forelse($topVenues as $venue)
-                            <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                                <td class="px-4 py-3 font-medium text-slate-800">{{ $venue['name'] }}</td>
-                                <td class="px-4 py-3 text-center text-slate-500">
-                                    <span class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full text-xs font-semibold">{{ $venue['bookings_count'] }}</span>
+                            <tr class="hover:bg-slate-50/80 transition-colors group">
+                                <td class="px-6 py-4 font-bold text-slate-800">{{ $venue['name'] }}</td>
+                                <td class="px-6 py-4 text-center">
+                                    <span class="bg-slate-100 text-slate-600 px-3 py-1 rounded-md text-xs font-bold group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">{{ $venue['bookings_count'] }}</span>
                                 </td>
-                                <td class="px-4 py-3 text-right font-bold text-emerald-600">{{ number_format($venue['revenue'], 0, ',', '.') }} đ</td>
+                                <td class="px-6 py-4 text-right font-black text-emerald-600">{{ number_format($venue['revenue'], 0, ',', '.') }} đ</td>
                             </tr>
                         @empty
-                            <tr>
-                                <td colspan="3" class="px-4 py-8 text-center text-slate-500">Chưa có dữ liệu</td>
-                            </tr>
+                            <tr><td colspan="3" class="px-6 py-10 text-center text-slate-500 text-sm font-medium">Chưa có dữ liệu</td></tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Top Customers Table -->
-        <div class="glass-card rounded-2xl p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-slate-800">Khách hàng VIP</h3>
+        <!-- Top Khách hàng (Customers) -->
+        <div class="saas-card p-0 overflow-hidden flex flex-col">
+            <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <h3 class="text-base font-bold text-slate-900">💎 Khách Hàng Thân Thiết</h3>
             </div>
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto hide-scroll flex-1">
                 <table class="w-full text-sm text-left">
-                    <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
+                    <thead class="text-[10px] text-slate-400 uppercase tracking-wider bg-white">
                         <tr>
-                            <th class="px-4 py-3 rounded-tl-lg">Khách hàng</th>
-                            <th class="px-4 py-3 text-center">Lượt đặt</th>
-                            <th class="px-4 py-3 text-right rounded-tr-lg">Đã chi</th>
+                            <th class="px-6 py-4 font-bold">Khách hàng</th>
+                            <th class="px-6 py-4 font-bold text-center">Lượt đặt</th>
+                            <th class="px-6 py-4 font-bold text-right">Tổng chi</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="divide-y divide-slate-50">
                         @forelse($topCustomers as $customer)
-                            <tr class="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                                <td class="px-4 py-3">
-                                    <div class="font-medium text-slate-800">{{ $customer['name'] }}</div>
-                                    <div class="text-xs text-slate-400">{{ $customer['email'] }}</div>
+                            <tr class="hover:bg-slate-50/80 transition-colors group">
+                                <td class="px-6 py-3">
+                                    <div class="font-bold text-slate-800">{{ $customer['name'] }}</div>
+                                    <div class="text-xs text-slate-400 font-medium">{{ $customer['email'] }}</div>
                                 </td>
-                                <td class="px-4 py-3 text-center text-slate-500">
-                                    <span class="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full text-xs font-semibold">{{ $customer['bookings_count'] }}</span>
+                                <td class="px-6 py-3 text-center">
+                                    <span class="bg-amber-50 text-amber-600 px-3 py-1 rounded-md text-xs font-bold">{{ $customer['bookings_count'] }}</span>
                                 </td>
-                                <td class="px-4 py-3 text-right font-bold text-emerald-600">{{ number_format($customer['revenue'], 0, ',', '.') }} đ</td>
+                                <td class="px-6 py-3 text-right font-black text-slate-800">{{ number_format($customer['revenue'], 0, ',', '.') }} đ</td>
                             </tr>
                         @empty
-                            <tr>
-                                <td colspan="3" class="px-4 py-8 text-center text-slate-500">Chưa có dữ liệu</td>
-                            </tr>
+                            <tr><td colspan="3" class="px-6 py-10 text-center text-slate-500 text-sm font-medium">Chưa có dữ liệu</td></tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
+    </div>
 
-        <!-- Thống kê chi tiết từng sân con -->
-        <div class="glass-card rounded-2xl p-6 mt-6 lg:col-span-2">
-            <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
-                <h3 class="text-lg font-bold text-slate-800">Thống kê theo sân con</h3>
-                @if ($selectedVenueId === 'all')
-                    <span class="text-xs text-slate-500">Chọn một cơ sở để xem chi tiết từng sân con</span>
-                @elseif ($selectedCourtId !== 'all')
-                    <span class="text-xs text-slate-500">Số liệu phía trên đang lọc riêng sân được tô sáng, bảng dưới hiển thị cả cơ sở để so sánh</span>
-                @endif
+    <!-- KHU VỰC PHÂN TÍCH CHUYÊN SÂU (Deep Dive) -->
+    <div class="saas-card p-0 overflow-hidden mb-8">
+        <div class="px-6 py-5 border-b border-slate-100 bg-slate-50/50 flex flex-wrap justify-between items-center gap-4">
+            <div>
+                <h3 class="text-base font-bold text-slate-900">Phân tích Sân con & Khung giờ</h3>
+                <p class="text-xs font-medium text-slate-500 mt-1">Đánh giá hiệu quả khai thác của từng sân thuộc cơ sở.</p>
             </div>
-
-            @if ($courtStats->isNotEmpty())
-                <div class="h-64 mb-6">
-                    <canvas id="courtRevenueChart"></canvas>
+            @if ($selectedVenueId === 'all')
+                <div class="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100">
+                    <i class="fa-solid fa-circle-info mr-1"></i> Chọn 1 cơ sở để xem chi tiết
                 </div>
             @endif
+        </div>
 
-            {{-- Ma trận nhiệt: sân con x khung giờ --}}
+        <div class="p-6">
+            <!-- 2 Biểu đồ Bar Chart: Mật độ giờ & Doanh thu sân -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 border-b border-slate-100 pb-8">
+                <!-- Bar chart: Peak Hours -->
+                <div>
+                    <h4 class="text-sm font-bold text-slate-700 mb-4">Mật độ khung giờ đặt sân chung</h4>
+                    <div class="relative h-56 w-full"><canvas id="peakChart"></canvas></div>
+                </div>
+                <!-- Bar chart: Court Revenue -->
+                <div>
+                    <h4 class="text-sm font-bold text-slate-700 mb-4">Doanh thu so sánh giữa các sân con</h4>
+                    @if ($courtStats->isNotEmpty())
+                        <div class="relative h-56 w-full"><canvas id="courtRevenueChart"></canvas></div>
+                    @else
+                        <div class="h-56 flex items-center justify-center text-slate-400 text-sm font-medium bg-slate-50 rounded-xl border border-dashed border-slate-200">Không có dữ liệu sân con</div>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Ma trận nhiệt (Heatmap) thiết kế chuẩn GitHub -->
             @if (!empty($courtHeatmap['rows']))
-                <div class="mb-6 border-t border-slate-100 pt-5">
-                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-                        <h4 class="text-sm font-bold text-slate-700">Khung giờ đông khách của từng sân</h4>
-                        <div class="flex items-center gap-1.5 text-[11px] text-slate-500">
-                            <span>Ít</span>
-                            <span class="w-4 h-3 rounded-sm bg-slate-100 border border-slate-200"></span>
-                            <span class="w-4 h-3 rounded-sm bg-emerald-200"></span>
-                            <span class="w-4 h-3 rounded-sm bg-emerald-400"></span>
-                            <span class="w-4 h-3 rounded-sm bg-emerald-600"></span>
-                            <span>Nhiều</span>
+                <div class="mb-8">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                        <h4 class="text-sm font-bold text-slate-700">Ma trận nhiệt: Khung giờ đông khách</h4>
+                        <div class="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            <span>Vắng</span>
+                            <div class="flex gap-1">
+                                <span class="w-3 h-3 rounded-sm bg-slate-100"></span>
+                                <span class="w-3 h-3 rounded-sm bg-emerald-200"></span>
+                                <span class="w-3 h-3 rounded-sm bg-emerald-400"></span>
+                                <span class="w-3 h-3 rounded-sm bg-emerald-600"></span>
+                            </div>
+                            <span>Đông</span>
                         </div>
                     </div>
 
-                    <div class="overflow-x-auto">
-                        <table class="text-xs border-separate" style="border-spacing: 3px;">
+                    <div class="overflow-x-auto hide-scroll pb-2">
+                        <table class="border-separate" style="border-spacing: 2px;">
                             <thead>
                                 <tr>
-                                    <th class="text-left font-semibold text-slate-500 pr-2"></th>
+                                    <th class="text-left font-semibold text-slate-400 text-xs pr-4 pb-2">Sân</th>
                                     @foreach($courtHeatmap['hours'] as $hour)
-                                        <th class="font-medium text-slate-400 text-center w-8">{{ str_pad($hour, 2, '0', STR_PAD_LEFT) }}</th>
+                                        <th class="font-medium text-slate-400 text-[10px] text-center w-7 pb-2">{{ $hour }}h</th>
                                     @endforeach
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($courtHeatmap['rows'] as $row)
                                     <tr>
-                                        <td class="pr-2 whitespace-nowrap font-medium {{ (string) $selectedCourtId === (string) $row['id'] ? 'text-emerald-700' : 'text-slate-600' }}">
+                                        <td class="pr-4 whitespace-nowrap text-xs font-bold {{ (string) $selectedCourtId === (string) $row['id'] ? 'text-emerald-600' : 'text-slate-600' }}">
                                             {{ $row['name'] }}
                                         </td>
                                         @foreach($row['cells'] as $cell)
                                             <td @class([
-                                                    'w-8 h-7 text-center rounded-sm',
-                                                    'bg-slate-100 text-slate-400' => $cell['level'] === 0,
-                                                    'bg-emerald-200 text-slate-700' => $cell['level'] === 1,
-                                                    'bg-emerald-400 text-white' => $cell['level'] === 2,
-                                                    'bg-emerald-600 text-white' => $cell['level'] === 3,
+                                                    'w-7 h-7 text-center rounded-sm text-[10px] font-bold transition-all hover:scale-110 cursor-crosshair',
+                                                    'bg-slate-100 text-transparent hover:text-slate-400' => $cell['level'] === 0,
+                                                    'bg-emerald-200 text-emerald-800' => $cell['level'] === 1,
+                                                    'bg-emerald-400 text-white shadow-sm' => $cell['level'] === 2,
+                                                    'bg-emerald-600 text-white shadow-sm' => $cell['level'] === 3,
                                                 ])
-                                                title="{{ $row['name'] }} · {{ str_pad($cell['hour'], 2, '0', STR_PAD_LEFT) }}:00 · {{ $cell['count'] }} lượt đặt">
+                                                title="{{ $row['name'] }} | {{ str_pad($cell['hour'], 2, '0', STR_PAD_LEFT) }}:00 | {{ $cell['count'] }} lượt">
                                                 {{ $cell['count'] ?: '' }}
                                             </td>
                                         @endforeach
@@ -399,79 +419,73 @@
                 </div>
             @endif
 
-            @if ($courtStats->isEmpty())
-                <div class="px-4 py-10 text-center text-slate-500 text-sm">
-                    @if ($selectedVenueId === 'all')
-                        Hãy chọn một cơ sở ở bộ lọc phía trên để xem dữ liệu từng sân con.
-                    @else
-                        Cơ sở này chưa có sân con nào.
-                    @endif
-                </div>
-            @else
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left">
-                        <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
-                            <tr>
-                                <th class="px-4 py-3 rounded-tl-lg">Sân con</th>
-                                <th class="px-4 py-3 text-center">Lượt đặt</th>
-                                <th class="px-4 py-3 text-center">Khách</th>
-                                <th class="px-4 py-3 text-center">Giờ đặt</th>
-                                <th class="px-4 py-3 text-center">Tỷ lệ lấp đầy</th>
-                                <th class="px-4 py-3 text-center">Khung giờ cao điểm</th>
-                                <th class="px-4 py-3 text-right rounded-tr-lg">Doanh thu</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($courtStats as $court)
-                                @php($isSelectedCourt = (string) $selectedCourtId === (string) $court['id'])
-                                <tr class="border-b border-slate-50 transition-colors {{ $isSelectedCourt ? 'bg-emerald-50/70' : 'hover:bg-slate-50' }}">
-                                    <td class="px-4 py-3">
-                                        <div class="font-medium text-slate-800">
-                                            {{ $court['name'] }}
-                                            @if ($isSelectedCourt)
-                                                <span class="ml-1 align-middle text-[10px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">đang xem</span>
-                                            @endif
-                                        </div>
-                                        @if ($court['status'] !== 'active')
-                                            <span class="text-xs text-amber-600">Đang tạm ẩn</span>
-                                        @endif
-                                    </td>
-                                    <td class="px-4 py-3 text-center">
-                                        <span class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full text-xs font-semibold">{{ $court['bookings_count'] }}</span>
-                                    </td>
-                                    <td class="px-4 py-3 text-center text-slate-600">{{ $court['customers_count'] }}</td>
-                                    <td class="px-4 py-3 text-center text-slate-600">{{ $court['hours'] }}h</td>
-                                    <td class="px-4 py-3 text-center">
-                                        <div class="flex items-center justify-center gap-2">
-                                            <div class="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                                <div class="h-full bg-emerald-500" style="width: {{ min(100, $court['occupancy_rate']) }}%"></div>
-                                            </div>
-                                            <span class="text-xs font-semibold text-slate-600">{{ $court['occupancy_rate'] }}%</span>
-                                        </div>
-                                    </td>
-                                    <td class="px-4 py-3 text-center text-xs text-slate-500">
-                                        {{ $court['peak_hours'] ? implode(', ', $court['peak_hours']) : '—' }}
-                                    </td>
-                                    <td class="px-4 py-3 text-right font-bold text-emerald-600">{{ number_format($court['revenue'], 0, ',', '.') }} đ</td>
+            <!-- Bảng thống kê chi tiết Sân con -->
+            @if ($courtStats->isNotEmpty())
+                <div>
+                    <h4 class="text-sm font-bold text-slate-700 mb-4">Chi tiết hiệu suất khai thác</h4>
+                    <div class="overflow-x-auto hide-scroll border border-slate-200 rounded-xl">
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-[10px] text-slate-500 uppercase tracking-wider bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-4 py-3 font-bold">Sân con</th>
+                                    <th class="px-4 py-3 font-bold text-center">Lượt đặt</th>
+                                    <th class="px-4 py-3 font-bold text-center">Khách</th>
+                                    <th class="px-4 py-3 font-bold text-center">Giờ đặt</th>
+                                    <th class="px-4 py-3 font-bold text-center min-w-[120px]">Lấp đầy</th>
+                                    <th class="px-4 py-3 font-bold text-center">Giờ vàng</th>
+                                    <th class="px-4 py-3 font-bold text-right">Doanh thu</th>
                                 </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                @foreach($courtStats as $court)
+                                    @php($isSelectedCourt = (string) $selectedCourtId === (string) $court['id'])
+                                    <tr class="transition-colors {{ $isSelectedCourt ? 'bg-emerald-50/50' : 'hover:bg-slate-50' }}">
+                                        <td class="px-4 py-3">
+                                            <div class="font-bold text-slate-800">
+                                                {{ $court['name'] }}
+                                                @if ($isSelectedCourt)
+                                                    <span class="ml-2 align-middle text-[9px] font-black uppercase text-white bg-emerald-500 px-1.5 py-0.5 rounded">Active</span>
+                                                @endif
+                                            </div>
+                                            @if ($court['status'] !== 'active')
+                                                <span class="text-[10px] font-semibold text-rose-500">Tạm ẩn</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-3 text-center font-semibold text-slate-600">{{ $court['bookings_count'] }}</td>
+                                        <td class="px-4 py-3 text-center font-semibold text-slate-600">{{ $court['customers_count'] }}</td>
+                                        <td class="px-4 py-3 text-center font-semibold text-slate-600">{{ $court['hours'] }}h</td>
+                                        <td class="px-4 py-3 text-center">
+                                            <div class="flex items-center justify-center gap-2">
+                                                <span class="text-xs font-bold text-slate-700 w-8 text-right">{{ $court['occupancy_rate'] }}%</span>
+                                                <div class="w-16 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                                    <div class="h-full bg-indigo-500 rounded-full" style="width: {{ min(100, $court['occupancy_rate']) }}%"></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3 text-center text-xs font-medium text-slate-500">
+                                            {{ $court['peak_hours'] ? implode(', ', $court['peak_hours']) : '—' }}
+                                        </td>
+                                        <td class="px-4 py-3 text-right font-black text-emerald-600">{{ number_format($court['revenue'], 0, ',', '.') }} đ</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             @endif
         </div>
     </div>
 </div>
-
 @endsection
 
 @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/locales-all.global.min.js"></script>
-
+    <!-- Script khởi tạo Chart.js giữ nguyên 100% logic để nhận đủ dữ liệu từ Backend -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Cấu hình chung cho Chart.js để giao diện sạch sẽ hơn
+            Chart.defaults.font.family = "'Inter', sans-serif";
+            Chart.defaults.color = '#64748b';
+            
             const chartData = @json($chartData);
 
             // 1. Revenue Chart
@@ -479,7 +493,7 @@
             if (revCanvas) {
                 const revCtx = revCanvas.getContext('2d');
                 let gradient = revCtx.createLinearGradient(0, 0, 0, 400);
-                gradient.addColorStop(0, 'rgba(16, 185, 129, 0.5)');
+                gradient.addColorStop(0, 'rgba(16, 185, 129, 0.2)');
                 gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
 
                 new Chart(revCtx, {
@@ -487,7 +501,7 @@
                     data: {
                         labels: chartData.revenueDates,
                         datasets: [{
-                            label: 'Doanh thu (VNĐ)',
+                            label: 'Doanh thu',
                             data: chartData.revenueValues,
                             borderColor: '#10b981',
                             backgroundColor: gradient,
@@ -498,16 +512,26 @@
                             pointRadius: 4,
                             pointHoverRadius: 6,
                             fill: true,
-                            tension: 0.4
+                            tension: 0.3 // Làm cong mượt mà
                         }]
                     },
                     options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { 
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: '#0f172a', titleFont: { size: 13 }, bodyFont: { size: 14, weight: 'bold' },
+                                padding: 12, cornerRadius: 8, displayColors: false,
+                                callbacks: { label: (context) => new Intl.NumberFormat('vi-VN').format(context.parsed.y) + ' đ' }
+                            }
+                        },
                         scales: {
-                            x: { grid: { display: false, drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b' } },
-                            y: { grid: { color: '#f1f5f9', drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b', callback: function(value) { return value >= 1000 ? (value/1000) + 'k' : value; } } }
+                            x: { grid: { display: false } },
+                            y: { 
+                                grid: { color: '#f1f5f9', borderDash: [5, 5] }, 
+                                border: { display: false },
+                                ticks: { callback: (value) => value >= 1000 ? (value/1000) + 'k' : value } 
+                            }
                         }
                     }
                 });
@@ -516,27 +540,22 @@
             // 2. Status Doughnut Chart
             const statusCanvas = document.getElementById('statusChart');
             if (statusCanvas) {
-                const statusCtx = statusCanvas.getContext('2d');
-                new Chart(statusCtx, {
+                new Chart(statusCanvas, {
                     type: 'doughnut',
                     data: {
                         labels: chartData.statusLabels,
                         datasets: [{
                             data: chartData.statusValues,
-                            backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
-                            borderWidth: 0,
-                            hoverOffset: 4
+                            backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#f43f5e'],
+                            borderWidth: 2,
+                            borderColor: '#ffffff',
+                            hoverOffset: 6
                         }]
                     },
                     options: { 
-                        responsive: true, 
-                        maintainAspectRatio: false, 
-                        cutout: '75%', 
+                        responsive: true, maintainAspectRatio: false, cutout: '70%', 
                         plugins: { 
-                            legend: { 
-                                position: 'bottom', 
-                                labels: { padding: 20, usePointStyle: true, font: { family: 'Inter', size: 12 }, color: '#475569' } 
-                            } 
+                            legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true, boxWidth: 8, font: { weight: '600' } } } 
                         } 
                     }
                 });
@@ -545,32 +564,30 @@
             // 3. Peak Hours Bar Chart
             const peakCanvas = document.getElementById('peakChart');
             if (peakCanvas) {
-                const peakCtx = peakCanvas.getContext('2d');
-                new Chart(peakCtx, {
+                new Chart(peakCanvas, {
                     type: 'bar',
                     data: {
                         labels: chartData.peakHourLabels,
                         datasets: [{
-                            label: 'Số lượt đặt',
+                            label: 'Lượt đặt',
                             data: chartData.peakHourValues,
                             backgroundColor: '#6366f1',
-                            borderRadius: 6,
-                            barPercentage: 0.6,
+                            borderRadius: 4,
+                            barPercentage: 0.5,
                         }]
                     },
                     options: {
-                        responsive: true, 
-                        maintainAspectRatio: false,
+                        responsive: true, maintainAspectRatio: false,
                         plugins: { legend: { display: false } },
                         scales: { 
-                            x: { grid: { display: false, drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b' } }, 
-                            y: { grid: { color: '#f1f5f9', drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b', stepSize: 1 } } 
+                            x: { grid: { display: false } }, 
+                            y: { border: { display: false }, grid: { color: '#f1f5f9' }, ticks: { stepSize: 1 } } 
                         }
                     }
                 });
             }
 
-            // 4. Biểu đồ doanh thu theo từng sân con
+            // 4. Biểu đồ doanh thu sân con
             const courtCanvas = document.getElementById('courtRevenueChart');
             if (courtCanvas) {
                 new Chart(courtCanvas, {
@@ -580,69 +597,53 @@
                         datasets: [{
                             label: 'Doanh thu',
                             data: @json($courtStats->pluck('revenue')),
-                            backgroundColor: '#10b981',
-                            borderRadius: 6,
-                            barPercentage: 0.6,
+                            backgroundColor: '#14b8a6', // Màu Teal hiện đại
+                            borderRadius: 4,
+                            barPercentage: 0.5,
                         }]
                     },
                     options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
+                        responsive: true, maintainAspectRatio: false,
                         plugins: {
                             legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: (context) => new Intl.NumberFormat('vi-VN').format(context.parsed.y) + ' đ'
-                                }
-                            }
+                            tooltip: { callbacks: { label: (context) => new Intl.NumberFormat('vi-VN').format(context.parsed.y) + ' đ' } }
                         },
                         scales: {
-                            x: { grid: { display: false, drawBorder: false }, ticks: { font: { family: 'Inter' }, color: '#64748b' } },
-                            y: {
-                                grid: { color: '#f1f5f9', drawBorder: false },
-                                ticks: {
-                                    font: { family: 'Inter' },
-                                    color: '#64748b',
-                                    callback: (value) => new Intl.NumberFormat('vi-VN', { notation: 'compact' }).format(value)
-                                }
-                            }
+                            x: { grid: { display: false } },
+                            y: { border: { display: false }, grid: { color: '#f1f5f9' }, ticks: { callback: (value) => new Intl.NumberFormat('vi-VN', { notation: 'compact' }).format(value) } }
                         }
                     }
                 });
             }
 
-            // 5. Đổi cơ sở thì nạp lại danh sách sân con tương ứng
+            // 5. Logic Ajax nạp danh sách Sân con khi đổi Cơ sở (Giữ nguyên)
             const venueSelect = document.querySelector('select[name="venue_id"]');
             const courtSelect = document.getElementById('courtSelect');
 
             if (venueSelect && courtSelect) {
                 venueSelect.addEventListener('change', async function () {
                     const venueId = this.value;
-
                     if (venueId === 'all') {
-                        courtSelect.innerHTML = '<option value="all">Chọn cơ sở trước</option>';
+                        courtSelect.innerHTML = '<option value="all">📍 Chọn cơ sở trước</option>';
                         courtSelect.disabled = true;
                         return;
                     }
-
                     courtSelect.disabled = true;
-                    courtSelect.innerHTML = '<option value="all">Đang tải...</option>';
+                    courtSelect.innerHTML = '<option value="all">⏳ Đang tải...</option>';
 
                     try {
                         const res = await fetch(`/owner/venues/${venueId}/courts-lookup`, {
                             headers: { Accept: 'application/json' },
                         });
                         const json = await res.json();
-
-                        const options = ['<option value="all">Tất cả sân con</option>'];
+                        const options = ['<option value="all">📍 Tất cả sân con</option>'];
                         for (const court of json.data) {
                             options.push(`<option value="${court.id}">${court.name}</option>`);
                         }
-
                         courtSelect.innerHTML = options.join('');
                         courtSelect.disabled = json.data.length === 0;
                     } catch (error) {
-                        courtSelect.innerHTML = '<option value="all">Không tải được danh sách</option>';
+                        courtSelect.innerHTML = '<option value="all">❌ Lỗi tải dữ liệu</option>';
                     }
                 });
             }
