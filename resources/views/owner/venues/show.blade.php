@@ -876,19 +876,44 @@ Trạng thái: {!! $service->is_active ? '<span class="text-success">Đang bán<
                     </div>
 
                     <h6 class="fw-bold mt-4 mb-3 border-bottom pb-2">Thiết lập giá & Giờ cao điểm</h6>
+                    
+                    <!-- Giá Ngày Thường (T2 - T6) -->
                     <div class="row g-3 mb-3">
                         <div class="col-6">
-                            <label class="form-label fw-semibold">Giá giờ thường <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" name="regular_price" min="0" required placeholder="VD: 100000">
+                            <label class="form-label fw-semibold">Giá giờ thường (T2-T6) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="regular_price" id="regular_price" min="0" required placeholder="VD: 100000">
                             <div class="invalid-feedback" id="error-regular_price"></div>
                         </div>
                         <div class="col-6">
-                            <label class="form-label fw-semibold">Giá giờ cao điểm <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" name="peak_price" min="0" required placeholder="VD: 150000">
+                            <label class="form-label fw-semibold">Giá cao điểm (T2-T6) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="peak_price" id="peak_price" min="0" required placeholder="VD: 150000">
                             <div class="invalid-feedback" id="error-peak_price"></div>
                         </div>
                     </div>
+
+                    <!-- Công tắc bật/tắt giá Cuối tuần -->
+                    <div class="form-check form-switch mb-3 bg-light p-2 rounded border" style="padding-left: 2.5rem !important;">
+                        <input class="form-check-input" type="checkbox" id="enableWeekendPrice" onchange="toggleWeekendPrice()" style="cursor: pointer;">
+                        <label class="form-check-label fw-semibold text-primary" for="enableWeekendPrice" style="cursor: pointer;">
+                            Tách riêng giá cuối tuần (T7, CN)
+                        </label>
+                    </div>
+
+                    <!-- Giá Cuối Tuần (T7 - CN) - Mặc định ẩn -->
+                    <div class="row g-3 mb-3" id="weekendPriceGroup" style="display: none;">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold text-primary">Giá thường (T7-CN) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control border-primary-subtle bg-primary bg-opacity-10" name="weekend_regular_price" id="weekend_regular_price" min="0" placeholder="VD: 120000">
+                            <div class="invalid-feedback" id="error-weekend_regular_price"></div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold text-danger">Giá cao điểm (T7-CN) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control border-danger-subtle bg-danger bg-opacity-10" name="weekend_peak_price" id="weekend_peak_price" min="0" placeholder="VD: 180000">
+                            <div class="invalid-feedback" id="error-weekend_peak_price"></div>
+                        </div>
+                    </div>
                     
+                    <!-- Khung giờ cao điểm chung -->
                     <div class="row g-3 mb-3">
                         <div class="col-6">
                             <label class="form-label fw-semibold">Bắt đầu cao điểm <span class="text-danger">*</span></label>
@@ -1646,6 +1671,31 @@ Trạng thái: {!! $service->is_active ? '<span class="text-success">Đang bán<
         // Hiện Modal (Bootstrap 5)
         var myModal = new bootstrap.Modal(document.getElementById('editServiceModal'));
         myModal.show();
+    }
+    // Hàm xử lý bật/tắt form nhập giá cuối tuần
+    function toggleWeekendPrice() {
+        const isChecked = document.getElementById('enableWeekendPrice').checked;
+        const group = document.getElementById('weekendPriceGroup');
+        const weekendReg = document.getElementById('weekend_regular_price');
+        const weekendPeak = document.getElementById('weekend_peak_price');
+
+        if (isChecked) {
+            // Hiện form lên và yêu cầu nhập
+            group.style.display = 'flex';
+            weekendReg.setAttribute('required', 'required');
+            weekendPeak.setAttribute('required', 'required');
+            
+            // Mẹo UX: Tự động copy giá ngày thường xuống làm gợi ý luôn cho Chủ sân đỡ gõ lại từ đầu
+            if(!weekendReg.value) weekendReg.value = document.getElementById('regular_price').value;
+            if(!weekendPeak.value) weekendPeak.value = document.getElementById('peak_price').value;
+        } else {
+            // Ẩn form, gỡ bỏ bắt buộc nhập và xóa dữ liệu thừa
+            group.style.display = 'none';
+            weekendReg.removeAttribute('required');
+            weekendPeak.removeAttribute('required');
+            weekendReg.value = '';
+            weekendPeak.value = '';
+        }
     }
 </script>
 @include('owner.partials.notification-script')
