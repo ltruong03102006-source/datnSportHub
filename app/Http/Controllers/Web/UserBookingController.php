@@ -555,12 +555,12 @@ class UserBookingController extends Controller
     {
         $this->ensureOwner($booking);
         
-        // SỬA: Thêm with('services') để load dữ liệu dịch vụ
+        // Load dữ liệu dịch vụ
         $groupBookings = Booking::with('services')->where('user_id', Auth::id())
             ->where('court_id', $booking->court_id)->where('slot_date', $booking->slot_date)
             ->where('created_at', $booking->created_at)->whereIn('status', self::CANCELLABLE_STATUSES)->get();
 
-        // FIX LỖI XOAY CHUỘT: Chặn lỗi nếu đơn đã bị hủy từ trước
+        // Chặn lỗi nếu đơn đã bị hủy từ trước
         if ($groupBookings->isEmpty()) {
             return response()->json(['message' => 'Đơn này đã hủy hoặc không còn cho phép hủy.'], 422);
         }
@@ -578,17 +578,15 @@ class UserBookingController extends Controller
         
         $totalPrice = $groupBookings->sum('total_price');
         
-        $groupDurationMinutes = 0;
-        foreach ($groupBookings as $bookingGroupItem) {
-            if (!empty($bookingGroupItem->start_time) && !empty($bookingGroupItem->end_time)) {
-                $groupDurationMinutes += Carbon::parse($bookingGroupItem->start_time)->diffInMinutes(Carbon::parse($bookingGroupItem->end_time));
-            }
-        }
-        $groupDurationHours = $groupDurationMinutes > 0 ? ($groupDurationMinutes / 60) : 1;
-
-        $servicesTotal = $groupBookings->flatMap->services->sum(function ($service) use ($groupDurationHours) {
-            return $this->calculateServiceLineTotal($service, $groupDurationHours);
+        // BÓC TÁCH TIỀN DỊCH VỤ VÀ TIỀN SÂN
+        $servicesTotal = $groupBookings->flatMap->services->sum(function ($service) {
+             // Đảm bảo tính cả quantity và price
+             $qty = (int) ($service->pivot->quantity ?? 1);
+             $price = (float) ($service->pivot->price ?? 0);
+             $lineTotal = $price * $qty;
+             return $lineTotal > 0 ? $lineTotal : $price;
         });
+
         $courtPrice = max(0, $totalPrice - $servicesTotal);
         
         $isPaid = $firstBooking->payment_status === 'paid';
@@ -601,6 +599,8 @@ class UserBookingController extends Controller
         return response()->json([
             'success' => true,
             'total_price' => $totalPrice,
+            'court_price' => $courtPrice,           // TRẢ THÊM TIỀN SÂN
+            'services_total' => $servicesTotal,     // TRẢ THÊM TIỀN DỊCH VỤ
             'fee_percent' => $feePercent,
             'cancellation_fee' => $fee,
             'refund_amount' => $refund,
@@ -692,6 +692,9 @@ class UserBookingController extends Controller
     /**
      * Thuật toán tìm % phí phạt thông minh
      */
+    /**
+     * Thuật toán tìm % phí phạt thông minh (Đã Fix)
+     */
     private function determineCancellationFeePercent(Booking $firstBooking): int
     {
         $startsAt = $this->slotStartsAt($firstBooking);
@@ -703,29 +706,29 @@ class UserBookingController extends Controller
         // Rủi ro lố giờ (Cố tình request API ảo) -> Phạt max 100%
         if ($diffInHours < 0) return 100;
 
-        // QUY ĐỊNH HỆ THỐNG: Hủy trong vòng 1 giờ trước ca -> Phạt mặc định 30%
-        if ($diffInHours < 1) {
-            return 30;
-        }
-
-        // Lấy danh sách cấu hình của chủ sân, SẮP XẾP TĂNG DẦN (Ví dụ: 6h, 12h, 24h)
+        // Lấy danh sách cấu hình của chủ sân, SẮP XẾP TĂNG DẦN
         $policies = \App\Models\CancellationPolicy::where('venue_id', $firstBooking->court->venue_id)
             ->orderBy('hours_before', 'asc')
             ->get();
 
-        // Fallback: Chủ sân chưa cấu hình gì -> Miễn phí hủy
-        if ($policies->isEmpty()) return 0;
+        $feePercent = 0;
 
-        // Quét tìm mốc vi phạm:
-        foreach ($policies as $policy) {
-            if ($diffInHours < $policy->hours_before) {
-                // Ưu tiên mức phạt cao hơn giữa hệ thống (30%) và chủ sân nếu hủy sát giờ
-                // Nhưng ở đây diffInHours >= 1 rồi, nên cứ lấy theo chủ sân.
-                return $policy->fee_percent;
+        // Quét tìm mốc vi phạm của chủ sân:
+        if ($policies->isNotEmpty()) {
+            foreach ($policies as $policy) {
+                if ($diffInHours < $policy->hours_before) {
+                    $feePercent = $policy->fee_percent;
+                    break; // Đã sắp xếp tăng dần nên gặp mốc đầu tiên thỏa mãn là dừng
+                }
             }
         }
 
-        // Hủy quá sớm -> An toàn
-        return 0;
+        // QUY ĐỊNH HỆ THỐNG: Hủy quá sát giờ (< 1 tiếng)
+        // Hệ thống sẽ so sánh: Giữa mức phạt chủ sân cài và mức mặc định 30%, cái nào CAO HƠN thì áp dụng cái đó để bảo vệ quyền lợi chủ sân.
+        if ($diffInHours < 1) {
+            return max(30, $feePercent);
+        }
+
+        return $feePercent;
     }
 }
