@@ -120,50 +120,117 @@
                     <p class="text-sm font-bold text-zinc-900">{{ $totalDurationStr }}</p>
                 </div>
                 
-                <!-- BẮT ĐẦU: BÓC TÁCH HÓA ĐƠN -->
+                <!-- ======================================================= -->
+                <!-- BẮT ĐẦU: BÓC TÁCH HÓA ĐƠN VÀ DỊCH VỤ (BẢN CHUẨN 100%) -->
+                <!-- ======================================================= -->
                 @php
-                    // Tính toán bóc tách tiền sân và tiền dịch vụ
-                    $purchasedServices = collect($bookingGroup ?? [$booking])->flatMap->services;
-                    $servicesTotal = $purchasedServices->sum('pivot.price');
-                    
-                    // Lấy voucher đã áp dụng
-                    $appliedVoucher = $booking->vouchers->first();
-                    $discountAmount = $appliedVoucher ? (float) $appliedVoucher->pivot->discount_amount : 0.0;
-                    
-                    // Tiền thuê sân gốc
-                    if ($booking->items->isNotEmpty()) {
-                        $courtPriceOriginal = max(0, $totalGroupPrice - $servicesTotal);
-                    } else {
-                        $courtPriceOriginal = max(0, $totalGroupPrice + $discountAmount - $servicesTotal);
+                    $groupBookings = collect($bookingGroup ?? [$booking]);
+                    $totalFinal = $finalPrice ?? $booking->total_price ?? 0;
+
+                    // Lấy dữ liệu dịch vụ từ booking hiện tại, không query theo nhóm booking;
+                    // nếu query theo nhiều booking_id cùng nhóm, có thể bắn nhầm dịch vụ của booking khác vào bill hiện tại.
+                    $purchasedServices = $booking->services ?? collect();
+
+                    $totalBookingMinutes = 0;
+                    foreach ($groupBookings as $bookingItem) {
+                        if (!empty($bookingItem->start_time) && !empty($bookingItem->end_time)) {
+                            $totalBookingMinutes += \Carbon\Carbon::parse($bookingItem->start_time)->diffInMinutes(\Carbon\Carbon::parse($bookingItem->end_time));
+                        }
                     }
+
+                    $serviceDurationHours = $totalBookingMinutes > 0 ? ($totalBookingMinutes / 60) : 1;
+                    $servicesTotal = $purchasedServices->sum(function ($service) use ($serviceDurationHours) {
+                        $unitPrice = (float) ($service->pivot->price ?? 0);
+                        $quantity = (int) ($service->pivot->quantity ?? 1);
+                        $pricingType = $service->pricing_type ?? 'retail';
+                        $lineTotal = $unitPrice * $quantity;
+
+                        if ($pricingType === 'rental' && $serviceDurationHours > 0) {
+                            $lineTotal *= $serviceDurationHours;
+                        }
+
+                        return $lineTotal > 0 ? $lineTotal : $unitPrice;
+                    });
+
+                    $appliedVoucher = null;
+                    $discountAmount = 0;
+                    if (method_exists($booking, 'vouchers') && $booking->vouchers->isNotEmpty()) {
+                        $appliedVoucher = $booking->vouchers->first();
+                        $discountAmount = (float) ($appliedVoucher->pivot->discount_amount ?? 0);
+                    }
+
+                    // Tiền sân phải là tổng sân thật, không trừ tiền dịch vụ.
+                    $courtPriceOriginal = max(0, (float) ($totalGroupPrice ?? $booking->items->sum('price') ?? 0));
                 @endphp
 
-                <div class="flex items-start gap-x-4 mt-3">
+                <div class="flex items-start gap-x-4 mt-4 pt-4 border-t border-stone-100 border-dashed">
                     <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Tiền thuê sân:</p>
                     <p class="text-sm font-bold text-zinc-900">{{ number_format($courtPriceOriginal, 0, ',', '.') }} đ</p>
                 </div>
 
-                @if($discountAmount > 0)
-                <div class="flex items-start gap-x-4 mt-2">
-                    <p class="w-28 shrink-0 text-sm font-medium text-emerald-600">Giảm giá ({{ $appliedVoucher->code }}):</p>
-                    <p class="text-sm font-bold text-emerald-600">-{{ number_format($discountAmount, 0, ',', '.') }} đ</p>
-                </div>
-                @endif
-
                 @if($servicesTotal > 0)
                 <div class="flex items-start gap-x-4 mt-2">
                     <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Tiền dịch vụ:</p>
-                    <p class="text-sm font-bold text-zinc-900">{{ number_format($servicesTotal, 0, ',', '.') }} đ</p>
+                    <p class="text-sm font-bold text-zinc-900">+{{ number_format($servicesTotal, 0, ',', '.') }} đ</p>
                 </div>
                 @endif
-                
+
+                @if($discountAmount > 0)
+                <div class="flex items-start gap-x-4 mt-2">
+                    <p class="w-28 shrink-0 text-sm font-medium text-emerald-600">Giảm giá:</p>
+                    <div class="flex-1">
+                        <p class="text-sm font-bold text-emerald-600">-{{ number_format($discountAmount, 0, ',', '.') }} đ</p>
+                        <p class="text-[10px] font-semibold text-emerald-500 uppercase mt-0.5">Voucher: {{ $appliedVoucher->code }}</p>
+                    </div>
+                </div>
+                @endif
+
                 <div class="flex items-start gap-x-4 mt-3 pt-3 border-t border-stone-100 border-dashed">
                     <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Tổng thanh toán:</p>
-                    <p class="text-base font-black text-emerald-600">{{ $totalPriceStr }}</p>
+                    <p class="text-base font-black text-emerald-600">{{ number_format($totalFinal, 0, ',', '.') }} ₫</p>
                 </div>
-                <!-- KẾT THÚC: BÓC TÁCH HÓA ĐƠN -->
 
-                <div class="flex items-start gap-x-4 pt-2">
+                <!-- CHI TIẾT DỊCH VỤ -->
+                @if($purchasedServices->count() > 0)
+                    <div class="mt-4 pt-4 border-t border-stone-100 border-dashed">
+                        <p class="w-full text-xs font-bold text-stone-500 uppercase tracking-wider mb-3">Dịch vụ & Tiện ích đã chọn</p>
+                        <div class="space-y-3 pl-0 sm:pl-4">
+                            @foreach($purchasedServices as $service)
+                                @php
+                                    $qty = (int) ($service->pivot->quantity ?? 1);
+                                    $unitPrice = (float) ($service->pivot->price ?? 0);
+                                    $lineTotal = $unitPrice * $qty;
+                                    if (($service->pricing_type ?? 'retail') === 'rental' && $serviceDurationHours > 0) {
+                                        $lineTotal *= $serviceDurationHours;
+                                    }
+                                    if ($lineTotal <= 0 && $unitPrice > 0) {
+                                        $lineTotal = $unitPrice;
+                                    }
+                                    $unitStr = trim((string) ($service->unit ?? ''));
+                                    $displayUnit = ($unitStr === '1' || empty($unitStr)) ? '' : $unitStr;
+                                @endphp
+                                <div class="flex items-start justify-between text-sm bg-stone-50/50 p-2.5 rounded-lg border border-stone-100">
+                                    <div class="flex-1 pr-4">
+                                        <span class="font-bold text-zinc-800">{{ $service->name }}</span>
+                                        <div class="text-xs text-stone-500 mt-1 flex items-center gap-1.5">
+                                            @if($service->pricing_type === 'rental')
+                                                <span class="bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-semibold border border-indigo-100">Thuê</span>
+                                            @else
+                                                <span class="bg-stone-200 text-stone-600 px-1.5 py-0.5 rounded font-semibold">Mua</span>
+                                            @endif
+                                            <span>Số lượng: <strong class="text-zinc-700">{{ $qty }}</strong> {{ $displayUnit }}</span>
+                                        </div>
+                                    </div>
+                                    <span class="font-black text-emerald-600 shrink-0">
+                                        {{ number_format($lineTotal, 0, ',', '.') }} đ
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                <div class="flex items-start gap-x-4 pt-4 mt-4 border-t border-stone-100 border-dashed">
                     <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Trạng thái TT:</p>
                     <div class="flex-1" id="payment-status-block">
                         @if(($booking->payment_status ?? 'unpaid') === 'paid')
@@ -181,38 +248,10 @@
                         @endif
                     </div>
                 </div>
-                <!-- BẮT ĐẦU: CHI TIẾT DỊCH VỤ MUA KÈM -->
-                @php
-                    // Lấy ra tất cả dịch vụ mua kèm trong cụm booking này (vì Task 5 ta lưu vào booking đầu tiên)
-                    $purchasedServices = collect($bookingGroup ?? [$booking])->flatMap->services;
-                @endphp
-
-                @if($purchasedServices->count() > 0)
-                    <div class="mt-4 pt-4 border-t border-stone-100 border-dashed">
-                        <p class="w-full text-xs font-bold text-stone-500 uppercase tracking-wider mb-3">Dịch vụ & Tiện ích đã chọn</p>
-                        <div class="space-y-3 pl-0 sm:pl-4">
-                            @foreach($purchasedServices as $service)
-                                <div class="flex items-start justify-between text-sm bg-stone-50/50 p-2.5 rounded-lg border border-stone-100">
-                                    <div class="flex-1 pr-4">
-                                        <span class="font-bold text-zinc-800">{{ $service->name }}</span>
-                                        <div class="text-xs text-stone-500 mt-1 flex items-center gap-1.5">
-                                            @if($service->pricing_type === 'rental')
-                                                <span class="bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-semibold border border-indigo-100">Thuê</span>
-                                            @else
-                                                <span class="bg-stone-200 text-stone-600 px-1.5 py-0.5 rounded font-semibold">Mua</span>
-                                            @endif
-                                            <span>Số lượng: <strong class="text-zinc-700">{{ $service->pivot->quantity }}</strong> {{ $service->unit }}</span>
-                                        </div>
-                                    </div>
-                                    <span class="font-black text-emerald-600 shrink-0">
-                                        {{ number_format($service->pivot->price, 0, ',', '.') }} đ
-                                    </span>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
-                <!-- KẾT THÚC: CHI TIẾT DỊCH VỤ -->
+                <!-- ======================================================= -->
+                <!-- KẾT THÚC: BÓC TÁCH HÓA ĐƠN VÀ DỊCH VỤ -->
+                <!-- ======================================================= -->
+            </div>
             </div>
 
             @if(($booking->payment_status ?? 'unpaid') !== 'paid' && $booking->status !== 'cancelled' && $booking->status !== 'rejected')

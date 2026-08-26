@@ -203,10 +203,11 @@
                                     @endif
                                 </div>
                                 
+                                <!-- ĐÃ FIX: Trả lại Tên món và làm tàng hình chữ /1 -->
                                 <div class="flex-1">
                                     <h6 class="text-sm font-bold text-zinc-900 line-clamp-2 leading-tight">{{ $service->name }}</h6>
                                     <p class="text-xs font-bold text-emerald-600 mt-1.5">
-                                        {{ number_format($service->price, 0, ',', '.') }}đ/{{ $service->unit }}
+                                        {{ number_format($service->price, 0, ',', '.') }}đ{{ (trim((string)$service->unit) === '1' || empty($service->unit)) ? '' : '/' . trim($service->unit) }}
                                         @if($service->pricing_type === 'rental') <span class="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded ml-1 text-[10px] uppercase">Thuê</span> @endif
                                     </p>
                                 </div>

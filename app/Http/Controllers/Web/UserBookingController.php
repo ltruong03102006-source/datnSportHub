@@ -45,7 +45,7 @@ class UserBookingController extends Controller
 
         $bookingGroup = $query->orderBy('start_time')->get();
 
-        $booking->load(['court.venue.sport', 'court.venue.ownerRegistration', 'items.rescheduleRequests', 'vouchers']);
+        $booking->load(['court.venue.sport', 'court.venue.ownerRegistration', 'items.rescheduleRequests', 'vouchers', 'services']);
         if ($booking->items->isNotEmpty()) {
             $bookingGroup = $booking->items->sortBy('start_time')->values()->each(function ($item) use ($booking) {
                 $item->setRelation('court', $booking->court);
@@ -56,12 +56,19 @@ class UserBookingController extends Controller
             ? $booking->items->sum('price')
             : $bookingGroup->sum('total_price');
 
+        $purchasedServices = $booking->services ?? collect();
+
         $totalMinutes = 0;
         foreach ($bookingGroup as $b) {
             $start = Carbon::parse($b->start_time);
             $end = Carbon::parse($b->end_time);
-            $totalMinutes += $start->diffInMinutes($end); 
+            $totalMinutes += $start->diffInMinutes($end);
         }
+
+        $serviceDurationHours = $totalMinutes > 0 ? ($totalMinutes / 60) : 1;
+        $servicesTotal = $purchasedServices->sum(function ($service) use ($serviceDurationHours) {
+            return $this->calculateServiceLineTotal($service, $serviceDurationHours);
+        });
         
         $hours = floor($totalMinutes / 60);
         $minutes = $totalMinutes % 60;
@@ -78,6 +85,8 @@ class UserBookingController extends Controller
             'totalDurationStr' => $totalDurationStr,
             'statusMeta' => $this->statusMeta($booking->status),
             'bookingHoldTime' => $bookingHoldTime,
+            'purchasedServices' => $purchasedServices,
+            'servicesTotal' => $servicesTotal,
         ]);
     }
 
@@ -332,6 +341,20 @@ class UserBookingController extends Controller
             : Carbon::parse($date)->format('Y-m-d');
     }
 
+    private function calculateServiceLineTotal($service, float $durationHours = 1.0): float
+    {
+        $unitPrice = (float) ($service->pivot?->price ?? $service->pivot_price ?? 0);
+        $quantity = (int) ($service->pivot?->quantity ?? $service->pivot_quantity ?? 1);
+        $pricingType = $service->pricing_type ?? 'retail';
+        $lineTotal = $unitPrice * $quantity;
+
+        if ($pricingType === 'rental' && $durationHours > 0) {
+            $lineTotal *= $durationHours;
+        }
+
+        return $lineTotal > 0 ? $lineTotal : $unitPrice;
+    }
+
     private function ownerPhoneForBooking(Booking $booking): ?string
     {
         return $booking->court?->venue?->ownerRegistration?->phone
@@ -392,8 +415,14 @@ class UserBookingController extends Controller
                     $refundStatus = 'none';
 
                     if ($b->payment_status === 'paid') {
-                        // SỬA: BÓC TÁCH TIỀN DỊCH VỤ KHỎI PHÍ PHẠT
-                        $bServicesTotal = $b->services->sum('pivot.price');
+                        $bookingHours = 0;
+                        if (!empty($b->start_time) && !empty($b->end_time)) {
+                            $bookingHours = Carbon::parse($b->start_time)->diffInMinutes(Carbon::parse($b->end_time)) / 60;
+                        }
+
+                        $bServicesTotal = $b->services->sum(function ($service) use ($bookingHours) {
+                            return $this->calculateServiceLineTotal($service, $bookingHours > 0 ? $bookingHours : 1);
+                        });
                         $bCourtPrice = max(0, $b->total_price - $bServicesTotal); // Lấy ra tiền thuê sân gốc
                         
                         $fee = ($bCourtPrice * $feePercent) / 100; // Chỉ tính phạt trên tiền sân
@@ -549,8 +578,17 @@ class UserBookingController extends Controller
         
         $totalPrice = $groupBookings->sum('total_price');
         
-        // SỬA: BÓC TÁCH TIỀN DỊCH VỤ TRÊN GIAO DIỆN HIỂN THỊ
-        $servicesTotal = $groupBookings->flatMap->services->sum('pivot.price');
+        $groupDurationMinutes = 0;
+        foreach ($groupBookings as $bookingGroupItem) {
+            if (!empty($bookingGroupItem->start_time) && !empty($bookingGroupItem->end_time)) {
+                $groupDurationMinutes += Carbon::parse($bookingGroupItem->start_time)->diffInMinutes(Carbon::parse($bookingGroupItem->end_time));
+            }
+        }
+        $groupDurationHours = $groupDurationMinutes > 0 ? ($groupDurationMinutes / 60) : 1;
+
+        $servicesTotal = $groupBookings->flatMap->services->sum(function ($service) use ($groupDurationHours) {
+            return $this->calculateServiceLineTotal($service, $groupDurationHours);
+        });
         $courtPrice = max(0, $totalPrice - $servicesTotal);
         
         $isPaid = $firstBooking->payment_status === 'paid';
