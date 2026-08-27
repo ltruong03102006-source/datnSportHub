@@ -186,7 +186,7 @@
                 </p>
             </div>
             <div style="display: flex; gap: 10px;">
-                <form action="{{ route('admin.venues.update-requests.reject', $venue->pendingUpdateRequest->id) }}" method="POST" onsubmit="return promptRejectReason(this);" style="margin: 0;">
+                <form action="{{ route('admin.venues.update-requests.reject', $venue->pendingUpdateRequest->id) }}" method="POST" onsubmit="return promptRejectReason(this, event);" style="margin: 0;">
                     @csrf
                     <input type="hidden" name="admin_note" class="reject-reason-input">
                     <button type="submit" style="background: #dc2626; color: white; border: none; padding: 9px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);">
@@ -291,6 +291,46 @@
         </div>
     </div>
 @endif
+
+{{-- XỬ LÝ DUYỆT / TỪ CHỐI CƠ SỞ --}}
+@if($venue->status === 'pending')
+    <div style="background: #eff6ff; border: 1px solid #93c5fd; border-radius: 12px; padding: 20px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <h5 style="margin: 0 0 4px 0; color: #1e40af; font-size: 18px; font-weight: 700;">
+                <i class="fa-solid fa-clock-rotate-left" style="margin-right: 8px;"></i>Cơ sở đang chờ bạn duyệt!
+            </h5>
+            <p style="margin: 0; color: #1e3a8a; font-size: 14px;">
+                Vui lòng kiểm tra kỹ thông tin cơ sở & hồ sơ đính kèm bên dưới trước khi phê duyệt hoặc từ chối.
+            </p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <form action="{{ route('admin.venues.approve', $venue->id) }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn phê duyệt cơ sở sân này?');" style="margin:0;">
+                @csrf
+                <button type="submit" class="btn-approve" style="display: flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-check"></i> Duyệt cơ sở
+                </button>
+            </form>
+            <form action="{{ route('admin.venues.reject', $venue->id) }}" method="POST" onsubmit="return promptRejectReason(this, event);" style="margin:0;">
+                @csrf
+                <input type="hidden" name="reject_reason" class="reject-reason-input">
+                <button type="submit" class="btn-reject" style="display: flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-xmark"></i> Từ chối
+                </button>
+            </form>
+        </div>
+    </div>
+@elseif($venue->status === 'approved' || $venue->status === 'active')
+    <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 12px; padding: 16px 20px; margin-bottom: 25px; color: #166534; font-weight: 600; display: flex; align-items: center; gap: 10px;">
+        <i class="fa-solid fa-circle-check" style="font-size: 20px;"></i>
+        <span>Cơ sở này đã được phê duyệt (Trạng thái: <strong>{{ strtoupper($venue->status) }}</strong>).</span>
+    </div>
+@elseif($venue->status === 'rejected')
+    <div style="background: #fef2f2; border: 1px solid #fca5a5; border-radius: 12px; padding: 16px 20px; margin-bottom: 25px; color: #991b1b; font-weight: 600; display: flex; align-items: center; gap: 10px;">
+        <i class="fa-solid fa-circle-xmark" style="font-size: 20px;"></i>
+        <span>Cơ sở này đã bị từ chối. {{ $venue->legalDocument?->reject_reason ? 'Lý do: ' . $venue->legalDocument->reject_reason : '' }}</span>
+    </div>
+@endif
+
 {{-- 2. THÔNG TIN CƠ SỞ (Đã bổ sung SĐT, Email) --}}
 <div class="section-card">
     <div class="section-title">Thông tin cơ sở</div>
@@ -349,18 +389,6 @@
         <tr>
             <td class="info-label">Giấy phép KD / Mã số thuế</td>
             <td class="info-value">{{ $venue->legalDocument?->business_license_number ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td class="info-label">Ngân hàng</td>
-            <td class="info-value">{{ $venue->legalDocument?->bank_name ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td class="info-label">Số tài khoản</td>
-            <td class="info-value fw-bold text-success">{{ $venue->legalDocument?->bank_account_number ?? '-' }}</td>
-        </tr>
-        <tr>
-            <td class="info-label">Tên chủ tài khoản</td>
-            <td class="info-value">{{ $venue->legalDocument?->bank_account_holder ?? '-' }}</td>
         </tr>
     </table>
 </div>
@@ -431,24 +459,79 @@
 </div>
 
 <script>
-    // Hàm hiển thị Popup yêu cầu nhập lý do từ chối
-    function promptRejectReason(form) {
-        const reason = prompt('Vui lòng nhập lý do từ chối yêu cầu thay đổi thông tin (VD: CCCD bị mờ, Sai số tài khoản...):');
+    let currentDocRejectForm = null;
+
+    function promptRejectReason(form, event) {
+        if (event) event.preventDefault();
+        currentDocRejectForm = form;
         
-        // Nếu bấm Hủy
-        if (reason === null) {
-            return false; 
+        const textarea = document.getElementById('rejectDocReasonTextarea');
+        const errorDiv = document.getElementById('rejectDocReasonError');
+        if (textarea) textarea.value = '';
+        if (errorDiv) errorDiv.style.display = 'none';
+        
+        const modalEl = document.getElementById('rejectDocModal');
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        } else {
+            modalEl.classList.add('show');
+            modalEl.style.display = 'block';
         }
         
-        // Nếu nhập quá ngắn
-        if (reason.trim().length < 5) {
-            alert('Vui lòng nhập lý do rõ ràng (ít nhất 5 ký tự) để chủ sân biết cách sửa.');
-            return false;
+        return false;
+    }
+
+    function submitRejectDocForm() {
+        const textarea = document.getElementById('rejectDocReasonTextarea');
+        const errorDiv = document.getElementById('rejectDocReasonError');
+        const reason = textarea ? textarea.value.trim() : '';
+        
+        if (reason.length < 5) {
+            if (errorDiv) errorDiv.style.display = 'block';
+            return;
         }
         
-        // Gán lý do vào input ẩn và cho phép form submit
-        form.querySelector('.reject-reason-input').value = reason.trim();
-        return true;
+        if (errorDiv) errorDiv.style.display = 'none';
+        if (currentDocRejectForm) {
+            currentDocRejectForm.querySelector('.reject-reason-input').value = reason;
+            const modalEl = document.getElementById('rejectDocModal');
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+            }
+            currentDocRejectForm.submit();
+        }
     }
 </script>
+
+<!-- Modal Nhập Lý Do Từ Chối Hồ Sơ / Cơ Sở -->
+<div class="modal fade" id="rejectDocModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header bg-danger text-white border-0 py-3">
+                <h5 class="modal-title fw-bold">
+                    <i class="fa-solid fa-triangle-exclamation me-2"></i>Từ chối yêu cầu / Hồ sơ
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted small mb-3">Vui lòng nhập lý do từ chối chi tiết bên dưới để thông báo cho Chủ sân:</p>
+                <div class="mb-3">
+                    <label for="rejectDocReasonTextarea" class="form-label fw-bold text-dark">Lý do từ chối <span class="text-danger">*</span></label>
+                    <textarea id="rejectDocReasonTextarea" 
+                              class="form-control" 
+                              rows="5" 
+                              style="border-radius: 10px; resize: vertical; padding: 12px; font-size: 14px;" 
+                              placeholder="Vui lòng nhập lý do rõ ràng (VD: CCCD bị mờ, Sai số tài khoản ngân hàng, Giấy phép kinh doanh không khớp thông tin...)"></textarea>
+                    <div id="rejectDocReasonError" class="text-danger small mt-1" style="display: none;">Vui lòng nhập lý do từ chối ít nhất 5 ký tự.</div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0 py-3 px-4">
+                <button type="button" class="btn btn-secondary px-4 fw-semibold" data-bs-dismiss="modal" style="border-radius: 8px;">Hủy bỏ</button>
+                <button type="button" onclick="submitRejectDocForm()" class="btn btn-danger px-4 fw-bold" style="border-radius: 8px;">Xác nhận từ chối</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection

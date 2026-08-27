@@ -64,10 +64,14 @@ class AdminLoginController extends Controller
         Auth::guard('web')->login($user, $request->boolean('remember'));
         Auth::login($user, $request->boolean('remember'));
 
+        $intendedUrl = $request->session()->get('url.intended');
         $request->session()->regenerate();
 
-        // Admin luôn về dashboard sau khi đăng nhập.
-        // Không dùng intended() để tránh bị quay lại các URL API như /notifications/unread-count.
+        if ($intendedUrl && str_contains($intendedUrl, '/admin/') && !str_contains($intendedUrl, 'notifications') && !str_contains($intendedUrl, 'api')) {
+            $request->session()->forget('url.intended');
+            return redirect()->to($intendedUrl);
+        }
+
         return redirect()->route('admin.dashboard');
     }
 

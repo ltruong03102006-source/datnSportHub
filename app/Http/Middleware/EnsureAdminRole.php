@@ -23,15 +23,17 @@ class EnsureAdminRole
         }
 
         if (!$user) {
-            return redirect('/admin/login')->with('error', 'Vui lòng đăng nhập.');
+            session(['url.intended' => $request->fullUrl()]);
+            return redirect('/admin/login')->with('error', 'Vui lòng đăng nhập bằng tài khoản Quản trị viên (Admin).');
         }
 
         if (strtolower($user->role) !== 'admin') {
-            abort(403, 'Forbidden - Bạn không có quyền truy cập trang quản trị Admin.');
+            session(['url.intended' => $request->fullUrl()]);
+            return redirect('/admin/login')->with('admin_login_error', 'Tài khoản hiện tại của bạn không có quyền Admin. Vui lòng đăng nhập bằng tài khoản Quản trị viên.');
         }
 
         if (isset($user->status) && $user->status !== 'active') {
-            abort(403, 'Forbidden - Tài khoản Admin chưa được kích hoạt.');
+            return redirect('/admin/login')->with('admin_login_error', 'Tài khoản Admin chưa được kích hoạt.');
         }
 
         return $next($request);

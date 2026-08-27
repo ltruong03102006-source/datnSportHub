@@ -18,6 +18,7 @@ use App\Http\Controllers\Web\AdminUserController;
 use App\Http\Controllers\Web\AdminVenueController;
 use App\Http\Controllers\Web\AdminBookingController;
 use App\Http\Controllers\Web\AdminCourtController;
+use App\Http\Controllers\Web\AdminOwnerRegistrationController;
 use App\Http\Controllers\Web\FavoriteController;
 use App\Http\Controllers\Web\OwnerCancellationPolicyController;
 use Illuminate\Support\Facades\Route;
@@ -199,6 +200,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/contracts/{contract}/pdf', [\App\Http\Controllers\Web\AdminContractController::class, 'exportPdf'])->name('contracts.pdf');
         Route::get('/contracts/{contract}', [\App\Http\Controllers\Web\AdminContractController::class, 'show'])->name('contracts.show');
         Route::post('/contracts/{contract}/terminate', [\App\Http\Controllers\Web\AdminContractController::class, 'terminate'])->name('contracts.terminate');
+
+        // Quản lý Đăng ký chủ sân
+        Route::get('/owner-registrations', [AdminOwnerRegistrationController::class, 'index'])->name('owner-registrations.index');
+        Route::post('/owner-registrations/{id}/approve', [AdminOwnerRegistrationController::class, 'approve'])->name('owner-registrations.approve');
+        Route::post('/owner-registrations/{id}/reject', [AdminOwnerRegistrationController::class, 'reject'])->name('owner-registrations.reject');
 
         // ❌ 2 DÒNG NÀY ĐANG NẰM NGOÀI NHÓM ADMIN NÊN BỊ LỖI MẤT CHỮ 'admin.'
 Route::get('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingController::class, 'index'])->name('financial-settings.index');
