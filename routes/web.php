@@ -81,6 +81,9 @@ Route::post('/chatbot/reset', [ChatbotController::class, 'reset'])->name('chatbo
 Route::get('/courts/{court}/booking', [CourtBookingController::class, 'show'])->name('web.courts.booking');
 Route::post('/courts/booking', [CourtBookingController::class, 'store'])->name('web.courts.booking.store');
 
+// Endpoint: return slot prices for a court on a given date (used by booking page "Xem bảng giá")
+Route::get('/courts/{court}/shifts/prices', [CourtBookingController::class, 'prices']);
+
 Route::get('/venues/nearby', [VenueController::class, 'nearbyPage'])->name('venues.nearby');
 
 Route::get('/venues/{id}', [VenueController::class, 'show'])

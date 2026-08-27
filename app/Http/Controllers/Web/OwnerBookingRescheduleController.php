@@ -238,6 +238,28 @@ class OwnerBookingRescheduleController extends Controller
             return;
         }
 
+        $booking->loadMissing('services');
+        $serviceTotal = $booking->services->sum(function ($service) use ($items) {
+            $unitPrice = (float) ($service->pivot->price ?? 0);
+            $quantity = (int) ($service->pivot->quantity ?? 1);
+            $lineTotal = $unitPrice * $quantity;
+
+            $durationMinutes = 0;
+            foreach ($items as $item) {
+                if (!empty($item->start_time) && !empty($item->end_time)) {
+                    $durationMinutes += Carbon::parse($item->start_time, 'Asia/Ho_Chi_Minh')
+                        ->diffInMinutes(Carbon::parse($item->end_time, 'Asia/Ho_Chi_Minh'));
+                }
+            }
+
+            $hours = $durationMinutes > 0 ? ($durationMinutes / 60) : 1;
+            if (($service->pricing_type ?? 'retail') === 'rental' && $hours > 0) {
+                $lineTotal *= $hours;
+            }
+
+            return $lineTotal > 0 ? $lineTotal : $unitPrice;
+        });
+
         $booking->update([
             'slot_date' => $items->pluck('slot_date')->map(fn ($date) => $date->toDateString())->unique()->count() === 1
                 ? $items->first()->slot_date
@@ -245,7 +267,7 @@ class OwnerBookingRescheduleController extends Controller
             'start_time' => $items->min('start_time'),
             'end_time' => $items->max('end_time'),
             'time_slot_id' => $items->first()->time_slot_id,
-            'total_price' => $items->sum('price'),
+            'total_price' => $items->sum('price') + $serviceTotal,
         ]);
     }
 }

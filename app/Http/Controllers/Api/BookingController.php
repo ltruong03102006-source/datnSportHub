@@ -134,6 +134,43 @@ class BookingController extends Controller
                 }
 
                 $originalPrice = $items->sum('price');
+
+                // BẮT ĐẦU: TÍNH TIỀN DỊCH VỤ & CHUẨN BỊ MẢNG LƯU DATABASE
+                $serviceListToSave = []; 
+                $servicesTotal = 0;
+                
+                if ($request->has('services') && is_array($request->services)) {
+                    $totalMinutes = 0;
+                    foreach ($slots as $s) {
+                        $totalMinutes += \Carbon\Carbon::parse($s['start_time'])->diffInMinutes(\Carbon\Carbon::parse($s['end_time']));
+                    }
+                    $totalHours = $totalMinutes / 60;
+
+                    foreach ($request->services as $svc) {
+                        $qty = max(1, (int) ($svc['quantity'] ?? 1));
+                        $unitPrice = (float) ($svc['price'] ?? 0);
+                        $type = $svc['type'] ?? 'retail';
+
+                        $serviceLineTotal = $unitPrice * $qty;
+                        if ($type === 'rental') {
+                            $serviceLineTotal = $unitPrice * $qty * $totalHours;
+                        }
+
+                        $servicesTotal += $serviceLineTotal;
+
+                        // Chuẩn hóa dữ liệu pivot: price = đơn giá, quantity = số lượng.
+                        // View/Invoice sẽ tính line total = quantity * price.
+                        $serviceListToSave[] = [
+                            'service_id' => $svc['id'],
+                            'quantity'   => $qty,
+                            'price'      => $unitPrice,
+                        ];
+                    }
+                }
+                
+                $originalPrice += $servicesTotal;
+                // KẾT THÚC: TÍNH TIỀN DỊCH VỤ
+
                 $discount = 0.0;
                 $voucher = null;
                 if ($request->filled('voucher_code')) {
@@ -179,7 +216,7 @@ class BookingController extends Controller
                 $booking->slot_date = $request->slot_date;
                 $booking->start_time = $items->first()['start_time'];
                 $booking->end_time = $items->last()['end_time'];
-                $booking->total_price = $finalPrice;
+                $booking->total_price = $finalPrice; // Lưu ý: $finalPrice này đã bao gồm $servicesTotal ở trên rồi
                 $booking->payment_method = $paymentMethod;
                 $booking->status = $paymentMethod === 'wallet' ? 'confirmed' : 'pending';
                 $booking->payment_status = $paymentMethod === 'wallet' ? 'paid' : 'unpaid';
@@ -189,7 +226,26 @@ class BookingController extends Controller
                 $booking->updated_at = $now;
                 $booking->save();
 
+                // BẮT ĐẦU: ÉP LƯU TRỰC TIẾP DỊCH VỤ XUỐNG DATABASE BẰNG QUERY BUILDER
+                if (!empty($serviceListToSave)) {
+                    $insertData = [];
+                    foreach ($serviceListToSave as $item) {
+                        $insertData[] = [
+                            'booking_id' => $booking->id,
+                            'service_id' => $item['service_id'],
+                           'quantity'   => $item['quantity'], // Số lượng dịch vụ
+                           'price'      => $item['price'],    // Đơn giá / giá theo đơn vị
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ];
+                    }
+                    \Illuminate\Support\Facades\DB::table('booking_services')->insert($insertData);
+                }
+                // KẾT THÚC: LƯU DỊCH VỤ
+                // KẾT THÚC: LƯU DỊCH VỤ
+
                 if ($paymentMethod === 'wallet') {
+                    // ... Logic trừ ví của bạn ...
                     // 2. Nạp tiền vào Ví Nền Tảng (Platform Wallet)
                     app(\App\Services\PlatformWalletService::class)->credit(
                         amount: $finalPrice,

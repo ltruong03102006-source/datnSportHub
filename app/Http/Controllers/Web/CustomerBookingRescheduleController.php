@@ -136,7 +136,10 @@ class CustomerBookingRescheduleController extends Controller
             ];
         }
 
-        $totalPriceDiff = $totalNewPrice - $totalOldPrice;
+        $oldServiceTotal = $this->calculateBookingServicesTotal($booking, $items->pluck('end_time')->all(), $items->pluck('start_time')->all());
+        $newServiceTotal = $this->calculateBookingServicesTotal($booking, $newSlots->pluck('end_time')->all(), $newSlots->pluck('start_time')->all());
+        $servicePriceDiff = $newServiceTotal - $oldServiceTotal;
+        $totalPriceDiff = ($totalNewPrice - $totalOldPrice) + $servicePriceDiff;
         $paymentMethod = $data['payment_method'] ?? 'wallet';
 
         // Nếu tổng tiền ca mới cao hơn ca cũ và chọn thanh toán qua Ví, kiểm tra số dư ví
@@ -340,6 +343,38 @@ class CustomerBookingRescheduleController extends Controller
     private function normalizeTime(?string $time): ?string
     {
         return $time ? date('H:i:s', strtotime($time)) : null;
+    }
+
+    private function calculateBookingServicesTotal(Booking $booking, array $endTimes, array $startTimes): float
+    {
+        $booking->loadMissing('services');
+        if ($booking->services->isEmpty()) {
+            return 0.0;
+        }
+
+        $totalMinutes = 0.0;
+        foreach ($startTimes as $index => $startTime) {
+            if (!isset($endTimes[$index]) || !$startTime || !$endTimes[$index]) {
+                continue;
+            }
+
+            $totalMinutes += Carbon::parse($startTime, 'Asia/Ho_Chi_Minh')
+                ->diffInMinutes(Carbon::parse($endTimes[$index], 'Asia/Ho_Chi_Minh'));
+        }
+
+        $hours = $totalMinutes > 0 ? ($totalMinutes / 60) : 1;
+
+        return $booking->services->sum(function ($service) use ($hours) {
+            $unitPrice = (float) ($service->pivot->price ?? 0);
+            $quantity = (int) ($service->pivot->quantity ?? 1);
+            $lineTotal = $unitPrice * $quantity;
+
+            if (($service->pricing_type ?? 'retail') === 'rental' && $hours > 0) {
+                $lineTotal *= $hours;
+            }
+
+            return $lineTotal > 0 ? $lineTotal : $unitPrice;
+        });
     }
 
     private function buildRescheduleVnpayUrl(Request $request, string $requestCode, float $amount): string

@@ -526,16 +526,34 @@ class AdminFinanceDashboardController extends Controller
             $bankCode = 'VCB' . rand(100000, 999999); // Sinh mã ngân hàng ảo
 
             DB::transaction(function () use ($amount, $platformWalletService, $gateway, &$referenceId) {
-                $totalOwnerBalance = \App\Models\Wallet::where('balance', '>', 0)->sum('balance');
-                $platformWallet = $platformWalletService->getDefaultWallet();
-                $safeWithdrawableAmount = $platformWallet->balance - $totalOwnerBalance;
+                // 1. Tổng tiền đang nằm trong ví của các Chủ sân và Khách hàng
+                $totalSystemLiability = \App\Models\Wallet::where('balance', '>', 0)->sum('balance');
 
+                // 2. TÍNH TỔNG TIỀN BOOKING ĐANG CHỜ ĐỐI SOÁT (Tiền khách đã trả nhưng chưa đá xong)
+                $unsettledQuery = \App\Models\Booking::query();
+                if (\Illuminate\Support\Facades\Schema::hasColumn('bookings', 'payment_status')) {
+                    $unsettledQuery->where('payment_status', 'paid');
+                }
+                if (\Illuminate\Support\Facades\Schema::hasColumn('bookings', 'settlement_status')) {
+                    $unsettledQuery->where('settlement_status', '!=', 'settled');
+                } else {
+                    $unsettledQuery->whereNotIn('status', ['completed', 'cancelled']); 
+                }
+                $amountCol = \Illuminate\Support\Facades\Schema::hasColumn('bookings', 'gross_amount') ? 'gross_amount' : 'total_price';
+                $unsettledFunds = (float) $unsettledQuery->sum($amountCol);
+
+                // 3. TÍNH LỢI NHUẬN THỰC SỰ ĐƯỢC RÚT
+                $platformWallet = $platformWalletService->getDefaultWallet();
+                $safeWithdrawableAmount = $platformWallet->balance - $totalSystemLiability - $unsettledFunds;
+
+                // 4. CHẶN NẾU RÚT QUÁ LỢI NHUẬN THỰC
                 if ($amount > $safeWithdrawableAmount) {
-                    throw new \Exception('Lỗi: Số tiền rút vượt quá lợi nhuận khả dụng thực tế!');
+                    throw new \Exception('Lỗi: Số dư khả dụng không đủ. Hệ thống đang tạm giữ tiền chờ đối soát!');
                 }
 
-                // 2. Tạo mã tham chiếu đúng chuẩn bạn yêu cầu (VD: WD-202607270001)
+                // (Đoạn code tạo mã Reference và trừ tiền phía dưới giữ nguyên)
                 $referenceId = 'WD-' . now()->format('Ymd') . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+                // ...
 
                 // 3. Trừ tiền Ví nền tảng (Hold tiền)
                 $platformWalletService->debit(

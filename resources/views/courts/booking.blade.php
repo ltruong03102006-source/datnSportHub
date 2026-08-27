@@ -117,8 +117,17 @@
             <div class="rounded-2xl border border-stone-200 bg-white p-1 sm:p-6 shadow-sm">
                 
                 <div class="mb-6 hidden sm:flex items-center justify-between border-b border-stone-100 pb-4">
-                    <h3 class="text-xl font-bold text-zinc-900">Danh sách ca trống</h3>
-                    <p class="text-sm font-medium text-zinc-500">Click vào thẻ để chọn ca</p>
+                    <div class="flex items-center gap-4">
+                        <h3 class="text-xl font-bold text-zinc-900">Danh sách ca trống</h3>
+                        <p class="text-sm font-medium text-zinc-500">Click vào thẻ để chọn ca</p>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button id="viewPriceBtn" onclick="openPriceModal()" class="inline-flex items-center gap-2 rounded-lg border border-stone-200 bg-white px-3 py-1 text-sm font-bold text-zinc-700 hover:bg-stone-50 transition">
+                            <svg class="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v4a1 1 0 001 1h3m10 0h3a1 1 0 001-1V7M3 7a2 2 0 012-2h14a2 2 0 012 2M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7" /></svg>
+                            Xem bảng giá
+                        </button>
+                    </div>
                 </div>
 
                 <div class="p-3 sm:p-0">
@@ -134,6 +143,20 @@
                     <div id="slotsList" style="display: none;">
                         <div class="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4" id="slotsContainer">
                             <!-- JS Will Render Cards Here -->
+                        </div>
+                    </div>
+
+                    <!-- Price Modal: shows price table fetched from server -->
+                    <div id="priceModal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
+                        <div class="w-full max-w-2xl rounded-xl bg-white shadow-lg overflow-hidden">
+                            <div class="flex items-center justify-between border-b border-stone-100 px-4 py-3">
+                                <h4 class="text-lg font-bold">Bảng giá ca</h4>
+                                <button onclick="closePriceModal()" class="text-sm text-stone-500 hover:text-stone-700">Đóng</button>
+                            </div>
+                            <div id="priceModalContent" class="p-4 max-h-[60vh] overflow-auto text-sm text-zinc-700">
+                                <!-- Content populated by JS -->
+                                <div class="text-center text-stone-400">Đang tải dữ liệu bảng giá...</div>
+                            </div>
                         </div>
                     </div>
 
@@ -180,10 +203,11 @@
                                     @endif
                                 </div>
                                 
+                                <!-- ĐÃ FIX: Trả lại Tên món và làm tàng hình chữ /1 -->
                                 <div class="flex-1">
                                     <h6 class="text-sm font-bold text-zinc-900 line-clamp-2 leading-tight">{{ $service->name }}</h6>
                                     <p class="text-xs font-bold text-emerald-600 mt-1.5">
-                                        {{ number_format($service->price, 0, ',', '.') }}đ/{{ $service->unit }}
+                                        {{ number_format($service->price, 0, ',', '.') }}đ{{ (trim((string)$service->unit) === '1' || empty($service->unit)) ? '' : '/' . trim($service->unit) }}
                                         @if($service->pricing_type === 'rental') <span class="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded ml-1 text-[10px] uppercase">Thuê</span> @endif
                                     </p>
                                 </div>
@@ -1036,6 +1060,106 @@
 function showLockReason(encodedReason) {
         document.getElementById('lockReasonText').innerText = decodeURIComponent(encodedReason);
         document.getElementById('lockReasonModal').classList.remove('hidden');
+    }
+
+    /* Price modal: fetch and render court shift prices. Endpoint expected: /courts/{id}/shifts/prices?date=YYYY-MM-DD
+       Backend should return JSON array of objects: [{ name, start_time, end_time, price, type/is_peak }, ... ]
+       The frontend tolerates several common field names (start_time/start, end_time/end, price/amount/rate). */
+    function openPriceModal() {
+        const modal = document.getElementById('priceModal');
+        const content = document.getElementById('priceModalContent');
+        const date = (datePicker && datePicker.value) ? datePicker.value : new Date().toISOString().slice(0,10);
+
+        content.innerHTML = '<div class="text-center py-12 text-stone-500">Đang tải bảng giá...</div>';
+        modal.classList.remove('hidden');
+
+        fetch(`/courts/${courtId}/shifts/prices?week=1&date=${encodeURIComponent(date)}`, { headers: { 'Accept': 'application/json' } })
+            .then(async (res) => {
+                const json = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(json.message || 'Lỗi server');
+                // Normalize payload
+                const items = Array.isArray(json.data) ? json.data : (Array.isArray(json) ? json : (json.data?.items ?? json.data ?? []));
+                renderPriceTable(items);
+            })
+            .catch(err => {
+                content.innerHTML = `<div class="text-center text-red-600 py-6">Không thể tải bảng giá: ${err.message}</div>`;
+            });
+    }
+
+    function closePriceModal() {
+        const modal = document.getElementById('priceModal');
+        if(modal) modal.classList.add('hidden');
+    }
+
+    function formatMoney(num) {
+        const n = Number(num) || 0;
+        return n.toLocaleString('vi-VN') + 'đ';
+    }
+
+    function renderPriceTable(items) {
+        const content = document.getElementById('priceModalContent');
+        if (!items || items.length === 0) {
+            content.innerHTML = '<div class="text-center text-stone-500 py-8">Chủ sân chưa thiết lập bảng giá cho ngày này.</div>';
+            return;
+        }
+
+        // Nếu item có day_prices => hiển thị dạng T2..CN (Ma trận ngày trong tuần)
+        const first = items[0];
+        if (first.day_prices && Array.isArray(first.day_prices)) {
+            const dayLabels = ['T2','T3','T4','T5','T6','T7','CN'];
+            let html = '<div class="overflow-auto">';
+            html += '<table class="w-full text-sm text-left border-collapse">';
+            // Header
+            html += '<thead><tr class="border-b"><th class="p-2 font-semibold">Ca</th><th class="p-2 font-semibold">Giờ</th>';
+            dayLabels.forEach(dl => { html += `<th class="p-2 font-semibold text-center">${dl}</th>`; });
+            html += '</tr></thead>';
+
+            // Body
+            html += '<tbody>';
+            items.forEach(it => {
+                const start = it.start_time ?? it.start ?? it.from ?? '';
+                const end = it.end_time ?? it.end ?? it.to ?? '';
+                const time = `${start}${start && end ? ' - ' : ''}${end}`;
+                const name = it.name ?? '';
+
+                html += '<tr class="border-b">';
+                html += `<td class="p-2 align-top">${name}</td>`;
+                html += `<td class="p-2 align-top text-stone-600">${time}</td>`;
+
+                // day_prices expected in order T2..CN
+                (it.day_prices || []).forEach(day => {
+                    const price = day.price != null ? formatMoney(day.price) : '-';
+                    const isPeak = !!day.is_peak;
+                    const badge = isPeak ? '<div class="inline-block mt-1 text-[11px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded">Giờ cao điểm</div>' : '<div class="inline-block mt-1 text-[11px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded">Giờ thường</div>';
+                    html += `<td class="p-2 align-top text-center"><div class="font-semibold">${price}</div>${day.price != null ? badge : ''}</td>`;
+                });
+
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            content.innerHTML = html;
+            return;
+        }
+
+        // Fallback: simple list (per-date)
+        let html = '<div class="grid gap-3">';
+        html += '<div class="grid grid-cols-3 gap-2 font-semibold text-sm border-b pb-2 mb-2"><div>Ca</div><div>Giờ</div><div class="text-right">Giá</div></div>';
+
+        items.forEach(it => {
+            const start = it.start_time ?? it.start ?? it.from ?? '';
+            const end = it.end_time ?? it.end ?? it.to ?? '';
+            const time = `${start}${start && end ? ' - ' : ''}${end}`;
+            const price = formatMoney(it.price ?? it.amount ?? it.rate ?? 0);
+            const isPeak = it.type === 'peak' || it.is_peak || it.isHigh;
+            const badge = isPeak ? '<span class="ml-2 inline-block text-[11px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded">Giờ cao điểm</span>' : '';
+            const name = it.name ?? '';
+
+            html += `<div class="grid grid-cols-3 gap-2 items-center py-2 border-b"><div class="text-sm">${name}</div><div class="text-sm text-stone-600">${time}${badge}</div><div class="text-right font-bold">${price}</div></div>`;
+        });
+
+        html += '</div>';
+        content.innerHTML = html;
     }
 </script>
 @endsection

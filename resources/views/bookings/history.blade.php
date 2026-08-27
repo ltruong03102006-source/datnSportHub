@@ -915,6 +915,15 @@
                         <strong id="refundAmount" class="text-emerald-600 font-black text-lg">0đ</strong>
                     </div>
                 </div>
+                <!-- BẮT ĐẦU CHÈN THÊM KHỐI NÀY VÀO ĐÂY -->
+                <div id="serviceRefundNotice" style="display: none;" class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 text-sm shadow-sm">
+                    <p class="text-[11px] text-emerald-700 italic font-medium">
+                        * Bạn đã mua Dịch vụ kèm theo trị giá <span id="cancelServiceAmount" class="font-bold">0</span>đ. Số tiền dịch vụ này không bị tính phí phạt và được hệ thống hoàn lại 100%.
+                    </p>
+                </div>
+                <!-- KẾT THÚC CHÈN -->
+                
+                <div id="cancelOwnerContact" class="mb-4 hidden rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 text-sm shadow-sm">
                 <div id="cancelOwnerContact" class="mb-4 hidden rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 text-sm shadow-sm">
                     <div class="flex items-center gap-3">
                         <div class="rounded-full bg-emerald-100 p-2 text-emerald-600">
@@ -1127,6 +1136,15 @@
             document.getElementById('feePercent').textContent = data.fee_percent + '%';
             document.getElementById('feeAmount').textContent = formatVND(data.cancellation_fee);
             document.getElementById('refundAmount').textContent = formatVND(data.refund_amount);
+
+            // BẬT/TẮT THÔNG BÁO TIỀN DỊCH VỤ HOÀN 100%
+            const noticeDiv = document.getElementById('serviceRefundNotice');
+            if (data.services_total && data.services_total > 0) {
+                noticeDiv.style.display = 'block';
+                document.getElementById('cancelServiceAmount').textContent = formatVND(data.services_total);
+            } else {
+                noticeDiv.style.display = 'none';
+            }
 
             loading.classList.add('hidden');
             content.classList.remove('hidden');
