@@ -675,7 +675,6 @@
     </div>
 
     <!-- TẦNG 2: PHÂN TÍCH SỨC KHỎE VÍ & LỢI NHUẬN AN TOÀN -->
-    @if(!$selectedOwner)
     <div>
         <div class="tier-header-bar">
             <span class="tier-chip tier-chip-2"><i class="fa-solid fa-shield-halved"></i>Ví Nền Tảng & An Toàn Tài Chính</span>
@@ -683,11 +682,16 @@
         <div class="panel solvency-panel">
             <div class="panel-head" style="padding:0 0 16px 0; border-bottom: 1px dashed #cbd5e1;">
                 <div>
-                    <h3 class="panel-title"><i class="fa-solid fa-scale-balanced tone-green mr-2"></i> Minh Bạch Dòng Tiền & Lợi Nhuận An Toàn</h3>
-                    <p class="panel-desc">Phân biệt rạch ròi giữa Tiền thuộc về Admin và Tiền giữ hộ cho Chủ sân & Khách hàng.</p>
+                    <h3 class="panel-title">
+                        <i class="fa-solid fa-scale-balanced tone-green mr-2"></i> 
+                        {{ $selectedOwner ? ('Minh Bạch Dòng Tiền - Chủ Sân: ' . $selectedOwner->name) : 'Minh Bạch Dòng Tiền & Lợi Nhuận An Toàn' }}
+                    </h3>
+                    <p class="panel-desc">
+                        {{ $selectedOwner ? ('Phân tích nghĩa vụ giữ hộ tiền và khả năng rút tiền của ' . $selectedOwner->name) : 'Phân biệt rạch ròi giữa Tiền thuộc về Admin và Tiền giữ hộ cho Chủ sân & Khách hàng.' }}
+                    </p>
                 </div>
                 <div class="range-pill" style="background:#ecfdf5; color:#047857; font-weight:800;">
-                    <i class="fa-solid fa-lock mr-1"></i>  Đảm bảo khả năng thanh toán 100%
+                    <i class="fa-solid fa-lock mr-1"></i> Đảm bảo khả năng thanh toán 100%
                 </div>
             </div>
 
@@ -705,8 +709,8 @@
                 <!-- BOX 2: Nghĩa vụ tạm giữ -->
                 <div class="solvency-box">
                     <div>
-                        <div class="box-tag tone-amber">NGHĨA VỤ TẠM GIỮ HỘ</div>
-                        <div class="box-title">Tiền Giữ Hộ</div>
+                        <div class="box-tag tone-amber">{{ $selectedOwner ? 'TIỀN GIỮ HỘ CHO CHỦ SÂN' : 'NGHĨA VỤ TẠM GIỮ HỘ' }}</div>
+                        <div class="box-title">{{ $selectedOwner ? ('Tiền Nền Tảng Giữ Cho ' . $selectedOwner->name) : 'Tiền Giữ Hộ' }}</div>
                     </div>
                     <div class="box-value tone-amber">{{ $money($totalSystemLiability + $unsettledFunds) }}</div>
                     <div class="box-sub-items">
@@ -714,10 +718,12 @@
                             <span><i class="fa-solid fa-wallet text-amber mr-1"></i> Số dư ví Chủ sân (Khả dụng):</span>
                             <strong>{{ $money($ownerWalletLiability) }}</strong>
                         </div>
+                        @if(!$selectedOwner)
                         <div class="sub-item">
                             <span><i class="fa-solid fa-user-large text-amber mr-1"></i> Số dư ví Khách hàng:</span>
                             <strong class="tone-blue">{{ $money($customerWalletLiability) }}</strong>
                         </div>
+                        @endif
                         <div class="sub-item">
                             <span><i class="fa-solid fa-futbol text-amber mr-1"></i> Booking lẻ chờ đối soát (Chưa đá):</span>
                             <strong>{{ $money($unsettledFunds) }}</strong>
@@ -725,8 +731,18 @@
                     </div>
                 </div>
 
-                <!-- BOX 3: Lợi nhuận an toàn -->
+                <!-- BOX 3: Lợi nhuận an toàn hoặc Thu nhập khả dụng của Owner -->
                 <div class="solvency-box">
+                    @if($selectedOwner)
+                    <div>
+                        <div class="box-tag tone-green">SỐ DƯ CÓ THỂ RÚT NGAY</div>
+                        <div class="box-title">Tiền Chủ Sân Có Thể Rút</div>
+                    </div>
+                    <div class="box-value tone-green">{{ $money($ownerWalletLiability) }}</div>
+                    <div class="box-desc">
+                        <i class="fa-solid fa-circle-check tone-green mr-1"></i> Số tiền {{ $selectedOwner->name }} có thể tạo yêu cầu rút về ngân hàng.
+                    </div>
+                    @else
                     <div>
                         <div class="box-tag tone-green">LỢI NHUẬN KHẢ DỤNG THỰC TẾ</div>
                         <div class="box-title">Lợi Nhuận An Toàn Thuộc Admin</div>
@@ -735,11 +751,11 @@
                     <div class="box-desc">
                         <i class="fa-solid fa-circle-check tone-green mr-1"></i> Tiền thực tế Admin sở hữu an toàn (Ví Tổng − Tiền Giữ Hộ).
                     </div>
+                    @endif
                 </div>
             </div>
         </div>
     </div>
-    @endif
 
     <!-- BẢNG THỐNG KÊ CHI TIẾT THEO TỪNG CƠ SỞ (KHI LỌC CHỦ SÂN) -->
     @if($selectedOwner)
@@ -975,6 +991,7 @@
                 </div>
 
                 <!-- PHẦN 2: VÍ KHÁCH HÀNG -->
+                @if(!$selectedOwner)
                 <div style="border-top:1px dashed #cbd5e1; padding-top:10px;">
                     <div style="font-size:11px; font-weight:800; color:#334155; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between;">
                         <span class="badge-status" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:2px 7px; font-size:10px;"><i class="fa-solid fa-user mr-1"></i> VÍ KHÁCH HÀNG</span>
@@ -990,6 +1007,7 @@
                         </div>
                     </div>
                 </div>
+                @endif
             </div>
         </div>
 

@@ -403,8 +403,9 @@ class AdminFinanceDashboardController extends Controller
         $calculatedPlatformRevenue = $adminRevenueWithdrawal + $displaySafeAmount;
         if (! $dateFrom && ! $dateTo && ! $ownerId) {
             $platformRevenue = $calculatedPlatformRevenue;
+            $packageCommission = max(0, $platformRevenue - $singleCommission);
         } else {
-            $platformRevenue = max($platformRevenue, $calculatedPlatformRevenue);
+            $platformRevenue = $singleCommission + $packageCommission;
         }
 
         $effectivePackageGmv = $packageGmv > 0 ? $packageGmv : $totalPackageSalesAmount;
