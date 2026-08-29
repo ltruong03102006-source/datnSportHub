@@ -917,13 +917,15 @@
                         </div>
                         @endif
 
+                        @if(($customerRefundOut ?? 0) > 0)
                         <div class="cash-row">
                             <div>
                                 <strong><i class="fa-solid fa-rotate-left text-rose mr-1"></i> Tiền ra (Hoàn tiền Khách)</strong>
-                                <span>Khách hủy đơn đặt sân hợp lệ</span>
+                                <span>Khách đã duyệt rút tiền về ngân hàng</span>
                             </div>
                             <div class="cash-value tone-red">{{ $money($customerRefundOut ?? 0) }}</div>
                         </div>
+                        @endif
 
                         @if(($adminRevenueWithdrawal ?? 0) > 0)
                         <div class="cash-row">

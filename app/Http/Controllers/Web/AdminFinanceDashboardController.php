@@ -388,10 +388,9 @@ class AdminFinanceDashboardController extends Controller
                 $q->where('payment_method', '!=', 'package');
             }
         });
+        $unsettledQuery->whereNotIn('status', ['completed', 'cancelled']);
         if (Schema::hasColumn('bookings', 'settlement_status')) {
             $unsettledQuery->where('settlement_status', '!=', 'settled');
-        } else {
-            $unsettledQuery->whereNotIn('status', ['completed', 'cancelled']); 
         }
         $this->applyOwnerFilterToBookingQuery($unsettledQuery, $ownerId);
         $amountCol = Schema::hasColumn('bookings', 'gross_amount') ? 'gross_amount' : 'total_price';
@@ -400,13 +399,7 @@ class AdminFinanceDashboardController extends Controller
         $safeToWithdraw = $platformWalletBalance - $totalSystemLiability - $unsettledFunds;
         $displaySafeAmount = max(0, $safeToWithdraw);
 
-        $calculatedPlatformRevenue = $adminRevenueWithdrawal + $displaySafeAmount;
-        if (! $dateFrom && ! $dateTo && ! $ownerId) {
-            $platformRevenue = $calculatedPlatformRevenue;
-            $packageCommission = max(0, $platformRevenue - $singleCommission);
-        } else {
-            $platformRevenue = $singleCommission + $packageCommission;
-        }
+        $platformRevenue = $singleCommission + $packageCommission;
 
         $effectivePackageGmv = $packageGmv > 0 ? $packageGmv : $totalPackageSalesAmount;
         $calculatedGmv = $singleGmv + $effectivePackageGmv;

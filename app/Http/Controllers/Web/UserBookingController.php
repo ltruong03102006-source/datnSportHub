@@ -463,18 +463,6 @@ class UserBookingController extends Controller
                                     reference: 'CANCEL-FEE-B'.$b->id
                                 );
                             }
-
-                            if ($this->isPlatformOnlinePayment($b) && class_exists(PlatformWalletService::class)) {
-                                app(PlatformWalletService::class)->debit(
-                                    amount: $refund,
-                                    type: PlatformWalletTransaction::TYPE_CUSTOMER_REFUND_OUT,
-                                    description: 'Hoàn tiền cho khách hủy đơn #' . $b->id,
-                                    referenceType: 'booking',
-                                    referenceId: $b->id,
-                                    reference: 'REFUND-' . $b->id,
-                                    performedBy: Auth::id()
-                                );
-                            }
                         }
                     }
 

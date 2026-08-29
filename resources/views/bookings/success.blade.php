@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Chi tiết đặt lịch | SportHub')
+@section('title', 'Chi tiết đặt lịch #' . $booking->id . ' | SportHub')
 
 @section('content')
 @php
@@ -11,7 +11,11 @@
         : collect($bookingGroup)->sum('total_price');
 
     $totalPriceStr = number_format((float) $finalPrice, 0, ',', '.') . ' ₫';
-    $statusLabel = $booking->status === 'pending' ? 'Chờ chủ sân xác nhận' : $statusMeta['label'];
+    $isPaid = ($booking->payment_status ?? 'unpaid') === 'paid';
+    $isCancelled = $booking->status === 'cancelled';
+    $isPending = $booking->status === 'pending';
+    
+    $statusLabel = $isPending ? 'Chờ chủ sân xác nhận' : ($statusMeta['label'] ?? 'Đã xác nhận');
     
     // Lấy thông tin môn thể thao và SĐT
     $sportName = $booking->court?->venue?->sport?->name ?? 'Thể thao';
@@ -19,116 +23,117 @@
     $userPhone = Auth::user()->phone ?? 'Chưa cập nhật';
 @endphp
 
-<div class="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 pb-24">
-    
-    <div class="mb-6 flex items-center gap-3">
-        <a href="{{ route('account.bookings.index') }}" class="grid h-10 w-10 place-items-center rounded-full bg-stone-200/50 text-zinc-600 transition hover:bg-stone-200">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
-        </a>
-        <h1 class="text-xl font-extrabold text-zinc-900">Chi tiết đặt lịch</h1>
-    </div>
-
-    <div class="mb-5 overflow-hidden rounded-2xl bg-emerald-800 text-white shadow-md">
-        <div class="flex items-center gap-4 p-5 sm:p-6">
-            <div class="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-emerald-100 text-2xl font-black text-emerald-800 ring-4 ring-emerald-700/50">
-                {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
-            </div>
-            <div class="flex-1 space-y-1.5">
-                <p class="text-sm font-medium text-emerald-100/80">KH: <span class="font-bold text-white text-base">{{ Auth::user()->name }}</span></p>
-                <p class="text-sm font-medium text-emerald-100/80">Đối tượng: <span class="font-bold text-white">Sân {{ $sportName }}</span></p>
-                <p class="text-sm font-medium text-emerald-100/80">Số điện thoại: <span class="font-bold text-white">{{ $userPhone }}</span></p>
-            </div>
-        </div>
-    </div>
-
-    <div class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+<div class="min-h-screen bg-slate-50/70 py-8 pb-24">
+    <div class="mx-auto max-w-md px-4 sm:px-0">
         
-        <div class="border-b border-stone-100 bg-stone-50/50 px-5 py-4 flex items-center gap-2">
-            <svg class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 15.75h3.75M18 19.5V5.25c0-.414-.336-.75-.75-.75H6.75c-.414 0-.75.336-.75.75v14.25c0 .414.336.75.75.75h10.5c.414 0 .75-.336.75-.75Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 3.75V5.25" /><path stroke-linecap="round" stroke-linejoin="round" d="M9 3.75V5.25" /></svg>
-            <h2 class="text-base font-extrabold text-zinc-900">Thông tin</h2>
+
+        <!-- Header Nav Bar -->
+        <div class="mb-4 flex items-center justify-between text-xs">
+            <a href="{{ route('account.bookings.index') }}" class="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 font-bold text-slate-700 shadow-2xs border border-slate-200 hover:bg-slate-50 transition">
+                <i class="fa-solid fa-arrow-left text-[10px]"></i> Lịch sử đặt sân
+            </a>
+            <span class="font-bold text-slate-400">Mã đơn: <strong class="text-slate-800">#{{ $booking->id }}</strong></span>
         </div>
 
-        <div class="p-5 sm:p-6 space-y-5">
-            <div class="space-y-3">
-                <div class="flex items-start gap-x-4">
-                    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Mã lịch đặt:</p>
-                    <p class="text-sm font-black text-zinc-900">#{{ $booking->id }}</p>
-                </div>
-                <div class="flex items-start gap-x-4">
-                    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Trạng thái:</p>
-                    <p id="booking-status-text" class="text-sm font-bold {{ $booking->status === 'pending' ? 'text-amber-600' : 'text-emerald-600' }}">{{ $statusLabel }}</p>
-                </div>
-            </div>
-
-            <div class="border-t border-stone-100 border-dashed"></div>
-
-            <div class="space-y-3">
-                <div class="flex items-start gap-x-4">
-                    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Tên CLB:</p>
-                    <p class="text-sm font-bold text-zinc-900 leading-relaxed">{{ $booking->court?->venue?->name ?? 'Chưa cập nhật' }}</p>
-                </div>
-                <div class="flex items-start gap-x-4">
-                    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Địa chỉ:</p>
-                    <p class="text-sm font-semibold text-zinc-700 leading-relaxed">{{ $booking->court?->venue?->address ?? 'Chưa cập nhật' }}</p>
-                </div>
-                <div class="flex items-center gap-x-4">
-                    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Số điện thoại:</p>
-                    <div class="flex items-center justify-between flex-1">
-                        <p class="text-sm font-bold text-zinc-900">{{ $venuePhone }}</p>
-                       
-                    </div>
-                </div>
-            </div>
-
-            <div class="border-t border-stone-100 border-dashed"></div>
-
-            <div class="space-y-3">
-                <div class="flex items-start gap-x-4">
-                    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Ngày chơi:</p>
-                    <div class="flex-1 space-y-3">
-                        @php
-                            $scheduleGroups = collect($bookingGroup)
-                                ->sortBy(fn ($slot) => ($slot->slot_date?->format('Y-m-d') ?? '') . ' ' . $slot->start_time)
-                                ->groupBy(fn ($slot) => $slot->slot_date?->format('Y-m-d') ?? $booking->slot_date?->format('Y-m-d'));
-                        @endphp
-
-                        @foreach($scheduleGroups as $dateValue => $slots)
-                            <div class="rounded-xl border border-stone-100 bg-stone-50/70 px-3 py-2.5">
-                                <p class="text-sm font-black text-zinc-900">
-                                    {{ \Carbon\Carbon::parse($dateValue)->format('d/m/Y') }}
-                                </p>
-
-                                <div class="mt-1.5 space-y-1">
-                                    @foreach($slots->sortBy('start_time') as $slot)
-                                        @php
-                                            $isRescheduled = $slot->relationLoaded('rescheduleRequests')
-                                                && $slot->rescheduleRequests->where('status', 'approved')->isNotEmpty();
-                                        @endphp
-
-                                        <p class="text-sm font-semibold {{ $isRescheduled ? 'text-emerald-700' : 'text-zinc-700' }}">
-                                            {{ $isRescheduled ? '' : '' }}
-                                            {{ substr((string) $slot->start_time, 0, 5) }} - {{ substr((string) $slot->end_time, 0, 5) }}
-                                        </p>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-                <div class="flex items-start gap-x-4">
-                    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Tổng giờ:</p>
-                    <p class="text-sm font-bold text-zinc-900">{{ $totalDurationStr }}</p>
-                </div>
+        <!-- Compact Ticket Card -->
+        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-md">
+            
+            <!-- Card Top Banner -->
+            <div class="p-5 text-center bg-gradient-to-b from-slate-50 to-white border-b border-slate-100">
+                <h1 class="text-lg font-black text-slate-900 tracking-tight">
+                    {{ $isCancelled ? 'Đơn đặt sân đã hủy' : ($isPaid ? 'Đặt sân thành công!' : 'Chi tiết đơn đặt lịch') }}
+                </h1>
                 
-                <!-- ======================================================= -->
-                <!-- BẮT ĐẦU: BÓC TÁCH HÓA ĐƠN VÀ DỊCH VỤ (BẢN CHUẨN 100%) -->
-                <!-- ======================================================= -->
+                <p class="mt-0.5 text-xs text-slate-500">
+                    Mã đơn <strong class="text-slate-800">#{{ $booking->id }}</strong> · {{ $booking->created_at?->format('H:i d/m/Y') }}
+                </p>
+
+                <div class="mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-bold {{ $isCancelled ? 'bg-rose-50 text-rose-700 border border-rose-200' : ($isPaid ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200') }}">
+                    <span class="h-1.5 w-1.5 rounded-full {{ $isCancelled ? 'bg-rose-500' : ($isPaid ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse') }}"></span>
+                    {{ $isCancelled ? 'Đã hủy đơn' : ($isPaid ? 'Đã thanh toán VNPay' : $statusLabel) }}
+                </div>
+            </div>
+
+            <!-- Details Section -->
+            <div class="p-4 sm:p-5 space-y-4 text-xs">
+                
+                <!-- Customer Info -->
+                <div class="flex items-center justify-between rounded-xl bg-slate-50 p-3 border border-slate-100">
+                    <div class="flex items-center gap-2.5">
+                        <div class="grid h-8 w-8 place-items-center rounded-lg bg-slate-800 font-bold text-white text-xs">
+                            {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                        </div>
+                        <div>
+                            <span class="font-bold text-slate-900 block text-xs">{{ Auth::user()->name }}</span>
+                            <span class="text-slate-500 text-[11px] block">{{ $userPhone }}</span>
+                        </div>
+                    </div>
+                    <span class="rounded-md bg-slate-200/70 px-2 py-0.5 text-[11px] font-bold text-slate-700">
+                        Sân {{ $sportName }}
+                    </span>
+                </div>
+
+                <!-- Venue Info -->
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between text-slate-400 font-bold uppercase tracking-wider text-[11px]">
+                        <span><i class="fa-solid fa-location-dot text-emerald-600 mr-1"></i> Cơ sở thi đấu</span>
+                        @if($venuePhone !== 'Chưa cập nhật')
+                        <a href="tel:{{ $venuePhone }}" class="text-slate-600 hover:text-emerald-600 transition">
+                            <i class="fa-solid fa-phone text-[10px]"></i> {{ $venuePhone }}
+                        </a>
+                        @endif
+                    </div>
+                    <h2 class="text-sm font-black text-slate-900 leading-snug">
+                        {{ $booking->court?->venue?->name ?? 'Chưa cập nhật' }}
+                    </h2>
+                    <p class="text-slate-500 leading-relaxed text-[11px]">
+                        {{ $booking->court?->venue?->address ?? 'Chưa cập nhật' }}
+                    </p>
+                </div>
+
+                <div class="border-t border-dashed border-slate-200"></div>
+
+                <!-- Schedule Timeslots -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between text-slate-400 font-bold uppercase tracking-wider text-[11px]">
+                        <span><i class="fa-regular fa-calendar-check text-emerald-600 mr-1"></i> Lịch chơi & Ca đá</span>
+                        <span class="text-slate-600 font-bold">Tổng: {{ $totalDurationStr }}</span>
+                    </div>
+
+                    @php
+                        $scheduleGroups = collect($bookingGroup)
+                            ->sortBy(fn ($slot) => ($slot->slot_date?->format('Y-m-d') ?? '') . ' ' . $slot->start_time)
+                            ->groupBy(fn ($slot) => $slot->slot_date?->format('Y-m-d') ?? $booking->slot_date?->format('Y-m-d'));
+                    @endphp
+
+                    @foreach($scheduleGroups as $dateValue => $slots)
+                        <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-black text-slate-900 text-xs">
+                                    {{ \Carbon\Carbon::parse($dateValue)->format('d/m/Y') }}
+                                </span>
+                                <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                                    {{ $booking->court?->name ?? 'Sân thi đấu' }}
+                                </span>
+                            </div>
+                            <div class="flex flex-wrap gap-1.5">
+                                @foreach($slots->sortBy('start_time') as $slot)
+                                    <span class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-800">
+                                        <i class="fa-regular fa-clock text-slate-400 text-[10px]"></i>
+                                        {{ substr((string) $slot->start_time, 0, 5) }} – {{ substr((string) $slot->end_time, 0, 5) }}
+                                    </span>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <div class="border-t border-dashed border-slate-200"></div>
+
+                <!-- Invoice Breakdown -->
                 @php
                     $groupBookings = collect($bookingGroup ?? [$booking]);
                     $totalFinal = $finalPrice ?? $booking->total_price ?? 0;
-
-                    // Lấy dữ liệu dịch vụ từ booking hiện tại, không query theo nhóm booking;
-                    // nếu query theo nhiều booking_id cùng nhóm, có thể bắn nhầm dịch vụ của booking khác vào bill hiện tại.
                     $purchasedServices = $booking->services ?? collect();
 
                     $totalBookingMinutes = 0;
@@ -159,175 +164,115 @@
                         $discountAmount = (float) ($appliedVoucher->pivot->discount_amount ?? 0);
                     }
 
-                    // Tiền sân phải là tổng sân thật, không trừ tiền dịch vụ.
                     $courtPriceOriginal = max(0, (float) ($totalGroupPrice ?? $booking->items->sum('price') ?? 0));
                 @endphp
 
-                <div class="flex items-start gap-x-4 mt-4 pt-4 border-t border-stone-100 border-dashed">
-                    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Tiền thuê sân:</p>
-                    <p class="text-sm font-bold text-zinc-900">{{ number_format($courtPriceOriginal, 0, ',', '.') }} đ</p>
-                </div>
-
-                @if($servicesTotal > 0)
-                <div class="flex items-start gap-x-4 mt-2">
-                    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Tiền dịch vụ:</p>
-                    <p class="text-sm font-bold text-zinc-900">+{{ number_format($servicesTotal, 0, ',', '.') }} đ</p>
-                </div>
-                @endif
-
-                @if($discountAmount > 0)
-                <div class="flex items-start gap-x-4 mt-2">
-                    <p class="w-28 shrink-0 text-sm font-medium text-emerald-600">Giảm giá:</p>
-                    <div class="flex-1">
-                        <p class="text-sm font-bold text-emerald-600">-{{ number_format($discountAmount, 0, ',', '.') }} đ</p>
-                        <p class="text-[10px] font-semibold text-emerald-500 uppercase mt-0.5">Voucher: {{ $appliedVoucher->code }}</p>
+                <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-2">
+                    <div class="flex justify-between text-slate-600">
+                        <span>Tiền thuê sân:</span>
+                        <strong class="text-slate-900 font-bold">{{ number_format($courtPriceOriginal, 0, ',', '.') }} ₫</strong>
                     </div>
-                </div>
-                @endif
 
-                <div class="flex items-start gap-x-4 mt-3 pt-3 border-t border-stone-100 border-dashed">
-                    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Tổng thanh toán:</p>
-                    <p class="text-base font-black text-emerald-600">{{ number_format($totalFinal, 0, ',', '.') }} ₫</p>
-                </div>
-
-                <!-- CHI TIẾT DỊCH VỤ -->
-                @if($purchasedServices->count() > 0)
-                    <div class="mt-4 pt-4 border-t border-stone-100 border-dashed">
-                        <p class="w-full text-xs font-bold text-stone-500 uppercase tracking-wider mb-3">Dịch vụ & Tiện ích đã chọn</p>
-                        <div class="space-y-3 pl-0 sm:pl-4">
-                            @foreach($purchasedServices as $service)
-                                @php
-                                    $qty = (int) ($service->pivot->quantity ?? 1);
-                                    $unitPrice = (float) ($service->pivot->price ?? 0);
-                                    $lineTotal = $unitPrice * $qty;
-                                    if (($service->pricing_type ?? 'retail') === 'rental' && $serviceDurationHours > 0) {
-                                        $lineTotal *= $serviceDurationHours;
-                                    }
-                                    if ($lineTotal <= 0 && $unitPrice > 0) {
-                                        $lineTotal = $unitPrice;
-                                    }
-                                    $unitStr = trim((string) ($service->unit ?? ''));
-                                    $displayUnit = ($unitStr === '1' || empty($unitStr)) ? '' : $unitStr;
-                                @endphp
-                                <div class="flex items-start justify-between text-sm bg-stone-50/50 p-2.5 rounded-lg border border-stone-100">
-                                    <div class="flex-1 pr-4">
-                                        <span class="font-bold text-zinc-800">{{ $service->name }}</span>
-                                        <div class="text-xs text-stone-500 mt-1 flex items-center gap-1.5">
-                                            @if($service->pricing_type === 'rental')
-                                                <span class="bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-semibold border border-indigo-100">Thuê</span>
-                                            @else
-                                                <span class="bg-stone-200 text-stone-600 px-1.5 py-0.5 rounded font-semibold">Mua</span>
-                                            @endif
-                                            <span>Số lượng: <strong class="text-zinc-700">{{ $qty }}</strong> {{ $displayUnit }}</span>
-                                        </div>
-                                    </div>
-                                    <span class="font-black text-emerald-600 shrink-0">
-                                        {{ number_format($lineTotal, 0, ',', '.') }} đ
-                                    </span>
-                                </div>
-                            @endforeach
-                        </div>
+                    @if($servicesTotal > 0)
+                    <div class="flex justify-between text-slate-600">
+                        <span>Dịch vụ đi kèm:</span>
+                        <strong class="text-slate-900 font-bold">+{{ number_format($servicesTotal, 0, ',', '.') }} ₫</strong>
                     </div>
-                @endif
-
-                <div class="flex items-start gap-x-4 pt-4 mt-4 border-t border-stone-100 border-dashed">
-                    <p class="w-28 shrink-0 text-sm font-medium text-stone-500">Trạng thái TT:</p>
-                    <div class="flex-1" id="payment-status-block">
-                        @if(($booking->payment_status ?? 'unpaid') === 'paid')
-                            <p class="text-sm font-bold text-zinc-900 mb-1">Đã thanh toán</p>
-                            <span class="inline-flex items-center gap-1.5 rounded bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-600 ring-1 ring-inset ring-emerald-500/20">
-                                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                                Giao dịch thành công
-                            </span>
-                        @else
-                            <p class="text-sm font-bold text-zinc-900 mb-1">Chưa thanh toán</p>
-                            <span class="inline-flex items-center gap-1.5 rounded bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-600 ring-1 ring-inset ring-amber-500/20">
-                                <span class="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                Chờ thanh toán
-                            </span>
-                        @endif
-                    </div>
-                </div>
-                <!-- ======================================================= -->
-                <!-- KẾT THÚC: BÓC TÁCH HÓA ĐƠN VÀ DỊCH VỤ -->
-                <!-- ======================================================= -->
-            </div>
-            </div>
-
-            @if(($booking->payment_status ?? 'unpaid') !== 'paid' && $booking->status !== 'cancelled' && $booking->status !== 'rejected')
-                <div class="border-t border-stone-100 border-dashed my-5"></div>
-                
-                <div id="payment-section" class="rounded-2xl border border-stone-200 bg-stone-50 p-5">
-                    <h3 class="mb-4 text-center text-sm font-extrabold uppercase tracking-wider text-zinc-900">Thanh toán đơn hàng</h3>
-                    
-                    @if($booking->status === 'pending')
-                        <div class="mb-6 rounded-xl bg-amber-100/50 border border-amber-200 p-4 text-center">
-                            <p class="text-sm font-semibold text-amber-800 mb-1">Vui lòng thanh toán trong thời gian đếm ngược để giữ chỗ.</p>
-                            <div class="text-2xl font-black text-amber-600 tabular-nums" id="payment-countdown">--:--</div>
-                        </div>
                     @endif
-                    
-                    <div class="flex items-center justify-center">
-                        <div class="flex w-full max-w-sm flex-col items-center justify-center rounded-2xl border border-stone-100 bg-white p-5 shadow-sm">
-                            <p class="mb-4 text-center text-sm font-medium text-stone-500">Thanh toán an toàn qua cổng VNPay</p>
-                            <a href="{{ route('bookings.payment.vnpay_qr', $booking->id) }}" class="flex items-center justify-center gap-2 w-full rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-black text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 active:scale-[0.98]">
-                                <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M4 10V14C4 18.4183 7.58172 22 12 22C16.4183 22 20 18.4183 20 14V10C20 5.58172 16.4183 2 12 2C7.58172 2 4 5.58172 4 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    <path d="M12 6V11L15 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                                Tiếp tục thanh toán VNPay
-                            </a>
-                            <p class="text-center text-xs text-stone-400 mt-3">Hỗ trợ quét mã VNPay, thẻ ATM nội địa, thẻ quốc tế.</p>
-                        </div>
+
+                    @if($discountAmount > 0)
+                    <div class="flex justify-between text-emerald-600">
+                        <span>Giảm giá ({{ $appliedVoucher->code }}):</span>
+                        <strong class="font-bold">-{{ number_format($discountAmount, 0, ',', '.') }} ₫</strong>
+                    </div>
+                    @endif
+
+                    <div class="border-t border-slate-200 pt-2 flex justify-between items-center text-sm">
+                        <span class="font-black text-slate-900">Tổng thanh toán:</span>
+                        <span class="font-black text-emerald-600 text-lg">{{ number_format($totalFinal, 0, ',', '.') }} ₫</span>
                     </div>
                 </div>
-            @endif
 
-            @if($booking->status === 'cancelled')
-                @php
-                    // FIX: Tính tổng phí phạt và hoàn lại của TẤT CẢ các ca trong đơn
-                    $totalCancelFee = $bookingGroup->sum('cancellation_fee');
-                    $totalRefund = $bookingGroup->sum('refund_amount');
-                @endphp
-                <div class="border-t border-stone-100 border-dashed"></div>
-                
-                <div class="rounded-xl border border-rose-200 bg-rose-50/50 p-4 sm:p-5">
-                    <h4 class="mb-4 text-sm font-extrabold uppercase tracking-wider text-rose-700">Thông tin Hủy & Hoàn tiền</h4>
-                    
-                    <div class="space-y-3">
-                        <div class="flex items-start justify-between gap-4">
-                            <span class="text-sm font-medium text-stone-500">Lý do hủy:</span>
-                            <span class="text-sm font-bold text-rose-600 text-right">{{ $booking->cancel_reason ?? 'Không có lý do' }}</span>
+                <!-- Purchased Services -->
+                @if($purchasedServices->count() > 0)
+                <div class="space-y-1.5">
+                    <span class="text-slate-400 font-bold uppercase tracking-wider text-[11px] block">Dịch vụ đã chọn</span>
+                    @foreach($purchasedServices as $service)
+                        @php
+                            $qty = (int) ($service->pivot->quantity ?? 1);
+                            $unitPrice = (float) ($service->pivot->price ?? 0);
+                            $lineTotal = $unitPrice * $qty;
+                            if (($service->pricing_type ?? 'retail') === 'rental' && $serviceDurationHours > 0) {
+                                $lineTotal *= $serviceDurationHours;
+                            }
+                            if ($lineTotal <= 0 && $unitPrice > 0) {
+                                $lineTotal = $unitPrice;
+                            }
+                            $unitStr = trim((string) ($service->unit ?? ''));
+                            $displayUnit = ($unitStr === '1' || empty($unitStr)) ? '' : $unitStr;
+                        @endphp
+                        <div class="flex justify-between items-center rounded-lg border border-slate-100 bg-white p-2 text-xs">
+                            <div>
+                                <span class="font-bold text-slate-800 block">{{ $service->name }}</span>
+                                <span class="text-slate-400 text-[11px]">SL: {{ $qty }} {{ $displayUnit }}</span>
+                            </div>
+                            <span class="font-bold text-slate-900">{{ number_format($lineTotal, 0, ',', '.') }} ₫</span>
                         </div>
+                    @endforeach
+                </div>
+                @endif
 
-                        <div class="flex items-start justify-between gap-4">
-                            <span class="text-sm font-medium text-stone-500">Phí phạt hủy:</span>
-                            <span class="text-sm font-semibold text-zinc-700">{{ number_format($totalCancelFee, 0, ',', '.') }} ₫</span>
-                        </div>
-
-                        <div class="mt-3 flex items-start justify-between gap-4 border-t border-rose-100 pt-3">
-                            <span class="text-sm font-bold text-zinc-900">Số tiền hoàn lại:</span>
-                            <span class="text-lg font-black text-emerald-600">{{ number_format($totalRefund, 0, ',', '.') }} ₫</span>
-                        </div>
+                <!-- Payment Block if unpaid -->
+                @if(!$isPaid && !$isCancelled && $booking->status !== 'rejected')
+                    <div id="payment-section" class="rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-center space-y-2.5">
+                        <span class="text-xs font-bold text-amber-900 block uppercase tracking-wider">Thanh toán đơn hàng</span>
                         
-                        {{-- <div class="mt-1 text-right">
-                            <span class="text-xs font-medium italic text-amber-600">
-                                * Trạng thái: {{ ($booking->refund_status ?? '') === 'completed' ? 'Đã hoàn tất' : 'Đang xử lý (1-3 ngày làm việc)' }}
-                            </span>
-                        </div> --}}
+                        @if($isPending)
+                            <div class="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1 text-lg font-black text-amber-600 border border-amber-200 tabular-nums" id="payment-countdown">
+                                --:--
+                            </div>
+                        @endif
+
+                        <a href="{{ route('bookings.payment.vnpay_qr', $booking->id) }}" class="inline-flex items-center justify-center gap-2 w-full rounded-xl bg-blue-600 px-4 py-3 text-xs font-black text-white shadow-md hover:bg-blue-700 transition">
+                            <i class="fa-solid fa-qrcode"></i> Thanh toán qua VNPay
+                        </a>
                     </div>
-                </div>
-            @endif
+                @endif
+
+                <!-- Cancellation Info -->
+                @if($isCancelled)
+                    @php
+                        $totalCancelFee = $bookingGroup->sum('cancellation_fee');
+                        $totalRefund = $bookingGroup->sum('refund_amount');
+                    @endphp
+                    <div class="rounded-xl border border-rose-200 bg-rose-50/70 p-3.5 space-y-1.5 text-xs">
+                        <span class="font-bold text-rose-800 uppercase tracking-wider block text-[11px]">Thông Tin Hủy & Hoàn Tiền</span>
+                        <div class="flex justify-between"><span class="text-slate-500">Lý do:</span><strong class="text-rose-700">{{ $booking->cancel_reason ?? 'Không có' }}</strong></div>
+                        <div class="flex justify-between"><span class="text-slate-500">Phí phạt:</span><strong class="text-slate-800">{{ number_format($totalCancelFee, 0, ',', '.') }} ₫</strong></div>
+                        <div class="flex justify-between border-t border-rose-200 pt-1.5"><span class="font-bold text-slate-900">Hoàn ví:</span><strong class="text-emerald-600 font-bold">{{ number_format($totalRefund, 0, ',', '.') }} ₫</strong></div>
+                    </div>
+                @endif
 
             </div>
-    </div>
 
-    <div class="mt-6 flex flex-col sm:flex-row gap-3">
-        <a href="{{ route('account.bookings.index') }}" class="flex-1 flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-md shadow-emerald-600/20 transition hover:bg-emerald-700 active:scale-[0.98]">
-            Quản lý lịch đặt
-        </a>
-    </div>
+            <!-- Footer Guarantee -->
+            <div class="bg-slate-50 px-4 py-2.5 border-t border-slate-100 flex justify-between text-[11px] text-slate-400">
+                <span><i class="fa-solid fa-shield-halved text-emerald-600 mr-1"></i> Giữ sân 100%</span>
+                <span class="font-semibold text-slate-600">SportHub</span>
+            </div>
+        </div>
 
+        <!-- Action Buttons -->
+        <div class="mt-4 flex gap-2.5">
+            <a href="{{ route('account.bookings.index') }}" class="flex-1 inline-flex justify-center items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-3 text-xs font-black text-white shadow-md hover:bg-emerald-700 transition">
+                <i class="fa-solid fa-list-check"></i> Quản lý lịch đặt
+            </a>
+            <a href="{{ route('home') }}" class="inline-flex justify-center items-center gap-1.5 rounded-xl bg-white px-4 py-3 text-xs font-bold text-slate-700 border border-slate-200 shadow-2xs hover:bg-slate-50 transition">
+                <i class="fa-solid fa-house text-slate-400"></i> Trang chủ
+            </a>
+        </div>
+
+    </div>
 </div>
 
 @section('scripts')
@@ -335,7 +280,6 @@
     document.addEventListener('DOMContentLoaded', function() {
         const countdownEl = document.getElementById('payment-countdown');
         if (countdownEl) {
-            // Lấy thời gian tạo booking từ PHP (chuỗi ISO chuẩn)
             const createdAtStr = "{{ $booking->created_at->toISOString() }}";
             const holdTimeMinutes = {{ $bookingHoldTime ?? 15 }};
             
@@ -349,49 +293,10 @@
 
                 if (distance <= 0) {
                     clearInterval(timer);
-                    
-                    // Đổi text đếm ngược
                     countdownEl.innerHTML = "Đã hết hạn giữ chỗ";
-                    countdownEl.classList.remove('text-amber-600');
-                    countdownEl.classList.add('text-red-600');
+                    countdownEl.className = "inline-flex items-center justify-center rounded-xl bg-white px-3 py-1 text-xs font-black text-rose-600 border border-rose-200";
                     
-                    // Cập nhật trạng thái tổng quan thành Đã Hủy
-                    const statusTextEl = document.getElementById('booking-status-text');
-                    if(statusTextEl) {
-                        statusTextEl.innerHTML = "Đã hủy";
-                        statusTextEl.className = "text-sm font-bold text-red-600";
-                    }
-
-                    // Cập nhật trạng thái TT thành Đã hủy
-                    const paymentStatusBlock = document.getElementById('payment-status-block');
-                    if (paymentStatusBlock) {
-                        paymentStatusBlock.innerHTML = `
-                            <p class="text-sm font-bold text-zinc-900 mb-1">Đã hủy đơn</p>
-                            <span class="inline-flex items-center gap-1.5 rounded bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600 ring-1 ring-inset ring-red-500/20">
-                                Đơn đã bị hủy do hết hạn thanh toán
-                            </span>
-                        `;
-                    }
-
-                    // Ẩn block chứa QR và thanh toán (Trừ thông báo hết hạn)
                     const paymentSection = document.getElementById('payment-section');
-                    if (paymentSection) {
-                        // Ẩn tất cả các div con ngoại trừ cái thông báo đếm ngược đầu tiên
-                        Array.from(paymentSection.children).forEach((child, index) => {
-                            // index 0 là thẻ h3 tiêu đề, index 1 là thông báo đếm ngược
-                            if(index > 1) {
-                                child.style.display = 'none';
-                            }
-                        });
-                        
-                        // Đổi màu title
-                        const titleEl = paymentSection.querySelector('h3');
-                        if (titleEl) {
-                            titleEl.innerHTML = "ĐƠN HÀNG ĐÃ BỊ HỦY";
-                            titleEl.className = "mb-4 text-center text-sm font-extrabold uppercase tracking-wider text-red-600";
-                        }
-                    }
-
                 } else {
                     const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
                     const seconds = Math.floor((distance % (1000 * 60)) / 1000);
