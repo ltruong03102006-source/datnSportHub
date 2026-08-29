@@ -280,10 +280,6 @@
                     </svg>
                     Xác nhận thanh toán & Gửi yêu cầu
                 </button>
-
-                <a id="topup-wallet-btn" href="{{ route('account.profile.show') }}" class="hidden w-full sm:w-auto px-6 py-2.5 rounded-xl bg-orange-600 font-black text-white hover:bg-orange-700 text-sm flex items-center justify-center gap-2 shadow-lg shadow-orange-600/20">
-                    💳 Nạp tiền vào Ví
-                </a>
             </div>
         </div>
     </div>
@@ -678,7 +674,7 @@
             if (userWalletBalance >= diff) {
                 document.getElementById('reschedule-form').submit();
             } else {
-                // Mở modal thông báo ví không đủ tiền & nạp tiền
+                // Mở modal thông báo ví không đủ tiền
                 document.getElementById('modal-old-price').textContent = money(oldTotal);
                 document.getElementById('modal-new-price').textContent = money(newTotal);
                 document.getElementById('modal-diff-price').textContent = '+' + money(diff);
@@ -687,10 +683,6 @@
                 document.getElementById('wallet-insufficient-notice').classList.remove('hidden');
                 document.getElementById('wallet-shortage-amount').textContent = money(diff - userWalletBalance);
                 document.getElementById('confirm-pay-submit-btn').classList.add('hidden');
-                
-                const topupBtn = document.getElementById('topup-wallet-btn');
-                topupBtn.classList.remove('hidden');
-                topupBtn.classList.add('inline-flex');
 
                 const modal = document.getElementById('reschedulePaymentModal');
                 modal.classList.remove('hidden');

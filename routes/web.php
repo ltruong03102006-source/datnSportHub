@@ -38,6 +38,7 @@ use App\Http\Controllers\Web\AdminDebtController;
 use App\Http\Controllers\Web\AdminFinanceDashboardController;
 use App\Http\Controllers\Web\TransactionController;
 use App\Http\Controllers\Web\AdminTransactionController;
+use App\Http\Controllers\Web\AdminUserWalletController;
 
 /*
 |--------------------------------------------------------------------------
@@ -165,6 +166,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/finance', [AdminFinanceDashboardController::class, 'index'])->name('finance.index');
         Route::post('/finance/withdraw', [AdminFinanceDashboardController::class, 'withdrawRevenue'])->name('finance.withdraw');
         Route::get('/finance/withdraw-history', [AdminFinanceDashboardController::class, 'withdrawHistory'])->name('finance.withdraw_history');
+        Route::get('/user-wallets', [AdminUserWalletController::class, 'index'])->name('user_wallets.index');
+        Route::get('/user-wallets/{wallet}', [AdminUserWalletController::class, 'show'])->name('user_wallets.show');
         Route::get('/debts', [AdminDebtController::class, 'index'])->name('debts.index');
         Route::get('/packages', [AdminPackageController::class, 'index'])->name('packages.index');
         Route::get('/chatbot', [\App\Http\Controllers\Web\AdminChatbotController::class, 'index'])->name('chatbot.index');

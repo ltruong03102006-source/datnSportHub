@@ -581,6 +581,11 @@
         </div>
 
         <div class="actions">
+            @if(Route::has('admin.user_wallets.index'))
+                <a class="btn-soft" href="{{ route('admin.user_wallets.index') }}">
+                    <i class="fa-solid fa-wallet mr-2"></i>Xem ví người dùng
+                </a>
+            @endif
             @if(Route::has('admin.withdrawals.index'))
                 <a class="btn-soft" href="{{ route('admin.withdrawals.index') }}">
                     <i class="fa-solid fa-list-check mr-2"></i>Yêu cầu rút tiền
@@ -633,8 +638,13 @@
                 </div>
                 <div class="kpi-value tone-green">{{ $money($platformRevenue) }}</div>
                 <div class="kpi-note">
-                    <span class="muted">Đặt lẻ:</span> <strong>{{ $money($singleCommission) }}</strong> · 
-                    <span class="muted">Đặt Gói:</span> <strong class="tone-purple">{{ $money($packageCommission) }}</strong>
+                    <div>
+                        <span class="muted">Đặt lẻ:</span> <strong>{{ $money($singleCommission) }}</strong> · 
+                        <span class="muted">Đặt Gói:</span> <strong class="tone-purple">{{ $money($packageCommission) }}</strong>
+                    </div>
+                    <div class="mt-1">
+                        <span class="muted">Hủy sân:</span> <strong class="tone-amber">{{ $money($cancellationCommission) }}</strong>
+                    </div>
                 </div>
             </div>
 
@@ -749,7 +759,7 @@
                     </div>
                     <div class="box-value tone-green">{{ $money($displaySafeAmount) }}</div>
                     <div class="box-desc">
-                        <i class="fa-solid fa-circle-check tone-green mr-1"></i> Tiền thực tế Admin sở hữu an toàn (Ví Tổng − Tiền Giữ Hộ).
+                        <i class="fa-solid fa-circle-check tone-green mr-1"></i> Tiền thực tế Admin sở hữu an toàn (Chỉ tính khi booking đã chơi xong & đã trừ Tiền Giữ Hộ).
                     </div>
                     @endif
                 </div>

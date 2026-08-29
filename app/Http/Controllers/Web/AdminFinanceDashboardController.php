@@ -56,10 +56,10 @@ class AdminFinanceDashboardController extends Controller
         if (Schema::hasColumn('bookings', 'settlement_status')) {
             $bookingQuery->where('settlement_status', 'settled');
         } else {
-            $bookingQuery->whereIn('status', ['completed', 'confirmed']);
+            $bookingQuery->where('status', 'completed');
 
             if (Schema::hasColumn('bookings', 'payment_status')) {
-                $bookingQuery->where('payment_status', 'paid');
+                $bookingQuery->whereIn('payment_status', ['paid', 'success', 'completed']);
             }
         }
 
@@ -136,6 +136,14 @@ class AdminFinanceDashboardController extends Controller
         $singleCommission = $commissionColumn ? (float) (clone $singleBookingQuery)->sum($commissionColumn) : 0;
         $packageCommission = $commissionColumn ? (float) (clone $packageBookingQuery)->sum($commissionColumn) : 0;
 
+        $cancelledBookingQuery = Booking::query()
+            ->where('status', 'cancelled')
+            ->where('cancellation_fee', '>', 0);
+        $this->applyDateRange($cancelledBookingQuery, 'created_at', $dateFrom, $dateTo);
+        $this->applyOwnerFilterToBookingQuery($cancelledBookingQuery, $ownerId);
+
+        $cancellationCommission = $commissionColumn ? (float) (clone $cancelledBookingQuery)->sum($commissionColumn) : 0;
+
         $singleSettledCount = (clone $singleBookingQuery)->count();
         $packageSettledCount = (clone $packageBookingQuery)->count();
 
@@ -158,7 +166,7 @@ class AdminFinanceDashboardController extends Controller
 
         $unsettledPackageQuery = \App\Models\Booking::query();
         if (Schema::hasColumn('bookings', 'payment_status')) {
-            $unsettledPackageQuery->where('payment_status', 'paid');
+            $unsettledPackageQuery->whereIn('payment_status', ['paid', 'success', 'completed']);
         }
         $unsettledPackageQuery->where(function ($q) {
             $q->whereNotNull('booking_package_id');
@@ -380,7 +388,7 @@ class AdminFinanceDashboardController extends Controller
 
         $unsettledQuery = Booking::query();
         if (Schema::hasColumn('bookings', 'payment_status')) {
-            $unsettledQuery->where('payment_status', 'paid');
+            $unsettledQuery->whereIn('payment_status', ['paid', 'success', 'completed']);
         }
         $unsettledQuery->where(function ($q) {
             $q->whereNull('booking_package_id');
@@ -388,7 +396,7 @@ class AdminFinanceDashboardController extends Controller
                 $q->where('payment_method', '!=', 'package');
             }
         });
-        $unsettledQuery->whereNotIn('status', ['completed', 'cancelled']);
+        $unsettledQuery->whereNotIn('status', ['completed', 'cancelled', 'rejected']);
         if (Schema::hasColumn('bookings', 'settlement_status')) {
             $unsettledQuery->where('settlement_status', '!=', 'settled');
         }
@@ -399,7 +407,7 @@ class AdminFinanceDashboardController extends Controller
         $safeToWithdraw = $platformWalletBalance - $totalSystemLiability - $unsettledFunds;
         $displaySafeAmount = max(0, $safeToWithdraw);
 
-        $platformRevenue = $singleCommission + $packageCommission;
+        $platformRevenue = $singleCommission + $packageCommission + $cancellationCommission;
 
         $effectivePackageGmv = $packageGmv > 0 ? $packageGmv : $totalPackageSalesAmount;
         $calculatedGmv = $singleGmv + $effectivePackageGmv;
@@ -444,6 +452,7 @@ class AdminFinanceDashboardController extends Controller
             'packageGmv',
             'singleCommission',
             'packageCommission',
+            'cancellationCommission',
             'activePackageCount',
             'completedPackageCount',
             'totalPackageSalesAmount',

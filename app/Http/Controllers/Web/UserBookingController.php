@@ -414,7 +414,7 @@ class UserBookingController extends Controller
                     $refund = 0;
                     $refundStatus = 'none';
 
-                    if ($b->payment_status === 'paid') {
+                    if ($b->isPaid()) {
                         $bookingHours = 0;
                         if (!empty($b->start_time) && !empty($b->end_time)) {
                             $bookingHours = Carbon::parse($b->start_time)->diffInMinutes(Carbon::parse($b->end_time)) / 60;
@@ -593,7 +593,7 @@ class UserBookingController extends Controller
 
         $courtPrice = max(0, $totalPrice - $servicesTotal);
         
-        $isPaid = $firstBooking->payment_status === 'paid';
+        $isPaid = $firstBooking->isPaid();
         
         // Phạt trên tiền sân
         $fee = $isPaid ? ($courtPrice * $feePercent) / 100 : 0;
