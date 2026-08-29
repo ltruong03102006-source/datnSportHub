@@ -448,20 +448,34 @@ class UserBookingController extends Controller
                                 'description' => 'Hoàn tiền sau khi trừ phí hủy cho đơn đặt sân #' . $b->id,
                             ]);
 
+                            $penaltyPlatformFee = 0;
+                            $penaltyOwnerEarnings = 0;
+
                             if ($fee > 0 && $b->court?->venue?->owner) {
-                                app(WalletService::class)->processTransaction(
-                                    wallet: $b->court->venue->owner->getOrCreateWallet(),
-                                    type: TransactionType::BOOKING_INCOME,
-                                    amount: $fee,
-                                    description: 'Phí hủy booking #'.$b->id.' do khách hủy',
-                                    bookingId: $b->id,
-                                    metadata: [
-                                        'payment_method' => $b->payment_method,
-                                        'fee_percent' => $feePercent,
-                                        'court_amount' => $bCourtPrice,
-                                    ],
-                                    reference: 'CANCEL-FEE-B'.$b->id
-                                );
+                                $venue = $b->court->venue;
+                                $commissionService = app(\App\Services\CommissionService::class);
+                                $commissionRate = $commissionService->getApplicableRate($venue);
+
+                                $penaltyPlatformFee = $commissionService->calculatePlatformFee($fee, $commissionRate);
+                                $penaltyOwnerEarnings = $commissionService->calculateOwnerEarnings($fee, $penaltyPlatformFee);
+
+                                if ($penaltyOwnerEarnings > 0) {
+                                    app(WalletService::class)->processTransaction(
+                                        wallet: $venue->owner->getOrCreateWallet(),
+                                        type: TransactionType::BOOKING_INCOME,
+                                        amount: $penaltyOwnerEarnings,
+                                        description: 'Thu nhập đền bù phạt hủy booking #'.$b->id.' (Đã trừ '.$commissionRate.'% phí sàn)',
+                                        bookingId: $b->id,
+                                        metadata: [
+                                            'payment_method' => $b->payment_method,
+                                            'fee_percent' => $feePercent,
+                                            'total_penalty' => $fee,
+                                            'platform_fee' => $penaltyPlatformFee,
+                                            'owner_earnings' => $penaltyOwnerEarnings,
+                                        ],
+                                        reference: 'CANCEL-FEE-B'.$b->id
+                                    );
+                                }
                             }
                         }
                     }
@@ -472,7 +486,9 @@ class UserBookingController extends Controller
                         'cancel_reason' => $reason,
                         'cancellation_fee' => $fee,
                         'refund_amount' => $refund,
-                        'refund_status' => $refundStatus
+                        'refund_status' => $refundStatus,
+                        'platform_fee' => $penaltyPlatformFee ?? 0,
+                        'owner_earnings' => $penaltyOwnerEarnings ?? 0,
                     ]);
 
                     // HOÀN VOUCHER
