@@ -137,8 +137,8 @@
             </div>
         </div>
     </form>
-    <!-- 4 THẺ CHỈ SỐ CỐT LÕI (KPIs) -->
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+    <!-- 3 THẺ CHỈ SỐ CỐT LÕI (KPIs) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         
         <!-- KPI 1: Doanh Thu -->
         <div class="saas-card p-6 flex flex-col justify-between">
@@ -168,34 +168,11 @@
                     @endif
                     <span class="text-xs font-medium text-slate-400 ml-2">so với kỳ trước</span>
                 </div>
-                <!-- Thông tin phụ -->
-                <div class="text-[10px] font-bold text-slate-400 uppercase text-right" title="Doanh thu từ Đặt gói">
-                    Gói: {{ number_format($packageBookingRevenue, 0, ',', '.') }}đ
+                <!-- Thông tin phụ: Doanh thu Đặt lẻ & Đặt gói -->
+                <div class="text-[10px] font-bold text-slate-400 uppercase text-right leading-tight" title="Doanh thu từ Đặt lẻ & Đặt gói">
+                    <div>Lẻ: {{ number_format($singleBookingRevenue ?? ($totalRevenue - $packageBookingRevenue), 0, ',', '.') }}đ</div>
+                    <div>Gói: {{ number_format($packageBookingRevenue, 0, ',', '.') }}đ</div>
                 </div>
-            </div>
-        </div>
-
-        <!-- KPI 2: Lượt Booking & Hiệu suất -->
-        <div class="saas-card p-6 flex flex-col justify-between">
-            <div class="flex justify-between items-start mb-4">
-                <div>
-                    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Tổng Lượt Đặt</p>
-                    <div class="flex items-baseline gap-2">
-                        <h3 class="text-3xl font-black text-slate-900 tracking-tight">{{ $totalBookings }}</h3>
-                        <span class="text-sm font-semibold text-slate-400">lượt</span>
-                    </div>
-                </div>
-                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                </div>
-            </div>
-            
-            <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden mb-2">
-                <div class="bg-blue-500 h-full rounded-full" style="width: {{ $completionRate }}%"></div>
-            </div>
-            <div class="flex justify-between text-xs font-semibold">
-                <span class="text-emerald-600">{{ $totalCompleted }} Hoàn tất</span>
-                <span class="text-rose-500">{{ $failedBookings }} Hủy/Bùng</span>
             </div>
         </div>
 
@@ -235,7 +212,104 @@
                 <span class="text-[10px] font-bold text-orange-600 uppercase tracking-wider">Unique</span>
             </div>
         </div>
+    </div>
 
+    <!-- WIDGET PHÂN TÍCH CA LẺ VS ĐẶT GÓI -->
+    @php
+        $singleRevenueRatio = $totalRevenue > 0 ? min(100, round(($singleBookingRevenue / $totalRevenue) * 100, 1)) : 0;
+        $packageRevenueRatio = $totalRevenue > 0 ? min(100, round(($packageBookingRevenue / $totalRevenue) * 100, 1)) : 0;
+        $singleCountRatio = $totalBookings > 0 ? min(100, round(($singleBookingsCount / $totalBookings) * 100, 1)) : 0;
+        $packageCountRatio = $totalBookings > 0 ? min(100, round(($packageBookingsCount / $totalBookings) * 100, 1)) : 0;
+    @endphp
+
+    <div class="saas-card p-6 mb-8 bg-gradient-to-br from-white to-slate-50/50">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-4">
+            <div>
+                <h3 class="text-base font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
+                    Phân Tích Chi Tiết: Ca Lẻ vs Đặt Gói
+                </h3>
+                <p class="text-xs font-medium text-slate-500 mt-1">So sánh hiệu quả khai thác và doanh thu giữa hình thức đặt lẻ trực tiếp và theo gói hội viên.</p>
+            </div>
+            <div class="flex items-center gap-3 text-xs font-bold">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Đặt Ca Lẻ
+                </span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    <span class="w-2 h-2 rounded-full bg-indigo-500"></span> Đặt Theo Gói
+                </span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Cột 1: Phân khúc Ca Lẻ -->
+            <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-xs font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">Ca Lẻ Trực Tiếp</span>
+                        <span class="text-xs font-bold text-slate-400">Chiếm {{ $singleRevenueRatio }}% Doanh thu</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 my-4">
+                        <div>
+                            <p class="text-[11px] font-bold text-slate-400 uppercase">Doanh Thu Lẻ</p>
+                            <p class="text-2xl font-black text-slate-900 mt-1">{{ number_format($singleBookingRevenue, 0, ',', '.') }}<span class="text-sm text-slate-400 ml-1">đ</span></p>
+                        </div>
+                        <div>
+                            <p class="text-[11px] font-bold text-slate-400 uppercase">Tổng Lượt Đặt Lẻ</p>
+                            <p class="text-2xl font-black text-slate-900 mt-1">{{ $singleBookingsCount }} <span class="text-xs text-slate-400 font-bold">lượt</span></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="border-t border-slate-100 pt-3 flex flex-wrap justify-between items-center gap-2 text-xs">
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <span class="font-semibold text-slate-500">Hoàn tất: <strong class="text-emerald-700">{{ $singleBookingsCompletedCount }} ca</strong></span>
+                        <span class="font-semibold text-blue-600">Chưa đá: <strong>{{ $singleBookingsUpcomingCount }} ca</strong></span>
+                        <span class="font-semibold text-rose-500">Hủy: <strong>{{ $singleBookingsCancelledCount }} ca</strong></span>
+                    </div>
+                    <span class="font-semibold text-slate-400">Tỷ lệ lượt đặt: {{ $singleCountRatio }}%</span>
+                </div>
+            </div>
+
+            <!-- Cột 2: Phân khúc Đặt Gói -->
+            <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-xs font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg">Đặt Theo Gói</span>
+                        <span class="text-xs font-bold text-slate-400">Chiếm {{ $packageRevenueRatio }}% Doanh thu</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 my-4">
+                        <div>
+                            <p class="text-[11px] font-bold text-slate-400 uppercase">Doanh Thu Gói</p>
+                            <p class="text-2xl font-black text-slate-900 mt-1">{{ number_format($packageBookingRevenue, 0, ',', '.') }}<span class="text-sm text-slate-400 ml-1">đ</span></p>
+                        </div>
+                        <div>
+                            <p class="text-[11px] font-bold text-indigo-600 uppercase">Số Gói Đã Đặt</p>
+                            <p class="text-2xl font-black text-indigo-700 mt-1">{{ $purchasedPackagesCount }} <span class="text-xs text-indigo-500 font-bold">gói</span></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="border-t border-slate-100 pt-3 flex flex-wrap justify-between items-center gap-2 text-xs">
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <span class="font-semibold text-slate-500">Hoàn tất: <strong class="text-indigo-700">{{ $packageBookingsCompletedCount }} ca</strong></span>
+                        <span class="font-semibold text-blue-600">Chưa đá: <strong>{{ $packageBookingsUpcomingCount }} ca</strong></span>
+                        <!-- <span class="font-semibold text-rose-500">Hủy: <strong>{{ $packageBookingsCancelledCount }} ca</strong></span> -->
+                    </div>
+                    <span class="font-semibold text-slate-400">Tỷ lệ lượt đặt: {{ $packageCountRatio }}%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Thanh Tỷ Lệ Đóng Góp Doanh Thu -->
+        <div class="mt-6">
+            <div class="flex justify-between text-xs font-bold text-slate-500 mb-2">
+                <span>Tỷ trọng đóng góp Doanh thu</span>
+                <span>Lẻ {{ $singleRevenueRatio }}% • Gói {{ $packageRevenueRatio }}%</span>
+            </div>
+            <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden flex">
+                <div class="bg-emerald-500 h-full transition-all duration-500" style="width: {{ $singleRevenueRatio }}%" title="Doanh thu lẻ: {{ $singleRevenueRatio }}%"></div>
+                <div class="bg-indigo-500 h-full transition-all duration-500" style="width: {{ $packageRevenueRatio }}%" title="Doanh thu gói: {{ $packageRevenueRatio }}%"></div>
+            </div>
+        </div>
     </div>
 
     <!-- KHU VỰC BIỂU ĐỒ (Row 1) -->
@@ -277,7 +351,8 @@
                     <thead class="text-[10px] text-slate-400 uppercase tracking-wider bg-white">
                         <tr>
                             <th class="px-6 py-4 font-bold">Tên cơ sở</th>
-                            <th class="px-6 py-4 font-bold text-center">Lượt đặt</th>
+                            <th class="px-6 py-4 font-bold text-center">Lượt đặt lẻ</th>
+                            <th class="px-6 py-4 font-bold text-center">Đặt theo gói</th>
                             <th class="px-6 py-4 font-bold text-right">Doanh thu</th>
                         </tr>
                     </thead>
@@ -286,12 +361,22 @@
                             <tr class="hover:bg-slate-50/80 transition-colors group">
                                 <td class="px-6 py-4 font-bold text-slate-800">{{ $venue['name'] }}</td>
                                 <td class="px-6 py-4 text-center">
-                                    <span class="bg-slate-100 text-slate-600 px-3 py-1 rounded-md text-xs font-bold group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">{{ $venue['bookings_count'] }}</span>
+                                    <span class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md text-xs font-bold group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">{{ $venue['single_bookings_count'] ?? 0 }} ca</span>
                                 </td>
-                                <td class="px-6 py-4 text-right font-black text-emerald-600">{{ number_format($venue['revenue'], 0, ',', '.') }} đ</td>
+                                <td class="px-6 py-4 text-center">
+                                    @if(($venue['purchased_packages_count'] ?? 0) > 0)
+                                        <span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2.5 py-1 rounded-md text-xs font-bold">{{ $venue['purchased_packages_count'] }} gói</span>
+                                    @else
+                                        <span class="text-slate-400 font-semibold text-xs">Không</span>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <div class="font-black text-emerald-600">{{ number_format($venue['revenue'], 0, ',', '.') }} đ</div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mt-0.5">Lẻ: {{ number_format($venue['single_revenue'] ?? 0, 0, ',', '.') }}đ • Gói: {{ number_format($venue['package_revenue'] ?? 0, 0, ',', '.') }}đ</div>
+                                </td>
                             </tr>
                         @empty
-                            <tr><td colspan="3" class="px-6 py-10 text-center text-slate-500 text-sm font-medium">Chưa có dữ liệu</td></tr>
+                            <tr><td colspan="4" class="px-6 py-10 text-center text-slate-500 text-sm font-medium">Chưa có dữ liệu</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -308,7 +393,8 @@
                     <thead class="text-[10px] text-slate-400 uppercase tracking-wider bg-white">
                         <tr>
                             <th class="px-6 py-4 font-bold">Khách hàng</th>
-                            <th class="px-6 py-4 font-bold text-center">Lượt đặt</th>
+                            <th class="px-6 py-4 font-bold text-center">Lượt đặt lẻ</th>
+                            <th class="px-6 py-4 font-bold text-center">Đặt theo gói</th>
                             <th class="px-6 py-4 font-bold text-right">Tổng chi</th>
                         </tr>
                     </thead>
@@ -320,12 +406,22 @@
                                     <div class="text-xs text-slate-400 font-medium">{{ $customer['email'] }}</div>
                                 </td>
                                 <td class="px-6 py-3 text-center">
-                                    <span class="bg-amber-50 text-amber-600 px-3 py-1 rounded-md text-xs font-bold">{{ $customer['bookings_count'] }}</span>
+                                    <span class="bg-amber-50 text-amber-600 px-2.5 py-1 rounded-md text-xs font-bold">{{ $customer['single_bookings_count'] ?? 0 }} ca</span>
                                 </td>
-                                <td class="px-6 py-3 text-right font-black text-slate-800">{{ number_format($customer['revenue'], 0, ',', '.') }} đ</td>
+                                <td class="px-6 py-3 text-center">
+                                    @if(($customer['purchased_packages_count'] ?? 0) > 0)
+                                        <span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2.5 py-1 rounded-md text-xs font-bold">{{ $customer['purchased_packages_count'] }} gói</span>
+                                    @else
+                                        <span class="text-slate-400 font-semibold text-xs">Không</span>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-3 text-right">
+                                    <div class="font-black text-slate-800">{{ number_format($customer['revenue'], 0, ',', '.') }} đ</div>
+                                    <div class="text-[10px] text-slate-400 font-semibold mt-0.5">Lẻ: {{ number_format($customer['single_revenue'] ?? 0, 0, ',', '.') }}đ • Gói: {{ number_format($customer['package_revenue'] ?? 0, 0, ',', '.') }}đ</div>
+                                </td>
                             </tr>
                         @empty
-                            <tr><td colspan="3" class="px-6 py-10 text-center text-slate-500 text-sm font-medium">Chưa có dữ liệu</td></tr>
+                            <tr><td colspan="4" class="px-6 py-10 text-center text-slate-500 text-sm font-medium">Chưa có dữ liệu</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -451,7 +547,10 @@
                                                 <span class="text-[10px] font-semibold text-rose-500">Tạm ẩn</span>
                                             @endif
                                         </td>
-                                        <td class="px-4 py-3 text-center font-semibold text-slate-600">{{ $court['bookings_count'] }}</td>
+                                        <td class="px-4 py-3 text-center">
+                                            <div class="font-bold text-slate-700">{{ $court['bookings_count'] }}</div>
+                                            <div class="text-[10px] text-slate-400 font-semibold mt-0.5">{{ $court['single_bookings_count'] ?? 0 }} Lẻ • {{ $court['package_bookings_count'] ?? 0 }} Gói</div>
+                                        </td>
                                         <td class="px-4 py-3 text-center font-semibold text-slate-600">{{ $court['customers_count'] }}</td>
                                         <td class="px-4 py-3 text-center font-semibold text-slate-600">{{ $court['hours'] }}h</td>
                                         <td class="px-4 py-3 text-center">
@@ -465,7 +564,10 @@
                                         <td class="px-4 py-3 text-center text-xs font-medium text-slate-500">
                                             {{ $court['peak_hours'] ? implode(', ', $court['peak_hours']) : '—' }}
                                         </td>
-                                        <td class="px-4 py-3 text-right font-black text-emerald-600">{{ number_format($court['revenue'], 0, ',', '.') }} đ</td>
+                                        <td class="px-4 py-3 text-right">
+                                            <div class="font-black text-emerald-600">{{ number_format($court['revenue'], 0, ',', '.') }} đ</div>
+                                            <div class="text-[10px] text-slate-400 font-semibold mt-0.5">Lẻ: {{ number_format($court['single_revenue'] ?? 0, 0, ',', '.') }}đ • Gói: {{ number_format($court['package_revenue'] ?? 0, 0, ',', '.') }}đ</div>
+                                        </td>
                                     </tr>
                                 @endforeach
                             </tbody>

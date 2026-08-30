@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Venue;
 use App\Models\Court;
 use App\Models\Booking;
+use App\Models\BookingPackage;
 use App\Models\TimeSlot;
+use Illuminate\Support\Facades\Schema;
 use App\Services\BookingCompletionService;
 use App\Services\CourtStatisticsService;
 use Carbon\Carbon;
@@ -121,23 +123,20 @@ class OwnerDashboardController extends Controller
         });
         $completedPaidBookings = $paidBookings->where('status', 'completed');
 
-        $packageBookingRevenue = $validBookings
-            ->filter(fn (Booking $booking): bool => ! empty($booking->booking_package_id) && strtolower((string) $booking->payment_method) === 'package')
-            ->sum(function (Booking $booking): float {
-                $ownerEarnings = (float) ($booking->owner_earnings ?? 0);
-
-                return $ownerEarnings > 0 ? $ownerEarnings : (float) $booking->total_price;
-            });
-
-        $bookingRevenue = function (Booking $booking): float {
-            $ownerEarnings = (float) ($booking->owner_earnings ?? 0);
-
-            if ($booking->booking_package_id && strtolower((string) $booking->payment_method) === 'package') {
-                return $ownerEarnings;
-            }
-
-            return $ownerEarnings > 0 ? $ownerEarnings : (float) $booking->total_price;
+        $bookingRevenue = function (Booking $booking) use ($courtStatistics): float {
+            return $courtStatistics->revenueOf($booking);
         };
+
+        $isPackageBooking = fn (Booking $b): bool => ! empty($b->booking_package_id) || strtolower((string) $b->payment_method) === 'package';
+        $isSingleBooking  = fn (Booking $b): bool => empty($b->booking_package_id) && strtolower((string) $b->payment_method) !== 'package';
+
+        $packageBookingRevenue = $completedPaidBookings
+            ->filter($isPackageBooking)
+            ->sum($bookingRevenue);
+
+        $singleBookingRevenue = $completedPaidBookings
+            ->filter($isSingleBooking)
+            ->sum($bookingRevenue);
 
         // 2. Revenue calculation
         $completedBookings = $bookings->where('status', 'completed');
@@ -152,15 +151,28 @@ class OwnerDashboardController extends Controller
             'cancelled' => $bookings->where('status', 'cancelled')->count(),
         ];
 
-        // Phân loại Lượt đặt lẻ vs Lượt đặt gói
-        $singleBookings = $validBookings->filter(fn (Booking $b) => empty($b->booking_package_id) || strtolower((string) $b->payment_method) !== 'package');
-        $packageBookings = $validBookings->filter(fn (Booking $b) => ! empty($b->booking_package_id) && strtolower((string) $b->payment_method) === 'package');
+        // Phân loại Lượt đặt lẻ vs Lượt đặt gói (tổng số bao gồm cả hoàn tất, chưa đá và hủy)
+        $allSingleBookings = $bookings->filter($isSingleBooking);
+        $allPackageBookings = $bookings->filter($isPackageBooking);
 
-        $singleBookingsCount = $singleBookings->count();
-        $singleBookingsCompletedCount = $singleBookings->where('status', 'completed')->count();
+        $singleBookingsCount = $allSingleBookings->count();
+        $singleBookingsCompletedCount = $allSingleBookings->where('status', 'completed')->count();
+        $singleBookingsUpcomingCount = $allSingleBookings->whereIn('status', ['confirmed', 'pending'])->count();
+        $singleBookingsCancelledCount = $allSingleBookings->where('status', 'cancelled')->count();
 
-        $packageBookingsCount = $packageBookings->count();
-        $packageBookingsCompletedCount = $packageBookings->where('status', 'completed')->count();
+        $packageBookingsCount = $allPackageBookings->count();
+        $packageBookingsCompletedCount = $allPackageBookings->where('status', 'completed')->count();
+        $packageBookingsUpcomingCount = $allPackageBookings->whereIn('status', ['confirmed', 'pending'])->count();
+        $packageBookingsCancelledCount = $allPackageBookings->where('status', 'cancelled')->count();
+
+        // Tổng số gói hội viên đã được đăng ký/mua tại các cơ sở trong kỳ
+        $purchasedPackagesCount = 0;
+        if (Schema::hasTable('booking_packages')) {
+            $purchasedPackagesCount = BookingPackage::whereIn('venue_id', $venueIds)
+                ->whereIn('status', ['active', 'completed', 'paused'])
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->count();
+        }
 
         // 4. Revenue by Day for Line Chart
         $revenueByDay = $completedPaidBookings->groupBy(function($b) {
@@ -232,23 +244,56 @@ class OwnerDashboardController extends Controller
         // 9. Top Venues
         $topVenues = $completedPaidBookings->groupBy(function($b) {
             return $b->court->venue->id;
-        })->map(function($venueBookings) use ($bookingRevenue) {
+        })->map(function($venueBookings) use ($bookingRevenue, $isSingleBooking, $isPackageBooking, $startDate, $endDate) {
             $venue = $venueBookings->first()->court->venue;
+            $single = $venueBookings->filter($isSingleBooking);
+            $package = $venueBookings->filter($isPackageBooking);
+
+            $purchasedPackagesCount = Schema::hasTable('booking_packages')
+                ? BookingPackage::where('venue_id', $venue->id)
+                    ->whereIn('status', ['active', 'completed', 'paused'])
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count()
+                : 0;
+
             return [
                 'name' => $venue->name,
                 'revenue' => $venueBookings->sum($bookingRevenue),
                 'bookings_count' => $venueBookings->count(),
+                'single_bookings_count' => $single->count(),
+                'package_bookings_count' => $package->count(),
+                'purchased_packages_count' => $purchasedPackagesCount,
+                'single_revenue' => $single->sum($bookingRevenue),
+                'package_revenue' => $package->sum($bookingRevenue),
             ];
         })->sortByDesc('revenue')->take(5)->values();
 
         // 10. Top Customers
-        $topCustomers = $completedPaidBookings->groupBy('user_id')->map(function($userBookings) use ($bookingRevenue) {
+        $topCustomers = $completedPaidBookings->groupBy('user_id')->map(function($userBookings) use ($bookingRevenue, $isSingleBooking, $isPackageBooking, $venueIds, $startDate, $endDate) {
             $user = $userBookings->first()->user;
+            $userId = $userBookings->first()->user_id;
+
+            $single = $userBookings->filter($isSingleBooking);
+            $package = $userBookings->filter($isPackageBooking);
+
+            $purchasedPackagesCount = Schema::hasTable('booking_packages')
+                ? BookingPackage::where('user_id', $userId)
+                    ->whereIn('venue_id', $venueIds)
+                    ->whereIn('status', ['active', 'completed', 'paused'])
+                    ->whereBetween('created_at', [$startDate, $endDate])
+                    ->count()
+                : 0;
+
             return [
                 'name' => $user->name ?? 'Unknown',
                 'email' => $user->email ?? 'N/A',
                 'revenue' => $userBookings->sum($bookingRevenue),
                 'bookings_count' => $userBookings->count(),
+                'single_bookings_count' => $single->count(),
+                'package_bookings_count' => $package->count(),
+                'purchased_packages_count' => $purchasedPackagesCount,
+                'single_revenue' => $single->sum($bookingRevenue),
+                'package_revenue' => $package->sum($bookingRevenue),
             ];
         })->sortByDesc('revenue')->take(5)->values();
 
@@ -289,12 +334,18 @@ class OwnerDashboardController extends Controller
             'courtStats',
             'courtHeatmap',
             'totalRevenue',
+            'singleBookingRevenue',
             'packageBookingRevenue',
             'totalBookings',
             'singleBookingsCount',
             'singleBookingsCompletedCount',
+            'singleBookingsUpcomingCount',
+            'singleBookingsCancelledCount',
             'packageBookingsCount',
             'packageBookingsCompletedCount',
+            'packageBookingsUpcomingCount',
+            'packageBookingsCancelledCount',
+            'purchasedPackagesCount',
             'bookingStatuses',
             'uniqueCustomers',
             'totalHours',
