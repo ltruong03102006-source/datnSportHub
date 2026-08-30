@@ -2,16 +2,20 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\TransactionType;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendBookingCancelledMail;
 use App\Models\Booking;
 use App\Models\BookingLog;
-use App\Models\Venue;
 use App\Models\Court;
+use App\Models\PlatformWalletTransaction;
+use App\Models\Venue;
+use App\Models\WalletTransaction;
+use App\Services\PlatformWalletService;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Exception;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class OwnerBookingController extends Controller
@@ -196,10 +200,21 @@ class OwnerBookingController extends Controller
 
         } catch (Exception $e) {
             return response()->json([
-                'message' => 'Lỗi khi lấy thống kê',
-                'error' => $e->getMessage()
+                'message' => 'Lỗi hệ thống',
+                'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    private function isPlatformOnlinePayment(Booking $booking): bool
+    {
+        return in_array(strtolower((string) $booking->payment_method), [
+            'vnpay',
+            'online',
+            'bank_transfer',
+            'platform_transfer',
+            'wallet',
+        ], true);
     }
 
     public function cancel(Request $request, $bookingId): JsonResponse
@@ -242,6 +257,49 @@ class OwnerBookingController extends Controller
 
                 $oldStatus = $lockedBooking->status;
                 $lockedBooking->status = 'cancelled';
+                $lockedBooking->cancel_reason = 'Chủ sân hủy: ' . ($reason ?: 'Owner cancelled booking');
+                $lockedBooking->cancellation_fee = 0;
+
+                if ($lockedBooking->isPaid()) {
+                    $lockedBooking->refund_amount = $lockedBooking->total_price;
+                    $lockedBooking->refund_status = 'refunded';
+
+                    $customer = $lockedBooking->user;
+                    if ($customer) {
+                        $wallet = $customer->getOrCreateWallet();
+                        $balanceBefore = $wallet->balance;
+
+                        $wallet->balance += $lockedBooking->total_price;
+                        $wallet->save();
+
+                        WalletTransaction::create([
+                            'wallet_id' => $wallet->id,
+                            'booking_id' => $lockedBooking->id,
+                            'reference' => 'REFUND-B' . $lockedBooking->id . '-' . \Illuminate\Support\Str::upper(\Illuminate\Support\Str::random(5)),
+                            'type' => TransactionType::REFUND,
+                            'amount' => $lockedBooking->total_price,
+                            'balance_before' => $balanceBefore,
+                            'balance_after' => $wallet->balance,
+                            'description' => 'Hoàn tiền do chủ sân hủy đơn đặt #' . $lockedBooking->id,
+                        ]);
+                    }
+
+                    if ($this->isPlatformOnlinePayment($lockedBooking) && class_exists(PlatformWalletService::class)) {
+                        app(PlatformWalletService::class)->debit(
+                            amount: $lockedBooking->total_price,
+                            type: PlatformWalletTransaction::TYPE_CUSTOMER_REFUND_OUT,
+                            description: 'Hoàn tiền do chủ sân hủy đơn #' . $lockedBooking->id,
+                            referenceType: 'booking',
+                            referenceId: $lockedBooking->id,
+                            reference: 'REFUND-' . $lockedBooking->id,
+                            performedBy: $user->id
+                        );
+                    }
+                } else {
+                    $lockedBooking->refund_amount = 0;
+                    $lockedBooking->refund_status = 'none';
+                }
+
                 $lockedBooking->save();
 
                 // HOÀN VOUCHER

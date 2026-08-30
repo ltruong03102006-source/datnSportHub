@@ -286,7 +286,7 @@ class OwnerBookingCalendarController extends Controller
             
             $updateData = ['status' => $validated['status']];
             if ($validated['status'] === 'rejected') {
-                if ($lockedBooking->payment_status === 'paid') {
+                if ($lockedBooking->isPaid()) {
                     $updateData['refund_amount'] = $lockedBooking->total_price;
                     $updateData['refund_status'] = 'refunded';
 
@@ -392,7 +392,7 @@ class OwnerBookingCalendarController extends Controller
                 'cancellation_fee' => 0, 
             ];
 
-            if ($lockedBooking->payment_status === 'paid') {
+            if ($lockedBooking->isPaid()) {
                 $updateData['refund_amount'] = $lockedBooking->total_price;
                 $updateData['refund_status'] = 'refunded';
 

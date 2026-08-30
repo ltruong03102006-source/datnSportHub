@@ -5,7 +5,7 @@
     .finance-page {
         display: flex;
         flex-direction: column;
-        gap: 18px;
+        gap: 20px;
     }
 
     .finance-header {
@@ -120,28 +120,36 @@
         font-weight: 900;
     }
 
-    .owner-filter-bar {
+    /* Section Tier Header Badges */
+    .tier-header-bar {
         display: flex;
-        flex-wrap: wrap;
         align-items: center;
         gap: 10px;
-        padding: 14px 18px;
-        border-bottom: 1px solid var(--border-color);
-        background: #fff;
+        margin-top: 6px;
+        margin-bottom: 2px;
     }
 
-    .owner-filter-bar .form-control-soft {
-        min-width: 180px;
+    .tier-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 14px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: .06em;
+        text-transform: uppercase;
     }
 
-    .owner-filter-search {
-        flex: 1 1 260px;
-    }
+    .tier-chip-1 { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .tier-chip-2 { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+    .tier-chip-3 { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
 
+    /* KPI Grid Styling */
     .kpi-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 12px;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 14px;
     }
 
     .kpi-card,
@@ -154,7 +162,13 @@
 
     .kpi-card {
         min-height: 132px;
-        padding: 16px;
+        padding: 18px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, .08);
     }
 
     .kpi-top {
@@ -176,15 +190,15 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 34px;
-        height: 34px;
+        width: 36px;
+        height: 36px;
         border-radius: 10px;
         font-size: 15px;
         font-weight: 900;
     }
 
     .kpi-value {
-        margin-top: 13px;
+        margin-top: 12px;
         color: #0f172a;
         font-size: 25px;
         font-weight: 950;
@@ -203,43 +217,96 @@
     .tone-red { color: #dc2626; }
     .tone-amber { color: #d97706; }
     .tone-blue { color: #2563eb; }
+    .tone-purple { color: #7c3aed; }
+    
     .bg-green { background: #ecfdf5; color: #047857; }
     .bg-red { background: #fef2f2; color: #dc2626; }
     .bg-amber { background: #fffbeb; color: #d97706; }
     .bg-blue { background: #eff6ff; color: #2563eb; }
+    .bg-purple { background: #f3e8ff; color: #7c3aed; }
+
+    /* Solvency Panel Styling */
+    .solvency-panel {
+        padding: 20px 22px;
+        border-radius: 16px;
+        border: 1px solid #cbd5e1;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    .solvency-grid {
+        display: grid;
+        grid-template-columns: 1fr 1.15fr 1.15fr;
+        gap: 16px;
+        margin-top: 16px;
+    }
+
+    .solvency-box {
+        padding: 18px;
+        border-radius: 14px;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: all 0.2s ease;
+    }
+
+    .solvency-box:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.06);
+    }
+
+    .box-tag {
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .box-title {
+        font-size: 15px;
+        font-weight: 900;
+        color: #0f172a;
+    }
+
+    .box-value {
+        font-size: 26px;
+        font-weight: 950;
+        margin: 10px 0;
+    }
+
+    .box-desc {
+        font-size: 12px;
+        color: #64748b;
+        font-weight: 700;
+        line-height: 1.4;
+    }
+
+    .box-sub-items {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px dashed #cbd5e1;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .box-sub-items .sub-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: #475569;
+    }
+
+    .box-sub-items .sub-item strong {
+        color: #0f172a;
+    }
 
     .main-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1.45fr) minmax(360px, .8fr);
-        gap: 16px;
-        align-items: start;
-    }
-
-    .finance-section {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 14px;
-        margin-top: 4px;
-    }
-
-    .finance-section h3 {
-        margin: 0;
-        color: #0f172a;
-        font-size: 18px;
-        font-weight: 950;
-    }
-
-    .finance-section p {
-        margin: 4px 0 0;
-        color: #64748b;
-        font-size: 13px;
-        font-weight: 700;
-    }
-
-    .owner-health-grid {
-        display: grid;
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1.45fr) minmax(360px, .85fr);
         gap: 16px;
         align-items: start;
     }
@@ -249,7 +316,7 @@
         align-items: flex-start;
         justify-content: space-between;
         gap: 14px;
-        padding: 15px 18px;
+        padding: 16px 20px;
         border-bottom: 1px solid var(--border-color);
     }
 
@@ -268,7 +335,7 @@
     }
 
     .panel-body {
-        padding: 16px 18px 18px;
+        padding: 18px 20px;
     }
 
     .chart-canvas-wrap {
@@ -297,7 +364,7 @@
         align-items: center;
         justify-content: space-between;
         gap: 14px;
-        padding: 12px;
+        padding: 12px 14px;
         border: 1px solid #e2e8f0;
         border-radius: 12px;
         background: #f8fafc;
@@ -336,7 +403,7 @@
     }
 
     .mini-stat {
-        padding: 12px;
+        padding: 14px;
         border: 1px solid #e2e8f0;
         border-radius: 12px;
         background: #fff;
@@ -367,17 +434,12 @@
         border-collapse: collapse;
     }
 
-    .compact-table {
-        min-width: 0;
-        table-layout: fixed;
-    }
-
     .data-table th {
-        padding: 11px 14px;
+        padding: 12px 16px;
         background: #f8fafc;
         color: #64748b;
         border-bottom: 1px solid var(--border-color);
-        font-size: 10px;
+        font-size: 11px;
         font-weight: 950;
         letter-spacing: .05em;
         text-align: left;
@@ -385,7 +447,7 @@
     }
 
     .data-table td {
-        padding: 12px 14px;
+        padding: 13px 16px;
         border-bottom: 1px solid var(--border-color);
         color: #0f172a;
         font-size: 12px;
@@ -395,10 +457,6 @@
 
     .data-table tr:last-child td {
         border-bottom: 0;
-    }
-
-    .pagination-wrapper {
-        padding: 0 20px 18px;
     }
 
     .muted {
@@ -423,42 +481,12 @@
     }
 
     .tx-badge {
-        padding: 5px 9px;
+        padding: 5px 10px;
         background: #f1f5f9;
         color: #475569;
     }
 
     .status-good { background: #dcfce7; color: #166534; }
-    .status-in_debt { background: #fef3c7; color: #92400e; }
-    .status-warning { background: #ffedd5; color: #c2410c; }
-    .status-over_limit { background: #fee2e2; color: #b91c1c; }
-
-    .progress-track {
-        width: 100%;
-        max-width: 96px;
-        height: 8px;
-        overflow: hidden;
-        margin-top: 7px;
-        border-radius: 999px;
-        background: #e2e8f0;
-    }
-
-    .progress-cell {
-        min-width: 92px;
-    }
-
-    .progress-status {
-        margin-top: 8px;
-    }
-
-    .progress-bar {
-        height: 100%;
-        border-radius: 999px;
-        background: #10b981;
-    }
-
-    .progress-warning { background: #f59e0b; }
-    .progress-over { background: #ef4444; }
 
     @media (max-width: 1180px) {
         .kpi-grid,
@@ -470,7 +498,7 @@
             grid-template-columns: 1fr;
         }
 
-        .owner-health-grid {
+        .solvency-grid {
             grid-template-columns: 1fr;
         }
     }
@@ -498,18 +526,7 @@
         .btn-primary-soft {
             width: 100%;
         }
-
-        .owner-filter-bar .form-control-soft {
-            min-width: 0;
-        }
     }
-    /* CSS cho thanh Loading và Animation Checkmark */
-        .sg-progress-bar { width: 100%; height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin: 15px 0; }
-        .sg-progress-fill { width: 0%; height: 100%; background: #10b981; border-radius: 999px; transition: width 2s cubic-bezier(0.4, 0, 0.2, 1); }
-        .sg-success-icon { font-size: 48px; color: #10b981; margin-bottom: 12px; animation: scaleIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        @keyframes scaleIn { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
-        .sg-detail-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dashed #e2e8f0; font-size: 13px; }
-        .sg-detail-row:last-child { border-bottom: none; }
 </style>
 @endpush
 
@@ -517,7 +534,7 @@
 @php
     $money = fn ($amount) => ((float) $amount < 0 ? '-' : '') . number_format(abs((float) $amount), 0, ',', '.') . 'đ';
     $signedMoney = fn ($amount) => ((float) $amount < 0 ? '-' : '+') . number_format(abs((float) $amount), 0, ',', '.') . 'đ';
-    // Đã loại bỏ các Status liên quan đến công nợ
+
     $transactionTypeLabels = [
         'booking_income' => 'Nhận tiền booking online',
         'booking_online_credit' => 'Nhận tiền booking online',
@@ -533,6 +550,8 @@
         'customer_online_payment_in' => 'Khách thanh toán booking online',
         'owner_withdrawal_out' => 'Chi tiền owner rút',
         'customer_refund_out' => 'Hoàn tiền khách',
+        'owner_topup_in' => 'Chủ sân nạp tiền ví',
+        'admin_revenue_withdrawal' => 'Admin rút lợi nhuận',
         'manual_credit' => 'Cộng thủ công',
         'manual_debit' => 'Trừ thủ công',
     ];
@@ -544,52 +563,38 @@
     $ownerFilterLabel = $selectedOwner
         ? ('Chủ sân: ' . $selectedOwner->name)
         : 'Tất cả chủ sân';
-        // BỔ SUNG THÊM 2 DÒNG NÀY ĐỂ TÍNH LỢI NHUẬN RÒNG
-    // BỔ SUNG THÊM ĐỂ TÍNH LỢI NHUẬN RÒNG (CHUẨN XÁC 100%)
-    $totalSystemLiability = \App\Models\Wallet::where('balance', '>', 0)->sum('balance');
-    
-    // Tính tiền Booking đã thanh toán nhưng chưa đá xong
-    $unsettledQuery = \App\Models\Booking::query();
-    if (\Illuminate\Support\Facades\Schema::hasColumn('bookings', 'payment_status')) {
-        $unsettledQuery->where('payment_status', 'paid');
-    }
-    if (\Illuminate\Support\Facades\Schema::hasColumn('bookings', 'settlement_status')) {
-        $unsettledQuery->where('settlement_status', '!=', 'settled');
-    } else {
-        $unsettledQuery->whereNotIn('status', ['completed', 'cancelled']); 
-    }
-    $amountCol = \Illuminate\Support\Facades\Schema::hasColumn('bookings', 'gross_amount') ? 'gross_amount' : 'total_price';
-    $unsettledFunds = (float) $unsettledQuery->sum($amountCol);
 
-    // Lợi nhuận an toàn = Tổng ví - Tiền trong ví người dùng - Tiền Booking chờ đối soát
-    $safeToWithdraw = ($platformWalletBalance ?? 0) - $totalSystemLiability - $unsettledFunds;
-    $displaySafeAmount = $safeToWithdraw > 0 ? $safeToWithdraw : 0;
+    $ownerWalletLiability = $ownerWalletLiability ?? 0;
+    $customerWalletLiability = $customerWalletLiability ?? 0;
+    $totalSystemLiability = $totalSystemLiability ?? ($ownerWalletLiability + $customerWalletLiability);
+    $unsettledFunds = $unsettledFunds ?? 0;
+    $displaySafeAmount = $displaySafeAmount ?? 0;
 @endphp
 
 <div class="finance-page">
+    <!-- Header Page -->
     <div class="finance-header">
         <div>
-            <div class="eyebrow">Admin Finance</div>
+            <div class="eyebrow">SportHub Admin Finance</div>
             <h2 class="page-title">Tổng quan tài chính</h2>
-            <p class="page-subtitle">Theo dõi GMV, hoa hồng, dòng tiền ví nền tảng và ví chủ sân.</p>
+            <p class="page-subtitle">Quản lý GMV, doanh thu hoa hồng, sức khỏe ví nền tảng và phân luồng dòng tiền.</p>
         </div>
 
         <div class="actions">
-            {{-- ĐÃ ẨN: Nút Công nợ Owner --}}
-            {{-- @if(Route::has('admin.debts.index'))
-                <a class="btn-soft" href="{{ route('admin.debts.index') }}">Công nợ owner</a>
-            @endif --}}
-            {{-- <button type="button" class="btn-primary-soft" onclick="document.getElementById('withdrawModal').style.display='block'">
-                Rút doanh thu
-            </button>
-            <a class="btn-soft" href="{{ route('admin.finance.withdraw_history') }}">Lịch sử rút tiền</a> --}}
+            @if(Route::has('admin.user_wallets.index'))
+                <a class="btn-soft" href="{{ route('admin.user_wallets.index') }}">
+                    <i class="fa-solid fa-wallet mr-2"></i>Xem ví người dùng
+                </a>
+            @endif
             @if(Route::has('admin.withdrawals.index'))
-                <a class="btn-soft" href="{{ route('admin.withdrawals.index') }}">Yêu cầu rút tiền</a>
+                <a class="btn-soft" href="{{ route('admin.withdrawals.index') }}">
+                    <i class="fa-solid fa-list-check mr-2"></i>Yêu cầu rút tiền
+                </a>
             @endif
         </div>
     </div>
 
-    <!-- Toolbar bộ lọc giữ nguyên -->
+    <!-- Toolbar bộ lọc -->
     <div class="finance-toolbar">
         <form class="filter-form" method="GET" action="{{ route('admin.finance.index') }}">
             <input class="form-control-soft" type="date" name="date_from" value="{{ $dateFrom }}">
@@ -602,84 +607,169 @@
                     </option>
                 @endforeach
             </select>
-            <button class="btn-primary-soft" type="submit">Lọc dữ liệu</button>
+            <button class="btn-primary-soft" type="submit"><i class="fa-solid fa-filter mr-1"></i> Lọc dữ liệu</button>
             <a class="btn-soft" href="{{ route('admin.finance.index') }}">Xóa lọc</a>
         </form>
         <div class="range-pill">{{ $filterLabel }} · {{ $ownerFilterLabel }}</div>
     </div>
 
-    <!-- LƯỚI KPI THÔNG MINH TỰ ĐỘNG THÍCH ỨNG THEO BỘ LỌC -->
-    <div class="kpi-grid">
-        <!-- 2 Thẻ này luôn hiển thị (Thay đổi số theo chủ sân) -->
-        <div class="kpi-card">
-            <div class="kpi-top">
-                <div class="kpi-label">GMV</div>
-                <div class="kpi-icon bg-blue">₫</div>
-            </div>
-            <div class="kpi-value tone-blue">{{ $money($gmv) }}</div>
-            <div class="kpi-note">Tổng giá trị booking.</div>
+    <!-- TẦNG 1: HIỆU NĂNG KINH DOANH -->
+    <div>
+        <div class="tier-header-bar">
+            <span class="tier-chip tier-chip-1"><i class="fa-solid fa-chart-line"></i>Hiệu Năng Kinh Doanh</span>
         </div>
-
-        <div class="kpi-card">
-            <div class="kpi-top">
-                <div class="kpi-label">Hoa hồng nền tảng</div>
-                <div class="kpi-icon bg-green">%</div>
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-top">
+                    <div class="kpi-label">Tổng GMV</div>
+                    <div class="kpi-icon bg-blue"><i class="fa-solid fa-futbol"></i></div>
+                </div>
+                <div class="kpi-value tone-blue">{{ $money($gmv) }}</div>
+                <div class="kpi-note">
+                    <span class="muted">Đặt lẻ:</span> <strong>{{ $money($singleGmv) }}</strong> · 
+                    <span class="muted">Đặt Gói:</span> <strong class="tone-purple">{{ $money($packageGmv) }}</strong>
+                </div>
             </div>
-            <div class="kpi-value tone-green">{{ $money($platformRevenue) }}</div>
-            <div class="kpi-note">Doanh thu SportHub ghi nhận sau settlement.</div>
+
+            <div class="kpi-card">
+                <div class="kpi-top">
+                    <div class="kpi-label">Hoa hồng nền tảng</div>
+                    <div class="kpi-icon bg-green"><i class="fa-solid fa-coins"></i></div>
+                </div>
+                <div class="kpi-value tone-green">{{ $money($platformRevenue) }}</div>
+                <div class="kpi-note">
+                    <div>
+                        <span class="muted">Đặt lẻ:</span> <strong>{{ $money($singleCommission) }}</strong> · 
+                        <span class="muted">Đặt Gói:</span> <strong class="tone-purple">{{ $money($packageCommission) }}</strong>
+                    </div>
+                    <div class="mt-1">
+                        <span class="muted">Hủy sân:</span> <strong class="tone-amber">{{ $money($cancellationCommission) }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-top">
+                    <div class="kpi-label">Doanh thu Đặt Lẻ</div>
+                    <div class="kpi-icon bg-blue"><i class="fa-solid fa-calendar-day"></i></div>
+                </div>
+                <div class="kpi-value tone-blue">{{ $money($singleGmv) }}</div>
+                <div class="kpi-note">
+                    Doanh thu từ lượt đặt sân lẻ.
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-top">
+                    <div class="kpi-label">Doanh thu Đặt Gói</div>
+                    <div class="kpi-icon bg-purple"><i class="fa-solid fa-boxes-packing"></i></div>
+                </div>
+                <div class="kpi-value tone-purple">{{ $money($totalPackageSalesAmount) }}</div>
+                <div class="kpi-note">
+                    <strong>{{ $activePackageCount }}</strong> gói đang chạy · <strong>{{ $completedPackageCount }}</strong> gói hoàn thành.
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-top">
+                    <div class="kpi-label">Booking hoàn tất</div>
+                    <div class="kpi-icon bg-blue" style="background:#f0fdf4; color:#16a34a;"><i class="fa-solid fa-circle-check"></i></div>
+                </div>
+                <div class="kpi-value" style="color:#16a34a;">{{ number_format(($singleSettledCount ?? 0) + ($totalPackageCount ?? 0), 0, ',', '.') }}</div>
+                <div class="kpi-note">
+                    <span class="muted">Đặt lẻ:</span> <strong>{{ number_format($singleSettledCount ?? 0, 0, ',', '.') }} ca</strong> · 
+                    <span class="muted">Đặt Gói:</span> <strong class="tone-purple">{{ number_format($totalPackageCount ?? 0, 0, ',', '.') }} gói</strong>
+                </div>
+            </div>
         </div>
-
-        <!-- LOGIC KIỂM TRA BỘ LỌC CHỦ SÂN -->
-        @if(!$selectedOwner)
-            <!-- NẾU XEM TOÀN BỘ (KHÔNG LỌC): HIỆN VÍ VÀ LỢI NHUẬN CỦA NỀN TẢNG -->
-            <div class="kpi-card">
-                <div class="kpi-top">
-                    <div class="kpi-label">Ví nền tảng</div>
-                    <div class="kpi-icon bg-green">V</div>
-                </div>
-                <div class="kpi-value {{ ($platformWalletBalance ?? 0) < 0 ? 'tone-red' : 'tone-green' }}">{{ $money($platformWalletBalance ?? 0) }}</div>
-                <div class="kpi-note">Số tiền thật SportHub đang giữ hiện tại.</div>
-            </div>
-
-            <div class="kpi-card" style="border: 2px solid #10b981; background: #ecfdf5; position: relative;">
-                <div class="kpi-top">
-                    <div class="kpi-label" style="color: #047857;">Lợi nhuận có thể rút</div>
-                    <div class="kpi-icon" style="background: #10b981; color: white;"><i class="fa-solid fa-sack-dollar"></i></div>
-                </div>
-                <div class="kpi-value tone-green">{{ $money($displaySafeAmount) }}</div>
-                <div class="kpi-note" style="color: #059669; font-weight: 800; padding-right: 85px;">
-                    Tiền thực tế Admin sở hữu sau khi trừ tiền chờ đối soát.
-                </div>
-                
-                <button type="button" onclick="document.getElementById('withdrawModal').style.display='block'" 
-                        style="position: absolute; bottom: 16px; right: 16px; border: none; background: #10b981; color: white; border-radius: 8px; font-size: 11px; font-weight: 800; padding: 7px 14px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4);">
-                    Rút ngay
-                </button>
-            </div>
-        @else
-            <!-- NẾU ĐANG LỌC 1 CHỦ SÂN: ĐỔI THÀNH KPI CỦA RIÊNG CHỦ SÂN ĐÓ -->
-            <div class="kpi-card">
-                <div class="kpi-top">
-                    <div class="kpi-label">Tiền Online thu hộ</div>
-                    <div class="kpi-icon bg-blue"><i class="fa-solid fa-credit-card"></i></div>
-                </div>
-                <div class="kpi-value tone-blue">{{ $money($onlineBookingCredit ?? 0) }}</div>
-                <div class="kpi-note">Tổng tiền khách đã thanh toán qua VNPay.</div>
-            </div>
-
-            <div class="kpi-card">
-                <div class="kpi-top">
-                    <div class="kpi-label">Số dư khả dụng của Chủ sân</div>
-                    <div class="kpi-icon bg-green"><i class="fa-solid fa-wallet"></i></div>
-                </div>
-                <div class="kpi-value tone-green">{{ $money($totalWalletBalance ?? 0) }}</div>
-                <div class="kpi-note">Tiền chủ sân đang có trong ví nền tảng.</div>
-            </div>
-        @endif
     </div>
-    <!-- BẢNG THỐNG KÊ CHI TIẾT THEO TỪNG CƠ SỞ (CHỈ HIỆN KHI LỌC 1 CHỦ SÂN) -->
+
+    <!-- TẦNG 2: PHÂN TÍCH SỨC KHỎE VÍ & LỢI NHUẬN AN TOÀN -->
+    <div>
+        <div class="tier-header-bar">
+            <span class="tier-chip tier-chip-2"><i class="fa-solid fa-shield-halved"></i>Ví Nền Tảng & An Toàn Tài Chính</span>
+        </div>
+        <div class="panel solvency-panel">
+            <div class="panel-head" style="padding:0 0 16px 0; border-bottom: 1px dashed #cbd5e1;">
+                <div>
+                    <h3 class="panel-title">
+                        <i class="fa-solid fa-scale-balanced tone-green mr-2"></i> 
+                        {{ $selectedOwner ? ('Minh Bạch Dòng Tiền - Chủ Sân: ' . $selectedOwner->name) : 'Minh Bạch Dòng Tiền & Lợi Nhuận An Toàn' }}
+                    </h3>
+                    <p class="panel-desc">
+                        {{ $selectedOwner ? ('Phân tích nghĩa vụ giữ hộ tiền và khả năng rút tiền của ' . $selectedOwner->name) : 'Phân biệt rạch ròi giữa Tiền thuộc về Admin và Tiền giữ hộ cho Chủ sân & Khách hàng.' }}
+                    </p>
+                </div>
+                <div class="range-pill" style="background:#ecfdf5; color:#047857; font-weight:800;">
+                    <i class="fa-solid fa-lock mr-1"></i> Đảm bảo khả năng thanh toán 100%
+                </div>
+            </div>
+
+            <div class="solvency-grid">
+                <!-- BOX 1: Ví nền tảng -->
+                <div class="solvency-box">
+                    <div>
+                        <div class="box-tag tone-blue">TỔNG TÀI SẢN THỰC TẾ</div>
+                        <div class="box-title">Ví Tổng Nền Tảng (Bank/VNPay)</div>
+                    </div>
+                    <div class="box-value tone-blue">{{ $money($platformWalletBalance ?? 0) }}</div>
+                    <div class="box-desc">Số tiền thật SportHub đang nắm giữ trong tài khoản thanh toán.</div>
+                </div>
+
+                <!-- BOX 2: Nghĩa vụ tạm giữ -->
+                <div class="solvency-box">
+                    <div>
+                        <div class="box-tag tone-amber">{{ $selectedOwner ? 'TIỀN GIỮ HỘ CHO CHỦ SÂN' : 'NGHĨA VỤ TẠM GIỮ HỘ' }}</div>
+                        <div class="box-title">{{ $selectedOwner ? ('Tiền Nền Tảng Giữ Cho ' . $selectedOwner->name) : 'Tiền Giữ Hộ' }}</div>
+                    </div>
+                    <div class="box-value tone-amber">{{ $money($totalSystemLiability + $unsettledFunds) }}</div>
+                    <div class="box-sub-items">
+                        <div class="sub-item">
+                            <span><i class="fa-solid fa-wallet text-amber mr-1"></i> Số dư ví Chủ sân (Khả dụng):</span>
+                            <strong>{{ $money($ownerWalletLiability) }}</strong>
+                        </div>
+                        @if(!$selectedOwner)
+                        <div class="sub-item">
+                            <span><i class="fa-solid fa-user-large text-amber mr-1"></i> Số dư ví Khách hàng:</span>
+                            <strong class="tone-blue">{{ $money($customerWalletLiability) }}</strong>
+                        </div>
+                        @endif
+                        <div class="sub-item">
+                            <span><i class="fa-solid fa-futbol text-amber mr-1"></i> Booking lẻ chờ đối soát (Chưa đá):</span>
+                            <strong>{{ $money($unsettledFunds) }}</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOX 3: Lợi nhuận an toàn hoặc Thu nhập khả dụng của Owner -->
+                <div class="solvency-box">
+                    @if($selectedOwner)
+                    <div>
+                        <div class="box-tag tone-green">SỐ DƯ CÓ THỂ RÚT NGAY</div>
+                        <div class="box-title">Tiền Chủ Sân Có Thể Rút</div>
+                    </div>
+                    <div class="box-value tone-green">{{ $money($ownerWalletLiability) }}</div>
+                    <div class="box-desc">
+                        <i class="fa-solid fa-circle-check tone-green mr-1"></i> Số tiền {{ $selectedOwner->name }} có thể tạo yêu cầu rút về ngân hàng.
+                    </div>
+                    @else
+                    <div>
+                        <div class="box-tag tone-green">LỢI NHUẬN KHẢ DỤNG THỰC TẾ</div>
+                        <div class="box-title">Lợi Nhuận An Toàn Thuộc Admin</div>
+                    </div>
+                    <div class="box-value tone-green">{{ $money($displaySafeAmount) }}</div>
+                    <div class="box-desc">
+                        <i class="fa-solid fa-circle-check tone-green mr-1"></i> Tiền thực tế Admin sở hữu an toàn (Chỉ tính khi booking đã chơi xong & đã trừ Tiền Giữ Hộ).
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BẢNG THỐNG KÊ CHI TIẾT THEO TỪNG CƠ SỞ (KHI LỌC CHỦ SÂN) -->
     @if($selectedOwner)
-    <div class="panel" style="margin-top: 24px; margin-bottom: 24px;">
+    <div class="panel">
         <div class="panel-head">
             <div>
                 <h3 class="panel-title">Phân bổ doanh thu theo Cơ sở</h3>
@@ -689,12 +779,10 @@
         </div>
         <div class="panel-body" style="padding: 0;">
             @php
-                // Tự động nhận diện cột trong Database để tránh lỗi
                 $gmvCol = \Illuminate\Support\Facades\Schema::hasColumn('bookings', 'gross_amount') ? 'gross_amount' : 'total_price';
                 $feeCol = \Illuminate\Support\Facades\Schema::hasColumn('bookings', 'platform_fee') ? 'platform_fee' : 'commission_amount';
                 $dateCol = \Illuminate\Support\Facades\Schema::hasColumn('bookings', 'settled_at') ? 'settled_at' : 'created_at';
 
-                // Truy vấn danh sách cơ sở của Chủ sân này
                 $ownerVenues = \App\Models\Venue::where('owner_id', $selectedOwner->id)->get();
                 $venueStats = [];
 
@@ -705,7 +793,6 @@
                     ->when($dateFrom, fn($q) => $q->whereDate($dateCol, '>=', $dateFrom))
                     ->when($dateTo, fn($q) => $q->whereDate($dateCol, '<=', $dateTo));
 
-                    // Lọc trạng thái thành công giống như Controller
                     if (\Illuminate\Support\Facades\Schema::hasColumn('bookings', 'settlement_status')) {
                         $vBookings->where('settlement_status', 'settled');
                     } else {
@@ -719,7 +806,6 @@
                     $vFee = (float) (clone $vBookings)->sum($feeCol);
                     $vCount = (clone $vBookings)->count();
 
-                    // Chỉ hiển thị sân nào có phát sinh giao dịch hoặc đang hoạt động
                     if ($vCount > 0 || $venue->status === 'active') {
                         $venueStats[] = [
                             'name' => $venue->name,
@@ -732,13 +818,12 @@
                     }
                 }
                 
-                // Sắp xếp sân có GMV cao nhất lên đầu
                 usort($venueStats, fn($a, $b) => $b['gmv'] <=> $a['gmv']);
             @endphp
 
             <div class="table-card">
                 <table class="data-table">
-                    <thead style="background: #f8fafc;">
+                    <thead>
                         <tr>
                             <th>TÊN CƠ SỞ</th>
                             <th style="text-align: center;">SỐ LƯỢNG ĐƠN</th>
@@ -768,7 +853,6 @@
                         @empty
                             <tr>
                                 <td colspan="5" style="text-align: center; padding: 40px; color: #64748b;">
-                                    <i class="fa-solid fa-folder-open mb-2" style="font-size: 24px; opacity: 0.5;"></i><br>
                                     Chủ sân này chưa có cơ sở nào phát sinh doanh thu.
                                 </td>
                             </tr>
@@ -779,76 +863,103 @@
         </div>
     </div>
     @endif
-    <div class="main-grid">
-        <div class="panel">
-            <div class="panel-head">
-                <div>
-                    <h3 class="panel-title">Hoa hồng theo tháng</h3>
-                    <p class="panel-desc">Biểu đồ tổng doanh thu hoa hồng từ thanh toán online.</p>
-                </div>
-                <div class="range-pill">{{ $dateFrom || $dateTo ? $filterLabel : '6 tháng gần nhất' }}</div>
-            </div>
-            <div class="panel-body">
-                <div class="chart-canvas-wrap">
-                    <canvas id="commissionRevenueChart"></canvas>
-                </div>
-                @unless($commissionHasData)
-                    <div class="chart-empty">Chưa có dữ liệu hoa hồng trong khoảng thời gian này.</div>
-                @endunless
-            </div>
+
+    <!-- TẦNG 3: BIỂU ĐỒ & DÒNG TIỀN LUÂN CHUYỂN -->
+    <div>
+        <div class="tier-header-bar">
+            <span class="tier-chip tier-chip-3"><i class="fa-solid fa-arrows-left-right"></i>Biểu Đồ & Dòng Tiền Luân Chuyển</span>
         </div>
-
-        <div class="panel">
-            <div class="panel-head">
-                <div>
-                    <h3 class="panel-title">Dòng tiền nền tảng</h3>
-                    <p class="panel-desc">Cash in/out theo giao dịch ví nền tảng.</p>
+        <div class="main-grid">
+            <!-- Biểu đồ -->
+            <div class="panel">
+                <div class="panel-head">
+                    <div>
+                        <h3 class="panel-title">Hoa hồng theo tháng</h3>
+                        <p class="panel-desc">Biểu đồ tổng doanh thu hoa hồng từ thanh toán online.</p>
+                    </div>
+                    <div class="range-pill">{{ $dateFrom || $dateTo ? $filterLabel : '6 tháng gần nhất' }}</div>
+                </div>
+                <div class="panel-body">
+                    <div class="chart-canvas-wrap">
+                        <canvas id="commissionRevenueChart"></canvas>
+                    </div>
+                    @unless($commissionHasData)
+                        <div class="chart-empty">Chưa có dữ liệu hoa hồng trong khoảng thời gian này.</div>
+                    @endunless
                 </div>
             </div>
-            <div class="panel-body">
-                <div class="cash-stack">
-                    <div class="cash-row">
-                        <div>
-                            <strong>Tiền vào (Khách thanh toán)</strong>
-                            <span>Booking VNPay thành công</span>
-                        </div>
-                        <div class="cash-value tone-green">{{ $money($customerOnlinePaymentIn ?? 0) }}</div>
-                    </div>
-                    
-                    <!-- SỬA LẠI: Dòng Hoàn tiền khách (Phải trừ đi cả tiền Admin rút) -->
-                    <div class="cash-row">
-                        <div>
-                            <strong>Tiền ra (Hoàn tiền khách)</strong>
-                            <span>Khách hủy đơn hợp lệ</span>
-                        </div>
-                        <div class="cash-value tone-red">{{ $money(abs((float) ($platformCashOut ?? 0) - (float) ($ownerWithdrawalOut ?? 0) - (float) ($adminRevenueWithdrawal ?? 0))) }}</div>
-                    </div>
 
-                    <!-- THÊM MỚI: Dòng Admin rút doanh thu -->
-                    <div class="cash-row">
-                        <div>
-                            <strong>Tiền ra (Rút doanh thu)</strong>
-                            <span>Admin rút hoa hồng nền tảng</span>
-                        </div>
-                        <div class="cash-value tone-red">{{ $money($adminRevenueWithdrawal ?? 0) }}</div>
+            <!-- Phân luồng dòng tiền -->
+            <div class="panel">
+                <div class="panel-head">
+                    <div>
+                        <h3 class="panel-title">Dòng tiền nền tảng (Cash In / Out)</h3>
+                        <p class="panel-desc">Phân luồng dòng tiền vào và ra trên tài khoản tổng.</p>
                     </div>
-
-                    <!-- DÒNG CŨ: CHỈ HIỂN THỊ TIỀN OWNER RÚT THẬT SỰ -->
-                    <div class="cash-row">
-                        <div>
-                            <strong>Tiền ra (Admin duyệt rút)</strong>
-                            <span>Chuyển khoản cho owner</span>
+                </div>
+                <div class="panel-body">
+                    <div class="cash-stack">
+                        <div class="cash-row">
+                            <div>
+                                <strong><i class="fa-solid fa-arrow-down-left text-emerald mr-1"></i> Tiền vào (Khách thanh toán)</strong>
+                                <span>Booking VNPay thành công</span>
+                            </div>
+                            <div class="cash-value tone-green">{{ $money($customerOnlinePaymentIn ?? 0) }}</div>
                         </div>
-                        <div class="cash-value tone-red">{{ $money($ownerWithdrawalOut ?? 0) }}</div>
-                    </div>
 
-                    <div class="cash-row" style="border-top: 2px dashed #e2e8f0; margin-top: 8px;">
-                        <div>
-                            <strong>Dòng tiền ròng</strong>
-                            <span>Tiền vào - Tiền ra</span>
+                        @if(($ownerTopupIn ?? 0) > 0)
+                        <div class="cash-row">
+                            <div>
+                                <strong><i class="fa-solid fa-arrow-down-left text-emerald mr-1"></i> Tiền vào (Chủ sân nạp ví)</strong>
+                                <span>Nạp tiền vào ví hệ thống</span>
+                            </div>
+                            <div class="cash-value tone-green">{{ $money($ownerTopupIn) }}</div>
                         </div>
-                        <div class="cash-value {{ ($platformNetCashFlow ?? 0) < 0 ? 'tone-red' : 'tone-green' }}">
-                            {{ $money($platformNetCashFlow ?? 0) }}
+                        @endif
+
+                        @if(($ownerWithdrawalOut ?? 0) > 0)
+                        <div class="cash-row">
+                            <div>
+                                <strong><i class="fa-solid fa-arrow-up-right text-rose mr-1"></i> Tiền ra (Chuyển trả Owner)</strong>
+                                <span>Admin đã duyệt rút cho Chủ sân</span>
+                            </div>
+                            <div class="cash-value tone-red">{{ $money($ownerWithdrawalOut ?? 0) }}</div>
+                        </div>
+                        @endif
+
+                        @if(($customerRefundOut ?? 0) > 0)
+                        <div class="cash-row">
+                            <div>
+                                <strong><i class="fa-solid fa-rotate-left text-rose mr-1"></i> Tiền ra (Hoàn tiền Khách)</strong>
+                                <span>Khách đã duyệt rút tiền về ngân hàng</span>
+                            </div>
+                            <div class="cash-value tone-red">{{ $money($customerRefundOut ?? 0) }}</div>
+                        </div>
+                        @endif
+
+                        @if(($adminRevenueWithdrawal ?? 0) > 0)
+                        <div class="cash-row">
+                            <div>
+                                <strong><i class="fa-solid fa-arrow-up-right text-rose mr-1"></i> Tiền ra (Admin rút lợi nhuận)</strong>
+                                <span>Rút tiền lợi nhuận nền tảng</span>
+                            </div>
+                            <div class="cash-value tone-red">{{ $money($adminRevenueWithdrawal) }}</div>
+                        </div>
+                        @endif
+
+                        @php
+                            $displayedCashIn = ($customerOnlinePaymentIn ?? 0) + ($ownerTopupIn ?? 0);
+                            $displayedCashOut = ($ownerWithdrawalOut ?? 0) + ($customerRefundOut ?? 0) + ($adminRevenueWithdrawal ?? 0);
+                            $displayedNetCashFlow = $displayedCashIn - $displayedCashOut;
+                        @endphp
+                        <div class="cash-row" style="border-top: 2px dashed #cbd5e1; margin-top: 6px; background:#f1f5f9;">
+                            <div>
+                                <strong><i class="fa-solid fa-calculator mr-1"></i> Dòng tiền ròng</strong>
+                                <span>Tổng tiền vào − Tổng tiền ra</span>
+                            </div>
+                            <div class="cash-value {{ $displayedNetCashFlow < 0 ? 'tone-red' : 'tone-green' }}">
+                                {{ $money($displayedNetCashFlow) }}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -856,32 +967,100 @@
         </div>
     </div>
 
-    <div class="section-grid">
+    <!-- TẦNG 4: THỐNG KÊ VÍ CHỦ SÂN, ĐẶT GÓI & TÓM TẮT ĐỐI SOÁT -->
+    <div class="section-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
         <div class="panel">
             <div class="panel-head">
                 <div>
-                    <h3 class="panel-title">Ví chủ sân</h3>
-                    <p class="panel-desc">Trạng thái số dư và lệnh rút của các chủ sân.</p>
+                    <h3 class="panel-title"><i class="fa-solid fa-wallet tone-green mr-1"></i> Thống kê Ví Người Dùng</h3>
+                    <p class="panel-desc">Số dư và trạng thái ví của Chủ sân & Khách hàng.</p>
+                </div>
+            </div>
+            <div class="panel-body" style="display:flex; flex-direction:column; gap:12px;">
+                <!-- PHẦN 1: VÍ CHỦ SÂN -->
+                <div>
+                    <div style="font-size:11px; font-weight:800; color:#334155; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between;">
+                        <span class="badge-status status-good" style="padding:2px 7px; font-size:10px;"><i class="fa-solid fa-store mr-1"></i> VÍ CHỦ SÂN</span>
+                    </div>
+                    <div class="mini-grid" style="gap:8px;">
+                        <div class="mini-stat" style="padding:8px 10px;">
+                            <div class="mini-label" style="font-size:10px;">Dư khả dụng</div>
+                            <div class="mini-value tone-green" style="font-size:14px; font-weight:800;">{{ $money($ownerWalletLiability ?? $totalWalletBalance) }}</div>
+                        </div>
+                        <div class="mini-stat" style="padding:8px 10px;">
+                            <div class="mini-label" style="font-size:10px;">Online về ví</div>
+                            <div class="mini-value tone-green" style="font-size:14px; font-weight:800;">{{ $money($onlineBookingCredit) }}</div>
+                        </div>
+                        <div class="mini-stat" style="padding:8px 10px;">
+                            <div class="mini-label" style="font-size:10px;">Chờ duyệt rút</div>
+                            <div class="mini-value tone-amber" style="font-size:14px; font-weight:800;">{{ $money($pendingWithdrawals) }}</div>
+                        </div>
+                        <div class="mini-stat" style="padding:8px 10px;">
+                            <div class="mini-label" style="font-size:10px;">Đã duyệt rút</div>
+                            <div class="mini-value tone-red" style="font-size:14px; font-weight:800;">{{ $money($approvedWithdrawals) }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PHẦN 2: VÍ KHÁCH HÀNG -->
+                @if(!$selectedOwner)
+                <div style="border-top:1px dashed #cbd5e1; padding-top:10px;">
+                    <div style="font-size:11px; font-weight:800; color:#334155; margin-bottom:6px; display:flex; align-items:center; justify-content:space-between;">
+                        <span class="badge-status" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:2px 7px; font-size:10px;"><i class="fa-solid fa-user mr-1"></i> VÍ KHÁCH HÀNG</span>
+                    </div>
+                    <div class="mini-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr)); gap:8px;">
+                        <div class="mini-stat" style="padding:8px 10px;">
+                            <div class="mini-label" style="font-size:10px;">Tổng dư ví khách</div>
+                            <div class="mini-value tone-blue" style="font-size:14px; font-weight:800;">{{ $money($customerWalletLiability ?? 0) }}</div>
+                        </div>
+                        <div class="mini-stat" style="padding:8px 10px;">
+                            <div class="mini-label" style="font-size:10px;">Ví có số dư</div>
+                            <div class="mini-value" style="font-size:14px; font-weight:800; color:#2563eb;">{{ number_format($customerWalletCount ?? 0, 0, ',', '.') }} ví</div>
+                        </div>
+                    </div>
+                </div>
+                @endif
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-head">
+                <div>
+                    <h3 class="panel-title"><i class="fa-solid fa-credit-card tone-purple mr-1"></i> Phân Tích Phương Thức Thanh Toán</h3>
+                    <p class="panel-desc">Phân luồng GMV theo từng kênh thanh toán.</p>
                 </div>
             </div>
             <div class="panel-body">
-                <!-- ĐÃ ĐỔI: Lưới 2 cột thành 1 khối gọn gàng vì bỏ đi 2 ô Nạp tiền + Hoa hồng COD -->
-                <div class="mini-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
-                    <div class="mini-stat">
-                        <div class="mini-label">Tổng số dư khả dụng</div>
-                        <div class="mini-value tone-green">{{ $money($totalWalletBalance) }}</div>
+                <div class="cash-stack">
+                    <div class="cash-row">
+                        <div>
+                            <strong><i class="fa-solid fa-globe text-emerald mr-1"></i> VNPay / Online</strong>
+                            <span>Thanh toán cổng VNPay & Thẻ</span>
+                        </div>
+                        <div class="cash-value tone-green">{{ $money($onlinePaymentGmv) }}</div>
                     </div>
-                    <div class="mini-stat">
-                        <div class="mini-label">Tiền online về ví</div>
-                        <div class="mini-value tone-green">{{ $money($onlineBookingCredit) }}</div>
+                    @if(($codPaymentGmv ?? 0) > 0)
+                    <div class="cash-row">
+                        <div>
+                            <strong><i class="fa-solid fa-money-bill-1-wave text-amber mr-1"></i> Tiền mặt / COD tại sân</strong>
+                            <span>Khách thanh toán trực tiếp tại sân</span>
+                        </div>
+                        <div class="cash-value tone-amber">{{ $money($codPaymentGmv) }}</div>
                     </div>
-                    <div class="mini-stat">
-                        <div class="mini-label">Đang chờ rút tiền</div>
-                        <div class="mini-value tone-amber">{{ $money($pendingWithdrawals) }}</div>
+                    @endif
+                    <div class="cash-row">
+                        <div>
+                            <strong><i class="fa-solid fa-wallet text-blue mr-1"></i> Ví Khách Hàng</strong>
+                            <span>Trừ tiền trực tiếp từ ví cá nhân</span>
+                        </div>
+                        <div class="cash-value tone-blue">{{ $money($walletPaymentGmv) }}</div>
                     </div>
-                    <div class="mini-stat">
-                        <div class="mini-label">Đã duyệt rút</div>
-                        <div class="mini-value tone-red">{{ $money($approvedWithdrawals) }}</div>
+                    <div class="cash-row">
+                        <div>
+                            <strong><i class="fa-solid fa-boxes-packing text-purple mr-1"></i> Đặt theo Gói</strong>
+                            <span>Dùng suất từ gói đã mua</span>
+                        </div>
+                        <div class="cash-value tone-purple">{{ $money($packageGmv) }}</div>
                     </div>
                 </div>
             </div>
@@ -890,8 +1069,8 @@
         <div class="panel">
             <div class="panel-head">
                 <div>
-                    <h3 class="panel-title">Tóm tắt đối soát</h3>
-                    <p class="panel-desc">Các chỉ số quan trọng để kiểm tra dòng tiền.</p>
+                    <h3 class="panel-title">Tóm tắt đối soát đơn</h3>
+                    <p class="panel-desc">Chỉ số kiểm tra sổ sách đối soát.</p>
                 </div>
             </div>
             <div class="panel-body">
@@ -899,51 +1078,45 @@
                     <div class="cash-row">
                         <div>
                             <strong>Booking đã đối soát</strong>
-                            <span>Đơn đã ghi nhận hoa hồng</span>
+                            <span>Hoàn tất & chia phế</span>
                         </div>
-                        <div class="cash-value">{{ number_format($settledBookingCount, 0, ',', '.') }}</div>
+                        <div class="cash-value">{{ number_format(($singleSettledCount ?? 0) + ($totalPackageCount ?? 0), 0, ',', '.') }} giao dịch</div>
                     </div>
                     <div class="cash-row">
                         <div>
-                            <strong>Tiền thuộc về owner</strong>
-                            <span>Sau khi trừ hoa hồng nền tảng</span>
+                            <strong>Tiền thuộc về Owner</strong>
+                            <span>Sau khi trừ hoa hồng</span>
                         </div>
-                        <div class="cash-value tone-green">{{ $money($ownerPayout) }}</div>
+                        <div class="cash-value tone-green">{{ $money($onlineBookingCredit ?? $ownerPayout) }}</div>
                     </div>
                     <div class="cash-row">
                         <div>
-                            <strong>Tiền ra khỏi ví owner</strong>
-                            <span>Tổng số tiền Admin đã duyệt rút</span>
+                            <strong>Tiền đã chi khỏi Ví Owner</strong>
+                            <span>Số tiền Admin đã duyệt rút</span>
                         </div>
-                        <!-- Sửa lại công thức bỏ tiền COD -->
                         <div class="cash-value tone-red">{{ $money($approvedWithdrawals) }}</div>
                     </div>
-                    {{-- ĐÃ ẨN: Công nợ hiện tại --}}
+                    <div class="cash-row" style="background:#f8fafc; border-top:1px dashed #cbd5e1;">
+                        <div>
+                            <strong>Tiền Owner chưa rút</strong>
+                            <span>Còn lại trong ví các sân</span>
+                        </div>
+                        <div class="cash-value tone-blue">{{ $money($ownerWalletLiability) }}</div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ĐÃ ẨN: Toàn bộ thẻ <div class="owner-health-grid"> chứa 2 bảng: 
-         - Bảng "Tổng quan ví chủ sân" (có các cột Công nợ, Hạn mức)
-         - Bảng "Top owner công nợ cao" 
-         Vì mô hình 100% VNPay không bao giờ có nợ, nên 2 bảng này thành ra vô tác dụng. -->
-
-    <div class="finance-section mt-8">
-        <div>
-            <h3>Nhật ký giao dịch</h3>
-            <p>Kiểm tra các giao dịch mới nhất trên ví nền tảng và ví owner.</p>
-        </div>
-    </div>
-
+    <!-- NHẬT KÝ GIAO DỊCH VÍ NỀN TẢNG -->
     <div class="panel table-card">
-        <!-- Bảng Nhật ký giao dịch ví nền tảng (Giữ nguyên) -->
         <div class="panel-head">
             <div>
-                <h3 class="panel-title">Giao dịch ví nền tảng mới nhất</h3>
+                <h3 class="panel-title"><i class="fa-solid fa-list-ol tone-green mr-2"></i> Nhật ký giao dịch Ví Nền Tảng mới nhất</h3>
+                <p class="panel-desc">Kiểm tra 10 giao dịch gần đây nhất phát sinh trên ví tổng nền tảng.</p>
             </div>
         </div>
-        <table class="data-table" style="min-width:1120px;">
+        <table class="data-table" style="min-width:1050px;">
             <thead>
                 <tr>
                     <th>Thời gian</th>
@@ -958,7 +1131,6 @@
             </thead>
             <tbody>
                 @forelse($latestPlatformTransactions ?? collect() as $transaction)
-                    <!-- Giữ nguyên vòng lặp foreach trong code gốc của bạn -->
                     @php
                         $platformType = $typeValue($transaction);
                         $platformAmount = (float) $transaction->amount;
@@ -998,71 +1170,6 @@
         </table>
     </div>
 </div>
-<!-- Modal Rút Doanh Thu -->
-    <div id="withdrawModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:9999; align-items:center; justify-content:center; backdrop-filter: blur(4px);">
-        <div style="background:#fff; width:100%; max-width:400px; padding:32px 24px; border-radius:20px; margin: 10% auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
-
-            <!-- BƯỚC 1: NHẬP SỐ TIỀN -->
-            <div id="wd-step-1">
-                <h3 style="margin:0 0 6px 0; font-size:18px; color:#0f172a;">Rút Doanh Thu Nền Tảng</h3>
-               
-                <p style="color:#64748b; font-size:13px; margin-bottom:24px;">
-                    Số dư khả dụng: <strong class="{{ $safeToWithdraw > 0 ? 'tone-green' : 'tone-red' }}">{{ $money($displaySafeAmount) }}</strong>
-                </p>
-
-                <form id="withdrawForm" action="{{ route('admin.finance.withdraw') }}" method="POST" onsubmit="handleWithdraw(event)">
-                    @csrf
-                    <div style="margin-bottom:24px;">
-                        <label style="display:block; font-size:12px; font-weight:700; margin-bottom:8px; color:#475569;">SỐ TIỀN MUỐN RÚT (VNĐ)</label>
-                        <input type="number" name="amount" id="wd-amount" class="form-control-soft" style="width:100%; font-size:16px; font-weight:700;"
-                               min="10000" max="{{ $displaySafeAmount > 0 ? $displaySafeAmount : 0 }}"
-                               @if($displaySafeAmount <= 0) disabled placeholder="Không đủ số dư..." @else required @endif>
-                    </div>
-                    <div style="display:flex; gap:12px; justify-content:flex-end;">
-                        <button type="button" class="btn-soft" onclick="document.getElementById('withdrawModal').style.display='none'">Hủy</button>
-                        <button type="submit" class="btn-primary-soft" @if($displaySafeAmount <= 0) disabled style="opacity: 0.5; cursor: not-allowed;" @endif>
-                            Xác nhận rút
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- BƯỚC 2: LOADING -->
-            <div id="wd-step-2" style="display:none; text-align:center; padding: 20px 0;">
-                <h4 style="margin:0; font-size:16px; color:#0f172a;">Đang chuyển tiền...</h4>
-                <div class="sg-progress-bar">
-                    <div class="sg-progress-fill" id="wd-progress"></div>
-                </div>
-                <p style="margin:0; font-size:12px; color:#059669; font-weight:700; letter-spacing: 0.05em; text-transform: uppercase;">
-                    ⚡ Settlement Gateway...
-                </p>
-            </div>
-
-            <!-- BƯỚC 3: SUCCESS -->
-            <div id="wd-step-3" style="display:none; text-align:center;">
-                <div class="sg-success-icon">✔</div>
-                <h4 style="margin:0 0 20px 0; font-size:20px; color:#10b981; font-weight:900;">Giao dịch thành công</h4>
-
-                <div style="background: #f8fafc; border-radius: 14px; padding: 16px; margin-bottom: 24px; text-align: left; border: 1px solid #e2e8f0;">
-                    <div class="sg-detail-row">
-                        <span style="color:#64748b;">Số tiền</span>
-                        <strong class="tone-green" id="res-amount" style="font-size:15px;"></strong>
-                    </div>
-                    <div class="sg-detail-row">
-                        <span style="color:#64748b;">Mã GD</span>
-                        <strong style="color:#0f172a;" id="res-ref"></strong>
-                    </div>
-                    <div class="sg-detail-row">
-                        <span style="color:#64748b;">Ngân hàng</span>
-                        <strong class="tone-blue" id="res-bank"></strong>
-                    </div>
-                </div>
-
-                <button class="btn-primary-soft" style="width: 100%; height:46px; font-size:14px;" onclick="window.location.reload()">Đóng & Làm mới bảng</button>
-            </div>
-
-        </div>
-    </div>
 @endsection
 
 @push('scripts')
@@ -1075,7 +1182,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     const labels = @json($commissionChartLabels ?? []);
-    // Đã bỏ onlineData và codData, gộp chung thành totalData
     const totalData = @json($commissionChartTotalData ?? []);
     const moneyFormatter = new Intl.NumberFormat('vi-VN');
 
@@ -1094,14 +1200,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     pointRadius: 4,
                     fill: true
                 }
-                // ĐÃ ẨN: 2 dataset vẽ đường Hoa hồng Online và Hoa hồng COD
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { display: false }, // Đóng legend vì chỉ còn 1 đường
+                legend: { display: false },
                 tooltip: {
                     callbacks: {
                         label: function (context) {
@@ -1124,49 +1229,5 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
-async function handleWithdraw(e) {
-            e.preventDefault(); // Chặn hành động reload trang mặc định của form
-            
-            const form = e.target;
-            const amountInput = document.getElementById('wd-amount').value;
-            const formData = new FormData(form);
-
-            // 1. Ẩn Step 1, Hiện Step 2 (Loading)
-            document.getElementById('wd-step-1').style.display = 'none';
-            document.getElementById('wd-step-2').style.display = 'block';
-
-            // 2. Kích hoạt hiệu ứng thanh chạy 2 giây
-            setTimeout(() => { document.getElementById('wd-progress').style.width = '100%'; }, 50);
-
-            try {
-                // 3. Gọi API ngầm xuống Backend để trừ tiền thật
-                const response = await fetch(form.action, {
-                    method: 'POST',
-                    body: formData,
-                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
-                });
-                const data = await response.json();
-
-                // 4. Ép thời gian đợi đủ 2 giây để thanh loading chạy hết mới sang Step 3
-                setTimeout(() => {
-                    if (response.ok) {
-                        document.getElementById('wd-step-2').style.display = 'none';
-                        document.getElementById('wd-step-3').style.display = 'block';
-
-                        // Đổ dữ liệu thật từ Backend ra màn hình
-                        document.getElementById('res-amount').innerText = new Intl.NumberFormat('vi-VN').format(amountInput) + 'đ';
-                        document.getElementById('res-ref').innerText = data.reference_id;
-                        document.getElementById('res-bank').innerText = data.bank_code;
-                    } else {
-                        alert(data.error || data.message || 'Có lỗi xảy ra!');
-                        window.location.reload();
-                    }
-                }, 2000); 
-
-            } catch (error) {
-                alert('Lỗi kết nối máy chủ!');
-                window.location.reload();
-            }
-        }
 </script>
 @endpush

@@ -414,7 +414,7 @@ class UserBookingController extends Controller
                     $refund = 0;
                     $refundStatus = 'none';
 
-                    if ($b->payment_status === 'paid') {
+                    if ($b->isPaid()) {
                         $bookingHours = 0;
                         if (!empty($b->start_time) && !empty($b->end_time)) {
                             $bookingHours = Carbon::parse($b->start_time)->diffInMinutes(Carbon::parse($b->end_time)) / 60;
@@ -448,32 +448,34 @@ class UserBookingController extends Controller
                                 'description' => 'Hoàn tiền sau khi trừ phí hủy cho đơn đặt sân #' . $b->id,
                             ]);
 
-                            if ($fee > 0 && $b->court?->venue?->owner) {
-                                app(WalletService::class)->processTransaction(
-                                    wallet: $b->court->venue->owner->getOrCreateWallet(),
-                                    type: TransactionType::BOOKING_INCOME,
-                                    amount: $fee,
-                                    description: 'Phí hủy booking #'.$b->id.' do khách hủy',
-                                    bookingId: $b->id,
-                                    metadata: [
-                                        'payment_method' => $b->payment_method,
-                                        'fee_percent' => $feePercent,
-                                        'court_amount' => $bCourtPrice,
-                                    ],
-                                    reference: 'CANCEL-FEE-B'.$b->id
-                                );
-                            }
+                            $penaltyPlatformFee = 0;
+                            $penaltyOwnerEarnings = 0;
 
-                            if ($this->isPlatformOnlinePayment($b) && class_exists(PlatformWalletService::class)) {
-                                app(PlatformWalletService::class)->debit(
-                                    amount: $refund,
-                                    type: PlatformWalletTransaction::TYPE_CUSTOMER_REFUND_OUT,
-                                    description: 'Hoàn tiền cho khách hủy đơn #' . $b->id,
-                                    referenceType: 'booking',
-                                    referenceId: $b->id,
-                                    reference: 'REFUND-' . $b->id,
-                                    performedBy: Auth::id()
-                                );
+                            if ($fee > 0 && $b->court?->venue?->owner) {
+                                $venue = $b->court->venue;
+                                $commissionService = app(\App\Services\CommissionService::class);
+                                $commissionRate = $commissionService->getApplicableRate($venue);
+
+                                $penaltyPlatformFee = $commissionService->calculatePlatformFee($fee, $commissionRate);
+                                $penaltyOwnerEarnings = $commissionService->calculateOwnerEarnings($fee, $penaltyPlatformFee);
+
+                                if ($penaltyOwnerEarnings > 0) {
+                                    app(WalletService::class)->processTransaction(
+                                        wallet: $venue->owner->getOrCreateWallet(),
+                                        type: TransactionType::BOOKING_INCOME,
+                                        amount: $penaltyOwnerEarnings,
+                                        description: 'Thu nhập đền bù phạt hủy booking #'.$b->id.' (Đã trừ '.$commissionRate.'% phí sàn)',
+                                        bookingId: $b->id,
+                                        metadata: [
+                                            'payment_method' => $b->payment_method,
+                                            'fee_percent' => $feePercent,
+                                            'total_penalty' => $fee,
+                                            'platform_fee' => $penaltyPlatformFee,
+                                            'owner_earnings' => $penaltyOwnerEarnings,
+                                        ],
+                                        reference: 'CANCEL-FEE-B'.$b->id
+                                    );
+                                }
                             }
                         }
                     }
@@ -484,7 +486,9 @@ class UserBookingController extends Controller
                         'cancel_reason' => $reason,
                         'cancellation_fee' => $fee,
                         'refund_amount' => $refund,
-                        'refund_status' => $refundStatus
+                        'refund_status' => $refundStatus,
+                        'platform_fee' => $penaltyPlatformFee ?? 0,
+                        'owner_earnings' => $penaltyOwnerEarnings ?? 0,
                     ]);
 
                     // HOÀN VOUCHER
@@ -589,7 +593,7 @@ class UserBookingController extends Controller
 
         $courtPrice = max(0, $totalPrice - $servicesTotal);
         
-        $isPaid = $firstBooking->payment_status === 'paid';
+        $isPaid = $firstBooking->isPaid();
         
         // Phạt trên tiền sân
         $fee = $isPaid ? ($courtPrice * $feePercent) / 100 : 0;
