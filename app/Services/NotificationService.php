@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Mail\AdminNewVenueMail;
+use App\Mail\AdminVenueLegalUpdateMail;
 use App\Mail\AdminVenueTransferMail;
+use App\Mail\AdminWithdrawalRequestMail;
 use App\Models\Notification;
 use App\Models\Booking;
 use App\Models\BookingPackage;
@@ -11,11 +13,26 @@ use App\Models\OwnerRegistration;
 use App\Models\Review;
 use App\Models\Venue;
 use App\Models\User;
+use App\Models\WithdrawalRequest;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
 
 class NotificationService
 {
+    private function getAdminEmails(): array
+    {
+        $adminEmails = User::where('role', 'admin')->pluck('email')->filter()->toArray();
+
+        if (empty($adminEmails)) {
+            $fallbackEmail = config('mail.from.address');
+            if ($fallbackEmail) {
+                $adminEmails[] = $fallbackEmail;
+            }
+        }
+
+        return array_values(array_unique($adminEmails));
+    }
+
     public function create(int $userId, string $title, string $content, ?string $link = null, ?string $type = null): Notification
     {
         return Notification::create([
@@ -173,27 +190,15 @@ class NotificationService
         $content = "Chủ sân {$ownerName} vừa tạo cơ sở \"{$venue->name}\" kèm hồ sơ pháp lý, đang chờ bạn duyệt.";
         $link = route('admin.venues.index');
 
-        if ($admins->isNotEmpty()) {
-            foreach ($admins as $admin) {
-                $this->create($admin->id, $title, $content, $link, 'admin_new_venue');
+        foreach ($admins as $admin) {
+            $this->create($admin->id, $title, $content, $link, 'admin_new_venue');
+        }
 
-                if ($admin->email) {
-                    try {
-                        Mail::to($admin->email)->send(new AdminNewVenueMail($venue, $link));
-                    } catch (\Throwable $exception) {
-                        report($exception);
-                    }
-                }
-            }
-        } else {
-            // Nếu chưa có tài khoản admin nào trong DB, gửi fallback về mail hệ thống (MAIL_FROM_ADDRESS)
-            $fallbackEmail = config('mail.from.address');
-            if ($fallbackEmail) {
-                try {
-                    Mail::to($fallbackEmail)->send(new AdminNewVenueMail($venue, $link));
-                } catch (\Throwable $exception) {
-                    report($exception);
-                }
+        foreach ($this->getAdminEmails() as $email) {
+            try {
+                Mail::to($email)->send(new AdminNewVenueMail($venue, $link));
+            } catch (\Throwable $exception) {
+                report($exception);
             }
         }
     }
@@ -208,6 +213,14 @@ class NotificationService
         foreach ($admins as $admin) {
             $this->create($admin->id, $title, $content, $link, 'admin_venue_legal_update');
         }
+
+        foreach ($this->getAdminEmails() as $email) {
+            try {
+                Mail::to($email)->send(new AdminVenueLegalUpdateMail($venue, $link));
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
+        }
     }
 
     public function notifyAdminVenueTransfer($transfer): void
@@ -218,26 +231,40 @@ class NotificationService
         $content = "Hợp đồng chuyển nhượng cơ sở \"{$venueName}\" đã được các bên hoàn tất và đang chờ bạn duyệt.";
         $link = route('admin.venue-transfers.show', $transfer->id);
 
-        if ($admins->isNotEmpty()) {
-            foreach ($admins as $admin) {
-                $this->create($admin->id, $title, $content, $link, 'admin_venue_transfer');
+        foreach ($admins as $admin) {
+            $this->create($admin->id, $title, $content, $link, 'admin_venue_transfer');
+        }
 
-                if ($admin->email) {
-                    try {
-                        Mail::to($admin->email)->send(new AdminVenueTransferMail($transfer, $link));
-                    } catch (\Throwable $exception) {
-                        report($exception);
-                    }
-                }
+        foreach ($this->getAdminEmails() as $email) {
+            try {
+                Mail::to($email)->send(new AdminVenueTransferMail($transfer, $link));
+            } catch (\Throwable $exception) {
+                report($exception);
             }
-        } else {
-            $fallbackEmail = config('mail.from.address');
-            if ($fallbackEmail) {
-                try {
-                    Mail::to($fallbackEmail)->send(new AdminVenueTransferMail($transfer, $link));
-                } catch (\Throwable $exception) {
-                    report($exception);
-                }
+        }
+    }
+
+    public function notifyAdminWithdrawalRequest(WithdrawalRequest $withdrawalRequest): void
+    {
+        $admins = User::where('role', 'admin')->get();
+        $requester = $withdrawalRequest->owner;
+        $requesterName = $requester->name ?? 'Người dùng';
+        $roleText = ($requester && $requester->role === 'owner') ? 'Chủ sân' : 'Khách hàng';
+        $amountFormatted = number_format((float) $withdrawalRequest->amount, 0, ',', '.') . 'đ';
+
+        $title = 'Yêu cầu rút tiền mới cần duyệt';
+        $content = "{$roleText} {$requesterName} vừa yêu cầu rút {$amountFormatted}. (Mã: {$withdrawalRequest->code})";
+        $link = route('admin.withdrawals.show', $withdrawalRequest->id);
+
+        foreach ($admins as $admin) {
+            $this->create($admin->id, $title, $content, $link, 'admin_withdrawal_request');
+        }
+
+        foreach ($this->getAdminEmails() as $email) {
+            try {
+                Mail::to($email)->send(new AdminWithdrawalRequestMail($withdrawalRequest, $link));
+            } catch (\Throwable $exception) {
+                report($exception);
             }
         }
     }
