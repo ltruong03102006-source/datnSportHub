@@ -227,9 +227,10 @@ class CourtBookingController extends Controller
 
                 // Check wallet balance if payment_method is wallet
                 $userModel = \App\Models\User::find($userId);
+                $customerWallet = $userModel ? $userModel->getOrCreateWallet() : null;
                 if ($paymentMethod === 'wallet') {
-                    if ($userModel->balance < $finalPrice) {
-                        throw new Exception("Số dư ví không đủ để thanh toán. Vui lòng nạp thêm hoặc chọn phương thức khác.", 402);
+                    if (!$customerWallet || (float)$customerWallet->balance < $finalPrice) {
+                        throw new Exception("Số dư ví không đủ để thanh toán (" . number_format($customerWallet?->balance ?? 0) . "đ). Vui lòng nạp thêm hoặc chọn phương thức khác.", 402);
                     }
                 }
 
@@ -241,6 +242,7 @@ class CourtBookingController extends Controller
                     'start_time'  => $startTime,
                     'end_time'    => $endTime,
                     'total_price' => $finalPrice,
+                    'payment_method' => $paymentMethod,
                     'status'      => $paymentMethod === 'wallet' ? 'confirmed' : 'pending', // Auto confirm if paid via wallet
                     'payment_status' => $paymentMethod === 'wallet' ? 'paid' : 'unpaid',
                     'note'        => $note
@@ -253,17 +255,23 @@ class CourtBookingController extends Controller
                 }
 
                 // Deduct balance and record if wallet
-                if ($paymentMethod === 'wallet') {
-                    $userModel->balance -= $finalPrice;
-                    $userModel->save();
+                if ($paymentMethod === 'wallet' && $customerWallet) {
+                    app(\App\Services\WalletService::class)->processTransaction(
+                        wallet: $customerWallet,
+                        type: \App\Enums\TransactionType::PAYMENT,
+                        amount: $finalPrice,
+                        description: "Thanh toán đặt sân #" . $newBooking->id,
+                        bookingId: $newBooking->id
+                    );
 
-                    \App\Models\WalletTransaction::create([
-                        'user_id' => $userId,
-                        'type' => 'payment',
-                        'amount' => $finalPrice,
-                        'balance_after' => $userModel->balance,
-                        'description' => 'Thanh toán đặt sân #' . $newBooking->id,
-                    ]);
+                    app(\App\Services\PlatformWalletService::class)->credit(
+                        amount: $finalPrice,
+                        type: 'booking_payment',
+                        description: "Thanh toán đặt sân bằng ví khách hàng #" . $newBooking->id,
+                        referenceType: 'booking',
+                        referenceId: $newBooking->id,
+                        reference: 'BOOKING-' . $newBooking->id
+                    );
                 }
 
                 // 6. Tạo bản ghi giao dịch ban đầu cho booking mới để lịch sử thanh toán có dữ liệu.
@@ -337,6 +345,78 @@ class CourtBookingController extends Controller
                 'success' => false,
                 'message' => $e->getMessage() ?: 'Hệ thống bận, vui lòng thử lại sau.'
             ], $statusCode);
+        }
+    }
+
+    /**
+     * Trả về bảng giá ca cho sân theo ngày (dành cho AJAX trên trang booking)
+     * URL: GET /courts/{court}/shifts/prices?date=YYYY-MM-DD
+     */
+    public function prices(Request $request, Court $court): JsonResponse
+    {
+        $date = $request->query('date', now()->toDateString());
+        $weekView = $request->boolean('week');
+
+        try {
+            $dayIndex = (int) date('w', strtotime($date)); // 0 (Sun) - 6 (Sat)
+
+            // Lấy tất cả khung giờ và tất cả bản ghi giá liên quan (để có thể build tuần)
+            $timeSlots = $court->timeSlots()->with('prices')->get();
+
+            if ($weekView) {
+                // Trả về dạng ma trận: mỗi time slot kèm giá cho từng ngày trong tuần (Thứ 2 .. Chủ nhật)
+                $dayOrder = [1,2,3,4,5,6,0]; // T2..T7, CN
+                $result = $timeSlots->map(function($slot) use ($dayOrder) {
+                    $dayPrices = [];
+                    foreach ($dayOrder as $d) {
+                        // tìm bản ghi đúng ngày, nếu không có thì lấy bản ghi mặc định (day_of_week null)
+                        $exact = $slot->prices->first(fn($p) => $p->day_of_week !== null && (int)$p->day_of_week === (int)$d);
+                        $fallback = $slot->prices->first(fn($p) => $p->day_of_week === null);
+                        $entry = $exact ?? $fallback;
+
+                        $dayPrices[] = [
+                            'day_of_week' => $d,
+                            'price' => $entry?->price ? (float) $entry->price : null,
+                            'price_type' => $entry?->price_type ?? null,
+                            'is_peak' => isset($entry) ? (($entry->price_type ?? '') === 'peak' || ($entry->is_peak ?? false)) : false,
+                        ];
+                    }
+
+                    return [
+                        'time_slot_id' => $slot->id,
+                        'name' => sprintf('Ca %s', $slot->id),
+                        'start_time' => $slot->start_time,
+                        'end_time' => $slot->end_time,
+                        'day_prices' => $dayPrices,
+                    ];
+                })->values();
+
+                return response()->json(['success' => true, 'data' => $result]);
+            }
+
+            // Default: trả giá cho ngày được yêu cầu (date)
+            $result = $timeSlots->map(function($slot) use ($dayIndex) {
+                // Tìm giá phù hợp cho ngày đó hoặc fallback
+                $exact = $slot->prices->first(fn($p) => $p->day_of_week !== null && (int)$p->day_of_week === $dayIndex);
+                $fallback = $slot->prices->first(fn($p) => $p->day_of_week === null);
+                $priceEntry = $exact ?? $fallback;
+
+                return [
+                    'time_slot_id' => $slot->id,
+                    'name' => sprintf('Ca %s', $slot->id),
+                    'start_time' => $slot->start_time,
+                    'end_time' => $slot->end_time,
+                    'price' => $priceEntry?->price ? (float) $priceEntry->price : null,
+                    'price_type' => $priceEntry?->price_type ?? null,
+                    'is_peak' => isset($priceEntry) ? (($priceEntry->price_type ?? '') === 'peak' || ($priceEntry->is_peak ?? false)) : false,
+                ];
+            })->values();
+
+            return response()->json(['success' => true, 'data' => $result]);
+
+        } catch (Exception $e) {
+            Log::error('Lỗi khi lấy bảng giá: ' . $e->getMessage(), ['court_id' => $court->id, 'date' => $date]);
+            return response()->json(['success' => false, 'message' => 'Không thể tải bảng giá.'], 500);
         }
     }
 }

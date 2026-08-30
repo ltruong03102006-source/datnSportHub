@@ -154,6 +154,11 @@
                                 <p class="mt-0.5 text-xs font-bold text-slate-600">
                                     {{ substr($item->old_start_time, 0, 5) }} - {{ substr($item->old_end_time, 0, 5) }}
                                 </p>
+                                @if((float) $item->old_price > 0)
+                                    <p class="mt-1.5 text-xs font-black text-slate-500">
+                                        Giá cũ: {{ number_format($item->old_price, 0, ',', '.') }}đ
+                                    </p>
+                                @endif
                             </div>
 
                             <!-- Arrow Indicator -->
@@ -179,6 +184,16 @@
                                     -
                                     {{ substr($item->new_end_time ?? $item->newTimeSlot?->end_time, 0, 5) }}
                                 </p>
+                                @if((float) $item->new_price > 0)
+                                    <p class="mt-1.5 text-xs font-black text-emerald-700 flex items-center gap-2">
+                                        Giá mới: {{ number_format($item->new_price, 0, ',', '.') }}đ
+                                        @if((float) $item->price_difference > 0)
+                                            <span class="rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-black text-orange-700">Khách đã trả thêm +{{ number_format($item->price_difference, 0, ',', '.') }}đ</span>
+                                        @elseif((float) $item->price_difference < 0)
+                                            <span class="rounded bg-emerald-200 px-1.5 py-0.5 text-[10px] font-black text-emerald-800">Hoàn ví khách {{ number_format(abs($item->price_difference), 0, ',', '.') }}đ</span>
+                                        @endif
+                                    </p>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -189,6 +204,7 @@
 
     <!-- Action Section -->
     @if($status === 'pending')
+        @php($totalDiffSum = $requests->sum('price_difference'))
         <section class="mt-6 rounded-2xl border border-amber-200/80 bg-amber-50/30 p-6 shadow-xs">
             <div class="border-b border-amber-200/60 pb-4">
                 <h2 class="text-lg font-black text-amber-950 flex items-center gap-2">
@@ -200,6 +216,15 @@
                 <p class="mt-1 text-xs font-semibold text-amber-800">
                     Bấm "Duyệt yêu cầu" để cập nhật lịch mới cho khách, hoặc điền ghi chú rồi bấm "Từ chối".
                 </p>
+                @if($totalDiffSum < 0)
+                    <div class="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-800">
+                        💡 <strong>Lưu ý:</strong> Ca mới có giá thấp hơn ca cũ. Khi bấm Duyệt, hệ thống sẽ tự động hoàn <strong>{{ number_format(abs($totalDiffSum), 0, ',', '.') }} VNĐ</strong> về Ví của khách hàng.
+                    </div>
+                @elseif($totalDiffSum > 0)
+                    <div class="mt-3 rounded-xl border border-orange-200 bg-orange-50 p-3 text-xs font-bold text-orange-800">
+                        💳 <strong>Khách đã thanh toán bổ sung:</strong> Khách hàng đã trả trước <strong>+{{ number_format($totalDiffSum, 0, ',', '.') }} VNĐ</strong> từ Ví khi gửi yêu cầu đổi sang ca cao điểm. (Nếu bạn từ chối, số tiền này sẽ được hoàn lại cho khách).
+                    </div>
+                @endif
             </div>
 
             <div class="mt-5">

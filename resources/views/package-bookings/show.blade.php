@@ -638,7 +638,7 @@
             </div>
 
             <div class="space-y-5">
-                <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                {{-- <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                     <h2 class="text-lg font-black text-zinc-900">
                         Thao tác nhanh
                     </h2>
@@ -708,7 +708,7 @@
                             </div>
                         @endif
                     </div>
-                </div>
+                </div> --}}
 
                 <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                     <h2 class="text-lg font-black text-zinc-900">

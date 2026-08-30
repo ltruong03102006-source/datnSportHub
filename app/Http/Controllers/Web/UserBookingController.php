@@ -45,7 +45,7 @@ class UserBookingController extends Controller
 
         $bookingGroup = $query->orderBy('start_time')->get();
 
-        $booking->load(['court.venue.sport', 'court.venue.ownerRegistration', 'items.rescheduleRequests', 'vouchers']);
+        $booking->load(['court.venue.sport', 'court.venue.ownerRegistration', 'items.rescheduleRequests', 'vouchers', 'services']);
         if ($booking->items->isNotEmpty()) {
             $bookingGroup = $booking->items->sortBy('start_time')->values()->each(function ($item) use ($booking) {
                 $item->setRelation('court', $booking->court);
@@ -56,12 +56,19 @@ class UserBookingController extends Controller
             ? $booking->items->sum('price')
             : $bookingGroup->sum('total_price');
 
+        $purchasedServices = $booking->services ?? collect();
+
         $totalMinutes = 0;
         foreach ($bookingGroup as $b) {
             $start = Carbon::parse($b->start_time);
             $end = Carbon::parse($b->end_time);
-            $totalMinutes += $start->diffInMinutes($end); 
+            $totalMinutes += $start->diffInMinutes($end);
         }
+
+        $serviceDurationHours = $totalMinutes > 0 ? ($totalMinutes / 60) : 1;
+        $servicesTotal = $purchasedServices->sum(function ($service) use ($serviceDurationHours) {
+            return $this->calculateServiceLineTotal($service, $serviceDurationHours);
+        });
         
         $hours = floor($totalMinutes / 60);
         $minutes = $totalMinutes % 60;
@@ -78,6 +85,8 @@ class UserBookingController extends Controller
             'totalDurationStr' => $totalDurationStr,
             'statusMeta' => $this->statusMeta($booking->status),
             'bookingHoldTime' => $bookingHoldTime,
+            'purchasedServices' => $purchasedServices,
+            'servicesTotal' => $servicesTotal,
         ]);
     }
 
@@ -332,6 +341,20 @@ class UserBookingController extends Controller
             : Carbon::parse($date)->format('Y-m-d');
     }
 
+    private function calculateServiceLineTotal($service, float $durationHours = 1.0): float
+    {
+        $unitPrice = (float) ($service->pivot?->price ?? $service->pivot_price ?? 0);
+        $quantity = (int) ($service->pivot?->quantity ?? $service->pivot_quantity ?? 1);
+        $pricingType = $service->pricing_type ?? 'retail';
+        $lineTotal = $unitPrice * $quantity;
+
+        if ($pricingType === 'rental' && $durationHours > 0) {
+            $lineTotal *= $durationHours;
+        }
+
+        return $lineTotal > 0 ? $lineTotal : $unitPrice;
+    }
+
     private function ownerPhoneForBooking(Booking $booking): ?string
     {
         return $booking->court?->venue?->ownerRegistration?->phone
@@ -391,9 +414,15 @@ class UserBookingController extends Controller
                     $refund = 0;
                     $refundStatus = 'none';
 
-                    if ($b->payment_status === 'paid') {
-                        // SỬA: BÓC TÁCH TIỀN DỊCH VỤ KHỎI PHÍ PHẠT
-                        $bServicesTotal = $b->services->sum('pivot.price');
+                    if ($b->isPaid()) {
+                        $bookingHours = 0;
+                        if (!empty($b->start_time) && !empty($b->end_time)) {
+                            $bookingHours = Carbon::parse($b->start_time)->diffInMinutes(Carbon::parse($b->end_time)) / 60;
+                        }
+
+                        $bServicesTotal = $b->services->sum(function ($service) use ($bookingHours) {
+                            return $this->calculateServiceLineTotal($service, $bookingHours > 0 ? $bookingHours : 1);
+                        });
                         $bCourtPrice = max(0, $b->total_price - $bServicesTotal); // Lấy ra tiền thuê sân gốc
                         
                         $fee = ($bCourtPrice * $feePercent) / 100; // Chỉ tính phạt trên tiền sân
@@ -419,32 +448,34 @@ class UserBookingController extends Controller
                                 'description' => 'Hoàn tiền sau khi trừ phí hủy cho đơn đặt sân #' . $b->id,
                             ]);
 
-                            if ($fee > 0 && $b->court?->venue?->owner) {
-                                app(WalletService::class)->processTransaction(
-                                    wallet: $b->court->venue->owner->getOrCreateWallet(),
-                                    type: TransactionType::BOOKING_INCOME,
-                                    amount: $fee,
-                                    description: 'Phí hủy booking #'.$b->id.' do khách hủy',
-                                    bookingId: $b->id,
-                                    metadata: [
-                                        'payment_method' => $b->payment_method,
-                                        'fee_percent' => $feePercent,
-                                        'court_amount' => $bCourtPrice,
-                                    ],
-                                    reference: 'CANCEL-FEE-B'.$b->id
-                                );
-                            }
+                            $penaltyPlatformFee = 0;
+                            $penaltyOwnerEarnings = 0;
 
-                            if ($this->isPlatformOnlinePayment($b) && class_exists(PlatformWalletService::class)) {
-                                app(PlatformWalletService::class)->debit(
-                                    amount: $refund,
-                                    type: PlatformWalletTransaction::TYPE_CUSTOMER_REFUND_OUT,
-                                    description: 'Hoàn tiền cho khách hủy đơn #' . $b->id,
-                                    referenceType: 'booking',
-                                    referenceId: $b->id,
-                                    reference: 'REFUND-' . $b->id,
-                                    performedBy: Auth::id()
-                                );
+                            if ($fee > 0 && $b->court?->venue?->owner) {
+                                $venue = $b->court->venue;
+                                $commissionService = app(\App\Services\CommissionService::class);
+                                $commissionRate = $commissionService->getApplicableRate($venue);
+
+                                $penaltyPlatformFee = $commissionService->calculatePlatformFee($fee, $commissionRate);
+                                $penaltyOwnerEarnings = $commissionService->calculateOwnerEarnings($fee, $penaltyPlatformFee);
+
+                                if ($penaltyOwnerEarnings > 0) {
+                                    app(WalletService::class)->processTransaction(
+                                        wallet: $venue->owner->getOrCreateWallet(),
+                                        type: TransactionType::BOOKING_INCOME,
+                                        amount: $penaltyOwnerEarnings,
+                                        description: 'Thu nhập đền bù phạt hủy booking #'.$b->id.' (Đã trừ '.$commissionRate.'% phí sàn)',
+                                        bookingId: $b->id,
+                                        metadata: [
+                                            'payment_method' => $b->payment_method,
+                                            'fee_percent' => $feePercent,
+                                            'total_penalty' => $fee,
+                                            'platform_fee' => $penaltyPlatformFee,
+                                            'owner_earnings' => $penaltyOwnerEarnings,
+                                        ],
+                                        reference: 'CANCEL-FEE-B'.$b->id
+                                    );
+                                }
                             }
                         }
                     }
@@ -455,7 +486,9 @@ class UserBookingController extends Controller
                         'cancel_reason' => $reason,
                         'cancellation_fee' => $fee,
                         'refund_amount' => $refund,
-                        'refund_status' => $refundStatus
+                        'refund_status' => $refundStatus,
+                        'platform_fee' => $penaltyPlatformFee ?? 0,
+                        'owner_earnings' => $penaltyOwnerEarnings ?? 0,
                     ]);
 
                     // HOÀN VOUCHER
@@ -526,12 +559,12 @@ class UserBookingController extends Controller
     {
         $this->ensureOwner($booking);
         
-        // SỬA: Thêm with('services') để load dữ liệu dịch vụ
+        // Load dữ liệu dịch vụ
         $groupBookings = Booking::with('services')->where('user_id', Auth::id())
             ->where('court_id', $booking->court_id)->where('slot_date', $booking->slot_date)
             ->where('created_at', $booking->created_at)->whereIn('status', self::CANCELLABLE_STATUSES)->get();
 
-        // FIX LỖI XOAY CHUỘT: Chặn lỗi nếu đơn đã bị hủy từ trước
+        // Chặn lỗi nếu đơn đã bị hủy từ trước
         if ($groupBookings->isEmpty()) {
             return response()->json(['message' => 'Đơn này đã hủy hoặc không còn cho phép hủy.'], 422);
         }
@@ -549,11 +582,18 @@ class UserBookingController extends Controller
         
         $totalPrice = $groupBookings->sum('total_price');
         
-        // SỬA: BÓC TÁCH TIỀN DỊCH VỤ TRÊN GIAO DIỆN HIỂN THỊ
-        $servicesTotal = $groupBookings->flatMap->services->sum('pivot.price');
+        // BÓC TÁCH TIỀN DỊCH VỤ VÀ TIỀN SÂN
+        $servicesTotal = $groupBookings->flatMap->services->sum(function ($service) {
+             // Đảm bảo tính cả quantity và price
+             $qty = (int) ($service->pivot->quantity ?? 1);
+             $price = (float) ($service->pivot->price ?? 0);
+             $lineTotal = $price * $qty;
+             return $lineTotal > 0 ? $lineTotal : $price;
+        });
+
         $courtPrice = max(0, $totalPrice - $servicesTotal);
         
-        $isPaid = $firstBooking->payment_status === 'paid';
+        $isPaid = $firstBooking->isPaid();
         
         // Phạt trên tiền sân
         $fee = $isPaid ? ($courtPrice * $feePercent) / 100 : 0;
@@ -563,6 +603,8 @@ class UserBookingController extends Controller
         return response()->json([
             'success' => true,
             'total_price' => $totalPrice,
+            'court_price' => $courtPrice,           // TRẢ THÊM TIỀN SÂN
+            'services_total' => $servicesTotal,     // TRẢ THÊM TIỀN DỊCH VỤ
             'fee_percent' => $feePercent,
             'cancellation_fee' => $fee,
             'refund_amount' => $refund,
@@ -595,6 +637,7 @@ class UserBookingController extends Controller
             'online',
             'bank_transfer',
             'platform_transfer',
+            'wallet',
         ], true);
     }
 
@@ -653,6 +696,9 @@ class UserBookingController extends Controller
     /**
      * Thuật toán tìm % phí phạt thông minh
      */
+    /**
+     * Thuật toán tìm % phí phạt thông minh (Đã Fix)
+     */
     private function determineCancellationFeePercent(Booking $firstBooking): int
     {
         $startsAt = $this->slotStartsAt($firstBooking);
@@ -664,29 +710,29 @@ class UserBookingController extends Controller
         // Rủi ro lố giờ (Cố tình request API ảo) -> Phạt max 100%
         if ($diffInHours < 0) return 100;
 
-        // QUY ĐỊNH HỆ THỐNG: Hủy trong vòng 1 giờ trước ca -> Phạt mặc định 30%
-        if ($diffInHours < 1) {
-            return 30;
-        }
-
-        // Lấy danh sách cấu hình của chủ sân, SẮP XẾP TĂNG DẦN (Ví dụ: 6h, 12h, 24h)
+        // Lấy danh sách cấu hình của chủ sân, SẮP XẾP TĂNG DẦN
         $policies = \App\Models\CancellationPolicy::where('venue_id', $firstBooking->court->venue_id)
             ->orderBy('hours_before', 'asc')
             ->get();
 
-        // Fallback: Chủ sân chưa cấu hình gì -> Miễn phí hủy
-        if ($policies->isEmpty()) return 0;
+        $feePercent = 0;
 
-        // Quét tìm mốc vi phạm:
-        foreach ($policies as $policy) {
-            if ($diffInHours < $policy->hours_before) {
-                // Ưu tiên mức phạt cao hơn giữa hệ thống (30%) và chủ sân nếu hủy sát giờ
-                // Nhưng ở đây diffInHours >= 1 rồi, nên cứ lấy theo chủ sân.
-                return $policy->fee_percent;
+        // Quét tìm mốc vi phạm của chủ sân:
+        if ($policies->isNotEmpty()) {
+            foreach ($policies as $policy) {
+                if ($diffInHours < $policy->hours_before) {
+                    $feePercent = $policy->fee_percent;
+                    break; // Đã sắp xếp tăng dần nên gặp mốc đầu tiên thỏa mãn là dừng
+                }
             }
         }
 
-        // Hủy quá sớm -> An toàn
-        return 0;
+        // QUY ĐỊNH HỆ THỐNG: Hủy quá sát giờ (< 1 tiếng)
+        // Hệ thống sẽ so sánh: Giữa mức phạt chủ sân cài và mức mặc định 30%, cái nào CAO HƠN thì áp dụng cái đó để bảo vệ quyền lợi chủ sân.
+        if ($diffInHours < 1) {
+            return max(30, $feePercent);
+        }
+
+        return $feePercent;
     }
 }

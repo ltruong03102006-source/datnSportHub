@@ -56,10 +56,10 @@ class AdminFinanceDashboardController extends Controller
         if (Schema::hasColumn('bookings', 'settlement_status')) {
             $bookingQuery->where('settlement_status', 'settled');
         } else {
-            $bookingQuery->whereIn('status', ['completed', 'confirmed']);
+            $bookingQuery->where('status', 'completed');
 
             if (Schema::hasColumn('bookings', 'payment_status')) {
-                $bookingQuery->where('payment_status', 'paid');
+                $bookingQuery->whereIn('payment_status', ['paid', 'success', 'completed']);
             }
         }
 
@@ -99,6 +99,90 @@ class AdminFinanceDashboardController extends Controller
         if (! $ownerEarningsColumn && (float) $ownerPayout <= 0 && (float) $gmv > 0) {
             $ownerPayout = max(0, (float) $gmv - (float) $platformRevenue);
         }
+
+        // TÍNH TOÁN CHI TIẾT BOOKING LẺ VS ĐẶT GÓI
+        $singleBookingQuery = (clone $bookingQuery)->where(function ($q) {
+            $q->whereNull('booking_package_id');
+            if (Schema::hasColumn('bookings', 'payment_method')) {
+                $q->where('payment_method', '!=', 'package');
+            }
+        });
+
+        $packageBookingQuery = (clone $bookingQuery)->where(function ($q) {
+            $q->whereNotNull('booking_package_id');
+            if (Schema::hasColumn('bookings', 'payment_method')) {
+                $q->orWhere('payment_method', 'package');
+            }
+        });
+
+        $packageModelQuery = Schema::hasTable('booking_packages') ? \App\Models\BookingPackage::query() : null;
+        if ($packageModelQuery) {
+            if ($ownerId) {
+                $packageModelQuery->whereHas('venue', fn($q) => $q->where('owner_id', $ownerId));
+            }
+            $this->applyDateRange($packageModelQuery, 'created_at', $dateFrom, $dateTo);
+        }
+
+        $activePackageCount = $packageModelQuery ? (clone $packageModelQuery)->whereIn('status', ['active', 'paused'])->count() : 0;
+        $completedPackageCount = $packageModelQuery ? (clone $packageModelQuery)->where('status', 'completed')->count() : 0;
+        $totalPackageCount = $packageModelQuery ? (clone $packageModelQuery)->whereIn('status', ['active', 'completed', 'paused'])->count() : 0;
+        $totalPackageSalesAmount = $packageModelQuery ? (float) (clone $packageModelQuery)->whereIn('status', ['active', 'completed', 'paused'])->sum('final_amount') : 0;
+
+        $singleGmv = Schema::hasColumn('bookings', $gmvColumn) ? (float) (clone $singleBookingQuery)->sum($gmvColumn) : 0;
+        $rawPackageGmv = Schema::hasColumn('bookings', $gmvColumn) ? (float) (clone $packageBookingQuery)->sum($gmvColumn) : 0;
+        $packageGmv = $totalPackageSalesAmount > 0 ? $totalPackageSalesAmount : $rawPackageGmv;
+        $gmv = $singleGmv + $packageGmv;
+
+        $singleCommission = $commissionColumn ? (float) (clone $singleBookingQuery)->sum($commissionColumn) : 0;
+        $packageCommission = $commissionColumn ? (float) (clone $packageBookingQuery)->sum($commissionColumn) : 0;
+
+        $cancelledBookingQuery = Booking::query()
+            ->where('status', 'cancelled')
+            ->where('cancellation_fee', '>', 0);
+        $this->applyDateRange($cancelledBookingQuery, 'created_at', $dateFrom, $dateTo);
+        $this->applyOwnerFilterToBookingQuery($cancelledBookingQuery, $ownerId);
+
+        $cancellationCommission = $commissionColumn ? (float) (clone $cancelledBookingQuery)->sum($commissionColumn) : 0;
+
+        $singleSettledCount = (clone $singleBookingQuery)->count();
+        $packageSettledCount = (clone $packageBookingQuery)->count();
+
+        // TÍNH TOÁN THEO PHƯƠNG THỨC THANH TOÁN
+        $onlinePaymentGmv = Schema::hasColumn('bookings', 'payment_method')
+            ? (float) (clone $bookingQuery)->whereIn('payment_method', ['vnpay', 'online', 'bank_transfer', 'momo', 'zalopay'])->sum($gmvColumn)
+            : 0;
+
+        $codPaymentGmv = Schema::hasColumn('bookings', 'payment_method')
+            ? (float) (clone $bookingQuery)->whereIn('payment_method', ['cod', 'cash', 'offline'])->sum($gmvColumn)
+            : 0;
+
+        $walletPaymentGmv = Schema::hasColumn('bookings', 'payment_method')
+            ? (float) (clone $bookingQuery)->where('payment_method', 'wallet')->sum($gmvColumn)
+            : 0;
+
+        $packagePaymentGmv = Schema::hasColumn('bookings', 'payment_method')
+            ? (float) (clone $bookingQuery)->where('payment_method', 'package')->sum($gmvColumn)
+            : 0;
+
+        $unsettledPackageQuery = \App\Models\Booking::query();
+        if (Schema::hasColumn('bookings', 'payment_status')) {
+            $unsettledPackageQuery->whereIn('payment_status', ['paid', 'success', 'completed']);
+        }
+        $unsettledPackageQuery->where(function ($q) {
+            $q->whereNotNull('booking_package_id');
+            if (Schema::hasColumn('bookings', 'payment_method')) {
+                $q->orWhere('payment_method', 'package');
+            }
+        });
+        if (Schema::hasColumn('bookings', 'settlement_status')) {
+            $unsettledPackageQuery->where('settlement_status', '!=', 'settled');
+        } else {
+            $unsettledPackageQuery->whereNotIn('status', ['completed', 'cancelled']); 
+        }
+        if ($ownerId) {
+            $unsettledPackageQuery->whereHas('court.venue', fn($q) => $q->where('owner_id', $ownerId));
+        }
+        $unsettledPackageFunds = Schema::hasColumn('bookings', $gmvColumn) ? (float) $unsettledPackageQuery->sum($gmvColumn) : 0;
 
         $wallets = Wallet::query()
             ->with('owner')
@@ -248,7 +332,7 @@ class AdminFinanceDashboardController extends Controller
         $platformNetCashFlow = $platformCashIn - $platformCashOut;
 
         $customerOnlinePaymentIn = $platformTransactionQuery
-            ? (float) (clone $platformTransactionQuery)->where('type', 'customer_online_payment_in')->sum('amount')
+            ? (float) (clone $platformTransactionQuery)->whereIn('type', ['customer_online_payment_in', 'booking_payment'])->sum('amount')
             : 0;
 
         $ownerTopupIn = $platformTransactionQuery
@@ -258,9 +342,15 @@ class AdminFinanceDashboardController extends Controller
         $ownerWithdrawalOut = $platformTransactionQuery
             ? abs((float) (clone $platformTransactionQuery)->where('type', 'owner_withdrawal_out')->sum('amount'))
             : 0;
+
         $adminRevenueWithdrawal = $platformTransactionQuery
             ? abs((float) (clone $platformTransactionQuery)->where('type', 'admin_revenue_withdrawal')->sum('amount'))
             : 0;
+
+        $customerRefundOut = $platformTransactionQuery
+            ? abs((float) (clone $platformTransactionQuery)->where('type', 'customer_refund_out')->sum('amount'))
+            : 0;
+
         if (Schema::hasTable('platform_wallet_transactions')) {
             $latestPlatformTransactionQuery = PlatformWalletTransaction::query()
                 ->with(['platformWallet', 'performer']);
@@ -280,6 +370,48 @@ class AdminFinanceDashboardController extends Controller
             ->latest()
             ->limit(10)
             ->get();
+
+        // TÍNH TOÁN AN TOÀN TÀI CHÍNH (SOLVENCY)
+        $ownerWalletLiability = (float) Wallet::query()
+            ->where('balance', '>', 0)
+            ->whereHas('owner', fn ($q) => $q->where('role', 'owner'))
+            ->when($ownerId, fn ($q) => $q->where('owner_id', $ownerId))
+            ->sum('balance');
+
+        $customerWalletsQuery = Wallet::query()
+            ->where('balance', '>', 0)
+            ->whereHas('owner', fn ($q) => $q->where('role', '!=', 'owner'));
+        $customerWalletLiability = (float) (clone $customerWalletsQuery)->sum('balance');
+        $customerWalletCount = (clone $customerWalletsQuery)->count();
+
+        $totalSystemLiability = $ownerWalletLiability + ($ownerId ? 0 : $customerWalletLiability);
+
+        $unsettledQuery = Booking::query();
+        if (Schema::hasColumn('bookings', 'payment_status')) {
+            $unsettledQuery->whereIn('payment_status', ['paid', 'success', 'completed']);
+        }
+        $unsettledQuery->where(function ($q) {
+            $q->whereNull('booking_package_id');
+            if (Schema::hasColumn('bookings', 'payment_method')) {
+                $q->where('payment_method', '!=', 'package');
+            }
+        });
+        $unsettledQuery->whereNotIn('status', ['completed', 'cancelled', 'rejected']);
+        if (Schema::hasColumn('bookings', 'settlement_status')) {
+            $unsettledQuery->where('settlement_status', '!=', 'settled');
+        }
+        $this->applyOwnerFilterToBookingQuery($unsettledQuery, $ownerId);
+        $amountCol = Schema::hasColumn('bookings', 'gross_amount') ? 'gross_amount' : 'total_price';
+        $unsettledFunds = (float) $unsettledQuery->sum($amountCol);
+
+        $safeToWithdraw = $platformWalletBalance - $totalSystemLiability - $unsettledFunds;
+        $displaySafeAmount = max(0, $safeToWithdraw);
+
+        $platformRevenue = $singleCommission + $packageCommission + $cancellationCommission;
+
+        $effectivePackageGmv = $packageGmv > 0 ? $packageGmv : $totalPackageSalesAmount;
+        $calculatedGmv = $singleGmv + $effectivePackageGmv;
+        $gmv = max($gmv, $calculatedGmv);
 
         return view('admin.finance.index', compact(
             'dateFrom',
@@ -314,7 +446,30 @@ class AdminFinanceDashboardController extends Controller
             'ownerSort',
             'topDebtOwners',
             'latestTransactions',
-            'adminRevenueWithdrawal'
+            'adminRevenueWithdrawal',
+            'customerRefundOut',
+            'singleGmv',
+            'packageGmv',
+            'singleCommission',
+            'packageCommission',
+            'cancellationCommission',
+            'activePackageCount',
+            'completedPackageCount',
+            'totalPackageSalesAmount',
+            'unsettledPackageFunds',
+            'singleSettledCount',
+            'packageSettledCount',
+            'totalPackageCount',
+            'onlinePaymentGmv',
+            'codPaymentGmv',
+            'walletPaymentGmv',
+            'packagePaymentGmv',
+            'ownerWalletLiability',
+            'customerWalletLiability',
+            'customerWalletCount',
+            'totalSystemLiability',
+            'unsettledFunds',
+            'displaySafeAmount'
         ), [
             'commissionChartLabels' => $commissionChart['labels'],
             'commissionChartOnlineData' => $commissionChart['online'],
@@ -362,7 +517,13 @@ class AdminFinanceDashboardController extends Controller
             ->where('owner_id', $ownerId)
             ->pluck('id');
 
-        $query->where(function ($referenceQuery) use ($bookingIds, $topupIds, $withdrawalIds) {
+        $packageIds = Schema::hasTable('booking_packages')
+            ? \App\Models\BookingPackage::query()
+                ->whereHas('venue', fn ($venueQuery) => $venueQuery->where('owner_id', $ownerId))
+                ->pluck('id')
+            : collect();
+
+        $query->where(function ($referenceQuery) use ($bookingIds, $topupIds, $withdrawalIds, $packageIds) {
             $referenceQuery
                 ->where(function ($bookingQuery) use ($bookingIds) {
                     $bookingQuery->where('reference_type', 'booking')
@@ -375,6 +536,10 @@ class AdminFinanceDashboardController extends Controller
                 ->orWhere(function ($withdrawalQuery) use ($withdrawalIds) {
                     $withdrawalQuery->where('reference_type', 'withdrawal_request')
                         ->whereIn('reference_id', $withdrawalIds);
+                })
+                ->orWhere(function ($packageQuery) use ($packageIds) {
+                    $packageQuery->where('reference_type', 'booking_package')
+                        ->whereIn('reference_id', $packageIds);
                 });
         });
     }
@@ -526,16 +691,34 @@ class AdminFinanceDashboardController extends Controller
             $bankCode = 'VCB' . rand(100000, 999999); // Sinh mã ngân hàng ảo
 
             DB::transaction(function () use ($amount, $platformWalletService, $gateway, &$referenceId) {
-                $totalOwnerBalance = \App\Models\Wallet::where('balance', '>', 0)->sum('balance');
-                $platformWallet = $platformWalletService->getDefaultWallet();
-                $safeWithdrawableAmount = $platformWallet->balance - $totalOwnerBalance;
+                // 1. Tổng tiền đang nằm trong ví của các Chủ sân và Khách hàng
+                $totalSystemLiability = \App\Models\Wallet::where('balance', '>', 0)->sum('balance');
 
+                // 2. TÍNH TỔNG TIỀN BOOKING ĐANG CHỜ ĐỐI SOÁT (Tiền khách đã trả nhưng chưa đá xong)
+                $unsettledQuery = \App\Models\Booking::query();
+                if (\Illuminate\Support\Facades\Schema::hasColumn('bookings', 'payment_status')) {
+                    $unsettledQuery->where('payment_status', 'paid');
+                }
+                if (\Illuminate\Support\Facades\Schema::hasColumn('bookings', 'settlement_status')) {
+                    $unsettledQuery->where('settlement_status', '!=', 'settled');
+                } else {
+                    $unsettledQuery->whereNotIn('status', ['completed', 'cancelled']); 
+                }
+                $amountCol = \Illuminate\Support\Facades\Schema::hasColumn('bookings', 'gross_amount') ? 'gross_amount' : 'total_price';
+                $unsettledFunds = (float) $unsettledQuery->sum($amountCol);
+
+                // 3. TÍNH LỢI NHUẬN THỰC SỰ ĐƯỢC RÚT
+                $platformWallet = $platformWalletService->getDefaultWallet();
+                $safeWithdrawableAmount = $platformWallet->balance - $totalSystemLiability - $unsettledFunds;
+
+                // 4. CHẶN NẾU RÚT QUÁ LỢI NHUẬN THỰC
                 if ($amount > $safeWithdrawableAmount) {
-                    throw new \Exception('Lỗi: Số tiền rút vượt quá lợi nhuận khả dụng thực tế!');
+                    throw new \Exception('Lỗi: Số dư khả dụng không đủ. Hệ thống đang tạm giữ tiền chờ đối soát!');
                 }
 
-                // 2. Tạo mã tham chiếu đúng chuẩn bạn yêu cầu (VD: WD-202607270001)
+                // (Đoạn code tạo mã Reference và trừ tiền phía dưới giữ nguyên)
                 $referenceId = 'WD-' . now()->format('Ymd') . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+                // ...
 
                 // 3. Trừ tiền Ví nền tảng (Hold tiền)
                 $platformWalletService->debit(

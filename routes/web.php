@@ -18,6 +18,7 @@ use App\Http\Controllers\Web\AdminUserController;
 use App\Http\Controllers\Web\AdminVenueController;
 use App\Http\Controllers\Web\AdminBookingController;
 use App\Http\Controllers\Web\AdminCourtController;
+use App\Http\Controllers\Web\AdminOwnerRegistrationController;
 use App\Http\Controllers\Web\FavoriteController;
 use App\Http\Controllers\Web\OwnerCancellationPolicyController;
 use Illuminate\Support\Facades\Route;
@@ -38,6 +39,7 @@ use App\Http\Controllers\Web\AdminDebtController;
 use App\Http\Controllers\Web\AdminFinanceDashboardController;
 use App\Http\Controllers\Web\TransactionController;
 use App\Http\Controllers\Web\AdminTransactionController;
+use App\Http\Controllers\Web\AdminUserWalletController;
 
 /*
 |--------------------------------------------------------------------------
@@ -80,6 +82,9 @@ Route::post('/chatbot/reset', [ChatbotController::class, 'reset'])->name('chatbo
 
 Route::get('/courts/{court}/booking', [CourtBookingController::class, 'show'])->name('web.courts.booking');
 Route::post('/courts/booking', [CourtBookingController::class, 'store'])->name('web.courts.booking.store');
+
+// Endpoint: return slot prices for a court on a given date (used by booking page "Xem bảng giá")
+Route::get('/courts/{court}/shifts/prices', [CourtBookingController::class, 'prices']);
 
 Route::get('/venues/nearby', [VenueController::class, 'nearbyPage'])->name('venues.nearby');
 
@@ -162,6 +167,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/finance', [AdminFinanceDashboardController::class, 'index'])->name('finance.index');
         Route::post('/finance/withdraw', [AdminFinanceDashboardController::class, 'withdrawRevenue'])->name('finance.withdraw');
         Route::get('/finance/withdraw-history', [AdminFinanceDashboardController::class, 'withdrawHistory'])->name('finance.withdraw_history');
+        Route::get('/user-wallets', [AdminUserWalletController::class, 'index'])->name('user_wallets.index');
+        Route::get('/user-wallets/{wallet}', [AdminUserWalletController::class, 'show'])->name('user_wallets.show');
         Route::get('/debts', [AdminDebtController::class, 'index'])->name('debts.index');
         Route::get('/packages', [AdminPackageController::class, 'index'])->name('packages.index');
         Route::get('/chatbot', [\App\Http\Controllers\Web\AdminChatbotController::class, 'index'])->name('chatbot.index');
@@ -196,6 +203,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/contracts/{contract}/pdf', [\App\Http\Controllers\Web\AdminContractController::class, 'exportPdf'])->name('contracts.pdf');
         Route::get('/contracts/{contract}', [\App\Http\Controllers\Web\AdminContractController::class, 'show'])->name('contracts.show');
         Route::post('/contracts/{contract}/terminate', [\App\Http\Controllers\Web\AdminContractController::class, 'terminate'])->name('contracts.terminate');
+
+        // Quản lý Đăng ký chủ sân
+        Route::get('/owner-registrations', [AdminOwnerRegistrationController::class, 'index'])->name('owner-registrations.index');
+        Route::post('/owner-registrations/{id}/approve', [AdminOwnerRegistrationController::class, 'approve'])->name('owner-registrations.approve');
+        Route::post('/owner-registrations/{id}/reject', [AdminOwnerRegistrationController::class, 'reject'])->name('owner-registrations.reject');
 
         // ❌ 2 DÒNG NÀY ĐANG NẰM NGOÀI NHÓM ADMIN NÊN BỊ LỖI MẤT CHỮ 'admin.'
 Route::get('/financial-settings', [\App\Http\Controllers\Admin\FinancialSettingController::class, 'index'])->name('financial-settings.index');
@@ -307,6 +319,10 @@ Route::middleware(['auth', 'owner'])->prefix('owner')->name('owner.web.')->group
     // Xử lý Ký hợp đồng chuyển nhượng (Bên B)
     Route::post('venues/transfers/{transfer}/sign', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'signContract'])
         ->name('venues.transfers.sign');
+
+    // Xử lý Hủy hợp đồng chuyển nhượng
+    Route::post('venues/transfers/{transfer}/cancel', [\App\Http\Controllers\Web\OwnerVenueTransferController::class, 'cancelTransfer'])
+        ->name('venues.transfers.cancel');
 
     // Quản lý Mã giảm giá (Vouchers)
     Route::get('/vouchers/report', [WebOwnerVoucherController::class, 'report'])->name('vouchers.report');

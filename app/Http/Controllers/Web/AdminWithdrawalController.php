@@ -92,9 +92,7 @@ class AdminWithdrawalController extends Controller
         $data = $request->validate([
             'status' => 'required|in:approved,rejected',
             'admin_note' => 'nullable|string|max:500',
-            'proof_image' => 'required_if:status,approved|image|mimes:jpeg,png,jpg,webp|max:5120'
-        ], [
-            'proof_image.required_if' => 'Ảnh minh chứng bắt buộc khi duyệt (approved).',
+            'proof_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120'
         ]);
 
         $newStatus = $data['status'];
@@ -132,6 +130,21 @@ class AdminWithdrawalController extends Controller
                             'reference_type' => 'withdrawal_request',
                             'reference_id' => $withdrawal->id,
                         ],
+                    );
+
+                    app(\App\Services\PlatformWalletService::class)->debit(
+                        amount: (float) $withdrawal->amount,
+                        type: 'owner_withdrawal_out',
+                        description: 'Chi tiền rút về ngân hàng cho chủ sân #' . $withdrawal->code,
+                        referenceType: 'withdrawal_request',
+                        referenceId: $withdrawal->id,
+                        reference: $withdrawal->code,
+                        performedBy: \Illuminate\Support\Facades\Auth::id(),
+                        metadata: [
+                            'owner_id' => $withdrawal->owner_id,
+                            'bank_name' => $withdrawal->bank_name,
+                            'bank_account_number' => $withdrawal->bank_account_number ?? $withdrawal->bank_account_no,
+                        ]
                     );
                 }
 

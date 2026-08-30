@@ -29,7 +29,7 @@ class CourtStatisticsService
     {
         $ownerEarnings = (float) ($booking->owner_earnings ?? 0);
 
-        if ($booking->booking_package_id && strtolower((string) $booking->payment_method) === 'package') {
+        if ($booking->booking_package_id || strtolower((string) $booking->payment_method) === 'package') {
             return $ownerEarnings;
         }
 
@@ -273,13 +273,31 @@ class CourtStatisticsService
         $occupancy = $this->occupancyRateByCourt($grouped, $courtIds, $daysInPeriod);
         $peakHours = $this->peakHoursByCourt($grouped);
 
-        return $courts->map(function ($court) use ($revenue, $bookingCount, $customerCount, $hours, $occupancy, $peakHours) {
+        $isPackage = fn (Booking $b): bool => ! empty($b->booking_package_id) || strtolower((string) $b->payment_method) === 'package';
+        $isSingle  = fn (Booking $b): bool => empty($b->booking_package_id) && strtolower((string) $b->payment_method) !== 'package';
+
+        $payable = $this->payableBookings($bookings);
+
+        return $courts->map(function ($court) use ($revenue, $bookingCount, $customerCount, $hours, $occupancy, $peakHours, $grouped, $payable, $isPackage, $isSingle) {
+            $courtBookings = $grouped[$court->id] ?? collect();
+            $courtPayable = $payable->where('court_id', $court->id);
+
+            $singleCount = $courtBookings->filter($isSingle)->count();
+            $packageCount = $courtBookings->filter($isPackage)->count();
+
+            $singleRev = $courtPayable->filter($isSingle)->sum(fn (Booking $b) => $this->revenueOf($b));
+            $packageRev = $courtPayable->filter($isPackage)->sum(fn (Booking $b) => $this->revenueOf($b));
+
             return [
                 'id' => $court->id,
                 'name' => $court->name,
                 'status' => $court->status,
                 'revenue' => (float) ($revenue[$court->id] ?? 0),
+                'single_revenue' => (float) $singleRev,
+                'package_revenue' => (float) $packageRev,
                 'bookings_count' => (int) ($bookingCount[$court->id] ?? 0),
+                'single_bookings_count' => $singleCount,
+                'package_bookings_count' => $packageCount,
                 'customers_count' => (int) ($customerCount[$court->id] ?? 0),
                 'hours' => round((float) ($hours[$court->id] ?? 0), 1),
                 'occupancy_rate' => round((float) ($occupancy[$court->id] ?? 0), 1),

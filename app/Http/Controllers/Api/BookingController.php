@@ -134,6 +134,43 @@ class BookingController extends Controller
                 }
 
                 $originalPrice = $items->sum('price');
+
+                // BẮT ĐẦU: TÍNH TIỀN DỊCH VỤ & CHUẨN BỊ MẢNG LƯU DATABASE
+                $serviceListToSave = []; 
+                $servicesTotal = 0;
+                
+                if ($request->has('services') && is_array($request->services)) {
+                    $totalMinutes = 0;
+                    foreach ($slots as $s) {
+                        $totalMinutes += \Carbon\Carbon::parse($s['start_time'])->diffInMinutes(\Carbon\Carbon::parse($s['end_time']));
+                    }
+                    $totalHours = $totalMinutes / 60;
+
+                    foreach ($request->services as $svc) {
+                        $qty = max(1, (int) ($svc['quantity'] ?? 1));
+                        $unitPrice = (float) ($svc['price'] ?? 0);
+                        $type = $svc['type'] ?? 'retail';
+
+                        $serviceLineTotal = $unitPrice * $qty;
+                        if ($type === 'rental') {
+                            $serviceLineTotal = $unitPrice * $qty * $totalHours;
+                        }
+
+                        $servicesTotal += $serviceLineTotal;
+
+                        // Chuẩn hóa dữ liệu pivot: price = đơn giá, quantity = số lượng.
+                        // View/Invoice sẽ tính line total = quantity * price.
+                        $serviceListToSave[] = [
+                            'service_id' => $svc['id'],
+                            'quantity'   => $qty,
+                            'price'      => $unitPrice,
+                        ];
+                    }
+                }
+                
+                $originalPrice += $servicesTotal;
+                // KẾT THÚC: TÍNH TIỀN DỊCH VỤ
+
                 $discount = 0.0;
                 $voucher = null;
                 if ($request->filled('voucher_code')) {
@@ -149,6 +186,29 @@ class BookingController extends Controller
                     }
                 }
 
+                $paymentMethod = $request->input('payment_method', 'COD');
+                $finalPrice = $originalPrice - $discount;
+                $user = Auth::user();
+                $customerWallet = null;
+
+                if ($paymentMethod === 'wallet') {
+                    if (!$user) {
+                        throw new HttpException(401, 'Vui lòng đăng nhập để thực hiện thanh toán.');
+                    }
+                    $customerWallet = $user->getOrCreateWallet();
+                    if ((float)$customerWallet->balance < $finalPrice) {
+                        throw new HttpException(400, 'Số dư ví không đủ để thanh toán (' . number_format($customerWallet->balance) . 'đ). Vui lòng chọn phương thức khác hoặc nạp thêm tiền.');
+                    }
+
+                    // 1. Trừ tiền ví khách hàng
+                    app(\App\Services\WalletService::class)->processTransaction(
+                        wallet: $customerWallet,
+                        type: \App\Enums\TransactionType::PAYMENT,
+                        amount: $finalPrice,
+                        description: "Thanh toán đơn đặt sân",
+                    );
+                }
+
                 $booking = new Booking();
                 $booking->court_id = $request->court_id;
                 $booking->time_slot_id = $items->first()['time_slot_id'];
@@ -156,14 +216,61 @@ class BookingController extends Controller
                 $booking->slot_date = $request->slot_date;
                 $booking->start_time = $items->first()['start_time'];
                 $booking->end_time = $items->last()['end_time'];
-                $booking->total_price = $originalPrice - $discount;
-                $booking->status = 'pending';
-                $booking->payment_status = 'unpaid';
+                $booking->total_price = $finalPrice; // Lưu ý: $finalPrice này đã bao gồm $servicesTotal ở trên rồi
+                $booking->payment_method = $paymentMethod;
+                $booking->status = $paymentMethod === 'wallet' ? 'confirmed' : 'pending';
+                $booking->payment_status = $paymentMethod === 'wallet' ? 'paid' : 'unpaid';
                 $booking->note = $request->note;
                 $booking->timestamps = false;
                 $booking->created_at = $now;
                 $booking->updated_at = $now;
                 $booking->save();
+
+                // BẮT ĐẦU: ÉP LƯU TRỰC TIẾP DỊCH VỤ XUỐNG DATABASE BẰNG QUERY BUILDER
+                if (!empty($serviceListToSave)) {
+                    $insertData = [];
+                    foreach ($serviceListToSave as $item) {
+                        $insertData[] = [
+                            'booking_id' => $booking->id,
+                            'service_id' => $item['service_id'],
+                           'quantity'   => $item['quantity'], // Số lượng dịch vụ
+                           'price'      => $item['price'],    // Đơn giá / giá theo đơn vị
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ];
+                    }
+                    \Illuminate\Support\Facades\DB::table('booking_services')->insert($insertData);
+                }
+                // KẾT THÚC: LƯU DỊCH VỤ
+                // KẾT THÚC: LƯU DỊCH VỤ
+
+                if ($paymentMethod === 'wallet') {
+                    // ... Logic trừ ví của bạn ...
+                    // 2. Nạp tiền vào Ví Nền Tảng (Platform Wallet)
+                    app(\App\Services\PlatformWalletService::class)->credit(
+                        amount: $finalPrice,
+                        type: 'booking_payment',
+                        description: "Thanh toán đặt sân bằng ví khách hàng #{$booking->id}",
+                        referenceType: 'booking',
+                        referenceId: $booking->id,
+                        reference: 'BOOKING-' . $booking->id
+                    );
+
+                    // 3. Tạo bản ghi giao dịch
+                    \App\Models\Transaction::updateOrCreate(
+                        ['booking_id' => $booking->id],
+                        [
+                            'user_id' => $booking->user_id,
+                            'transaction_code' => 'TXN-W-' . $booking->id . '-' . now()->format('YmdHis'),
+                            'amount' => $booking->total_price,
+                            'payment_method' => 'wallet',
+                            'payment_gateway' => 'WALLET',
+                            'payment_status' => 'success',
+                            'transaction_time' => now(),
+                            'note' => 'Khách hàng thanh toán qua số dư ví.',
+                        ]
+                    );
+                }
 
                 if ($voucher) {
                     $booking->vouchers()->attach($voucher->id, ['discount_amount' => $discount]);

@@ -2,14 +2,37 @@
 
 namespace App\Services;
 
+use App\Mail\AdminNewVenueMail;
+use App\Mail\AdminVenueLegalUpdateMail;
+use App\Mail\AdminVenueTransferMail;
+use App\Mail\AdminWithdrawalRequestMail;
 use App\Models\Notification;
 use App\Models\Booking;
 use App\Models\BookingPackage;
+use App\Models\OwnerRegistration;
 use App\Models\Review;
+use App\Models\Venue;
+use App\Models\User;
+use App\Models\WithdrawalRequest;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
 
 class NotificationService
 {
+    private function getAdminEmails(): array
+    {
+        $adminEmails = User::where('role', 'admin')->pluck('email')->filter()->toArray();
+
+        if (empty($adminEmails)) {
+            $fallbackEmail = config('mail.from.address');
+            if ($fallbackEmail) {
+                $adminEmails[] = $fallbackEmail;
+            }
+        }
+
+        return array_values(array_unique($adminEmails));
+    }
+
     public function create(int $userId, string $title, string $content, ?string $link = null, ?string $type = null): Notification
     {
         return Notification::create([
@@ -157,5 +180,92 @@ class NotificationService
         }
 
         return $this->create($ownerId, $title, $content, route('owner.web.wallet.topup.create'), 'debt_warning');
+    }
+
+    public function notifyAdminNewVenue(Venue $venue): void
+    {
+        $admins = User::where('role', 'admin')->get();
+        $ownerName = $venue->owner->name ?? 'Chủ sân';
+        $title = 'Cơ sở & Hồ sơ pháp lý mới cần duyệt';
+        $content = "Chủ sân {$ownerName} vừa tạo cơ sở \"{$venue->name}\" kèm hồ sơ pháp lý, đang chờ bạn duyệt.";
+        $link = route('admin.venues.index');
+
+        foreach ($admins as $admin) {
+            $this->create($admin->id, $title, $content, $link, 'admin_new_venue');
+        }
+
+        foreach ($this->getAdminEmails() as $email) {
+            try {
+                Mail::to($email)->send(new AdminNewVenueMail($venue, $link));
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
+        }
+    }
+
+    public function notifyAdminVenueLegalUpdate(Venue $venue): void
+    {
+        $admins = User::where('role', 'admin')->get();
+        $title = 'Yêu cầu cập nhật hồ sơ pháp lý mới';
+        $content = "Cơ sở \"{$venue->name}\" vừa gửi yêu cầu cập nhật hồ sơ pháp lý, đang chờ bạn duyệt.";
+        $link = route('admin.venues.documents', $venue->id);
+
+        foreach ($admins as $admin) {
+            $this->create($admin->id, $title, $content, $link, 'admin_venue_legal_update');
+        }
+
+        foreach ($this->getAdminEmails() as $email) {
+            try {
+                Mail::to($email)->send(new AdminVenueLegalUpdateMail($venue, $link));
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
+        }
+    }
+
+    public function notifyAdminVenueTransfer($transfer): void
+    {
+        $admins = User::where('role', 'admin')->get();
+        $venueName = $transfer->venue->name ?? 'Cơ sở';
+        $title = 'Yêu cầu chuyển nhượng cơ sở mới';
+        $content = "Hợp đồng chuyển nhượng cơ sở \"{$venueName}\" đã được các bên hoàn tất và đang chờ bạn duyệt.";
+        $link = route('admin.venue-transfers.show', $transfer->id);
+
+        foreach ($admins as $admin) {
+            $this->create($admin->id, $title, $content, $link, 'admin_venue_transfer');
+        }
+
+        foreach ($this->getAdminEmails() as $email) {
+            try {
+                Mail::to($email)->send(new AdminVenueTransferMail($transfer, $link));
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
+        }
+    }
+
+    public function notifyAdminWithdrawalRequest(WithdrawalRequest $withdrawalRequest): void
+    {
+        $admins = User::where('role', 'admin')->get();
+        $requester = $withdrawalRequest->owner;
+        $requesterName = $requester->name ?? 'Người dùng';
+        $roleText = ($requester && $requester->role === 'owner') ? 'Chủ sân' : 'Khách hàng';
+        $amountFormatted = number_format((float) $withdrawalRequest->amount, 0, ',', '.') . 'đ';
+
+        $title = 'Yêu cầu rút tiền mới cần duyệt';
+        $content = "{$roleText} {$requesterName} vừa yêu cầu rút {$amountFormatted}. (Mã: {$withdrawalRequest->code})";
+        $link = route('admin.withdrawals.show', $withdrawalRequest->id);
+
+        foreach ($admins as $admin) {
+            $this->create($admin->id, $title, $content, $link, 'admin_withdrawal_request');
+        }
+
+        foreach ($this->getAdminEmails() as $email) {
+            try {
+                Mail::to($email)->send(new AdminWithdrawalRequestMail($withdrawalRequest, $link));
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
+        }
     }
 }

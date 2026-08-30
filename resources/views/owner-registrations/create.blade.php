@@ -88,6 +88,26 @@
         <span>Điền thông tin để tạo tài khoản chủ sân. Sau đó bạn sẽ tự thiết lập mật khẩu để bắt đầu sử dụng.</span>
     </div>
 
+    @if(session('success'))
+        <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; padding: 16px; margin-bottom: 24px; color: #065f46;">
+            <strong>✓ {{ session('success') }}</strong>
+        </div>
+    @endif
+
+    @if(isset($registration) && $registration->status === 'rejected' && $registration->rejection_reason)
+        <div style="background-color: #fef2f2; border: 1px solid #fca5a5; border-radius: 12px; padding: 16px; margin-bottom: 24px; color: #991b1b;">
+            <strong style="display: flex; align-items: center; gap: 8px; font-size: 15px;">
+                ⚠️ Yêu cầu đăng ký trước đó đã bị từ chối:
+            </strong>
+            <div style="margin-top: 6px; font-size: 14px; font-weight: 600; background: white; padding: 10px 12px; border-radius: 8px; border: 1px solid #fecaca; color: #b91c1c;">
+                {{ $registration->rejection_reason }}
+            </div>
+            <p style="margin: 8px 0 0 0; font-size: 13px; color: #7f1d1d;">
+                Vui lòng kiểm tra lại thông tin và nộp lại đăng ký để Admin xét duyệt.
+            </p>
+        </div>
+    @endif
+
     <form method="POST" action="{{ route('owner.register.store') }}" class="owner-register-form" novalidate>
         @csrf
 

@@ -75,13 +75,34 @@ class OwnerBookingRescheduleController extends Controller
                     $bookingItem = BookingItem::lockForUpdate()->findOrFail($item->booking_item_id);
                     abort_unless($bookingItem->status === 'reschedule_pending', 409, 'Ca đổi lịch không còn ở trạng thái chờ.');
 
+                    $newItemPrice = (float) ($item->new_price > 0 ? $item->new_price : $bookingItem->price);
+
                     $bookingItem->update([
                         'time_slot_id' => $slot->id,
                         'slot_date' => $item->new_slot_date,
                         'start_time' => $slot->start_time,
                         'end_time' => $slot->end_time,
+                        'price' => $newItemPrice,
                         'status' => 'booked',
                     ]);
+
+                    // Nếu ca mới rẻ hơn ca cũ, hoàn lại phần chênh lệch cho khách vào Ví
+                    if ((float) $item->price_difference < 0) {
+                        $refundAmount = abs((float) $item->price_difference);
+                        $customerUser = $item->user;
+                        if ($customerUser && $refundAmount > 0) {
+                            $userWallet = $customerUser->getOrCreateWallet();
+                            app(\App\Services\WalletService::class)->processTransaction(
+                                wallet: $userWallet,
+                                type: \App\Enums\TransactionType::REFUND,
+                                amount: $refundAmount,
+                                description: 'Hoàn tiền chênh lệch ca đổi lịch mới rẻ hơn (Booking #' . $booking->id . ')',
+                                bookingId: $booking->id,
+                                metadata: ['reschedule_request_id' => $item->id, 'refund_amount' => $refundAmount]
+                            );
+                        }
+                        $item->update(['payment_status' => 'refunded']);
+                    }
 
                     $item->update([
                         'status' => 'approved',
@@ -123,6 +144,24 @@ class OwnerBookingRescheduleController extends Controller
                     BookingItem::whereKey($item->booking_item_id)
                         ->where('status', 'reschedule_pending')
                         ->update(['status' => 'booked']);
+                }
+
+                // Nếu khách đã trả tiền chênh lệch (ca đắt hơn) nhưng bị từ chối, hoàn tiền lại vào ví khách
+                if ((float) $item->price_difference > 0 && $item->payment_status === 'paid') {
+                    $refundAmount = (float) $item->price_difference;
+                    $customerUser = $item->user;
+                    if ($customerUser && $refundAmount > 0) {
+                        $userWallet = $customerUser->getOrCreateWallet();
+                        app(\App\Services\WalletService::class)->processTransaction(
+                            wallet: $userWallet,
+                            type: \App\Enums\TransactionType::REFUND,
+                            amount: $refundAmount,
+                            description: 'Hoàn tiền chênh lệch đã thu do yêu cầu đổi lịch bị từ chối (Booking #' . $item->booking_id . ')',
+                            bookingId: $item->booking_id,
+                            metadata: ['reschedule_request_id' => $item->id, 'refund_amount' => $refundAmount]
+                        );
+                    }
+                    $item->update(['payment_status' => 'refunded_on_rejection']);
                 }
 
                 $reason = $data['rejected_reason'] ?? $data['owner_note'] ?? null;
@@ -193,11 +232,33 @@ class OwnerBookingRescheduleController extends Controller
 
     private function syncBookingSummary(Booking $booking): void
     {
-        $items = $booking->items()->orderBy('slot_date')->orderBy('start_time')->get();
+        $items = $booking->items()->where('status', 'booked')->orderBy('slot_date')->orderBy('start_time')->get();
 
         if ($items->isEmpty()) {
             return;
         }
+
+        $booking->loadMissing('services');
+        $serviceTotal = $booking->services->sum(function ($service) use ($items) {
+            $unitPrice = (float) ($service->pivot->price ?? 0);
+            $quantity = (int) ($service->pivot->quantity ?? 1);
+            $lineTotal = $unitPrice * $quantity;
+
+            $durationMinutes = 0;
+            foreach ($items as $item) {
+                if (!empty($item->start_time) && !empty($item->end_time)) {
+                    $durationMinutes += Carbon::parse($item->start_time, 'Asia/Ho_Chi_Minh')
+                        ->diffInMinutes(Carbon::parse($item->end_time, 'Asia/Ho_Chi_Minh'));
+                }
+            }
+
+            $hours = $durationMinutes > 0 ? ($durationMinutes / 60) : 1;
+            if (($service->pricing_type ?? 'retail') === 'rental' && $hours > 0) {
+                $lineTotal *= $hours;
+            }
+
+            return $lineTotal > 0 ? $lineTotal : $unitPrice;
+        });
 
         $booking->update([
             'slot_date' => $items->pluck('slot_date')->map(fn ($date) => $date->toDateString())->unique()->count() === 1
@@ -206,6 +267,7 @@ class OwnerBookingRescheduleController extends Controller
             'start_time' => $items->min('start_time'),
             'end_time' => $items->max('end_time'),
             'time_slot_id' => $items->first()->time_slot_id,
+            'total_price' => $items->sum('price') + $serviceTotal,
         ]);
     }
 }

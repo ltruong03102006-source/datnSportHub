@@ -3,6 +3,16 @@
 @section('title','Dashboard')
 
 @section('content')
+<style>
+    .contract-preview .center,
+    .contract-document .center {
+        text-align: center !important;
+    }
+    .contract-preview .bold,
+    .contract-document .bold {
+        font-weight: bold !important;
+    }
+</style>
 <!-- Kiểm tra nếu có lỗi của trường rejection_reason thì tự động mở Modal -->
 <div x-data="{ openRejectModal: {{ $errors->has('rejection_reason') ? 'true' : 'false' }} }">
 <main class="container-fluid max-w-7xl py-4 space-y-4">
@@ -176,7 +186,7 @@
                 <!-- Contract Document Content -->
                 <div>
                     <h3 class="small font-weight-bold text-dark mb-2">Nội dung hợp đồng</h3>
-                    <div class="p-4 rounded-3 bg-light border text-dark lh-lg font-serif small user-select-text" style="max-height: 24rem; overflow-y: auto;">
+                    <div class="p-4 rounded-3 bg-light border text-dark lh-lg font-serif small user-select-text contract-preview" style="max-height: 24rem; overflow-y: auto;">
                         {!! $contract->content !!}
                     </div>
                 </div>

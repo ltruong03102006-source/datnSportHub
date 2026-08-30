@@ -253,7 +253,7 @@
                             @error('bank_account_name') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <button type="submit" class="rounded-lg bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800" {{ ($user->balance ?? 0) < 10000 ? 'disabled' : '' }}>
+                            <button type="submit" class="rounded-lg bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed" {{ ($wallet->balance ?? 0) < 10000 ? 'disabled' : '' }}>
                                 Gửi yêu cầu rút tiền
                             </button>
                         </div>
@@ -276,8 +276,7 @@
                                         <th class="py-2 pr-4">Số tiền</th>
                                         <th class="py-2 pr-4">Trạng thái</th>
                                         <th class="py-2 pr-4">Ghi chú</th>
-                                        <th class="py-2 pr-4">Thời gian</th>
-                                        <th class="py-2">Minh chứng</th>
+                                        <th class="py-2">Thời gian</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-stone-100">
@@ -286,10 +285,17 @@
                                             <td class="whitespace-nowrap py-2.5 pr-4 text-zinc-600">#{{ $req->id }}</td>
                                             <td class="whitespace-nowrap py-2.5 pr-4 font-semibold text-emerald-600">{{ number_format($req->amount) }}đ</td>
                                             <td class="whitespace-nowrap py-2.5 pr-4">
-                                                @if($req->status === 'pending')
+                                                @php
+                                                    $statusVal = $req->status instanceof \BackedEnum ? $req->status->value : $req->status;
+                                                @endphp
+                                                @if($statusVal === 'pending')
                                                     <span class="inline-flex rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20">Đang chờ</span>
-                                                @elseif($req->status === 'approved')
+                                                @elseif(in_array($statusVal, ['approved', 'paid']))
                                                     <span class="inline-flex rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">Đã chuyển</span>
+                                                @elseif($statusVal === 'processing')
+                                                    <span class="inline-flex rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-600/20">Đang xử lý</span>
+                                                @elseif($statusVal === 'cancelled')
+                                                    <span class="inline-flex rounded-full bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700 ring-1 ring-inset ring-slate-600/20">Đã hủy</span>
                                                 @else
                                                     <span class="inline-flex rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">Từ chối</span>
                                                 @endif
@@ -297,19 +303,7 @@
                                             <td class="py-2.5 pr-4 text-zinc-600 text-xs max-w-[150px] truncate" title="{{ $req->admin_note }}">
                                                 {{ $req->admin_note ?? '—' }}
                                             </td>
-                                            <td class="whitespace-nowrap py-2.5 pr-4 text-zinc-500">{{ $req->created_at->format('H:i d/m/Y') }}</td>
-                                            <td class="whitespace-nowrap py-2.5">
-                                                @if($req->proof_image)
-                                                    <button type="button" onclick="openBillModal('{{ asset('storage/' . $req->proof_image) }}')" class="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100">
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                        </svg>
-                                                        Xem bill
-                                                    </button>
-                                                @else
-                                                    <span class="text-stone-400">—</span>
-                                                @endif
-                                            </td>
+                                            <td class="whitespace-nowrap py-2.5 text-zinc-500">{{ $req->created_at->format('H:i d/m/Y') }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>

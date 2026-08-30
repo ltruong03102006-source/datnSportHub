@@ -108,7 +108,7 @@
                 <div>
                     <span class="text-xs font-bold uppercase text-slate-400">Loại & Mức giảm:</span>
                     <p class="font-bold text-emerald-600">
-                        @if($voucher->discount_type === 'percent')
+                        @if(in_array($voucher->discount_type, ['percent', 'percentage']))
                             Giảm {{ (float)$voucher->discount_value }}%
                         @else
                             Giảm {{ number_format($voucher->discount_value, 0, ',', '.') }}đ
@@ -126,7 +126,7 @@
                 <div>
                     <span class="text-xs font-bold uppercase text-slate-400">Giảm tối đa:</span>
                     <p class="font-semibold text-slate-800">
-                        {{ $voucher->max_discount_amount ? number_format($voucher->max_discount_amount, 0, ',', '.') . 'đ' : 'Không giới hạn' }}
+                        {{ ($voucher->max_discount_amount && (float)$voucher->max_discount_amount > 0) ? number_format($voucher->max_discount_amount, 0, ',', '.') . 'đ' : 'Không giới hạn' }}
                     </p>
                 </div>
 
