@@ -561,6 +561,9 @@ Trạng thái: {!! $service->is_active ? '<span class="text-success">Đang bán<
                             <div class="mb-2 mb-md-0">
                                 <h6 class="mb-1 fw-bold text-dark fs-5">{{ $court->name }}</h6>
                                 <div class="d-flex flex-wrap gap-2 align-items-center mt-2">
+                                    @if($court->sport)
+                                        <span class="badge bg-info text-dark">{{ $court->sport->name }}</span>
+                                    @endif
                                     <span class="text-muted small">Trạng thái:</span>
                                     @if($court->status === 'active')
                                         <span class="badge bg-success">Hoạt động</span>
@@ -588,7 +591,7 @@ Trạng thái: {!! $service->is_active ? '<span class="text-success">Đang bán<
                                 
                                 <div class="vr mx-1 d-none d-md-block text-secondary" style="width: 1.5px; opacity: 0.3;"></div>
 
-                                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editCourtModal" data-id="{{ $court->id }}" data-name="{{ $court->name }}" data-status="{{ $court->status }}" onclick="populateCourtEditModal(this)">
+                                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editCourtModal" data-id="{{ $court->id }}" data-name="{{ $court->name }}" data-status="{{ $court->status }}" data-sport="{{ $court->sport_id }}" onclick="populateCourtEditModal(this)">
                                     Sửa
                                 </button>
 
@@ -669,6 +672,16 @@ Trạng thái: {!! $service->is_active ? '<span class="text-success">Đang bán<
                         </select>
                         <div class="invalid-feedback" id="error-status"></div>
                     </div>
+
+                    <div class="mb-3">
+                        <label for="courtSport" class="form-label fw-semibold">Môn thể thao <span class="text-danger">*</span></label>
+                        <select class="form-select" id="courtSport" name="sport_id" required>
+                            @foreach($venue->sports as $s)
+                                <option value="{{ $s->id }}">{{ $s->name }}</option>
+                            @endforeach
+                        </select>
+                        <div class="invalid-feedback" id="error-sport_id"></div>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -701,6 +714,16 @@ Trạng thái: {!! $service->is_active ? '<span class="text-success">Đang bán<
                             <option value="active">Hoạt động</option>
                             <option value="inactive">Bảo trì</option>
                         </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Môn thể thao <span class="text-danger">*</span></label>
+                        <select class="form-select" id="edit_court_sport" required>
+                            @foreach($venue->sports as $s)
+                                <option value="{{ $s->id }}">{{ $s->name }}</option>
+                            @endforeach
+                        </select>
+                        <div class="invalid-feedback" id="error-edit-sport"></div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -1106,6 +1129,7 @@ Trạng thái: {!! $service->is_active ? '<span class="text-success">Đang bán<
         document.getElementById('edit_court_id').value = button.dataset.id;
         document.getElementById('edit_court_name').value = button.dataset.name;
         document.getElementById('edit_court_status').value = button.dataset.status;
+        document.getElementById('edit_court_sport').value = button.dataset.sport || '';
         
         document.getElementById('edit_court_name').classList.remove('is-invalid');
         document.getElementById('error-edit-name').innerText = '';
@@ -1128,7 +1152,8 @@ Trạng thái: {!! $service->is_active ? '<span class="text-success">Đang bán<
                 body: JSON.stringify({
                     _method: 'PUT',
                     name: document.getElementById('edit_court_name').value,
-                    status: document.getElementById('edit_court_status').value
+                status: document.getElementById('edit_court_status').value,
+                sport_id: document.getElementById('edit_court_sport') ? document.getElementById('edit_court_sport').value : null
                 })
             });
 
