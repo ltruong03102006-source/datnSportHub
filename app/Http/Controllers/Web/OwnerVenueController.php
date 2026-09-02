@@ -203,12 +203,17 @@ class OwnerVenueController extends Controller
             // ========================================================
             // PHẦN 2: QUÉT XEM CÓ THAY ĐỔI "HỒ SƠ PHÁP LÝ" KHÔNG?
             // ========================================================
-            $legalFields = ['owner_name', 'citizen_id', 'business_license_number', 'bank_name', 'bank_account_number', 'bank_account_holder'];
+            $legalFields = ['owner_name', 'citizen_id', 'business_license_number', 'land_type', 'bank_name', 'bank_account_number', 'bank_account_holder'];
             $fileFields = ['citizen_front_image', 'citizen_back_image', 'business_license_file', 'rental_contract_file', 'land_certificate_file'];
 
             $legalData = \Illuminate\Support\Arr::only($validated, $legalFields);
             $hasLegalChanges = false;
             $currentLegal = $venue->legalDocument;
+            $oppositeFile = $validated['land_type'] === 'rented' ? 'land_certificate_file' : 'rental_contract_file';
+            if (($currentLegal?->{$oppositeFile} ?? null) !== null) {
+                $legalData[$oppositeFile] = null;
+                $hasLegalChanges = true;
+            }
 
             // Kiểm tra trường text
             foreach ($legalFields as $field) {

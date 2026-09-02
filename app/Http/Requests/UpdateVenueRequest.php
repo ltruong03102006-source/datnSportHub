@@ -53,6 +53,7 @@ class UpdateVenueRequest extends FormRequest
                 'alpha_num', 
                 'max:50'
             ],
+            'land_type' => ['required', Rule::in(['owned', 'rented'])],
             
             'bank_name' => ['nullable', 'string', 'max:255'],
             'bank_account_number' => ['nullable', 'string', 'max:50'],
@@ -65,6 +66,25 @@ class UpdateVenueRequest extends FormRequest
             'rental_contract_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'land_certificate_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $landType = $this->input('land_type');
+            $legalDocument = $this->route('venue')?->legalDocument;
+            $fileField = $landType === 'rented' ? 'rental_contract_file' : 'land_certificate_file';
+            $existingField = $landType === 'rented' ? 'rental_contract_file' : 'land_certificate_file';
+
+            if ($landType && !$this->hasFile($fileField) && empty($legalDocument?->{$existingField})) {
+                $validator->errors()->add(
+                    $fileField,
+                    $landType === 'rented'
+                        ? 'Vui lòng nộp hợp đồng thuê mặt bằng.'
+                        : 'Vui lòng nộp giấy chứng nhận quyền sử dụng đất.'
+                );
+            }
+        });
     }
 
     public function messages(): array
