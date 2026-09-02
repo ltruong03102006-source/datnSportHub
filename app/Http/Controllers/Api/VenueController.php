@@ -21,7 +21,7 @@ class VenueController extends Controller
 
             $query = Venue::query()
                 ->select('venues.*')
-                ->with(['sport'])
+                ->with(['sports'])
                 ->withCount(['courts' => function ($q) {
                     $q->where('status', 'active');
                 }])
@@ -65,7 +65,17 @@ class VenueController extends Controller
             }
 
             if ($sportId !== null && $sportId !== '' && $sportId !== 'all') {
-                $query->where('venues.sport_id', (int) $sportId);
+                // Support both legacy venues.sport_id and new sport_venue pivot
+                $sid = (int) $sportId;
+                $query->where(function($q) use ($sid) {
+                    $q->where('venues.sport_id', $sid)
+                      ->orWhereExists(function($sub) use ($sid) {
+                          $sub->select(DB::raw(1))
+                              ->from('sport_venue')
+                              ->whereColumn('sport_venue.venue_id', 'venues.id')
+                              ->where('sport_venue.sport_id', $sid);
+                      });
+                });
             }
 
             $venues = $query->get()->map(function (Venue $venue) {
@@ -86,12 +96,12 @@ class VenueController extends Controller
                     'phone' => $phone,
                     'open_hours' => $venue->open_hours,
                     'close_hours' => $venue->close_hours,
-                    'sport' => [
-                        'id' => $venue->sport->id,
-                        'name' => $venue->sport->name,
-                        'icon' => $venue->sport->icon,
-                        'slug' => $venue->sport->slug,
-                    ],
+                    'sport' => ($venue->sports && $venue->sports->isNotEmpty()) ? [
+                        'id' => $venue->sports->first()->id,
+                        'name' => $venue->sports->first()->name,
+                        'icon' => $venue->sports->first()->icon,
+                        'slug' => $venue->sports->first()->slug,
+                    ] : null,
                     'courts_count' => $venue->courts_count ?? 0,
                     'distance' => isset($venue->distance) ? round((float) $venue->distance, 2) : null,
                     'reviews_avg_rating' => isset($venue->reviews_avg_rating) ? round((float) $venue->reviews_avg_rating, 1) : null,
@@ -118,7 +128,7 @@ class VenueController extends Controller
     {
         try {
             $venue = Venue::where('status', 'active')->with([
-                'sport',
+                'sports',
                 'courts' => fn($q) => $q->where('status', 'active')->where('is_bookable_online', true),
                 'ownerRegistration'
             ])->findOrFail($id);
@@ -135,12 +145,12 @@ class VenueController extends Controller
                     'status' => $venue->status,
                     'lat' => $venue->lat,
                     'lng' => $venue->lng,
-                    'sport' => [
-                        'id' => $venue->sport->id,
-                        'name' => $venue->sport->name,
-                        'icon' => $venue->sport->icon,
-                        'slug' => $venue->sport->slug,
-                    ],
+                    'sport' => ($venue->sports && $venue->sports->isNotEmpty()) ? [
+                        'id' => $venue->sports->first()->id,
+                        'name' => $venue->sports->first()->name,
+                        'icon' => $venue->sports->first()->icon,
+                        'slug' => $venue->sports->first()->slug,
+                    ] : null,
                     'owner_phone' => maskPhone($venue->ownerRegistration?->phone),
                     'courts' => $venue->courts->map(fn ($court) => [
                         'id' => $court->id,

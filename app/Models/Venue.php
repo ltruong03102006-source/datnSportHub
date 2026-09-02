@@ -65,6 +65,15 @@ class Venue extends Model
         return $this->belongsTo(Sport::class);
     }
 
+    /**
+     * Many-to-many: a venue can host multiple sports (new)
+     */
+    public function sports(): BelongsToMany
+    {
+        return $this->belongsToMany(Sport::class, 'sport_venue', 'venue_id', 'sport_id')
+            ->withTimestamps();
+    }
+
     public function province(): BelongsTo
     {
         return $this->belongsTo(Province::class, 'province_code', 'code');

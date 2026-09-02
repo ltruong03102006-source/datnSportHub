@@ -81,6 +81,9 @@ Route::post('/chatbot/message', [ChatbotController::class, 'message'])->name('ch
 Route::post('/chatbot/reset', [ChatbotController::class, 'reset'])->name('chatbot.reset');
 
 Route::get('/courts/{court}/booking', [CourtBookingController::class, 'show'])->name('web.courts.booking');
+
+// Web route for voucher eligibility (session-aware). Returns same payload as API endpoint but with web middleware so session user is available.
+Route::get('/courts/{courtId}/available-vouchers', [\App\Http\Controllers\Api\VoucherEligibilityController::class, 'getAvailableVouchers'])->name('courts.available_vouchers.web');
 Route::post('/courts/booking', [CourtBookingController::class, 'store'])->name('web.courts.booking.store');
 
 // Endpoint: return slot prices for a court on a given date (used by booking page "Xem bảng giá")

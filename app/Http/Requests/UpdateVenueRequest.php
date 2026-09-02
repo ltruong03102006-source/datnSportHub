@@ -16,7 +16,10 @@ class UpdateVenueRequest extends FormRequest
     {
         return [
             // 1. Thông tin cơ bản & Vị trí (Tab 1 & 2)
-            'sport_id' => ['required', 'exists:sports,id'],
+            // support updating multiple sports
+            'sport_id' => ['sometimes', 'exists:sports,id'],
+            'sport_ids' => ['sometimes', 'array'],
+            'sport_ids.*' => ['integer', 'exists:sports,id'],
             'name' => ['required', 'string', 'max:255'],
             'address' => ['required', 'string', 'max:500'],
             'province_code' => ['required', 'string', 'exists:provinces,code'],
@@ -50,6 +53,7 @@ class UpdateVenueRequest extends FormRequest
                 'alpha_num', 
                 'max:50'
             ],
+            'land_type' => ['required', Rule::in(['owned', 'rented'])],
             
             'bank_name' => ['nullable', 'string', 'max:255'],
             'bank_account_number' => ['nullable', 'string', 'max:50'],
@@ -62,6 +66,25 @@ class UpdateVenueRequest extends FormRequest
             'rental_contract_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'land_certificate_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $landType = $this->input('land_type');
+            $legalDocument = $this->route('venue')?->legalDocument;
+            $fileField = $landType === 'rented' ? 'rental_contract_file' : 'land_certificate_file';
+            $existingField = $landType === 'rented' ? 'rental_contract_file' : 'land_certificate_file';
+
+            if ($landType && !$this->hasFile($fileField) && empty($legalDocument?->{$existingField})) {
+                $validator->errors()->add(
+                    $fileField,
+                    $landType === 'rented'
+                        ? 'Vui lòng nộp hợp đồng thuê mặt bằng.'
+                        : 'Vui lòng nộp giấy chứng nhận quyền sử dụng đất.'
+                );
+            }
+        });
     }
 
     public function messages(): array

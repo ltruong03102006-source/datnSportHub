@@ -1,4 +1,4 @@
-@extends('admin.layouts.app')
+﻿@extends('admin.layouts.app')
 
 @push('styles')
 <style>
@@ -444,7 +444,15 @@
                         <img src="{{ $imgSrc }}" class="venue-img" alt="Sân" onerror="this.onerror=null;this.src='{{ $fallbackImg }}';">
                         <div>
                             <div class="venue-name">{{ $venue->name }}</div>
-                            <div class="text-muted small">{{ $venue->sport?->name ?? 'Chưa có môn' }}</div>
+                            <div class="text-muted small">
+                                @if($venue->sports && $venue->sports->isNotEmpty())
+                                    @foreach($venue->sports as $s)
+                                        <span class="badge badge-sport sport-default" style="margin-right:6px;">{{ $s->name }}</span>
+                                    @endforeach
+                                @else
+                                    Chưa có môn
+                                @endif
+                            </div>
                         </div>
                     </div>
                 </td>

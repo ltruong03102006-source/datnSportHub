@@ -18,9 +18,15 @@
             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
             
             <div class="absolute bottom-6 left-6 right-6 sm:bottom-8 sm:left-8 flex flex-col items-start">
-                <span class="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/90 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white backdrop-blur-md shadow-sm">
-                    {{ $venue->sport->name ?? 'Thể thao' }}
-                </span>
+                @if($venue->sports && $venue->sports->isNotEmpty())
+                <div class="mb-3 flex flex-wrap gap-2">
+                    @foreach($venue->sports as $s)
+                        <span class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/90 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white backdrop-blur-md shadow-sm">{{ $s->name }}</span>
+                    @endforeach
+                </div>
+                @else
+                <span class="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/90 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white backdrop-blur-md shadow-sm">Thể thao</span>
+                @endif
                 
                 <div class="flex items-center justify-between w-full pr-2">
                     <h1 class="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">{{ $venue->name }}</h1>
@@ -111,28 +117,100 @@
                     </div>
                 @endif
 
-                @forelse ($venue->courts as $court)
-                    <div class="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-md">
-                        <div>
-                            <h3 class="text-lg font-bold text-zinc-900 transition-colors group-hover:text-emerald-700">{{ $court->name }}</h3>
-                            <div class="mt-2 flex items-center gap-2">
-                                <span class="flex items-center gap-1.5 rounded bg-emerald-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-emerald-600 ring-1 ring-inset ring-emerald-500/20">
-                                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> HOẠT ĐỘNG
-                                </span>
-                                <span class="text-xs font-medium text-stone-400">Sẵn sàng đặt lịch</span>
-                            </div>
+                @php
+                    $sports = $venue->sports ?? collect();
+                @endphp
+
+                @if($sports->isNotEmpty())
+                    @foreach($sports as $sport)
+                        <div class="mb-4">
+                            <h3 class="text-lg font-extrabold text-zinc-900 mb-3">{{ $sport->name }}</h3>
+                            @php $sportCourts = $venue->courts->where('sport_id', $sport->id); @endphp
+
+                            @forelse($sportCourts as $court)
+                                <div class="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-md">
+                                    <div>
+                                        <h3 class="text-lg font-bold text-zinc-900 transition-colors group-hover:text-emerald-700">{{ $court->name }}</h3>
+                                        <div class="mt-2">
+                                            <span class="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">{{ $sport->name }}</span>
+                                        </div>
+
+                                        <div class="mt-2 flex items-center gap-2">
+                                            <span class="flex items-center gap-1.5 rounded bg-emerald-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-emerald-600 ring-1 ring-inset ring-emerald-500/20">
+                                                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> HOẠT ĐỘNG
+                                            </span>
+                                            <span class="text-xs font-medium text-stone-400">Sẵn sàng đặt lịch</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <a href="{{ route('web.courts.booking', $court->id) }}"
+                                       class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-600 focus:ring-4 focus:ring-emerald-500/20 active:scale-95 shadow-sm">
+                                        Đặt lẻ
+                                    </a>
+                                </div>
+                            @empty
+                                <div class="rounded-2xl border border-dashed border-stone-300 bg-stone-50 py-6 text-center">
+                                    <p class="text-sm font-medium text-stone-500">Chưa có sân cho môn này.</p>
+                                </div>
+                            @endforelse
                         </div>
-                        
-                        <a href="{{ route('web.courts.booking', $court->id) }}"
-                           class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-600 focus:ring-4 focus:ring-emerald-500/20 active:scale-95 shadow-sm">
-                            Đặt lẻ
-                        </a>
-                    </div>
-                @empty
-                    <div class="rounded-2xl border border-dashed border-stone-300 bg-stone-50 py-12 text-center">
-                        <p class="text-sm font-medium text-stone-500">Cơ sở này hiện chưa cấu hình sân con nào.</p>
-                    </div>
-                @endforelse
+                    @endforeach
+
+                    @php $uncategorized = $venue->courts->filter(fn($c) => empty($c->sport_id)); @endphp
+                    @if($uncategorized->isNotEmpty())
+                        <div class="mt-6">
+                            <h3 class="text-lg font-extrabold text-zinc-900 mb-3">Khác</h3>
+                            @foreach($uncategorized as $court)
+                                <div class="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-md">
+                                    <div>
+                                        <h3 class="text-lg font-bold text-zinc-900 transition-colors group-hover:text-emerald-700">{{ $court->name }}</h3>
+                                        <div class="mt-2 flex items-center gap-2">
+                                            <span class="flex items-center gap-1.5 rounded bg-emerald-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-emerald-600 ring-1 ring-inset ring-emerald-500/20">
+                                                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> HOẠT ĐỘNG
+                                            </span>
+                                            <span class="text-xs font-medium text-stone-400">Sẵn sàng đặt lịch</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <a href="{{ route('web.courts.booking', $court->id) }}"
+                                       class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-600 focus:ring-4 focus:ring-emerald-500/20 active:scale-95 shadow-sm">
+                                        Đặt lẻ
+                                    </a>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                @else
+                    {{-- Nếu venue không có sports (dữ liệu cũ), hiển thị tất cả courts bình thường --}}
+                    @forelse ($venue->courts as $court)
+                        <div class="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-md">
+                            <div>
+                                <h3 class="text-lg font-bold text-zinc-900 transition-colors group-hover:text-emerald-700">{{ $court->name }}</h3>
+                                @if($court->sport)
+                                    <div class="mt-2">
+                                        <span class="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">{{ $court->sport->name }}</span>
+                                    </div>
+                                @endif
+
+                                <div class="mt-2 flex items-center gap-2">
+                                    <span class="flex items-center gap-1.5 rounded bg-emerald-50 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-emerald-600 ring-1 ring-inset ring-emerald-500/20">
+                                        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> HOẠT ĐỘNG
+                                    </span>
+                                    <span class="text-xs font-medium text-stone-400">Sẵn sàng đặt lịch</span>
+                                </div>
+                            </div>
+                            
+                            <a href="{{ route('web.courts.booking', $court->id) }}"
+                               class="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-600 focus:ring-4 focus:ring-emerald-500/20 active:scale-95 shadow-sm">
+                                Đặt lẻ
+                            </a>
+                        </div>
+                    @empty
+                        <div class="rounded-2xl border border-dashed border-stone-300 bg-stone-50 py-12 text-center">
+                            <p class="text-sm font-medium text-stone-500">Cơ sở này hiện chưa cấu hình sân con nào.</p>
+                        </div>
+                    @endforelse
+                @endif
             </div>
 
             <!-- Tab: Giới thiệu -->

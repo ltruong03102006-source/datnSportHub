@@ -46,9 +46,13 @@ class OwnerVenueController extends Controller
 
         try {
             DB::transaction(function () use ($request, $validated, $bannerPath, &$createdVenue) {
+                // If caller provided sport_ids prefer that; fall back to sport_id for backward compatibility
+                $selectedSportIds = $validated['sport_ids'] ?? (isset($validated['sport_id']) ? [$validated['sport_id']] : []);
+
                 $venue = Venue::create([
                     'owner_id' => Auth::id(),
-                    'sport_id' => $validated['sport_id'],
+                    // keep sport_id column for compatibility: set to first selected sport or null
+                    'sport_id' => count($selectedSportIds) ? $selectedSportIds[0] : null,
                     'name' => $validated['name'],
                     'address' => $validated['address'],
                     'province_code' => $validated['province_code'],
@@ -65,6 +69,11 @@ class OwnerVenueController extends Controller
                     'status' => 'pending',
                 ]);
 
+                // Attach many-to-many sports if provided
+                if (!empty($selectedSportIds)) {
+                    $venue->sports()->sync($selectedSportIds);
+                }
+
                 if ($request->hasFile('gallery_images')) {
                     foreach ($request->file('gallery_images') as $file) {
                         $venue->images()->create([
@@ -78,6 +87,7 @@ class OwnerVenueController extends Controller
                         'owner_name' => $validated['owner_name'],
                         'citizen_id' => $validated['citizen_id'],
                         'business_license_number' => $validated['business_license_number'],
+                        'land_type' => $validated['land_type'],
                         'address' => $validated['address'],
                         'bank_name' => $validated['bank_name'] ?? '',
                         'bank_account_number' => $validated['bank_account_number'] ?? '',
@@ -184,16 +194,26 @@ class OwnerVenueController extends Controller
             }
             $venue->save();
 
+            // If owner updated sport_ids explicitly, sync the pivot
+            if (isset($validated['sport_ids']) && is_array($validated['sport_ids'])) {
+                $venue->sports()->sync($validated['sport_ids']);
+            }
+
 
             // ========================================================
             // PHẦN 2: QUÉT XEM CÓ THAY ĐỔI "HỒ SƠ PHÁP LÝ" KHÔNG?
             // ========================================================
-            $legalFields = ['owner_name', 'citizen_id', 'business_license_number', 'bank_name', 'bank_account_number', 'bank_account_holder'];
+            $legalFields = ['owner_name', 'citizen_id', 'business_license_number', 'land_type', 'bank_name', 'bank_account_number', 'bank_account_holder'];
             $fileFields = ['citizen_front_image', 'citizen_back_image', 'business_license_file', 'rental_contract_file', 'land_certificate_file'];
 
             $legalData = \Illuminate\Support\Arr::only($validated, $legalFields);
             $hasLegalChanges = false;
             $currentLegal = $venue->legalDocument;
+            $oppositeFile = $validated['land_type'] === 'rented' ? 'land_certificate_file' : 'rental_contract_file';
+            if (($currentLegal?->{$oppositeFile} ?? null) !== null) {
+                $legalData[$oppositeFile] = null;
+                $hasLegalChanges = true;
+            }
 
             // Kiểm tra trường text
             foreach ($legalFields as $field) {
