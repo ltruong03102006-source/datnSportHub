@@ -240,6 +240,25 @@ class BookingController extends Controller
                         ];
                     }
                     \Illuminate\Support\Facades\DB::table('booking_services')->insert($insertData);
+
+                    // --- BẮT ĐẦU: TRỪ KHO CHO CÁC DỊCH VỤ (nếu có quản lý tồn kho) ---
+                    foreach ($serviceListToSave as $svcItem) {
+                        $svcId = $svcItem['service_id'];
+                        $qty = (int) $svcItem['quantity'];
+
+                        // Khóa dòng service để tránh race condition
+                        $serviceRow = \App\Models\Service::where('id', $svcId)->lockForUpdate()->first();
+                        if ($serviceRow && $serviceRow->stock !== null) {
+                            if ($serviceRow->stock < $qty) {
+                                // Nếu không đủ kho thì ném lỗi để rollback toàn bộ transaction
+                                throw new HttpException(409, "Số lượng dịch vụ \"{$serviceRow->name}\" không đủ. Vui lòng giảm số lượng hoặc liên hệ chủ sân.");
+                            }
+
+                            // Trừ kho
+                            $serviceRow->decrement('stock', $qty);
+                        }
+                    }
+                    // --- KẾT THÚC: TRỪ KHO ---
                 }
                 // KẾT THÚC: LƯU DỊCH VỤ
                 // KẾT THÚC: LƯU DỊCH VỤ

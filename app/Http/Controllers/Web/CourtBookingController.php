@@ -65,7 +65,8 @@ class CourtBookingController extends Controller
             'venue.sport' => fn($query) => $query->select('id', 'name'),
             'timeSlots' => fn($query) => $query->select('id', 'court_id', 'start_time', 'end_time', 'duration_minutes'),
             // THÊM DÒNG DƯỚI ĐÂY: Chỉ lấy dịch vụ Đang bán & Còn hàng
-            'venue.services' => fn($query) => $query->where('is_active', true) // Bỏ check stock ở đây
+            'venue.services' => fn($query) => $query->where('is_active', true)
+                                               ->where(function($q) { $q->whereNull('stock')->orWhere('stock', '>', 0); }),
         ]);
 
         return view('courts.booking', [
