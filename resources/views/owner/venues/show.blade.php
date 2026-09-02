@@ -319,7 +319,15 @@
                     @endif
                     
                     <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">Thông tin cơ bản</h5>
-                    <div class="mb-2"><strong>Môn thể thao:</strong> <span class="badge bg-info text-dark">{{ $venue->sport?->name ?? 'Chưa cập nhật' }}</span></div>
+                    <div class="mb-2"><strong>Môn thể thao:</strong>
+                        @if($venue->sports && $venue->sports->isNotEmpty())
+                            @foreach($venue->sports as $s)
+                                <span class="badge bg-info text-dark me-1">{{ $s->name }}</span>
+                            @endforeach
+                        @else
+                            <span class="text-muted">Chưa cập nhật</span>
+                        @endif
+                    </div>
                     <div class="mb-2"><strong>Địa chỉ:</strong> {{ $venue->address }}</div>
                     <div class="mb-2"><strong>Mô tả:</strong> <br> {!! nl2br(e($venue->description)) !!}</div>
                 </div>

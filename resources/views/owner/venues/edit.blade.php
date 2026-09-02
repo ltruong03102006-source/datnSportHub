@@ -111,12 +111,12 @@
                                 <div class="row g-3 mb-4">
                                     <div class="col-12 col-md-6">
                                         <label class="form-label">Loại môn thể thao <span class="text-danger">*</span></label>
-                                        <select id="sport_id" name="sport_id" class="form-select" required oninput="this.classList.remove('is-invalid')">
-                                            <option value="">-- Chọn môn thể thao --</option>
+                                        <select id="sport_ids" name="sport_ids[]" class="form-select" multiple required oninput="this.classList.remove('is-invalid')">
                                             @foreach($sports as $sport)
-                                                <option value="{{ $sport->id }}" {{ old('sport_id', $venue->sport_id) == $sport->id ? 'selected' : '' }}>{{ $sport->name }}</option>
+                                                <option value="{{ $sport->id }}" {{ (in_array($sport->id, old('sport_ids', $venue->sports->pluck('id')->toArray() ?? [])) ? 'selected' : '') }}>{{ $sport->name }}</option>
                                             @endforeach
                                         </select>
+                                        <div class="form-text small text-muted mt-1">Chọn một hoặc nhiều môn thể thao.</div>
                                         <div class="invalid-feedback"></div>
                                     </div>
                                     <div class="col-12 col-md-6">
@@ -305,6 +305,15 @@
                             </button>
                         </div>
                     </form>
+
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            new TomSelect('#sport_ids', { plugins: ['remove_button'], maxItems: null, placeholder: 'Chọn môn thể thao...' });
+        } catch (e) { console.warn('TomSelect init failed', e); }
+    });
+</script>
                 </div>
             </div>
         </div>

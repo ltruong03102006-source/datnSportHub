@@ -185,7 +185,7 @@
                     
                     <div class="info-item">
                         <label>Môn thể thao</label>
-                        <div class="value">{{ $court->venue->sport->name ?? 'N/A' }}</div>
+                        <div class="value">{{ $court->sport?->name ?? ($court->venue->sports->first()->name ?? 'N/A') }}</div>
                     </div>
                     <div class="info-item">
                         <label>Địa chỉ</label>

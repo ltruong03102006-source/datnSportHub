@@ -99,12 +99,12 @@
                             <div class="row g-3">
                                 <div class="col-12 col-md-6">
                                     <label class="form-label">Loại môn thể thao <span class="text-danger">*</span></label>
-                                    <select name="sport_id" class="form-select" required>
-                                        <option value="">-- Chọn môn thể thao --</option>
+                                    <select name="sport_ids[]" class="form-select" id="sportSelect" multiple required>
                                         @foreach($sports as $sport)
-                                            <option value="{{ $sport->id }}" {{ old('sport_id') == $sport->id ? 'selected' : '' }}>{{ $sport->name }}</option>
+                                            <option value="{{ $sport->id }}" {{ (is_array(old('sport_ids')) && in_array($sport->id, old('sport_ids'))) ? 'selected' : '' }}>{{ $sport->name }}</option>
                                         @endforeach
                                     </select>
+                                    <div class="form-text small text-muted mt-1">Chọn một hoặc nhiều môn thể thao (Ctrl/Cmd + click để chọn nhiều).</div>
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <label class="form-label">Tên cơ sở <span class="text-danger">*</span></label>
@@ -251,6 +251,22 @@
                             <button type="submit" class="btn btn-success d-none" id="submitBtn">Gửi yêu cầu duyệt</button>
                         </div>
                     </form>
+
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script>
+    // enhance multi-select UX
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            new TomSelect('#sportSelect', {
+                plugins: ['remove_button'],
+                maxItems: null,
+                placeholder: 'Chọn môn thể thao...'
+            });
+        } catch (e) {
+            console.warn('TomSelect init failed', e);
+        }
+    });
+</script>
                 </div>
             </div>
         </div>

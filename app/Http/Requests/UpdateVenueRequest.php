@@ -16,7 +16,10 @@ class UpdateVenueRequest extends FormRequest
     {
         return [
             // 1. Thông tin cơ bản & Vị trí (Tab 1 & 2)
-            'sport_id' => ['required', 'exists:sports,id'],
+            // support updating multiple sports
+            'sport_id' => ['sometimes', 'exists:sports,id'],
+            'sport_ids' => ['sometimes', 'array'],
+            'sport_ids.*' => ['integer', 'exists:sports,id'],
             'name' => ['required', 'string', 'max:255'],
             'address' => ['required', 'string', 'max:500'],
             'province_code' => ['required', 'string', 'exists:provinces,code'],

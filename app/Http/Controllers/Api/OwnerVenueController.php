@@ -23,7 +23,7 @@ class OwnerVenueController extends Controller
             $user = $request->user();
             
             $venues = Venue::where('owner_id', $user->id)
-                ->with('sport', 'courts')
+                ->with(['sports', 'courts'])
                 ->get();
 
             return response()->json([
@@ -49,9 +49,12 @@ class OwnerVenueController extends Controller
 
         $bannerPath = $request->file('banner')->store('venues', 'public');
 
+        // Support both sport_id (legacy) and sport_ids (multiple)
+        $selectedSportIds = $validated['sport_ids'] ?? (isset($validated['sport_id']) ? [$validated['sport_id']] : []);
+
         $venueData = [
             'owner_id' => $request->user()->id,
-            'sport_id' => $validated['sport_id'],
+            'sport_id' => count($selectedSportIds) ? $selectedSportIds[0] : null, // keep legacy column
             'name' => $validated['name'],
             'address' => $validated['address'],
             'province_code' => $validated['province_code'],
@@ -80,6 +83,11 @@ class OwnerVenueController extends Controller
         }
 
         $venue = Venue::create($venueData);
+
+        // Attach sports if provided
+        if (!empty($selectedSportIds)) {
+            $venue->sports()->sync($selectedSportIds);
+        }
 
         if ($request->hasFile('gallery_images')) {
             foreach ($request->file('gallery_images') as $file) {
@@ -145,7 +153,7 @@ class OwnerVenueController extends Controller
 
             $venue = Venue::where('owner_id', $user->id)
                 ->where('id', $id)
-                ->with('sport', 'courts')
+                ->with(['sports', 'courts'])
                 ->first();
 
             if (!$venue) {

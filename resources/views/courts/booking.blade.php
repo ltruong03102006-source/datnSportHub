@@ -16,9 +16,12 @@
     <div class="mb-8 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
         <div class="flex flex-col p-6 sm:p-8">
             <div class="mb-3 flex flex-wrap items-center gap-3">
-                @if($court->venue?->sport)
+                @php
+                    $displaySport = $court->sport?->name ?? ($court->venue->sports->first()->name ?? null);
+                @endphp
+                @if($displaySport)
                     <span class="inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
-                        {{ $court->venue->sport->name }}
+                        {{ $displaySport }}
                     </span>
                 @endif
                 @if($court->status === 'active')

@@ -46,9 +46,13 @@ class OwnerVenueController extends Controller
 
         try {
             DB::transaction(function () use ($request, $validated, $bannerPath, &$createdVenue) {
+                // If caller provided sport_ids prefer that; fall back to sport_id for backward compatibility
+                $selectedSportIds = $validated['sport_ids'] ?? (isset($validated['sport_id']) ? [$validated['sport_id']] : []);
+
                 $venue = Venue::create([
                     'owner_id' => Auth::id(),
-                    'sport_id' => $validated['sport_id'],
+                    // keep sport_id column for compatibility: set to first selected sport or null
+                    'sport_id' => count($selectedSportIds) ? $selectedSportIds[0] : null,
                     'name' => $validated['name'],
                     'address' => $validated['address'],
                     'province_code' => $validated['province_code'],
@@ -64,6 +68,11 @@ class OwnerVenueController extends Controller
                     'lng' => $validated['lng'],
                     'status' => 'pending',
                 ]);
+
+                // Attach many-to-many sports if provided
+                if (!empty($selectedSportIds)) {
+                    $venue->sports()->sync($selectedSportIds);
+                }
 
                 if ($request->hasFile('gallery_images')) {
                     foreach ($request->file('gallery_images') as $file) {
@@ -183,6 +192,11 @@ class OwnerVenueController extends Controller
                 $hasBasicChanges = true;
             }
             $venue->save();
+
+            // If owner updated sport_ids explicitly, sync the pivot
+            if (isset($validated['sport_ids']) && is_array($validated['sport_ids'])) {
+                $venue->sports()->sync($validated['sport_ids']);
+            }
 
 
             // ========================================================
