@@ -16,9 +16,12 @@
     <div class="mb-8 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
         <div class="flex flex-col p-6 sm:p-8">
             <div class="mb-3 flex flex-wrap items-center gap-3">
-                @if($court->venue?->sport)
+                @php
+                    $displaySport = $court->sport?->name ?? ($court->venue->sports->first()->name ?? null);
+                @endphp
+                @if($displaySport)
                     <span class="inline-flex items-center gap-1.5 rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
-                        {{ $court->venue->sport->name }}
+                        {{ $displaySport }}
                     </span>
                 @endif
                 @if($court->status === 'active')
@@ -693,8 +696,14 @@
                 headers.Authorization = `Bearer ${token}`;
             }
 
-            const response = await fetch(`/api/courts/${courtId}/available-vouchers?date=${selectedDate}&total_price=${orderTotal}&slots=${encodeURIComponent(JSON.stringify(slotsParam))}`, {
-                headers
+            let url = `/courts/${courtId}/available-vouchers?date=${selectedDate}&total_price=${orderTotal}&slots=${encodeURIComponent(JSON.stringify(slotsParam))}`;
+            if (token) {
+                url += `&token=${encodeURIComponent(token)}`;
+            }
+
+            const response = await fetch(url, {
+                headers,
+                credentials: 'same-origin'
             });
             if (!response.ok) throw new Error();
             const res = await response.json();
@@ -797,7 +806,7 @@
                     ? `<span class="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded border border-rose-100">${v.inapplicable_reason}</span>` 
                     : isSelected 
                         ? `<button type="button" onclick="selectVoucher(null)" class="w-full text-center rounded-lg bg-emerald-600 text-white py-1.5 text-xs font-bold transition shadow-sm hover:bg-emerald-700">ĐANG ÁP DỤNG</button>`
-                        : `<button type="button" onclick="selectVoucher('${vDataStr}')" class="w-full text-center rounded-lg border border-emerald-600 text-emerald-600 hover:bg-emerald-50 py-1.5 text-xs font-bold transition">SỬ DỤNG NGAY</button>`
+                    : (v.user_has_used ? `<span class="w-full inline-flex items-center justify-center text-xs font-bold text-stone-500 bg-stone-100 border border-stone-200 rounded-lg py-1.5">ĐÃ DÙNG</span>` : `<button type="button" onclick="selectVoucher('${vDataStr}')" class="w-full text-center rounded-lg border border-emerald-600 text-emerald-600 hover:bg-emerald-50 py-1.5 text-xs font-bold transition">SỬ DỤNG NGAY</button>`)
                 }
             </div>
         `;

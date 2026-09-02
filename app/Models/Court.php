@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Builder;
+use App\Models\Sport;
 
 class Court extends Model
 {
@@ -15,7 +16,7 @@ class Court extends Model
 
     protected $table = 'courts';
 
-    protected $fillable = ['venue_id', 'name', 'status', 'is_bookable_online'];
+    protected $fillable = ['venue_id', 'name', 'status', 'is_bookable_online', 'sport_id'];
 
     protected $casts = [
         'is_bookable_online' => 'boolean',
@@ -24,6 +25,11 @@ class Court extends Model
     public function venue(): BelongsTo
     {
         return $this->belongsTo(Venue::class);
+    }
+
+    public function sport(): BelongsTo
+    {
+        return $this->belongsTo(Sport::class);
     }
 
     public function timeSlots(): HasMany

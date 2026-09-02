@@ -111,12 +111,12 @@
                                 <div class="row g-3 mb-4">
                                     <div class="col-12 col-md-6">
                                         <label class="form-label">Loại môn thể thao <span class="text-danger">*</span></label>
-                                        <select id="sport_id" name="sport_id" class="form-select" required oninput="this.classList.remove('is-invalid')">
-                                            <option value="">-- Chọn môn thể thao --</option>
+                                        <select id="sport_ids" name="sport_ids[]" class="form-select" multiple required oninput="this.classList.remove('is-invalid')">
                                             @foreach($sports as $sport)
-                                                <option value="{{ $sport->id }}" {{ old('sport_id', $venue->sport_id) == $sport->id ? 'selected' : '' }}>{{ $sport->name }}</option>
+                                                <option value="{{ $sport->id }}" {{ (in_array($sport->id, old('sport_ids', $venue->sports->pluck('id')->toArray() ?? [])) ? 'selected' : '') }}>{{ $sport->name }}</option>
                                             @endforeach
                                         </select>
+                                        <div class="form-text small text-muted mt-1">Chọn một hoặc nhiều môn thể thao.</div>
                                         <div class="invalid-feedback"></div>
                                     </div>
                                     <div class="col-12 col-md-6">
@@ -271,6 +271,20 @@
                                         
                                         <div class="col-12"><hr class="text-muted my-2"></div>
 
+                                        <div class="col-12">
+                                           <label class="form-label">Loại đất <span class="text-danger">*</span></label>
+                                           <div class="d-flex gap-4">
+                                               <div class="form-check">
+                                                   <input class="form-check-input" type="radio" name="land_type" id="editLandTypeOwned" value="owned" {{ old('land_type', $venue->legalDocument->land_type ?? 'rented') === 'owned' ? 'checked' : '' }} required>
+                                                   <label class="form-check-label" for="editLandTypeOwned">Đất nhà</label>
+                                               </div>
+                                               <div class="form-check">
+                                                   <input class="form-check-input" type="radio" name="land_type" id="editLandTypeRented" value="rented" {{ old('land_type', $venue->legalDocument->land_type ?? 'rented') === 'rented' ? 'checked' : '' }} required>
+                                                   <label class="form-check-label" for="editLandTypeRented">Đất thuê</label>
+                                               </div>
+                                           </div>
+                                        </div>
+
                                         <div class="col-12 col-md-6">
                                             <label class="form-label">Cập nhật CCCD Mặt trước</label>
                                             <input type="file" name="citizen_front_image" class="form-control" accept="image/*">
@@ -283,11 +297,11 @@
                                             <label class="form-label">Cập nhật Giấy phép KD</label>
                                             <input type="file" name="business_license_file" class="form-control" accept=".pdf,image/*">
                                         </div>
-                                        <div class="col-12 col-md-4">
+                                        <div class="col-12 col-md-4" id="editRentalContractGroup">
                                             <label class="form-label">Cập nhật Hợp đồng thuê</label>
                                             <input type="file" name="rental_contract_file" class="form-control" accept=".pdf,image/*">
                                         </div>
-                                        <div class="col-12 col-md-4">
+                                        <div class="col-12 col-md-4" id="editLandCertificateGroup">
                                             <label class="form-label">Cập nhật Sổ đỏ/Sổ hồng</label>
                                             <input type="file" name="land_certificate_file" class="form-control" accept=".pdf,image/*">
                                         </div>
@@ -305,6 +319,27 @@
                             </button>
                         </div>
                     </form>
+
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            new TomSelect('#sport_ids', { plugins: ['remove_button'], maxItems: null, placeholder: 'Chọn môn thể thao...' });
+        } catch (e) { console.warn('TomSelect init failed', e); }
+    });
+
+    function syncEditLandDocuments() {
+        const selected = document.querySelector('input[name="land_type"]:checked')?.value;
+        const rented = selected === 'rented';
+        document.getElementById('editRentalContractGroup').classList.toggle('d-none', !rented);
+        document.getElementById('editLandCertificateGroup').classList.toggle('d-none', rented);
+    }
+
+    document.querySelectorAll('input[name="land_type"]').forEach((input) => {
+        input.addEventListener('change', syncEditLandDocuments);
+    });
+    syncEditLandDocuments();
+</script>
                 </div>
             </div>
         </div>
@@ -368,7 +403,62 @@
             if (selectedWard) wardTS.setValue(selectedWard, true);
         } catch (err) { wardTS.disable(); }
     }
-    provinceTS.on('change', (value) => loadWards(value));
+
+    const locationFallbacks = {
+        'thành phố hải phòng': [20.8449, 106.6881],
+        'hải phòng': [20.8449, 106.6881],
+        'phường an dương, thành phố hải phòng': [20.8618, 106.6317],
+    };
+
+    async function geocodeAndCenterMap(address, zoom = 13) {
+        const fallback = locationFallbacks[address.toLowerCase()];
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 5000);
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/search?format=jsonv2&accept-language=vi&countrycodes=vn&limit=1&q=${encodeURIComponent(address + ', Việt Nam')}`,
+                { signal: controller.signal }
+            );
+            clearTimeout(timeout);
+            if (!response.ok) {
+                throw new Error(`Geocoding failed with status ${response.status}`);
+            }
+
+            const results = await response.json();
+            if (!results.length) throw new Error('No geocoding result');
+
+            const lat = Number(results[0].lat);
+            const lng = Number(results[0].lon);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+            marker.setLatLng([lat, lng]);
+            map.flyTo([lat, lng], zoom);
+            updateInputs(lat, lng);
+            return;
+        } catch (error) {
+            console.error('Không thể định vị tỉnh/phường trên bản đồ:', error);
+            if (fallback) {
+                marker.setLatLng(fallback);
+                map.flyTo(fallback, zoom);
+                updateInputs(fallback[0], fallback[1]);
+            }
+        }
+    }
+
+    provinceTS.on('change', (value) => {
+        loadWards(value);
+        if (value && provinceTS.options[value]) {
+            geocodeAndCenterMap(provinceTS.options[value].text, 11);
+        }
+    });
+    wardTS.on('change', (value) => {
+        if (!value || !provinceEl.value || !wardTS.options[value] || !provinceTS.options[provinceEl.value]) return;
+
+        geocodeAndCenterMap(
+            `${wardTS.options[value].text}, ${provinceTS.options[provinceEl.value].text}`,
+            14
+        );
+    });
     if (provinceEl.value) loadWards(provinceEl.value, provinceEl.dataset.currentWard || '');
 
     // Xử lý form Submit

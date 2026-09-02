@@ -17,6 +17,7 @@ class VenueLegalDocument extends Model
         'owner_name',
         'citizen_id',
         'business_license_number',
+        'land_type',
         'address',
         'bank_name',
         'bank_account_number',

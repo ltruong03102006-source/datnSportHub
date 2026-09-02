@@ -99,12 +99,12 @@
                             <div class="row g-3">
                                 <div class="col-12 col-md-6">
                                     <label class="form-label">Loại môn thể thao <span class="text-danger">*</span></label>
-                                    <select name="sport_id" class="form-select" required>
-                                        <option value="">-- Chọn môn thể thao --</option>
+                                    <select name="sport_ids[]" class="form-select" id="sportSelect" multiple required>
                                         @foreach($sports as $sport)
-                                            <option value="{{ $sport->id }}" {{ old('sport_id') == $sport->id ? 'selected' : '' }}>{{ $sport->name }}</option>
+                                            <option value="{{ $sport->id }}" {{ (is_array(old('sport_ids')) && in_array($sport->id, old('sport_ids'))) ? 'selected' : '' }}>{{ $sport->name }}</option>
                                         @endforeach
                                     </select>
+                                    <div class="form-text small text-muted mt-1">Chọn một hoặc nhiều môn thể thao (Ctrl/Cmd + click để chọn nhiều).</div>
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <label class="form-label">Tên cơ sở <span class="text-danger">*</span></label>
@@ -234,12 +234,25 @@
                                     <label class="form-label">Giấy phép kinh doanh <span class="text-danger">*</span></label>
                                     <input type="file" name="business_license_file" class="form-control" accept=".pdf,image/*" required>
                                 </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label">Hợp đồng thuê mặt bằng</label>
+                                <div class="col-12">
+                                    <label class="form-label">Loại đất <span class="text-danger">*</span></label>
+                                    <div class="d-flex gap-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="land_type" id="landTypeOwned" value="owned" {{ old('land_type') === 'owned' ? 'checked' : '' }} required>
+                                            <label class="form-check-label" for="landTypeOwned">Đất nhà</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="land_type" id="landTypeRented" value="rented" {{ old('land_type', 'rented') === 'rented' ? 'checked' : '' }} required>
+                                            <label class="form-check-label" for="landTypeRented">Đất thuê</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6" id="rentalContractGroup">
+                                    <label class="form-label">Hợp đồng thuê mặt bằng <span class="text-danger">*</span></label>
                                     <input type="file" name="rental_contract_file" class="form-control" accept=".pdf,image/*">
                                 </div>
-                                <div class="col-12">
-                                    <label class="form-label">Giấy chứng nhận quyền sử dụng đất</label>
+                                <div class="col-12" id="landCertificateGroup">
+                                    <label class="form-label">Giấy chứng nhận quyền sử dụng đất <span class="text-danger">*</span></label>
                                     <input type="file" name="land_certificate_file" class="form-control" accept=".pdf,image/*">
                                 </div>
                             </div>
@@ -251,6 +264,22 @@
                             <button type="submit" class="btn btn-success d-none" id="submitBtn">Gửi yêu cầu duyệt</button>
                         </div>
                     </form>
+
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script>
+    // enhance multi-select UX
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            new TomSelect('#sportSelect', {
+                plugins: ['remove_button'],
+                maxItems: null,
+                placeholder: 'Chọn môn thể thao...'
+            });
+        } catch (e) {
+            console.warn('TomSelect init failed', e);
+        }
+    });
+</script>
                 </div>
             </div>
         </div>
@@ -268,6 +297,27 @@
     const form = document.querySelector('form');
     const formAlert = document.getElementById('formAlert');
     let currentStep = 1;
+
+    function syncLandDocuments() {
+        const selected = document.querySelector('input[name="land_type"]:checked')?.value;
+        const rentalGroup = document.getElementById('rentalContractGroup');
+        const landGroup = document.getElementById('landCertificateGroup');
+        const rentalInput = document.querySelector('input[name="rental_contract_file"]');
+        const landInput = document.querySelector('input[name="land_certificate_file"]');
+        const rented = selected === 'rented';
+
+        rentalGroup.classList.toggle('d-none', !rented);
+        landGroup.classList.toggle('d-none', rented);
+        rentalInput.required = rented;
+        landInput.required = !rented;
+        if (!rented) rentalInput.value = '';
+        if (rented) landInput.value = '';
+    }
+
+    document.querySelectorAll('input[name="land_type"]').forEach((input) => {
+        input.addEventListener('change', syncLandDocuments);
+    });
+    syncLandDocuments();
 
     function updateStep() {
         steps.forEach(panel => {
@@ -368,9 +418,15 @@
             updateStep();
 
             if (currentStep === 2) {
+                // Chờ 200ms để form mở ra hẳn rồi mới vẽ bản đồ
                 setTimeout(() => {
-                    map.invalidateSize();
-                }, 300);
+                    map.invalidateSize(); 
+                    const currentLat = parseFloat(latInput.value);
+                    const currentLng = parseFloat(lngInput.value);
+                    if (!isNaN(currentLat) && !isNaN(currentLng)) {
+                        map.setView([currentLat, currentLng], 14); // Bắt bản đồ nhảy thẳng đến đây
+                    }
+                }, 200);
             }
         }
     });
@@ -397,55 +453,61 @@
     const defaultLat = 21.028511;
     const defaultLng = 105.804817;
 
-const map = L.map('map').setView([defaultLat, defaultLng], 14);
-
-L.tileLayer(
-    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap'
-    }
-).addTo(map);
-    let marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+    // 1. Khai báo biến bản đồ toàn cục ngay từ đầu
+    let map = null;
+    let marker = null;
 
     function updateInputs(lat, lng) {
         latInput.value = lat.toFixed(6);
         lngInput.value = lng.toFixed(6);
     }
 
-    marker.on('dragend', function () {
-        const pos = marker.getLatLng();
-        updateInputs(pos.lat, pos.lng);
-    });
-    map.on('click', function (e) {
-        marker.setLatLng(e.latlng);
-        updateInputs(e.latlng.lat, e.latlng.lng);
-    });
-
     function syncMap() {
+        if (!map || !marker) return;
         const lat = parseFloat(latInput.value);
         const lng = parseFloat(lngInput.value);
         if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
             marker.setLatLng([lat, lng]);
-            map.flyTo([lat, lng], 15);
+            map.setView([lat, lng], 15);
         }
     }
 
     latInput.addEventListener('input', syncMap);
     lngInput.addEventListener('input', syncMap);
 
-    if (!latInput.value || !lngInput.value) {
-        updateInputs(defaultLat, defaultLng);
-    } else {
-        syncMap();
-    }
-    window.addEventListener('load', () => {
-    setTimeout(() => {
-        map.invalidateSize();
-    }, 500);
-});
+    // 2. Khởi tạo bản đồ ngay khi DOM load xong (tránh tình trạng bị rỗng khung)
+    document.addEventListener('DOMContentLoaded', function() {
+        const initialLat = parseFloat(latInput.value) || defaultLat;
+        const initialLng = parseFloat(lngInput.value) || defaultLng;
 
-    // Cascading Tỉnh -> Phường/Xã (Tom Select: có ô tìm kiếm)
+        map = L.map('map').setView([initialLat, initialLng], 14);
+
+        L.tileLayer(
+            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap'
+            }
+        ).addTo(map);
+
+        marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(map);
+
+        marker.on('dragend', function () {
+            const pos = marker.getLatLng();
+            updateInputs(pos.lat, pos.lng);
+        });
+        
+        map.on('click', function (e) {
+            marker.setLatLng(e.latlng);
+            updateInputs(e.latlng.lat, e.latlng.lng);
+        });
+
+        if (!latInput.value || !lngInput.value) {
+            updateInputs(defaultLat, defaultLng);
+        }
+    });
+
+    // Cascading Tỉnh -> Phường/Xã (Tom Select)
     const provinceEl = document.getElementById('province_code');
     const wardEl = document.getElementById('ward_code');
 
@@ -466,9 +528,7 @@ L.tileLayer(
         wardTS.disable();
         wardEl.disabled = true;
 
-        if (!provinceCode) {
-            return;
-        }
+        if (!provinceCode) return;
 
         try {
             const res = await fetch(`/api/provinces/${provinceCode}/wards`);
@@ -486,49 +546,97 @@ L.tileLayer(
         }
     }
 
-    // --- 1. Hàm tự động tìm tọa độ (Geocoding API) ---
-    async function geocodeAndCenterMap(address) {
+    // --- Hàm tự động tìm tọa độ (Geocoding API) ---
+    async function fetchNominatim(query) {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&accept-language=vi&countrycodes=vn&q=${encodeURIComponent(query)}&limit=1`);
+        if (!res.ok) return null;
+        return await res.json();
+    }
+
+    async function geocodeAndCenterMap(address, zoom = 13) {
+        const cleanAddress = address.replace(/(Thành phố|Tỉnh|Quận|Huyện|Phường|Xã)\s+/gi, '').trim();
+        const query = `${cleanAddress}, Việt Nam`;
+
         try {
-            // Gọi API miễn phí của OpenStreetMap để tìm tọa độ
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address + ', Việt Nam')}&limit=1`);
-            const data = await res.json();
+            let data = await fetchNominatim(query);
             
+            if (!data || data.length === 0) {
+                const provinceOnly = address.split(',').pop().replace(/(Thành phố|Tỉnh)\s+/gi, '').trim();
+                data = await fetchNominatim(`${provinceOnly}, Việt Nam`);
+            }
+
             if (data && data.length > 0) {
                 const lat = parseFloat(data[0].lat);
                 const lng = parseFloat(data[0].lon);
                 
-                // Di chuyển bản đồ mượt mà (flyTo) và ghim Marker
-                map.flyTo([lat, lng], 13);
-                marker.setLatLng([lat, lng]);
                 updateInputs(lat, lng);
+
+                if (map && marker) {
+                    marker.setLatLng([lat, lng]);
+                    map.setView([lat, lng], zoom);
+                }
             }
         } catch (error) {
-            console.error("Lỗi tìm tọa độ:", error);
+            console.error("Lỗi API bản đồ:", error);
         }
     }
 
-    // --- 2. Lắng nghe khi chọn Tỉnh/Thành phố ---
+    // --- Lắng nghe khi chọn Tỉnh/Thành phố ---
     provinceTS.on('change', (value) => {
         loadWards(value);
         if (value) {
-            // Lấy ra tên Tỉnh (VD: "Thành phố Cần Thơ")
-            const provinceName = provinceTS.options[value].text;
-            geocodeAndCenterMap(provinceName); 
+            const selectedOption = provinceEl.options[provinceEl.selectedIndex];
+            const provinceName = selectedOption ? selectedOption.text : '';
+            if (provinceName) {
+                geocodeAndCenterMap(provinceName, 11); 
+            }
         }
     });
 
-    // --- 3. Lắng nghe khi chọn Phường/Xã (Zoom tận ngõ) ---
+    // --- Lắng nghe khi chọn Phường/Xã ---
     wardTS.on('change', (value) => {
         if (value && provinceEl.value) {
-            // Lấy tên Phường + Tên Tỉnh (VD: "Phường An Bình, Thành phố Cần Thơ")
-            const provinceName = provinceTS.options[provinceEl.value].text;
-            const wardName = wardTS.options[value].text;
+            const provinceOption = provinceEl.options[provinceEl.selectedIndex];
+            const wardOption = wardEl.options[wardEl.selectedIndex];
             
-            geocodeAndCenterMap(`${wardName}, ${provinceName}`);
+            const provinceName = provinceOption ? provinceOption.text : '';
+            const wardName = wardOption ? wardOption.text : '';
+            
+            if (provinceName && wardName) {
+                geocodeAndCenterMap(`${wardName}, ${provinceName}`, 14);
+            }
         }
     });
 
-    // Repopulate wards after a validation error (old input)
+    // Cập nhật sự kiện nút "Tiếp theo" để làm mới kích thước bản đồ khi sang tab 2
+    nextBtn.addEventListener('click', () => {
+        const currentPanel = document.querySelector(`.step-panel[data-panel="${currentStep}"]`);
+        const invalidField = currentPanel?.querySelector(':invalid');
+
+        if (invalidField) {
+            invalidField.reportValidity();
+            return;
+        }
+
+        if (currentStep === 1 && !validateLocationSelection()) {
+            return;
+        }
+
+        if (currentStep < 4) {
+            currentStep++;
+            updateStep();
+
+            if (currentStep === 2) {
+                setTimeout(() => {
+                    if (map) {
+                        map.invalidateSize(); // Ép bản đồ vẽ lại toàn bộ tile, xóa sạch mờ xám
+                        syncMap();
+                    }
+                }, 150);
+            }
+        }
+    });
+
     if (provinceEl.value) {
         loadWards(provinceEl.value, provinceEl.dataset.oldWard || '');
     }

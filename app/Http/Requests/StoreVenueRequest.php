@@ -17,7 +17,10 @@ class StoreVenueRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'sport_id' => ['required', 'exists:sports,id'],
+            // Allow either a single sport_id (backwards compatible) or multiple sport_ids
+            'sport_id' => ['sometimes', 'exists:sports,id'],
+            'sport_ids' => ['sometimes', 'array'],
+            'sport_ids.*' => ['integer', 'exists:sports,id'],
             'name' => ['required', 'string', 'max:255'],
             'address' => ['required', 'string', 'max:500'],
             'province_code' => ['required', 'string', 'exists:provinces,code'],
@@ -46,8 +49,9 @@ class StoreVenueRequest extends FormRequest
             'citizen_front_image' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
             'citizen_back_image' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
             'business_license_file' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
-            'rental_contract_file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
-            'land_certificate_file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
+            'land_type' => ['required', Rule::in(['owned', 'rented'])],
+            'rental_contract_file' => ['required_if:land_type,rented', 'nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
+            'land_certificate_file' => ['required_if:land_type,owned', 'nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
         ];
     }
 
@@ -60,6 +64,10 @@ class StoreVenueRequest extends FormRequest
             'ward_code.exists' => 'Phường/xã không hợp lệ hoặc không thuộc tỉnh đã chọn.',
             'citizen_id.digits' => 'Số Căn cước công dân phải bao gồm chính xác 12 chữ số.',
             'business_license_number.alpha_num' => 'Số giấy phép kinh doanh chỉ được chứa chữ cái và số, không chứa ký tự đặc biệt.',
+            'land_type.required' => 'Vui lòng chọn loại đất.',
+            'land_type.in' => 'Loại đất không hợp lệ.',
+            'rental_contract_file.required_if' => 'Vui lòng nộp hợp đồng thuê mặt bằng khi chọn đất thuê.',
+            'land_certificate_file.required_if' => 'Vui lòng nộp giấy chứng nhận quyền sử dụng đất khi chọn đất nhà.',
         ];
     }
 

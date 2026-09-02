@@ -78,6 +78,7 @@ class AdminVenueTransferController extends Controller
                 'citizen_id' => $newOwnerData['citizen_id'] ?? '000000000000',
                 'address' => $newOwnerData['address'] ?? $venue->address, 
                 'business_license_number' => $newOwnerData['business_license_number'] ?? optional($oldLegal)->business_license_number ?? 'N/A',
+                'land_type' => $newOwnerData['land_type'] ?? optional($oldLegal)->land_type,
                 'bank_name' => optional($oldLegal)->bank_name ?? 'N/A',
                 'bank_account_number' => optional($oldLegal)->bank_account_number ?? 'N/A',
                 'bank_account_holder' => optional($oldLegal)->bank_account_holder ?? 'N/A',

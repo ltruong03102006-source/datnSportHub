@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'Lịch sử đặt sân | SportHub')
 
@@ -274,7 +274,6 @@
 
                                         $slotDate = $booking->slot_date_label;
                                         $mergedTimeStrings = $booking->merged_time_strings ?? [];
-                                        $historyScheduleGroups = $booking->history_schedule_groups ?? [];
                                         $ownerPhone = $booking->owner_phone;
                                         $isEligibleStatus = (bool) $booking->is_eligible_status;
                                         $isPastStartTime = (bool) $booking->is_past_start_time;
@@ -308,30 +307,11 @@
                                                 {{ $slotDate }}
                                             </p>
 
-                                            <div class="mt-1 space-y-1.5 text-sm font-semibold text-slate-600">
-                                                @forelse($historyScheduleGroups as $scheduleGroup)
-                                                    @if(! $loop->first)
-                                                        <p class="pt-1 text-sm font-black text-zinc-900">{{ $scheduleGroup['date'] }}</p>
-                                                    @endif
-
-                                                    @foreach($scheduleGroup['slots'] as $slotLine)
-                                                        <p class="group relative flex items-center gap-2 {{ $slotLine['text_class'] ?? ($slotLine['is_rescheduled'] ? 'text-emerald-700' : 'text-slate-700') }}"
-                                                           @if($slotLine['tooltip']) title="{{ $slotLine['tooltip'] }}" @endif>
-                                                            <span>{{ $slotLine['text'] }}</span>
-
-                                                            @if($slotLine['badge_label'] ?? null)
-                                                                <span class="rounded-full px-2 py-0.5 text-[10px] font-black uppercase ring-1 {{ $slotLine['badge_class'] }}">
-                                                                    {{ $slotLine['badge_label'] }}
-                                                                </span>
-                                                            @endif
-                                                        </p>
-                                                    @endforeach
+                                            <div class="mt-1 space-y-1 text-sm font-semibold text-slate-600">
+                                                @forelse($mergedTimeStrings as $timeStr)
+                                                    <p>{{ $timeStr }}</p>
                                                 @empty
-                                                    @forelse($mergedTimeStrings as $timeStr)
-                                                        <p>{{ $timeStr }}</p>
-                                                    @empty
-                                                        <p>—</p>
-                                                    @endforelse
+                                                    <p>—</p>
                                                 @endforelse
                                             </div>
                                         </td>
@@ -416,7 +396,6 @@
 
                                 $slotDate = $booking->slot_date_label;
                                 $mergedTimeStrings = $booking->merged_time_strings ?? [];
-                                $historyScheduleGroups = $booking->history_schedule_groups ?? [];
                                 $ownerPhone = $booking->owner_phone;
 
                                 if (! $ownerPhone) {
@@ -459,30 +438,11 @@
                                             {{ $slotDate }}
                                         </p>
 
-                                        <div class="mt-1 space-y-1.5 font-semibold text-slate-600">
-                                            @forelse($historyScheduleGroups as $scheduleGroup)
-                                                @if(! $loop->first)
-                                                    <p class="pt-1 font-black text-zinc-900">{{ $scheduleGroup['date'] }}</p>
-                                                @endif
-
-                                                @foreach($scheduleGroup['slots'] as $slotLine)
-                                                    <p class="flex flex-wrap items-center gap-2 {{ $slotLine['text_class'] ?? ($slotLine['is_rescheduled'] ? 'text-emerald-700' : 'text-slate-700') }}"
-                                                       @if($slotLine['tooltip']) title="{{ $slotLine['tooltip'] }}" @endif>
-                                                        <span>{{ $slotLine['text'] }}</span>
-
-                                                        @if($slotLine['badge_label'] ?? null)
-                                                            <span class="rounded-full px-2 py-0.5 text-[10px] font-black uppercase ring-1 {{ $slotLine['badge_class'] }}">
-                                                                {{ $slotLine['badge_label'] }}
-                                                            </span>
-                                                        @endif
-                                                    </p>
-                                                @endforeach
+                                        <div class="mt-1 space-y-1 font-semibold text-slate-600">
+                                            @forelse($mergedTimeStrings as $timeStr)
+                                                <p>{{ $timeStr }}</p>
                                             @empty
-                                                @forelse($mergedTimeStrings as $timeStr)
-                                                    <p>{{ $timeStr }}</p>
-                                                @empty
-                                                    <p>—</p>
-                                                @endforelse
+                                                <p>—</p>
                                             @endforelse
                                         </div>
                                     </div>
@@ -915,15 +875,6 @@
                         <strong id="refundAmount" class="text-emerald-600 font-black text-lg">0đ</strong>
                     </div>
                 </div>
-                <!-- BẮT ĐẦU CHÈN THÊM KHỐI NÀY VÀO ĐÂY -->
-                <div id="serviceRefundNotice" style="display: none;" class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 text-sm shadow-sm">
-                    <p class="text-[11px] text-emerald-700 italic font-medium">
-                        * Bạn đã mua Dịch vụ kèm theo trị giá <span id="cancelServiceAmount" class="font-bold">0</span>đ. Số tiền dịch vụ này không bị tính phí phạt và được hệ thống hoàn lại 100%.
-                    </p>
-                </div>
-                <!-- KẾT THÚC CHÈN -->
-                
-                <div id="cancelOwnerContact" class="mb-4 hidden rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 text-sm shadow-sm">
                 <div id="cancelOwnerContact" class="mb-4 hidden rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 text-sm shadow-sm">
                     <div class="flex items-center gap-3">
                         <div class="rounded-full bg-emerald-100 p-2 text-emerald-600">
@@ -1136,15 +1087,6 @@
             document.getElementById('feePercent').textContent = data.fee_percent + '%';
             document.getElementById('feeAmount').textContent = formatVND(data.cancellation_fee);
             document.getElementById('refundAmount').textContent = formatVND(data.refund_amount);
-
-            // BẬT/TẮT THÔNG BÁO TIỀN DỊCH VỤ HOÀN 100%
-            const noticeDiv = document.getElementById('serviceRefundNotice');
-            if (data.services_total && data.services_total > 0) {
-                noticeDiv.style.display = 'block';
-                document.getElementById('cancelServiceAmount').textContent = formatVND(data.services_total);
-            } else {
-                noticeDiv.style.display = 'none';
-            }
 
             loading.classList.add('hidden');
             content.classList.remove('hidden');
