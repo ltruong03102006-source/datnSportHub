@@ -1,6 +1,6 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
-@section('title', 'Lịch sử đặt sân | SportHub')
+@section('title', 'Lá»‹ch sá»­ Ä‘áº·t sÃ¢n | SportHub')
 
 @section('content')
 @php
@@ -23,12 +23,12 @@
     $totalHistoryCount = $bookingCount + $packageCount;
 
     $packageStatusLabels = [
-        'pending_payment' => 'Chờ thanh toán',
-        'active' => 'Đang hoạt động',
-        'paused' => 'Tạm dừng',
-        'completed' => 'Hoàn thành',
-        'cancelled' => 'Đã hủy',
-        'expired' => 'Hết hạn',
+        'pending_payment' => 'Chá» thanh toÃ¡n',
+        'active' => 'Äang hoáº¡t Ä‘á»™ng',
+        'paused' => 'Táº¡m dá»«ng',
+        'completed' => 'HoÃ n thÃ nh',
+        'cancelled' => 'ÄÃ£ há»§y',
+        'expired' => 'Háº¿t háº¡n',
     ];
 
     $packageStatusClasses = [
@@ -52,28 +52,28 @@
                 <div class="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                     <div>
                         <p class="text-xs font-black uppercase tracking-[0.18em] text-emerald-600">
-                            Tài khoản SportHub
+                            TÃ i khoáº£n SportHub
                         </p>
 
                         <h1 class="mt-2 text-3xl font-black tracking-tight text-zinc-900 sm:text-4xl">
-                            Lịch sử đặt sân
+                            Lá»‹ch sá»­ Ä‘áº·t sÃ¢n
                         </h1>
 
                         <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-                            Quản lý toàn bộ đơn đặt sân lẻ và gói đặt sân của bạn. Bạn có thể xem chi tiết,
-                            đổi lịch, hủy sân hoặc đánh giá sau khi hoàn thành.
+                            Quáº£n lÃ½ toÃ n bá»™ Ä‘Æ¡n Ä‘áº·t sÃ¢n láº» vÃ  gÃ³i Ä‘áº·t sÃ¢n cá»§a báº¡n. Báº¡n cÃ³ thá»ƒ xem chi tiáº¿t,
+                            Ä‘á»•i lá»‹ch, há»§y sÃ¢n hoáº·c Ä‘Ã¡nh giÃ¡ sau khi hoÃ n thÃ nh.
                         </p>
                     </div>
 
                     <div class="flex flex-col gap-2 sm:flex-row lg:items-center">
                         <a href="{{ route('transactions.index') }}"
                            class="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50">
-                            Lịch sử giao dịch
+                            Lá»‹ch sá»­ giao dá»‹ch
                         </a>
 
                         <a href="{{ route('home') }}"
                            class="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-emerald-700">
-                            Đặt sân mới
+                            Äáº·t sÃ¢n má»›i
                         </a>
                     </div>
                 </div>
@@ -99,7 +99,7 @@
                 <div class="flex items-center justify-between gap-3">
                     <div>
                         <p class="text-xs font-black uppercase tracking-wider text-slate-400">
-                            Đặt sân lẻ
+                            Äáº·t sÃ¢n láº»
                         </p>
                         <p class="mt-2 text-3xl font-black text-zinc-900">
                             {{ number_format($bookingCount) }}
@@ -118,7 +118,7 @@
                 <div class="flex items-center justify-between gap-3">
                     <div>
                         <p class="text-xs font-black uppercase tracking-wider text-slate-400">
-                            Đặt theo gói
+                            Äáº·t theo gÃ³i
                         </p>
                         <p class="mt-2 text-3xl font-black text-emerald-700">
                             {{ number_format($packageCount) }}
@@ -137,7 +137,7 @@
                 <div class="flex items-center justify-between gap-3">
                     <div>
                         <p class="text-xs font-black uppercase tracking-wider text-slate-400">
-                            Tổng lịch sử
+                            Tá»•ng lá»‹ch sá»­
                         </p>
                         <p class="mt-2 text-3xl font-black text-zinc-900">
                             {{ number_format($totalHistoryCount) }}
@@ -172,9 +172,9 @@
                                 </div>
 
                                 <div>
-                                    <p class="text-sm font-black">Đặt sân lẻ</p>
+                                    <p class="text-sm font-black">Äáº·t sÃ¢n láº»</p>
                                     <p class="mt-1 text-xs font-semibold opacity-80">
-                                        Đơn đặt theo ngày, theo ca
+                                        ÄÆ¡n Ä‘áº·t theo ngÃ y, theo ca
                                     </p>
                                 </div>
                             </div>
@@ -198,9 +198,9 @@
                                 </div>
 
                                 <div>
-                                    <p class="text-sm font-black">Đặt theo gói</p>
+                                    <p class="text-sm font-black">Äáº·t theo gÃ³i</p>
                                     <p class="mt-1 text-xs font-semibold opacity-80">
-                                        Gói tuần, gói tháng, lịch cố định
+                                        GÃ³i tuáº§n, gÃ³i thÃ¡ng, lá»‹ch cá»‘ Ä‘á»‹nh
                                     </p>
                                 </div>
                             </div>
@@ -213,16 +213,16 @@
                 </div>
             </div>
 
-            {{-- TAB ĐẶT SÂN LẺ --}}
+            {{-- TAB Äáº¶T SÃ‚N Láºº --}}
             <div id="history-tab-single" data-history-tab-panel="single" class="history-tab-panel">
                 <div class="border-b border-slate-100 px-5 py-4">
                     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <h2 class="text-base font-black text-zinc-900">
-                                Danh sách đặt sân lẻ
+                                Danh sÃ¡ch Ä‘áº·t sÃ¢n láº»
                             </h2>
                             <p class="mt-1 text-sm text-slate-500">
-                                Quản lý các đơn đặt sân theo từng ngày và từng khung giờ.
+                                Quáº£n lÃ½ cÃ¡c Ä‘Æ¡n Ä‘áº·t sÃ¢n theo tá»«ng ngÃ y vÃ  tá»«ng khung giá».
                             </p>
                         </div>
                     </div>
@@ -237,16 +237,16 @@
                         </div>
 
                         <h2 class="text-lg font-black text-zinc-900">
-                            Bạn chưa có đơn đặt sân lẻ
+                            Báº¡n chÆ°a cÃ³ Ä‘Æ¡n Ä‘áº·t sÃ¢n láº»
                         </h2>
 
                         <p class="mt-2 text-sm text-slate-500">
-                            Khi bạn đặt sân theo từng ca, các đơn sẽ xuất hiện ở đây.
+                            Khi báº¡n Ä‘áº·t sÃ¢n theo tá»«ng ca, cÃ¡c Ä‘Æ¡n sáº½ xuáº¥t hiá»‡n á»Ÿ Ä‘Ã¢y.
                         </p>
 
                         <a href="{{ route('home') }}"
                            class="mt-5 inline-flex rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-700">
-                            Đặt sân ngay
+                            Äáº·t sÃ¢n ngay
                         </a>
                     </div>
                 @else
@@ -255,12 +255,12 @@
                         <table class="min-w-full divide-y divide-slate-100">
                             <thead class="bg-slate-50">
                                 <tr>
-                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-500">Đơn đặt</th>
-                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-500">Sân</th>
-                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-500">Thời gian</th>
-                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-500">Tổng tiền</th>
-                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-500">Trạng thái</th>
-                                    <th class="px-5 py-4 text-right text-xs font-black uppercase tracking-wider text-slate-500">Thao tác</th>
+                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-500">ÄÆ¡n Ä‘áº·t</th>
+                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-500">SÃ¢n</th>
+                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-500">Thá»i gian</th>
+                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-500">Tá»•ng tiá»n</th>
+                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-slate-500">Tráº¡ng thÃ¡i</th>
+                                    <th class="px-5 py-4 text-right text-xs font-black uppercase tracking-wider text-slate-500">Thao tÃ¡c</th>
                                 </tr>
                             </thead>
 
@@ -283,16 +283,16 @@
                                     <tr class="align-top transition hover:bg-slate-50/80">
                                         <td class="whitespace-nowrap px-5 py-4">
                                             <p class="text-sm font-black text-zinc-900">#{{ $booking->id }}</p>
-                                            <p class="mt-1 text-xs font-semibold text-slate-400">Đặt sân lẻ</p>
+                                            <p class="mt-1 text-xs font-semibold text-slate-400">Äáº·t sÃ¢n láº»</p>
                                         </td>
 
                                         <td class="px-5 py-4">
                                             <p class="text-sm font-black text-zinc-900">
-                                                {{ $booking->court?->name ?? 'Chưa cập nhật' }}
+                                                {{ $booking->court?->name ?? 'ChÆ°a cáº­p nháº­t' }}
                                             </p>
 
                                             <p class="mt-1 max-w-[250px] text-xs font-semibold text-slate-500">
-                                                {{ $booking->court?->venue?->name ?? 'Chưa cập nhật cơ sở' }}
+                                                {{ $booking->court?->venue?->name ?? 'ChÆ°a cáº­p nháº­t cÆ¡ sá»Ÿ' }}
                                             </p>
 
                                             @if($ownerPhone)
@@ -330,7 +330,7 @@
                                                     @forelse($mergedTimeStrings as $timeStr)
                                                         <p>{{ $timeStr }}</p>
                                                     @empty
-                                                        <p>—</p>
+                                                        <p>â€”</p>
                                                     @endforelse
                                                 @endforelse
                                             </div>
@@ -338,7 +338,7 @@
 
                                         <td class="whitespace-nowrap px-5 py-4">
                                             <p class="text-sm font-black text-emerald-700">
-                                                {{ number_format((float) $booking->total_price, 0, ',', '.') }}đ
+                                                {{ number_format((float) $booking->total_price, 0, ',', '.') }}Ä‘
                                             </p>
                                         </td>
 
@@ -349,7 +349,7 @@
 
                                             @if($booking->status === 'cancelled' && $booking->cancel_reason)
                                                 <p class="mt-2 max-w-[220px] text-xs leading-5 text-red-600">
-                                                    <span class="font-bold">Lý do hủy:</span> {{ $booking->cancel_reason }}
+                                                    <span class="font-bold">LÃ½ do há»§y:</span> {{ $booking->cancel_reason }}
                                                 </p>
                                             @endif
                                         </td>
@@ -358,13 +358,13 @@
                                             <div class="flex flex-wrap items-center justify-end gap-2">
                                                 <a href="{{ route('web.bookings.success', $booking->id) }}"
                                                    class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50">
-                                                    Chi tiết
+                                                    Chi tiáº¿t
                                                 </a>
 
                                                 @if($booking->status === 'confirmed' && !$isPastStartTime)
                                                     <a href="{{ route('customer.booking.reschedule.create', $booking->id) }}"
                                                        class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-700 transition hover:bg-amber-100">
-                                                        Đổi lịch
+                                                        Äá»•i lá»‹ch
                                                     </a>
                                                 @endif
 
@@ -372,12 +372,12 @@
                                                     @if(in_array($booking->id, $reviewedBookingIds))
                                                         <button disabled
                                                                 class="cursor-not-allowed rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-black text-slate-400">
-                                                            Đã đánh giá
+                                                            ÄÃ£ Ä‘Ã¡nh giÃ¡
                                                         </button>
                                                     @else
-                                                        <button onclick="openReviewModal({{ $booking->id }}, {{ $booking->court_id }}, '{{ addslashes($booking->court?->venue?->name ?? 'Cơ sở này') }}')"
+                                                        <button onclick="openReviewModal({{ $booking->id }}, {{ $booking->court_id }}, '{{ addslashes($booking->court?->venue?->name ?? 'CÆ¡ sá»Ÿ nÃ y') }}')"
                                                                 class="rounded-xl bg-amber-400 px-3 py-2 text-xs font-black text-zinc-900 shadow-sm transition hover:bg-amber-500">
-                                                            Đánh giá
+                                                            ÄÃ¡nh giÃ¡
                                                         </button>
                                                     @endif
                                                 @endif
@@ -387,13 +387,13 @@
                                                         <button type="button"
                                                                 onclick="document.getElementById('lateCancelModal').classList.remove('hidden')"
                                                                 class="rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-black text-slate-500 transition hover:bg-slate-200">
-                                                            Hủy sân
+                                                            Há»§y sÃ¢n
                                                         </button>
                                                     @else
                                                         <button type="button"
                                                                 onclick="openCancelModal({{ $booking->id }}, '{{ $ownerPhone ?? '' }}')"
                                                                 class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-black text-red-700 transition hover:bg-red-100">
-                                                            Hủy sân
+                                                            Há»§y sÃ¢n
                                                         </button>
                                                     @endif
                                                 @endif
@@ -432,15 +432,15 @@
                                 <div class="flex items-start justify-between gap-3">
                                     <div>
                                         <p class="text-xs font-black uppercase tracking-wider text-slate-400">
-                                            Mã đơn #{{ $booking->id }}
+                                            MÃ£ Ä‘Æ¡n #{{ $booking->id }}
                                         </p>
 
                                         <h2 class="mt-1 text-base font-black text-zinc-900">
-                                            {{ $booking->court?->name ?? 'Chưa cập nhật' }}
+                                            {{ $booking->court?->name ?? 'ChÆ°a cáº­p nháº­t' }}
                                         </h2>
 
                                         <p class="mt-1 text-sm font-semibold text-slate-500">
-                                            {{ $booking->court?->venue?->name ?? 'Chưa cập nhật cơ sở' }}
+                                            {{ $booking->court?->venue?->name ?? 'ChÆ°a cáº­p nháº­t cÆ¡ sá»Ÿ' }}
                                         </p>
                                     </div>
 
@@ -452,7 +452,7 @@
                                 <div class="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 text-sm">
                                     <div>
                                         <p class="text-xs font-black uppercase tracking-wider text-slate-400">
-                                            Thời gian
+                                            Thá»i gian
                                         </p>
 
                                         <p class="mt-1 font-black text-zinc-900">
@@ -481,7 +481,7 @@
                                                 @forelse($mergedTimeStrings as $timeStr)
                                                     <p>{{ $timeStr }}</p>
                                                 @empty
-                                                    <p>—</p>
+                                                    <p>â€”</p>
                                                 @endforelse
                                             @endforelse
                                         </div>
@@ -489,11 +489,11 @@
 
                                     <div class="text-right">
                                         <p class="text-xs font-black uppercase tracking-wider text-slate-400">
-                                            Tổng tiền
+                                            Tá»•ng tiá»n
                                         </p>
 
                                         <p class="mt-1 font-black text-emerald-700">
-                                            {{ number_format((float) $booking->total_price, 0, ',', '.') }}đ
+                                            {{ number_format((float) $booking->total_price, 0, ',', '.') }}Ä‘
                                         </p>
 
                                         @if($ownerPhone)
@@ -507,20 +507,20 @@
 
                                 @if($booking->status === 'cancelled' && $booking->cancel_reason)
                                     <div class="mt-3 rounded-2xl bg-red-50 px-3 py-2 text-xs leading-5 text-red-600">
-                                        <span class="font-bold">Lý do hủy:</span> {{ $booking->cancel_reason }}
+                                        <span class="font-bold">LÃ½ do há»§y:</span> {{ $booking->cancel_reason }}
                                     </div>
                                 @endif
 
                                 <div class="mt-4 grid gap-2 sm:grid-cols-2">
                                     <a href="{{ route('web.bookings.success', $booking->id) }}"
                                        class="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-black text-slate-700 transition hover:bg-slate-50">
-                                        Chi tiết
+                                        Chi tiáº¿t
                                     </a>
 
                                     @if($booking->status === 'confirmed' && !$isPastStartTime)
                                         <a href="{{ route('customer.booking.reschedule.create', $booking->id) }}"
                                            class="inline-flex items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm font-black text-amber-700 transition hover:bg-amber-100">
-                                            Đổi lịch
+                                            Äá»•i lá»‹ch
                                         </a>
                                     @endif
 
@@ -528,12 +528,12 @@
                                         @if(in_array($booking->id, $reviewedBookingIds))
                                             <button disabled
                                                     class="cursor-not-allowed rounded-2xl border border-slate-200 bg-slate-100 px-3 py-2.5 text-sm font-black text-slate-400">
-                                                Đã đánh giá
+                                                ÄÃ£ Ä‘Ã¡nh giÃ¡
                                             </button>
                                         @else
-                                            <button onclick="openReviewModal({{ $booking->id }}, {{ $booking->court_id }}, '{{ addslashes($booking->court?->venue?->name ?? 'Cơ sở này') }}')"
+                                            <button onclick="openReviewModal({{ $booking->id }}, {{ $booking->court_id }}, '{{ addslashes($booking->court?->venue?->name ?? 'CÆ¡ sá»Ÿ nÃ y') }}')"
                                                     class="rounded-2xl bg-amber-400 px-3 py-2.5 text-sm font-black text-zinc-900 shadow-sm transition hover:bg-amber-500">
-                                                Đánh giá
+                                                ÄÃ¡nh giÃ¡
                                             </button>
                                         @endif
                                     @endif
@@ -543,13 +543,13 @@
                                             <button type="button"
                                                     onclick="document.getElementById('lateCancelModal').classList.remove('hidden')"
                                                     class="rounded-2xl border border-slate-200 bg-slate-100 px-3 py-2.5 text-sm font-black text-slate-500 transition hover:bg-slate-200">
-                                                Hủy sân
+                                                Há»§y sÃ¢n
                                             </button>
                                         @else
                                             <button type="button"
                                                     onclick="openCancelModal({{ $booking->id }}, '{{ $ownerPhone ?? '' }}')"
                                                     class="rounded-2xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm font-black text-red-700 transition hover:bg-red-100">
-                                                Hủy sân
+                                                Há»§y sÃ¢n
                                             </button>
                                         @endif
                                     @endif
@@ -564,16 +564,16 @@
                 @endif
             </div>
 
-            {{-- TAB ĐẶT THEO GÓI --}}
+            {{-- TAB Äáº¶T THEO GÃ“I --}}
             <div id="history-tab-package" data-history-tab-panel="package" class="history-tab-panel hidden">
                 <div class="border-b border-slate-100 px-5 py-4">
                     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <h2 class="text-base font-black text-zinc-900">
-                                Danh sách gói đặt sân
+                                Danh sÃ¡ch gÃ³i Ä‘áº·t sÃ¢n
                             </h2>
                             <p class="mt-1 text-sm text-slate-500">
-                                Theo dõi gói tuần, gói tháng, tiến độ sử dụng và trạng thái thanh toán.
+                                Theo dÃµi gÃ³i tuáº§n, gÃ³i thÃ¡ng, tiáº¿n Ä‘á»™ sá»­ dá»¥ng vÃ  tráº¡ng thÃ¡i thanh toÃ¡n.
                             </p>
                         </div>
                     </div>
@@ -588,11 +588,11 @@
                         </div>
 
                         <h2 class="text-lg font-black text-zinc-900">
-                            Bạn chưa có gói đặt sân
+                            Báº¡n chÆ°a cÃ³ gÃ³i Ä‘áº·t sÃ¢n
                         </h2>
 
                         <p class="mt-2 text-sm text-slate-500">
-                            Khi đăng ký gói tuần hoặc gói tháng, thông tin gói sẽ xuất hiện ở đây.
+                            Khi Ä‘Äƒng kÃ½ gÃ³i tuáº§n hoáº·c gÃ³i thÃ¡ng, thÃ´ng tin gÃ³i sáº½ xuáº¥t hiá»‡n á»Ÿ Ä‘Ã¢y.
                         </p>
                     </div>
                 @else
@@ -601,13 +601,13 @@
                         <table class="min-w-full divide-y divide-slate-100">
                             <thead class="bg-emerald-50/70">
                                 <tr>
-                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-emerald-800">Gói</th>
-                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-emerald-800">Cơ sở</th>
-                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-emerald-800">Thời gian</th>
-                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-emerald-800">Tiến độ</th>
-                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-emerald-800">Thanh toán</th>
-                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-emerald-800">Trạng thái</th>
-                                    <th class="px-5 py-4 text-right text-xs font-black uppercase tracking-wider text-emerald-800">Thao tác</th>
+                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-emerald-800">GÃ³i</th>
+                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-emerald-800">CÆ¡ sá»Ÿ</th>
+                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-emerald-800">Thá»i gian</th>
+                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-emerald-800">Tiáº¿n Ä‘á»™</th>
+                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-emerald-800">Thanh toÃ¡n</th>
+                                    <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-wider text-emerald-800">Tráº¡ng thÃ¡i</th>
+                                    <th class="px-5 py-4 text-right text-xs font-black uppercase tracking-wider text-emerald-800">Thao tÃ¡c</th>
                                 </tr>
                             </thead>
 
@@ -617,8 +617,8 @@
                                         $transaction = $bookingPackage->transactions->first();
 
                                         $packageTypeLabel = $bookingPackage->package?->type === 'month'
-                                            ? 'Gói tháng'
-                                            : 'Gói tuần';
+                                            ? 'GÃ³i thÃ¡ng'
+                                            : 'GÃ³i tuáº§n';
 
                                         $packageStatus = method_exists($bookingPackage, 'displayStatus')
                                             ? $bookingPackage->displayStatus()
@@ -649,17 +649,17 @@
                                             </p>
 
                                             <p class="mt-1 text-sm font-bold text-zinc-800">
-                                                {{ $bookingPackage->package?->name ?? 'Gói đặt sân' }}
+                                                {{ $bookingPackage->package?->name ?? 'GÃ³i Ä‘áº·t sÃ¢n' }}
                                             </p>
 
                                             <p class="mt-1 text-xs font-semibold text-emerald-700">
-                                                {{ $packageTypeLabel }} · {{ $bookingPackage->weekly_sessions }} buổi/tuần
+                                                {{ $packageTypeLabel }} Â· {{ $bookingPackage->weekly_sessions }} buá»•i/tuáº§n
                                             </p>
                                         </td>
 
                                         <td class="px-5 py-4">
                                             <p class="text-sm font-black text-zinc-900">
-                                                {{ $bookingPackage->venue?->name ?? 'Chưa cập nhật cơ sở' }}
+                                                {{ $bookingPackage->venue?->name ?? 'ChÆ°a cáº­p nháº­t cÆ¡ sá»Ÿ' }}
                                             </p>
                                         </td>
 
@@ -671,7 +671,7 @@
 
                                         <td class="px-5 py-4">
                                             <p class="text-sm font-black text-zinc-900">
-                                                {{ $usedSessions }}/{{ $totalSessions }} buổi
+                                                {{ $usedSessions }}/{{ $totalSessions }} buá»•i
                                             </p>
 
                                             <div class="mt-2 h-2 w-40 overflow-hidden rounded-full bg-slate-100">
@@ -682,7 +682,7 @@
 
                                         <td class="whitespace-nowrap px-5 py-4">
                                             <p class="text-sm font-black text-emerald-700">
-                                                {{ number_format((float) $packageAmount, 0, ',', '.') }}đ
+                                                {{ number_format((float) $packageAmount, 0, ',', '.') }}Ä‘
                                             </p>
 
                                             @if($transaction)
@@ -701,7 +701,7 @@
                                         <td class="px-5 py-4 text-right">
                                             <a href="{{ route('package-bookings.show', $bookingPackage) }}"
                                                class="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 transition hover:bg-emerald-100">
-                                                Chi tiết
+                                                Chi tiáº¿t
                                             </a>
                                         </td>
                                     </tr>
@@ -717,8 +717,8 @@
                                 $transaction = $bookingPackage->transactions->first();
 
                                 $packageTypeLabel = $bookingPackage->package?->type === 'month'
-                                    ? 'Gói tháng'
-                                    : 'Gói tuần';
+                                    ? 'GÃ³i thÃ¡ng'
+                                    : 'GÃ³i tuáº§n';
 
                                 $packageStatus = method_exists($bookingPackage, 'displayStatus')
                                     ? $bookingPackage->displayStatus()
@@ -746,15 +746,15 @@
                                 <div class="flex items-start justify-between gap-3">
                                     <div>
                                         <p class="text-xs font-black uppercase tracking-wider text-emerald-700">
-                                            #PKG{{ $bookingPackage->id }} · {{ $packageTypeLabel }}
+                                            #PKG{{ $bookingPackage->id }} Â· {{ $packageTypeLabel }}
                                         </p>
 
                                         <h2 class="mt-1 text-base font-black text-zinc-900">
-                                            {{ $bookingPackage->package?->name ?? 'Gói đặt sân' }}
+                                            {{ $bookingPackage->package?->name ?? 'GÃ³i Ä‘áº·t sÃ¢n' }}
                                         </h2>
 
                                         <p class="mt-1 text-sm font-semibold text-slate-500">
-                                            {{ $bookingPackage->venue?->name ?? 'Chưa cập nhật cơ sở' }}
+                                            {{ $bookingPackage->venue?->name ?? 'ChÆ°a cáº­p nháº­t cÆ¡ sá»Ÿ' }}
                                         </p>
                                     </div>
 
@@ -766,7 +766,7 @@
                                 <div class="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 text-sm">
                                     <div>
                                         <p class="text-xs font-black uppercase tracking-wider text-slate-400">
-                                            Thời gian
+                                            Thá»i gian
                                         </p>
 
                                         <p class="mt-1 font-black text-zinc-900">
@@ -778,11 +778,11 @@
 
                                     <div class="text-right">
                                         <p class="text-xs font-black uppercase tracking-wider text-slate-400">
-                                            Thanh toán
+                                            Thanh toÃ¡n
                                         </p>
 
                                         <p class="mt-1 font-black text-emerald-700">
-                                            {{ number_format((float) $packageAmount, 0, ',', '.') }}đ
+                                            {{ number_format((float) $packageAmount, 0, ',', '.') }}Ä‘
                                         </p>
                                     </div>
                                 </div>
@@ -790,11 +790,11 @@
                                 <div class="mt-4 rounded-2xl bg-slate-50 p-3">
                                     <div class="flex items-center justify-between text-sm">
                                         <span class="font-bold text-slate-500">
-                                            Tiến độ sử dụng
+                                            Tiáº¿n Ä‘á»™ sá»­ dá»¥ng
                                         </span>
 
                                         <span class="font-black text-zinc-900">
-                                            {{ $usedSessions }}/{{ $totalSessions }} buổi
+                                            {{ $usedSessions }}/{{ $totalSessions }} buá»•i
                                         </span>
                                     </div>
 
@@ -804,13 +804,13 @@
                                     </div>
 
                                     <p class="mt-2 text-xs font-semibold text-slate-500">
-                                        {{ $bookingPackage->weekly_sessions }} buổi/tuần
+                                        {{ $bookingPackage->weekly_sessions }} buá»•i/tuáº§n
                                     </p>
                                 </div>
 
                                 <a href="{{ route('package-bookings.show', $bookingPackage) }}"
                                    class="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-emerald-600 px-3 py-2.5 text-sm font-black text-white transition hover:bg-emerald-700">
-                                    Xem chi tiết gói
+                                    Xem chi tiáº¿t gÃ³i
                                 </a>
                             </div>
                         @endforeach
@@ -865,16 +865,16 @@
         switchHistoryTab(@json($activeTab));
     });
 </script>
-<!-- MODAL HỦY SÂN -->
+<!-- MODAL Há»¦Y SÃ‚N -->
 <div id="lateCancelModal" class="fixed inset-0 z-[70] hidden flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
     <div class="w-full max-w-sm rounded-3xl bg-white shadow-2xl overflow-hidden transform transition-all">
         <div class="p-6 text-center">
             <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-amber-600">
                 <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
             </div>
-            <h3 class="text-lg font-bold text-zinc-900 mb-2">Không thể tự hủy ca này</h3>
-            <p class="text-sm text-stone-600 mb-6 leading-relaxed">Đã đến giờ bắt đầu của ca sân đầu tiên trong đơn. Hệ thống đã tự động khóa chức năng tự hủy.<br><br>Nếu gặp sự cố bất khả kháng (mưa bão, ngập sân...), vui lòng <b>liên hệ trực tiếp với Chủ sân</b> qua số điện thoại trên đơn để được hỗ trợ hủy và hoàn tiền.</p>
-            <button onclick="document.getElementById('lateCancelModal').classList.add('hidden')" class="w-full rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-white shadow-md transition hover:bg-amber-600">Tôi đã hiểu</button>
+            <h3 class="text-lg font-bold text-zinc-900 mb-2">KhÃ´ng thá»ƒ tá»± há»§y ca nÃ y</h3>
+            <p class="text-sm text-stone-600 mb-6 leading-relaxed">ÄÃ£ Ä‘áº¿n giá» báº¯t Ä‘áº§u cá»§a ca sÃ¢n Ä‘áº§u tiÃªn trong Ä‘Æ¡n. Há»‡ thá»‘ng Ä‘Ã£ tá»± Ä‘á»™ng khÃ³a chá»©c nÄƒng tá»± há»§y.<br><br>Náº¿u gáº·p sá»± cá»‘ báº¥t kháº£ khÃ¡ng (mÆ°a bÃ£o, ngáº­p sÃ¢n...), vui lÃ²ng <b>liÃªn há»‡ trá»±c tiáº¿p vá»›i Chá»§ sÃ¢n</b> qua sá»‘ Ä‘iá»‡n thoáº¡i trÃªn Ä‘Æ¡n Ä‘á»ƒ Ä‘Æ°á»£c há»— trá»£ há»§y vÃ  hoÃ n tiá»n.</p>
+            <button onclick="document.getElementById('lateCancelModal').classList.add('hidden')" class="w-full rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-white shadow-md transition hover:bg-amber-600">TÃ´i Ä‘Ã£ hiá»ƒu</button>
         </div>
     </div>
 </div>
@@ -883,7 +883,7 @@
         <div class="border-b border-rose-100 bg-rose-50 p-5 flex items-center justify-between">
             <h3 class="text-lg font-bold text-rose-700 flex items-center gap-2">
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                Xác nhận Hủy Đặt Sân
+                XÃ¡c nháº­n Há»§y Äáº·t SÃ¢n
             </h3>
             <button onclick="closeCancelModal()" class="text-rose-400 hover:text-rose-600 transition bg-white rounded-full p-1.5 shadow-sm">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -894,34 +894,34 @@
             <!-- Loading State -->
             <div id="cancelFeeLoading" class="flex flex-col items-center justify-center py-6">
                 <svg class="mb-3 h-8 w-8 animate-spin text-rose-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>
-                <p class="text-sm font-medium text-stone-500 animate-pulse">Đang tính toán chính sách hủy...</p>
+                <p class="text-sm font-medium text-stone-500 animate-pulse">Äang tÃ­nh toÃ¡n chÃ­nh sÃ¡ch há»§y...</p>
             </div>
 
             <!-- Content State -->
             <div id="cancelFeeContent" class="hidden">
-                <p class="text-sm text-stone-600 mb-4">Theo chính sách của hệ thống, khi hủy sân tại thời điểm này bạn sẽ chịu mức phí như sau:</p>
+                <p class="text-sm text-stone-600 mb-4">Theo chÃ­nh sÃ¡ch cá»§a há»‡ thá»‘ng, khi há»§y sÃ¢n táº¡i thá»i Ä‘iá»ƒm nÃ y báº¡n sáº½ chá»‹u má»©c phÃ­ nhÆ° sau:</p>
                 
                 <div class="rounded-xl border border-amber-200 bg-amber-50/50 p-4 mb-5 text-sm space-y-3">
                     <div class="flex justify-between items-center">
-                        <span class="text-stone-500 font-semibold uppercase tracking-wider text-xs">Phí phạt hủy sân</span>
+                        <span class="text-stone-500 font-semibold uppercase tracking-wider text-xs">PhÃ­ pháº¡t há»§y sÃ¢n</span>
                         <strong id="feePercent" class="text-amber-700 bg-amber-100 px-2 py-0.5 rounded font-bold">0%</strong>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-stone-500 font-semibold uppercase tracking-wider text-xs">Số tiền bị trừ</span>
-                        <strong id="feeAmount" class="text-rose-600 font-black">0đ</strong>
+                        <span class="text-stone-500 font-semibold uppercase tracking-wider text-xs">Sá»‘ tiá»n bá»‹ trá»«</span>
+                        <strong id="feeAmount" class="text-rose-600 font-black">0Ä‘</strong>
                     </div>
                     <div class="flex justify-between items-center border-t border-amber-200/60 pt-3 mt-1">
-                        <span class="text-stone-500 font-semibold uppercase tracking-wider text-xs">Tiền hoàn lại</span>
-                        <strong id="refundAmount" class="text-emerald-600 font-black text-lg">0đ</strong>
+                        <span class="text-stone-500 font-semibold uppercase tracking-wider text-xs">Tiá»n hoÃ n láº¡i</span>
+                        <strong id="refundAmount" class="text-emerald-600 font-black text-lg">0Ä‘</strong>
                     </div>
                 </div>
-                <!-- BẮT ĐẦU CHÈN THÊM KHỐI NÀY VÀO ĐÂY -->
+                <!-- Báº®T Äáº¦U CHÃˆN THÃŠM KHá»I NÃ€Y VÃ€O ÄÃ‚Y -->
                 <div id="serviceRefundNotice" style="display: none;" class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 text-sm shadow-sm">
                     <p class="text-[11px] text-emerald-700 italic font-medium">
-                        * Bạn đã mua Dịch vụ kèm theo trị giá <span id="cancelServiceAmount" class="font-bold">0</span>đ. Số tiền dịch vụ này không bị tính phí phạt và được hệ thống hoàn lại 100%.
+                        * Báº¡n Ä‘Ã£ mua Dá»‹ch vá»¥ kÃ¨m theo trá»‹ giÃ¡ <span id="cancelServiceAmount" class="font-bold">0</span>Ä‘. Sá»‘ tiá»n dá»‹ch vá»¥ nÃ y khÃ´ng bá»‹ tÃ­nh phÃ­ pháº¡t vÃ  Ä‘Æ°á»£c há»‡ thá»‘ng hoÃ n láº¡i 100%.
                     </p>
                 </div>
-                <!-- KẾT THÚC CHÈN -->
+                <!-- Káº¾T THÃšC CHÃˆN -->
                 
                 <div id="cancelOwnerContact" class="mb-4 hidden rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 text-sm shadow-sm">
                 <div id="cancelOwnerContact" class="mb-4 hidden rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 text-sm shadow-sm">
@@ -930,14 +930,14 @@
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-2.896-1.596-5.48-4.18-7.076-7.076l1.293-.97c.362-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" /></svg>
                         </div>
                         <div>
-                            <p class="font-semibold text-emerald-800">Liên hệ Chủ sân hỗ trợ:</p>
+                            <p class="font-semibold text-emerald-800">LiÃªn há»‡ Chá»§ sÃ¢n há»— trá»£:</p>
                             <a id="cancelOwnerPhone" href="#" class="text-base font-black text-emerald-600 transition hover:text-emerald-700 hover:underline"></a>
                         </div>
                     </div>
                 </div>
                 <div>
-                    <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-stone-500">Lý do hủy (Không bắt buộc)</label>
-                    <input type="text" id="cancelReasonInput" class="w-full rounded-xl border border-stone-300 bg-stone-50 p-3 text-sm outline-none transition focus:border-rose-500 focus:bg-white focus:ring-4 focus:ring-rose-500/10" placeholder="Ví dụ: Đội có việc bận đột xuất, trời mưa lớn...">
+                    <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-stone-500">LÃ½ do há»§y (KhÃ´ng báº¯t buá»™c)</label>
+                    <input type="text" id="cancelReasonInput" class="w-full rounded-xl border border-stone-300 bg-stone-50 p-3 text-sm outline-none transition focus:border-rose-500 focus:bg-white focus:ring-4 focus:ring-rose-500/10" placeholder="VÃ­ dá»¥: Äá»™i cÃ³ viá»‡c báº­n Ä‘á»™t xuáº¥t, trá»i mÆ°a lá»›n...">
                 </div>
             </div>
             
@@ -945,8 +945,8 @@
         </div>
         
         <div class="border-t border-stone-100 bg-stone-50 p-4 flex justify-end gap-3 rounded-b-3xl">
-            <button onclick="closeCancelModal()" class="rounded-xl px-5 py-2.5 text-sm font-bold text-stone-600 hover:bg-stone-200 transition">Không hủy nữa</button>
-            <button id="btnConfirmCancel" class="rounded-xl bg-rose-600 px-6 py-2.5 text-sm font-bold text-white shadow-md transition hover:bg-rose-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">Xác nhận Hủy</button>
+            <button onclick="closeCancelModal()" class="rounded-xl px-5 py-2.5 text-sm font-bold text-stone-600 hover:bg-stone-200 transition">KhÃ´ng há»§y ná»¯a</button>
+            <button id="btnConfirmCancel" class="rounded-xl bg-rose-600 px-6 py-2.5 text-sm font-bold text-white shadow-md transition hover:bg-rose-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">XÃ¡c nháº­n Há»§y</button>
         </div>
     </div>
 </div>
@@ -954,7 +954,7 @@
     <div class="w-full max-w-md rounded-3xl bg-white shadow-2xl overflow-hidden transform transition-all">
         <div class="border-b border-stone-100 bg-stone-50 p-5 flex items-center justify-between">
             <h3 class="text-lg font-bold text-zinc-900 flex items-center gap-2">
-                <span class="text-2xl">⭐</span> Đánh giá cơ sở: <span id="modalCourtName" class="text-emerald-600"></span>
+                <span class="text-2xl">â­</span> ÄÃ¡nh giÃ¡ cÆ¡ sá»Ÿ: <span id="modalCourtName" class="text-emerald-600"></span>
             </h3>
             <button onclick="closeReviewModal()" class="text-stone-400 hover:text-stone-600 transition bg-white rounded-full p-1.5 shadow-sm">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -967,7 +967,7 @@
             <input type="hidden" id="revRating" value="5">
 
             <div class="mb-5 text-center">
-                <p class="text-sm font-medium text-stone-500 mb-2">Trải nghiệm của bạn như thế nào?</p>
+                <p class="text-sm font-medium text-stone-500 mb-2">Tráº£i nghiá»‡m cá»§a báº¡n nhÆ° tháº¿ nÃ o?</p>
                 <div class="flex justify-center gap-2 mb-2">
                     <button type="button" class="star-btn transition hover:scale-110" onmouseover="hoverStar(1)" onmouseout="resetStar()" onclick="setRating(1)">
                         <svg class="h-8 w-8 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -985,25 +985,25 @@
                         <svg class="h-8 w-8 text-amber-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                     </button>
                 </div>
-                <span id="starLabel" class="inline-block rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">Tuyệt vời</span>
+                <span id="starLabel" class="inline-block rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">Tuyá»‡t vá»i</span>
             </div>
 
             <div>
-                <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-stone-500">Nhận xét chi tiết (Tùy chọn)</label>
-                <textarea id="revContent" rows="3" class="w-full rounded-xl border border-stone-300 bg-stone-50 p-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10" placeholder="Chia sẻ thêm về trải nghiệm của bạn (mặt sân, ánh sáng, dịch vụ)..."></textarea>
+                <label class="mb-2 block text-xs font-bold uppercase tracking-wider text-stone-500">Nháº­n xÃ©t chi tiáº¿t (TÃ¹y chá»n)</label>
+                <textarea id="revContent" rows="3" class="w-full rounded-xl border border-stone-300 bg-stone-50 p-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10" placeholder="Chia sáº» thÃªm vá» tráº£i nghiá»‡m cá»§a báº¡n (máº·t sÃ¢n, Ã¡nh sÃ¡ng, dá»‹ch vá»¥)..."></textarea>
             </div>
             
             <div id="revError" class="mt-4 hidden rounded-lg bg-rose-50 p-3 text-center text-sm font-semibold text-rose-600 border border-rose-100"></div>
         </div>
         
         <div class="border-t border-stone-100 bg-stone-50 p-4 flex justify-end gap-3 rounded-b-3xl">
-            <button onclick="closeReviewModal()" class="rounded-xl px-5 py-2.5 text-sm font-bold text-stone-600 hover:bg-stone-200 transition">Hủy</button>
-            <button id="btnSubmitReview" onclick="submitReview()" class="rounded-xl bg-amber-400 px-6 py-2.5 text-sm font-bold text-zinc-900 shadow-md transition hover:bg-amber-500 active:scale-95 disabled:opacity-50">Gửi đánh giá</button>
+            <button onclick="closeReviewModal()" class="rounded-xl px-5 py-2.5 text-sm font-bold text-stone-600 hover:bg-stone-200 transition">Há»§y</button>
+            <button id="btnSubmitReview" onclick="submitReview()" class="rounded-xl bg-amber-400 px-6 py-2.5 text-sm font-bold text-zinc-900 shadow-md transition hover:bg-amber-500 active:scale-95 disabled:opacity-50">Gá»­i Ä‘Ã¡nh giÃ¡</button>
         </div>
     </div>
 </div>
 <script>
-    const labels = ["Tệ", "Không hài lòng", "Bình thường", "Tốt", "Tuyệt vời"];
+    const labels = ["Tá»‡", "KhÃ´ng hÃ i lÃ²ng", "BÃ¬nh thÆ°á»ng", "Tá»‘t", "Tuyá»‡t vá»i"];
     let currentRating = 5;
 
     function openReviewModal(bookingId, courtId, courtName) {
@@ -1053,7 +1053,7 @@
         const token = localStorage.getItem('sporthub_token');
 
         btn.disabled = true;
-        btn.textContent = 'Đang gửi...';
+        btn.textContent = 'Äang gá»­i...';
         errorDiv.classList.add('hidden');
 
         try {
@@ -1062,7 +1062,7 @@
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             };
-            if (token) headers.Authorization = `Bearer ${token}`;
+            if (token) headers['Authorization'] = 'Bearer ' + token;
 
             const response = await fetch(`/api/courts/${courtId}/reviews`, {
                 method: 'POST',
@@ -1073,21 +1073,21 @@
             const data = await response.json();
 
             if (!response.ok) {
-                errorDiv.textContent = data.message || 'Có lỗi xảy ra.';
+                errorDiv.textContent = data.message || 'CÃ³ lá»—i xáº£y ra.';
                 errorDiv.classList.remove('hidden');
             } else {
-                alert('Đánh giá thành công! Cảm ơn bạn.');
-                window.location.reload(); // Tải lại trang để cập nhật nút thành "Đã đánh giá"
+                alert('ÄÃ¡nh giÃ¡ thÃ nh cÃ´ng! Cáº£m Æ¡n báº¡n.');
+                window.location.reload(); // Táº£i láº¡i trang Ä‘á»ƒ cáº­p nháº­t nÃºt thÃ nh "ÄÃ£ Ä‘Ã¡nh giÃ¡"
             }
         } catch (error) {
-            errorDiv.textContent = 'Lỗi kết nối máy chủ.';
+            errorDiv.textContent = 'Lá»—i káº¿t ná»‘i mÃ¡y chá»§.';
             errorDiv.classList.remove('hidden');
         } finally {
             btn.disabled = false;
-            btn.textContent = 'Gửi đánh giá';
+            btn.textContent = 'Gá»­i Ä‘Ã¡nh giÃ¡';
         }
     }
-    // === LOGIC XỬ LÝ HỦY SÂN ===
+    // === LOGIC Xá»¬ LÃ Há»¦Y SÃ‚N ===
     let currentCancelBookingId = null;
 
     function closeCancelModal() {
@@ -1102,7 +1102,7 @@
         const btnConfirm = document.getElementById('btnConfirmCancel');
         const errorDiv = document.getElementById('cancelError');
         
-        // CODE AN TOÀN CHỐNG SẬP JS
+        // CODE AN TOÃ€N CHá»NG Sáº¬P JS
         const contactDiv = document.getElementById('cancelOwnerContact');
         const phoneLink = document.getElementById('cancelOwnerPhone');
         
@@ -1128,16 +1128,16 @@
             });
             const data = await res.json();
 
-            if (!res.ok) throw new Error(data.message || 'Không thể lấy thông tin phí hủy.');
+            if (!res.ok) throw new Error(data.message || 'KhÃ´ng thá»ƒ láº¥y thÃ´ng tin phÃ­ há»§y.');
 
-            // Format tiền
-            const formatVND = (num) => new Intl.NumberFormat('vi-VN').format(num) + 'đ';
+            // Format tiá»n
+            const formatVND = (num) => new Intl.NumberFormat('vi-VN').format(num) + 'Ä‘';
 
             document.getElementById('feePercent').textContent = data.fee_percent + '%';
             document.getElementById('feeAmount').textContent = formatVND(data.cancellation_fee);
             document.getElementById('refundAmount').textContent = formatVND(data.refund_amount);
 
-            // BẬT/TẮT THÔNG BÁO TIỀN DỊCH VỤ HOÀN 100%
+            // Báº¬T/Táº®T THÃ”NG BÃO TIá»€N Dá»ŠCH Vá»¤ HOÃ€N 100%
             const noticeDiv = document.getElementById('serviceRefundNotice');
             if (data.services_total && data.services_total > 0) {
                 noticeDiv.style.display = 'block';
@@ -1163,7 +1163,7 @@
         const reason = document.getElementById('cancelReasonInput').value.trim();
         
         btn.disabled = true;
-        btn.textContent = 'Đang xử lý...';
+        btn.textContent = 'Äang xá»­ lÃ½...';
         errorDiv.classList.add('hidden');
         
         try {
@@ -1174,22 +1174,22 @@
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify({ reason: reason || 'Khách hàng tự hủy trên web' })
+                body: JSON.stringify({ reason: reason || 'KhÃ¡ch hÃ ng tá»± há»§y trÃªn web' })
             });
             
             const data = await res.json();
             
             if (res.ok) {
-                alert("Hủy sân thành công! Số tiền hoàn lại sẽ được xử lý tự động.");
+                alert("Há»§y sÃ¢n thÃ nh cÃ´ng! Sá»‘ tiá»n hoÃ n láº¡i sáº½ Ä‘Æ°á»£c xá»­ lÃ½ tá»± Ä‘á»™ng.");
                 window.location.reload(); 
             } else {
-                throw new Error(data.message || 'Hủy sân thất bại.');
+                throw new Error(data.message || 'Há»§y sÃ¢n tháº¥t báº¡i.');
             }
         } catch (error) {
             errorDiv.textContent = error.message;
             errorDiv.classList.remove('hidden');
             btn.disabled = false;
-            btn.textContent = 'Xác nhận Hủy';
+            btn.textContent = 'XÃ¡c nháº­n Há»§y';
         }
     });
 </script>
