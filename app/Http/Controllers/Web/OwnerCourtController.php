@@ -383,17 +383,34 @@ class OwnerCourtController extends Controller
             'duration_minutes' => $duration
         ]);
 
+        // Respect "apply_to_all_days" flag from the form. If checked (default), insert prices for all 7 days;
+        // otherwise only insert for the current weekday.
+        $applyAll = (bool) ($request->input('apply_to_all_days') ?? false);
         $pricesData = [];
-        for ($day = 0; $day <= 6; $day++) {
+
+        if ($applyAll) {
+            for ($day = 0; $day <= 6; $day++) {
+                $pricesData[] = [
+                    'time_slot_id' => $newSlot->id,
+                    'price' => $validated['price'],
+                    'price_type' => $validated['price_type'],
+                    'day_of_week' => $day,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+        } else {
+            $today = (int) now()->dayOfWeek; // 0 (Sun) .. 6 (Sat)
             $pricesData[] = [
                 'time_slot_id' => $newSlot->id,
                 'price' => $validated['price'],
                 'price_type' => $validated['price_type'],
-                'day_of_week' => $day,
+                'day_of_week' => $today,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
         }
+
         \App\Models\SlotPrice::insert($pricesData);
 
         return response()->json(['success' => true, 'message' => $message]);

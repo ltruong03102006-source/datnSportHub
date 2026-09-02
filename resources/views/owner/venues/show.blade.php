@@ -974,6 +974,12 @@ Trạng thái: {!! $service->is_active ? '<span class="text-success">Đang bán<
                             <div class="invalid-feedback" id="error-manual-price_type"></div>
                         </div>
                     </div>
+
+                    <!-- Mới: Tùy chọn áp dụng cho tất cả ngày trong tuần -->
+                    <div class="form-check form-switch my-3">
+                        <input class="form-check-input" type="checkbox" id="applyAllDays" name="apply_to_all_days" checked>
+                        <label class="form-check-label" for="applyAllDays">Áp dụng cho tất cả các ngày trong tuần (T2 - CN)</label>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
