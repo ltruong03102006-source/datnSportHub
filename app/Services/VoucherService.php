@@ -369,9 +369,23 @@ class VoucherService
             return ['eligible' => false, 'discount' => 0, 'reason' => 'Voucher đã hết hạn sử dụng.'];
         }
 
-        // 3. Usage Limit
+        // 3. Usage Limit (global)
         if (!is_null($voucher->usage_limit) && $voucher->used_count >= $voucher->usage_limit) {
             return ['eligible' => false, 'discount' => 0, 'reason' => 'Voucher đã hết lượt sử dụng.'];
+        }
+
+        // 3b. Per-user usage limit: nếu có giới hạn lượt dùng cho từng user, kiểm tra xem user đã dùng voucher này bao nhiêu lần
+        if (!is_null($voucher->max_uses_per_user) && !is_null($userId)) {
+            $userUses = \Illuminate\Support\Facades\DB::table('booking_vouchers')
+                ->join('bookings', 'booking_vouchers.booking_id', '=', 'bookings.id')
+                ->where('booking_vouchers.voucher_id', $voucher->id)
+                ->where('bookings.user_id', $userId)
+                ->whereNotIn('bookings.status', ['cancelled', 'rejected'])
+                ->count();
+
+            if ($userUses >= $voucher->max_uses_per_user) {
+                return ['eligible' => false, 'discount' => 0, 'reason' => 'Bạn đã dùng voucher này hết lượt.'];
+            }
         }
 
         // 4. Venue/Field association
@@ -523,7 +537,22 @@ class VoucherService
             $voucher->is_applicable = $eligibility['eligible'];
             $voucher->calculated_discount = $eligibility['discount'];
             $voucher->inapplicable_reason = $eligibility['reason'];
-            
+
+            // Flag whether current user has used this voucher in a non-cancelled booking
+            $userHasUsed = false;
+            if (!is_null($userId)) {
+                $userUses = \Illuminate\Support\Facades\DB::table('booking_vouchers')
+                    ->join('bookings', 'booking_vouchers.booking_id', '=', 'bookings.id')
+                    ->where('booking_vouchers.voucher_id', $voucher->id)
+                    ->where('bookings.user_id', $userId)
+                    ->whereNotIn('bookings.status', ['cancelled', 'rejected'])
+                    ->count();
+
+                $userHasUsed = $userUses > 0;
+            }
+
+            $voucher->user_has_used = $userHasUsed;
+
             return $voucher;
         });
     }
@@ -533,11 +562,17 @@ class VoucherService
      */
     public function incrementUsage(Voucher $voucher): void
     {
+        // Tăng số lượt đã dùng (global)
         $voucher->increment('used_count');
         $voucher->refresh();
 
+        // Nếu có giới hạn lượt dùng và đã đạt hoặc vượt giới hạn, tắt voucher (không cho dùng tiếp)
         if (!is_null($voucher->usage_limit) && $voucher->used_count >= $voucher->usage_limit) {
             try {
+                // Đặt trạng thái voucher về 'disabled' để không thể dùng tiếp
+                $voucher->status = 'disabled';
+                $voucher->save();
+
                 $notificationService = app(\App\Services\NotificationService::class);
                 $title = "Voucher {$voucher->code} đã hết lượt sử dụng";
                 $content = "Mã giảm giá '{$voucher->code}' của bạn đã đạt giới hạn sử dụng ({$voucher->used_count}/{$voucher->usage_limit}). Vui lòng bổ sung thêm lượt sử dụng hoặc gia hạn mã.";

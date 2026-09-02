@@ -31,8 +31,21 @@ class VoucherEligibilityController extends Controller
             $slots = json_decode($slots, true) ?? [];
         }
 
-        // Try to get authenticated user ID from either Sanctum or session
+        // Try to get authenticated user ID from either Sanctum/session or token query param
         $userId = $request->user()?->id ?? Auth::id();
+
+        // If frontend sends token in query param (for SPA storing token in localStorage), try to resolve user via Sanctum PersonalAccessToken
+        if (empty($userId) && $request->query('token')) {
+            try {
+                $token = $request->query('token');
+                $pat = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+                if ($pat && $pat->tokenable) {
+                    $userId = $pat->tokenable->id;
+                }
+            } catch (\Throwable $e) {
+                // ignore token resolution errors and treat as guest
+            }
+        }
 
         try {
             $vouchers = $this->voucherService->getAvailableVouchersForCourt(
