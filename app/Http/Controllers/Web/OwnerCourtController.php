@@ -37,6 +37,7 @@ class OwnerCourtController extends Controller
                 })
             ],
             'status' => 'required|in:active,inactive',
+            'sport_id' => 'required|exists:sports,id',
         ], [
             'name.required' => 'Vui lòng nhập tên sân.',
             'name.max' => 'Tên sân không được vượt quá 255 ký tự.',
@@ -45,12 +46,26 @@ class OwnerCourtController extends Controller
             'status.in' => 'Trạng thái không hợp lệ.',
         ]);
 
+        // Nếu owner chọn sport_id, kiểm tra sport này thuộc về venue hay không
+        if (!empty($validated['sport_id'])) {
+            $allowed = $venue->sports->pluck('id')->contains($validated['sport_id']);
+            if (!$allowed) {
+                return response()->json(['success' => false, 'message' => 'Môn thể thao không hợp lệ cho cơ sở này.'], 422);
+            }
+        }
+
         try {
-            $court = $venue->courts()->create([
+            $courtData = [
                 'name' => $validated['name'],
                 'status' => $validated['status'],
-                'is_bookable_online' => true, 
-            ]);
+                'is_bookable_online' => true,
+            ];
+
+            if (!empty($validated['sport_id'])) {
+                $courtData['sport_id'] = $validated['sport_id'];
+            }
+
+            $court = $venue->courts()->create($courtData);
 
             return response()->json(['success' => true, 'message' => 'Đã thêm sân con thành công.', 'data' => $court], 201);
         } catch (\Exception $e) {
@@ -77,6 +92,7 @@ class OwnerCourtController extends Controller
                 })->ignore($court->id)
             ],
             'status' => 'required|in:active,inactive',
+            'sport_id' => 'required|exists:sports,id',
         ], [
             'name.required' => 'Vui lòng nhập tên sân.',
             'name.max' => 'Tên sân không được vượt quá 255 ký tự.',
@@ -100,12 +116,26 @@ class OwnerCourtController extends Controller
             }
         }
 
+        // Nếu owner thay đổi sport_id, kiểm tra hợp lệ
+        if (!empty($validated['sport_id'])) {
+            $allowed = $court->venue->sports->pluck('id')->contains($validated['sport_id']);
+            if (!$allowed) {
+                return response()->json(['success' => false, 'message' => 'Môn thể thao không hợp lệ cho cơ sở này.'], 422);
+            }
+        }
+
         try {
-            $court->update([
+            $updateData = [
                 'name' => $validated['name'],
                 'status' => $validated['status'],
                 'is_bookable_online' => true,
-            ]);
+            ];
+
+            if (array_key_exists('sport_id', $validated)) {
+                $updateData['sport_id'] = $validated['sport_id'];
+            }
+
+            $court->update($updateData);
 
             return response()->json(['success' => true, 'message' => 'Cập nhật thông tin sân con thành công.', 'data' => $court]);
         } catch (\Exception $e) {

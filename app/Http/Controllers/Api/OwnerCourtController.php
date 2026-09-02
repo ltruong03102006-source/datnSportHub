@@ -68,14 +68,28 @@ class OwnerCourtController extends Controller
                 'name' => 'required|string|max:255',
                 'type' => 'required|string|max:100',
                 'description' => 'nullable|string',
+                'sport_id' => 'required|exists:sports,id',
             ]);
 
-            $court = Court::create([
+            if (!empty($validated['sport_id'])) {
+                $allowed = $venue->sports->pluck('id')->contains($validated['sport_id']);
+                if (!$allowed) {
+                    return response()->json(['message' => 'Môn thể thao không hợp lệ cho cơ sở này.'], 422);
+                }
+            }
+
+            $courtData = [
                 'venue_id' => $venueId,
                 'name' => $validated['name'],
                 'type' => $validated['type'],
                 'description' => $validated['description'] ?? null,
-            ]);
+            ];
+
+            if (!empty($validated['sport_id'])) {
+                $courtData['sport_id'] = $validated['sport_id'];
+            }
+
+            $court = Court::create($courtData);
 
             return response()->json([
                 'message' => 'Tạo sân nhỏ thành công',
@@ -118,7 +132,15 @@ class OwnerCourtController extends Controller
                 'name' => 'sometimes|string|max:255',
                 'type' => 'sometimes|string|max:100',
                 'description' => 'nullable|string',
+                'sport_id' => 'required|exists:sports,id',
             ]);
+
+            if (!empty($validated['sport_id'])) {
+                $allowed = $court->venue->sports->pluck('id')->contains($validated['sport_id']);
+                if (!$allowed) {
+                    return response()->json(['message' => 'Môn thể thao không hợp lệ cho cơ sở này.'], 422);
+                }
+            }
 
             $court->update($validated);
 
