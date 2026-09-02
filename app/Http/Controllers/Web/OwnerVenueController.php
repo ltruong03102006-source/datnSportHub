@@ -87,6 +87,7 @@ class OwnerVenueController extends Controller
                         'owner_name' => $validated['owner_name'],
                         'citizen_id' => $validated['citizen_id'],
                         'business_license_number' => $validated['business_license_number'],
+                        'land_type' => $validated['land_type'],
                         'address' => $validated['address'],
                         'bank_name' => $validated['bank_name'] ?? '',
                         'bank_account_number' => $validated['bank_account_number'] ?? '',

@@ -234,12 +234,25 @@
                                     <label class="form-label">Giấy phép kinh doanh <span class="text-danger">*</span></label>
                                     <input type="file" name="business_license_file" class="form-control" accept=".pdf,image/*" required>
                                 </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label">Hợp đồng thuê mặt bằng</label>
+                                <div class="col-12">
+                                    <label class="form-label">Loại đất <span class="text-danger">*</span></label>
+                                    <div class="d-flex gap-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="land_type" id="landTypeOwned" value="owned" {{ old('land_type') === 'owned' ? 'checked' : '' }} required>
+                                            <label class="form-check-label" for="landTypeOwned">Đất nhà</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="land_type" id="landTypeRented" value="rented" {{ old('land_type', 'rented') === 'rented' ? 'checked' : '' }} required>
+                                            <label class="form-check-label" for="landTypeRented">Đất thuê</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6" id="rentalContractGroup">
+                                    <label class="form-label">Hợp đồng thuê mặt bằng <span class="text-danger">*</span></label>
                                     <input type="file" name="rental_contract_file" class="form-control" accept=".pdf,image/*">
                                 </div>
-                                <div class="col-12">
-                                    <label class="form-label">Giấy chứng nhận quyền sử dụng đất</label>
+                                <div class="col-12" id="landCertificateGroup">
+                                    <label class="form-label">Giấy chứng nhận quyền sử dụng đất <span class="text-danger">*</span></label>
                                     <input type="file" name="land_certificate_file" class="form-control" accept=".pdf,image/*">
                                 </div>
                             </div>
@@ -284,6 +297,27 @@
     const form = document.querySelector('form');
     const formAlert = document.getElementById('formAlert');
     let currentStep = 1;
+
+    function syncLandDocuments() {
+        const selected = document.querySelector('input[name="land_type"]:checked')?.value;
+        const rentalGroup = document.getElementById('rentalContractGroup');
+        const landGroup = document.getElementById('landCertificateGroup');
+        const rentalInput = document.querySelector('input[name="rental_contract_file"]');
+        const landInput = document.querySelector('input[name="land_certificate_file"]');
+        const rented = selected === 'rented';
+
+        rentalGroup.classList.toggle('d-none', !rented);
+        landGroup.classList.toggle('d-none', rented);
+        rentalInput.required = rented;
+        landInput.required = !rented;
+        if (!rented) rentalInput.value = '';
+        if (rented) landInput.value = '';
+    }
+
+    document.querySelectorAll('input[name="land_type"]').forEach((input) => {
+        input.addEventListener('change', syncLandDocuments);
+    });
+    syncLandDocuments();
 
     function updateStep() {
         steps.forEach(panel => {

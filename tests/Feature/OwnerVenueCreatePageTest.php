@@ -64,12 +64,14 @@ class OwnerVenueCreatePageTest extends TestCase
             'owner_name' => 'Nguyễn Văn A',
             'citizen_id' => '001099123456',
             'business_license_number' => 'GPKD12345',
+            'land_type' => 'rented',
             'bank_name' => 'MB Bank',
             'bank_account_number' => '99999999',
             'bank_account_holder' => 'NGUYEN VAN A',
             'citizen_front_image' => UploadedFile::fake()->image('cccd_front.jpg'),
             'citizen_back_image' => UploadedFile::fake()->image('cccd_back.jpg'),
             'business_license_file' => UploadedFile::fake()->create('gpkd.pdf', 100, 'application/pdf'),
+            'rental_contract_file' => UploadedFile::fake()->create('hop-dong.pdf', 100, 'application/pdf'),
         ]);
 
         $response->assertRedirect('/owner/venues');
@@ -77,6 +79,10 @@ class OwnerVenueCreatePageTest extends TestCase
             'owner_id' => $owner->id,
             'name' => 'Dant Sport Mỹ Đình',
             'status' => 'pending',
+        ]);
+        $this->assertDatabaseHas('venue_legal_documents', [
+            'venue_id' => \App\Models\Venue::where('name', 'Dant Sport Mỹ Đình')->latest('id')->value('id'),
+            'land_type' => 'rented',
         ]);
     }
 }
