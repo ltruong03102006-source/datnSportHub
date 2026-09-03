@@ -4,9 +4,10 @@ namespace App\Services;
 
 class ChatbotResponderService
 {
-    public function reply(string $message): array
+    public function reply(string $message, array $conversationHistory = []): array
     {
-        $normalized = $this->normalize($message);
+        $context = $this->buildContext($message, $conversationHistory);
+        $normalized = $this->normalize($context);
 
         foreach ($this->rules() as $rule) {
             foreach ($rule['keywords'] as $keyword) {
@@ -25,6 +26,20 @@ class ChatbotResponderService
             'intent' => 'fallback',
             'confidence' => 0.35,
         ];
+    }
+
+    private function buildContext(string $message, array $conversationHistory): string
+    {
+        $messages = array_values(array_filter(array_map(fn ($value) => trim((string) $value), $conversationHistory)));
+
+        if (empty($messages)) {
+            return $message;
+        }
+
+        $recent = array_slice($messages, -5);
+        $recent[] = $message;
+
+        return implode(' ', $recent);
     }
 
     private function normalize(string $message): string

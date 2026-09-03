@@ -27,7 +27,16 @@ class ChatbotController extends Controller
         abort_unless(config('chatbot.enabled'), 404);
 
         $validated = $request->validate([
-            'message' => ['required', 'string', 'max:' . config('chatbot.max_user_message_length', 1000)],
+            'message' => [
+                'required',
+                'string',
+                'max:' . config('chatbot.max_user_message_length', 1000),
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if (trim((string) $value) === '') {
+                        $fail('Tin nhắn không được để trống.');
+                    }
+                },
+            ],
             'conversation_id' => ['nullable', 'integer'],
         ]);
 
@@ -40,7 +49,14 @@ class ChatbotController extends Controller
             'message' => $userMessage,
         ]);
 
-        $reply = $responder->reply($userMessage);
+        $conversationHistory = $conversation->messages()
+            ->where('sender', 'user')
+            ->latest()
+            ->take(5)
+            ->pluck('message')
+            ->all();
+
+        $reply = $responder->reply($userMessage, $conversationHistory);
 
         $botMessage = $conversation->messages()->create([
             'sender' => 'bot',
@@ -68,15 +84,22 @@ class ChatbotController extends Controller
     {
         $conversationId = $request->integer('conversation_id');
 
+        $query = ChatbotConversation::query()
+            ->when(
+                $conversationId,
+                fn ($query) => $query->where('id', $conversationId),
+                fn ($query) => $query->where('status', 'open')
+            )
+            ->when(
+                $request->user(),
+                fn ($query) => $query->where('user_id', $request->user()->id),
+                fn ($query) => $query->where('session_id', $request->session()->getId())
+            );
+
         if ($conversationId) {
-            ChatbotConversation::query()
-                ->where('id', $conversationId)
-                ->when(
-                    $request->user(),
-                    fn($query) => $query->where('user_id', $request->user()->id),
-                    fn($query) => $query->where('session_id', $request->session()->getId())
-                )
-                ->update(['status' => 'closed']);
+            $query->update(['status' => 'closed']);
+        } else {
+            $query->latest('last_message_at')->first()?->update(['status' => 'closed']);
         }
 
         return response()->json(['success' => true]);
