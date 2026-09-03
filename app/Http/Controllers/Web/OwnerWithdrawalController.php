@@ -112,7 +112,8 @@ class OwnerWithdrawalController extends Controller
             $bankAccountHolder = $data['bank_account_holder'];
         }
 
-        DB::transaction(function () use ($owner, $data, $bankName, $bankAccountNumber, $bankAccountHolder, $bankConfigured, $saveBankInfo): void {
+        $withdrawal = null;
+        DB::transaction(function () use ($owner, $data, $bankName, $bankAccountNumber, $bankAccountHolder, $bankConfigured, $saveBankInfo, &$withdrawal): void {
             if (! $bankConfigured && $saveBankInfo) {
                 $owner->bank_name = $bankName;
                 $owner->bank_account_no = $bankAccountNumber;
@@ -149,7 +150,7 @@ class OwnerWithdrawalController extends Controller
                 ]);
             }
 
-            \App\Models\WithdrawalRequest::create([
+            $withdrawal = \App\Models\WithdrawalRequest::create([
                 'owner_id' => $owner->id,
                 'wallet_id' => $wallet->id,
                 'code' => 'WD-' . now()->format('YmdHis') . '-' . $owner->id . '-' . Str::upper(Str::random(4)),
@@ -163,6 +164,14 @@ class OwnerWithdrawalController extends Controller
                 'status' => 'pending',
             ]);
         });
+
+        if ($withdrawal) {
+            try {
+                app(\App\Services\NotificationService::class)->notifyAdminWithdrawalRequest($withdrawal);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Lỗi khi gửi thông báo rút tiền cho admin: ' . $e->getMessage());
+            }
+        }
 
         return redirect()
             ->route('owner.web.withdrawals.index')

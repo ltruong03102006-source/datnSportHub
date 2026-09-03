@@ -57,7 +57,7 @@ class WalletController extends Controller
                 ]);
 
                 // Create withdrawal request
-                WithdrawalRequest::create([
+                $withdrawal = WithdrawalRequest::create([
                     'owner_id' => $user->id,
                     'wallet_id' => $wallet->id,
                     'code' => 'WD-' . now()->format('YmdHis') . '-' . $user->id . '-' . Str::upper(Str::random(4)),
@@ -71,16 +71,8 @@ class WalletController extends Controller
                 ]);
             });
 
-            // Send notification to Admin
-            $adminIds = User::where('role', 'admin')->pluck('id');
-            foreach ($adminIds as $adminId) {
-                app(\App\Services\NotificationService::class)->create(
-                    $adminId,
-                    'Yêu cầu rút tiền mới',
-                    "Người dùng {$user->name} vừa yêu cầu rút " . number_format($amount) . "đ.",
-                    route('admin.withdrawals.index'),
-                    'new_withdrawal_request'
-                );
+            if (isset($withdrawal) && $withdrawal) {
+                app(\App\Services\NotificationService::class)->notifyAdminWithdrawalRequest($withdrawal);
             }
 
         } catch (\Exception $e) {
