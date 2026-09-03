@@ -351,9 +351,11 @@ class VoucherService
     }
 
     /**
-     * Check if a voucher is eligible for booking
+     * Check if a voucher is eligible for booking.
+     * Lưu ý: $courtPrice chỉ bao gồm tiền sân, KHÔNG bao gồm tiền dịch vụ.
+     * Voucher chỉ giảm giá trên tiền thuê sân.
      */
-    public function checkEligibility(Voucher $voucher, int $courtId, string $date, array $slots, float $totalPrice, ?int $userId): array
+    public function checkEligibility(Voucher $voucher, int $courtId, string $date, array $slots, float $courtPrice, ?int $userId): array
     {
         // 1. Status
         if ($voucher->status !== 'active') {
@@ -407,12 +409,12 @@ class VoucherService
             }
         }
 
-        // 5. Min Booking Value
-        if (!is_null($voucher->min_booking_value) && $totalPrice < $voucher->min_booking_value) {
+        // 5. Min Booking Value (so sánh với tiền sân, không bao gồm dịch vụ)
+        if (!is_null($voucher->min_booking_value) && $courtPrice < $voucher->min_booking_value) {
             return [
                 'eligible' => false, 
                 'discount' => 0, 
-                'reason' => 'Đơn từ ' . number_format($voucher->min_booking_value, 0, ',', '.') . 'đ trở lên.'
+                'reason' => 'Tiền sân từ ' . number_format($voucher->min_booking_value, 0, ',', '.') . 'đ trở lên.'
             ];
         }
 
@@ -481,10 +483,10 @@ class VoucherService
             }
         }
 
-        // Calculate discount
+        // Calculate discount (chỉ tính trên tiền sân)
         $discount = 0.0;
         if (in_array($voucher->discount_type, ['percent', 'percentage'], true)) {
-            $discount = ($totalPrice * (float)$voucher->discount_value) / 100.0;
+            $discount = ($courtPrice * (float)$voucher->discount_value) / 100.0;
             if (!is_null($voucher->max_discount_amount) && (float)$voucher->max_discount_amount > 0 && $discount > (float)$voucher->max_discount_amount) {
                 $discount = (float)$voucher->max_discount_amount;
             }
@@ -492,8 +494,9 @@ class VoucherService
             $discount = (float)$voucher->discount_value;
         }
 
-        if ($discount > $totalPrice) {
-            $discount = $totalPrice;
+        // Đảm bảo giảm giá không vượt quá tiền sân
+        if ($discount > $courtPrice) {
+            $discount = $courtPrice;
         }
 
         return [
@@ -504,9 +507,10 @@ class VoucherService
     }
 
     /**
-     * Get available vouchers for a court
+     * Get available vouchers for a court.
+     * Lưu ý: $courtPrice chỉ bao gồm tiền sân, KHÔNG bao gồm tiền dịch vụ.
      */
-    public function getAvailableVouchersForCourt(int $courtId, string $date, array $slots, float $totalPrice, ?int $userId): \Illuminate\Support\Collection
+    public function getAvailableVouchersForCourt(int $courtId, string $date, array $slots, float $courtPrice, ?int $userId): \Illuminate\Support\Collection
     {
         $court = \App\Models\Court::with('venue')->find($courtId);
         if (!$court || !$court->venue) {
@@ -531,8 +535,8 @@ class VoucherService
             })
             ->get();
 
-        return $vouchers->map(function ($voucher) use ($courtId, $date, $slots, $totalPrice, $userId) {
-            $eligibility = $this->checkEligibility($voucher, $courtId, $date, $slots, $totalPrice, $userId);
+        return $vouchers->map(function ($voucher) use ($courtId, $date, $slots, $courtPrice, $userId) {
+            $eligibility = $this->checkEligibility($voucher, $courtId, $date, $slots, $courtPrice, $userId);
             
             $voucher->is_applicable = $eligibility['eligible'];
             $voucher->calculated_discount = $eligibility['discount'];

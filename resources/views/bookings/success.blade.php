@@ -172,7 +172,14 @@
                         <span>Tiền thuê sân:</span>
                         <strong class="text-slate-900 font-bold">{{ number_format($courtPriceOriginal, 0, ',', '.') }} ₫</strong>
                     </div>
-
+                    
+                    @if($discountAmount > 0)
+                    <div class="flex justify-between text-emerald-600">
+                        <span>Giảm giá ({{ $appliedVoucher->code }}):</span>
+                        <strong class="font-bold">-{{ number_format($discountAmount, 0, ',', '.') }} ₫</strong>
+                    </div>
+                    @endif
+                    
                     @if($servicesTotal > 0)
                     <div class="flex justify-between text-slate-600">
                         <span>Dịch vụ đi kèm:</span>
@@ -180,12 +187,6 @@
                     </div>
                     @endif
 
-                    @if($discountAmount > 0)
-                    <div class="flex justify-between text-emerald-600">
-                        <span>Giảm giá ({{ $appliedVoucher->code }}):</span>
-                        <strong class="font-bold">-{{ number_format($discountAmount, 0, ',', '.') }} ₫</strong>
-                    </div>
-                    @endif
 
                     <div class="border-t border-slate-200 pt-2 flex justify-between items-center text-sm">
                         <span class="font-black text-slate-900">Tổng thanh toán:</span>
