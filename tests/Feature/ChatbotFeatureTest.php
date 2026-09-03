@@ -60,4 +60,37 @@ class ChatbotFeatureTest extends TestCase
             'status' => 'closed',
         ]);
     }
+
+    public function test_user_cannot_send_empty_chatbot_message(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->postJson(route('chatbot.message'), [
+            'message' => '   ',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['message']);
+    }
+
+    public function test_user_can_reset_latest_open_conversation_without_id(): void
+    {
+        $user = User::factory()->create();
+        $conversation = ChatbotConversation::create([
+            'user_id' => $user->id,
+            'status' => 'open',
+            'locale' => 'vi',
+            'source' => 'web',
+            'last_message_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('chatbot.reset'));
+
+        $response->assertOk()->assertJsonPath('success', true);
+
+        $this->assertDatabaseHas('chatbot_conversations', [
+            'id' => $conversation->id,
+            'status' => 'closed',
+        ]);
+    }
 }
