@@ -2,12 +2,23 @@
 
 namespace App\Services;
 
+use App\Models\Venue;
+
 class ChatbotResponderService
 {
     public function reply(string $message, array $conversationHistory = []): array
     {
         $context = $this->buildContext($message, $conversationHistory);
         $normalized = $this->normalize($context);
+
+        $venueSuggestion = $this->venueSuggestion($normalized);
+        if ($venueSuggestion !== null) {
+            return [
+                'message' => $venueSuggestion,
+                'intent' => 'search_help',
+                'confidence' => 0.88,
+            ];
+        }
 
         foreach ($this->rules() as $rule) {
             foreach ($rule['keywords'] as $keyword) {
@@ -40,6 +51,27 @@ class ChatbotResponderService
         $recent[] = $message;
 
         return implode(' ', $recent);
+    }
+
+    private function venueSuggestion(string $normalized): ?string
+    {
+        if (! preg_match('/(tim san|tim kiem san|gan day|sân gan|tim san gan|tim kiem san gan|xem san|tim san the thao)/u', $normalized)) {
+            return null;
+        }
+
+        $venues = Venue::query()
+            ->where('status', 'active')
+            ->orderByDesc('created_at')
+            ->limit(3)
+            ->get(['id', 'name', 'status']);
+
+        if ($venues->isEmpty()) {
+            return null;
+        }
+
+        $names = $venues->pluck('name')->filter()->values()->all();
+
+        return 'Mình gợi ý một số sân phù hợp: ' . implode(', ', $names) . '. Bạn có thể chọn khu vực hoặc môn thể thao để xem sân còn trống và đặt lịch nhanh hơn.';
     }
 
     private function normalize(string $message): string

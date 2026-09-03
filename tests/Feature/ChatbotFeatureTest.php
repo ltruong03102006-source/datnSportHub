@@ -120,4 +120,39 @@ class ChatbotFeatureTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('message.intent', 'booking_help');
     }
+
+    public function test_bot_can_suggest_live_venues_when_user_asks_to_find_court(): void
+    {
+        $user = User::factory()->create();
+        $sport = \App\Models\Sport::create([
+            'name' => 'Bóng đá',
+            'slug' => 'bong-da',
+        ]);
+
+        \App\Models\Venue::create([
+            'name' => 'Sân bóng đá Mini 1',
+            'address' => '123 Lê Lợi',
+            'status' => 'active',
+            'sport_id' => $sport->id,
+            'owner_id' => $user->id,
+        ]);
+
+        \App\Models\Venue::create([
+            'name' => 'Câu lạc bộ Tennis City',
+            'address' => '456 Trần Hưng Đạo',
+            'status' => 'active',
+            'sport_id' => $sport->id,
+            'owner_id' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('chatbot.message'), [
+            'message' => 'Tìm sân gần đây cho tôi',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message.intent', 'search_help');
+
+        $this->assertStringContainsString('Sân bóng đá Mini 1', $response->json('message.message'));
+    }
 }
