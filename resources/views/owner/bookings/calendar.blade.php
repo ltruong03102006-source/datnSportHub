@@ -3,170 +3,265 @@
 @section('title','Lịch đặt sân - SportHub')
 
 @section('content')
-    <main class="container-fluid page-shell py-4">
-    <section class="page-hero">
+<style>
+    /* ĐỒNG BỘ TÔNG MÀU SPORTHUB & TỐI ƯU UX */
+    :root {
+        --brand-emerald: #059669;
+        --brand-emerald-dark: #047857;
+        --brand-emerald-light: #ecfdf5;
+        --fc-border-color: #e2e8f0;
+        --fc-button-bg-color: #059669;
+        --fc-button-border-color: #059669;
+        --fc-button-hover-bg-color: #047857;
+        --fc-button-hover-border-color: #047857;
+        --fc-button-active-bg-color: #047857;
+        --fc-button-active-border-color: #047857;
+        --fc-today-bg-color: #ecfdf5;
+    }
+    body { background-color: #f8fafc; }
+    
+    /* Stats Card */
+    .stat-card-custom {
+        background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: transform 0.2s ease;
+    }
+    .stat-card-custom:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    
+    /* Layout Song Song (Side-by-side) */
+    .schedule-wrapper { display: flex; gap: 1.5rem; height: calc(100vh - 180px); min-height: 700px; margin-top: 1.5rem; align-items: stretch; }
+    .calendar-pane { flex: 1; min-width: 0; background: #fff; border-radius: 16px; padding: 1.5rem; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); overflow: hidden; display: flex; flex-direction: column; }
+    .agenda-pane { width: 380px; flex-shrink: 0; background: #fff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; flex-direction: column; overflow: hidden; }
+    
+    /* Danh sách Agenda Scrollable */
+    .agenda-header { background: #f8fafc; padding: 1.25rem 1.5rem; border-bottom: 1px solid #e2e8f0; }
+    .agenda-list-scroll { flex: 1; overflow-y: auto; padding: 1rem; background: #f1f5f9; }
+    
+    /* Thẻ Ticket Agenda tối ưu quan sát nhanh */
+    .agenda-ticket {
+        background: #fff; border-radius: 12px; padding: 1rem; margin-bottom: 0.875rem;
+        border-left: 5px solid var(--brand-emerald); box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        cursor: pointer; transition: all 0.2s ease;
+    }
+    .agenda-ticket:hover { transform: translateY(-2px); box-shadow: 0 8px 12px rgba(0,0,0,0.1); border-color: var(--brand-emerald-dark); }
+    
+    /* Trạng thái */
+    .status-badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .status-confirmed { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+    .status-pending { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+    .status-completed { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .status-cancelled { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+    .status-rejected { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+
+    /* Fix FullCalendar UI */
+    .fc-event { cursor: pointer; border-radius: 4px; border: none; box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+    .fc .fc-toolbar-title { font-size: 1.25rem; font-weight: 800; color: #1e293b; }
+    .fc-timegrid-slot { height: 3em !important; } /* Tăng chiều cao các ô để dễ click */
+    
+    @media (max-width: 992px) {
+        .schedule-wrapper { flex-direction: column; height: auto; }
+        .agenda-pane { width: 100%; height: 500px; }
+    }
+</style>
+
+<main class="container-fluid px-4 py-4">
+    
+    <!-- HEADER -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
         <div>
-            <h1>Lịch trình đặt sân</h1>
-            <p>Xem lịch theo ngày, tuần, tháng và xử lý nhanh các booking đang chờ xác nhận.</p>
+            <h1 class="h3 fw-bolder text-dark mb-1">Lịch trình đặt sân</h1>
+            <p class="text-secondary mb-0">Quản lý các ca đá và xử lý yêu cầu đặt sân trong ngày.</p>
         </div>
-        <div class="hero-actions">
-            <button type="button" class="btn-owner-outline" id="go-today">
-                Hôm nay
+        <div class="d-flex gap-2 mt-3 mt-md-0">
+            <button type="button" class="btn btn-outline-success border-2 fw-bold" id="go-today">
+                <i class="fa-regular fa-calendar-check me-1"></i> Hôm nay
             </button>
-            <a href="{{ route('owner.web.venues.index') }}" class="btn-owner">
-                Quản lý sân
+            <a href="{{ route('owner.web.venues.index') }}" class="btn btn-success fw-bold" style="background-color: #059669; border-color: #059669;">
+                <i class="fa-solid fa-layer-group me-1"></i> Quản lý điểm sân
             </a>
         </div>
-    </section>
+    </div>
 
-    <section class="stats-grid" aria-label="Tổng quan lịch đặt">
-        <div class="stat-card">
-            <div class="label">Lịch hôm nay</div>
-            <div class="value" id="today-booking-count">{{ $todayBookings }}</div>
-            <div class="hint">Không tính đơn đã hủy/từ chối</div>
-        </div>
-
-        <div class="stat-card">
-            <div class="label">Đã xác nhận</div>
-            <div class="value text-success">{{ $confirmedBookings }}</div>
-            <div class="hint">Lịch sắp phục vụ</div>
-        </div>
-        <div class="stat-card">
-            <div class="label">Tuần này</div>
-            <div class="value">{{ $weekBookings }}</div>
-            <div class="hint">Booking đang hoạt động</div>
-        </div>
-        <div class="stat-card">
-            <div class="label">Sân con</div>
-            <div class="value">{{ $totalCourts }}</div>
-            <div class="hint">{{ $venues->count() }} cơ sở đang quản lý</div>
-        </div>
-    </section>
-
-    <section class="filter-panel">
-        <div class="filter-grid">
-            <div>
-                <label for="venue-filter">Điểm sân</label>
-                <select id="venue-filter" class="form-select">
-                    <option value="">Tất cả điểm sân</option>
-                    @foreach ($venues as $venue)
-                        <option value="{{ $venue->id }}">{{ $venue->name }}</option>
-                    @endforeach
-                </select>
+    <!-- STATS GRID -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-xl-3">
+            <div class="stat-card-custom d-flex align-items-center gap-3">
+                <div class="stat-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-calendar-day"></i></div>
+                <div>
+                    <div class="text-secondary small fw-semibold">Lịch hôm nay</div>
+                    <div class="fs-4 fw-black text-dark" id="today-booking-count">{{ $todayBookings }}</div>
+                </div>
             </div>
-            <div>
-                <label for="court-filter">Sân con</label>
-                <select id="court-filter" class="form-select">
-                    <option value="">Tất cả sân con</option>
-                    @foreach ($venues as $venue)
-                        @foreach ($venue->courts as $court)
-                            <option value="{{ $court->id }}" data-venue="{{ $venue->id }}">
-                                {{ $venue->name }} - {{ $court->name }}
-                            </option>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="stat-card-custom d-flex align-items-center gap-3">
+                <div class="stat-icon bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-circle-check"></i></div>
+                <div>
+                    <div class="text-secondary small fw-semibold">Đã xác nhận</div>
+                    <div class="fs-4 fw-black text-primary">{{ $confirmedBookings }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="stat-card-custom d-flex align-items-center gap-3">
+                <div class="stat-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-calendar-week"></i></div>
+                <div>
+                    <div class="text-secondary small fw-semibold">Tuần này</div>
+                    <div class="fs-4 fw-black text-dark">{{ $weekBookings }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="stat-card-custom d-flex align-items-center gap-3">
+                <div class="stat-icon bg-info bg-opacity-10 text-info"><i class="fa-solid fa-map-location-dot"></i></div>
+                <div>
+                    <div class="text-secondary small fw-semibold">Tổng sân con</div>
+                    <div class="fs-4 fw-black text-dark">{{ $totalCourts }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BỘ LỌC (Thu gọn thành 1 hàng ngang) -->
+    <div class="card border-0 shadow-sm rounded-4 mb-3">
+        <div class="card-body p-3">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label for="venue-filter" class="form-label small fw-bold text-secondary mb-1">Điểm sân</label>
+                    <select id="venue-filter" class="form-select bg-light">
+                        <option value="">-- Tất cả điểm sân --</option>
+                        @foreach ($venues as $venue)
+                            <option value="{{ $venue->id }}">{{ $venue->name }}</option>
                         @endforeach
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label for="status-filter">Trạng thái</label>
-                <select id="status-filter" class="form-select">
-                    <option value="">Tất cả trạng thái</option>
-                    <option value="confirmed">Đã xác nhận</option>
-                    <option value="completed">Đã hoàn thành</option>
-                    <option value="cancelled">Đã hủy</option>
-                    <option value="rejected">Đã từ chối</option>
-                </select>
-            </div>
-            <div>
-                <label for="date-jump">Tới ngày</label>
-                <input id="date-jump" type="date" class="form-control">
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="court-filter" class="form-label small fw-bold text-secondary mb-1">Sân con</label>
+                    <select id="court-filter" class="form-select bg-light">
+                        <option value="">-- Tất cả sân con --</option>
+                        @foreach ($venues as $venue)
+                            @foreach ($venue->courts as $court)
+                                <option value="{{ $court->id }}" data-venue="{{ $venue->id }}">
+                                    {{ $venue->name }} - {{ $court->name }}
+                                </option>
+                            @endforeach
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="status-filter" class="form-label small fw-bold text-secondary mb-1">Trạng thái</label>
+                    <select id="status-filter" class="form-select bg-light">
+                        <option value="">-- Tất cả trạng thái --</option>
+                        <option value="confirmed">Đã xác nhận</option>
+                        <option value="completed">Đã hoàn thành</option>
+                        <option value="cancelled">Đã hủy</option>
+                        <option value="rejected">Đã từ chối</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="date-jump" class="form-label small fw-bold text-secondary mb-1">Chuyển đến ngày</label>
+                    <input id="date-jump" type="date" class="form-control bg-light">
+                </div>
             </div>
         </div>
+    </div>
 
-        <div class="legend-strip" aria-label="Chú thích trạng thái">
-            <span class="legend-item"><i class="legend-dot" style="background:#047857"></i> Đã xác nhận</span>
-            <span class="legend-item"><i class="legend-dot" style="background:#2563eb"></i> Đã hoàn thành</span>
-            <span class="legend-item"><i class="legend-dot" style="background:#64748b"></i> Đã hủy</span>
-            <span class="legend-item"><i class="legend-dot" style="background:#dc2626"></i> Đã từ chối</span>
-        </div>
-    </section>
-
-    <section class="schedule-layout">
-        <div class="calendar-card">
-            <div id="booking-calendar"></div>
+    <!-- KHU VỰC LỊCH VÀ DANH SÁCH (SIDE-BY-SIDE) -->
+    <div class="schedule-wrapper">
+        <!-- Bên Trái: FullCalendar -->
+        <div class="calendar-pane">
+            <div id="booking-calendar" style="height: 100%;"></div>
         </div>
 
-        <aside class="agenda-card">
+        <!-- Bên Phải: Danh sách cuộn độc lập -->
+        <aside class="agenda-pane">
             <div class="agenda-header">
-                <h2>Lịch trong khung đang xem</h2>
-                <p id="agenda-range-label">Các booking sẽ hiện ở đây sau khi tải lịch.</p>
+                <h2 class="h6 fw-bolder text-dark mb-1"><i class="fa-solid fa-list-ul text-success me-2"></i>Chi tiết ca đá</h2>
+                <p id="agenda-range-label" class="text-secondary small mb-0">Đang tải dữ liệu...</p>
             </div>
-            <div id="agenda-list" class="agenda-list">
-                <div class="agenda-empty">Đang tải lịch...</div>
+            <!-- Khu vực này có thanh cuộn riêng, giải quyết vấn đề nhiều đơn đặt sân -->
+            <div id="agenda-list" class="agenda-list-scroll">
+                <div class="text-center py-5 text-secondary">
+                    <div class="spinner-border spinner-border-sm mb-2" role="status"></div>
+                    <div>Đang tải lịch...</div>
+                </div>
             </div>
         </aside>
-    </section>
+    </div>
 </main>
 
+<!-- MODAL CHI TIẾT (Giữ nguyên IDs) -->
 <div class="modal fade" id="booking-detail-modal" tabindex="-1" aria-labelledby="booking-detail-title" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-light border-bottom-0 pb-0">
                 <div>
-                    <div class="small text-secondary" id="booking-code"></div>
-                    <h2 class="modal-title fs-5 fw-bold" id="booking-detail-title">Chi tiết lịch đặt</h2>
+                    <div class="badge bg-success bg-opacity-10 text-success mb-2 border border-success-subtle" id="booking-code"></div>
+                    <h2 class="modal-title fs-5 fw-bold text-dark" id="booking-detail-title">Chi tiết lịch đặt</h2>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body pt-3">
                 <div id="booking-action-alert" class="alert d-none" role="alert"></div>
-                <dl class="detail-grid">
-                    <dt>Khách hàng</dt>
-                    <dd>
-                        <div id="detail-customer" class="fw-bold"></div>
-                        <small class="text-secondary fw-normal d-block" id="detail-email"></small>
-                        
+                
+                <div class="bg-light rounded-3 p-3 mb-3 border border-secondary-subtle">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-secondary small fw-semibold">Thời gian đá:</span>
+                        <span id="detail-time" class="fw-bold text-success fs-6"></span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-secondary small fw-semibold">Sân con:</span>
+                        <span id="detail-court" class="fw-bold text-dark"></span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <span class="text-secondary small fw-semibold">Điểm sân:</span>
+                        <span id="detail-venue" class="text-dark small text-end"></span>
+                    </div>
+                </div>
+
+                <dl class="row mb-0">
+                    <dt class="col-sm-4 text-secondary fw-normal">Khách hàng</dt>
+                    <dd class="col-sm-8">
+                        <div id="detail-customer" class="fw-bold text-dark"></div>
+                        <small class="text-secondary d-block" id="detail-email"></small>
                         <div class="mt-2 d-flex align-items-center gap-2">
                             <span id="detail-phone" class="badge bg-light text-dark border border-secondary-subtle fs-6"></span>
-                            <a href="#" id="btn-call-customer" class="btn btn-sm btn-success p-1 px-2" title="Gọi điện">
-                                <svg class="w-4 h-4" style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                            <a href="#" id="btn-call-customer" class="btn btn-sm btn-success px-2 py-1" title="Gọi điện">
+                                <i class="fa-solid fa-phone"></i>
                             </a>
-                            <a href="#" target="_blank" id="btn-zalo-customer" class="btn btn-sm btn-primary p-1 px-2" title="Chat Zalo">
-                                <span style="font-size: 12px; font-weight: bold;">Zalo</span>
+                            <a href="#" target="_blank" id="btn-zalo-customer" class="btn btn-sm btn-primary px-2 py-1" style="background-color: #0068ff; border-color: #0068ff;" title="Chat Zalo">
+                                <span style="font-size: 11px; font-weight: 900;">Zalo</span>
                             </a>
                         </div>
-                        </dd>
-                    <dt>Điểm sân</dt>
-                    <dd id="detail-venue"></dd>
-                    <dt>Sân con</dt>
-                    <dd id="detail-court"></dd>
-                    <dt>Thời gian</dt>
-                    <dd id="detail-time"></dd>
+                    </dd>
 
-                    <dt>Trạng thái</dt>
-                    <dd><span class="status-pill" id="detail-status"></span></dd>
-                    <dt>Tổng tiền</dt>
-                    <dd id="detail-price"></dd>
-               
-                    <!-- BẮT ĐẦU THÊM MỚI -->
-                    <dt id="detail-services-label" class="d-none mt-2">Dịch vụ kèm</dt>
-                    <dd id="detail-services-list" class="d-none mt-2"></dd>
-                    <!-- KẾT THÚC THÊM MỚI -->
+                    <dt class="col-sm-4 text-secondary fw-normal mt-3">Trạng thái</dt>
+                    <dd class="col-sm-8 mt-3"><span id="detail-status"></span></dd>
+                    
+                    <!-- Dịch vụ kèm -->
+                    <dt id="detail-services-label" class="col-sm-4 text-secondary fw-normal mt-3 d-none">Dịch vụ</dt>
+                    <dd id="detail-services-list" class="col-sm-8 mt-3 d-none"></dd>
 
-                    <dt class="d-none" id="detail-cancel-label">Lý do hủy</dt>
-                    <dd class="d-none text-danger" id="detail-cancel-reason"></dd>
+                    <dt class="col-sm-4 text-secondary fw-normal mt-3">Tổng tiền</dt>
+                    <dd class="col-sm-8 mt-3"><strong id="detail-price" class="text-danger fs-5"></strong></dd>
+
+                    <dt class="col-sm-4 text-danger fw-normal mt-3 d-none" id="detail-cancel-label">Lý do hủy</dt>
+                    <dd class="col-sm-8 mt-3 d-none text-danger fw-bold" id="detail-cancel-reason"></dd>
                 </dl>
             </div>
-            <div id="booking-actions" class="modal-footer d-none">
-                <button type="button" id="reject-booking" class="btn btn-outline-danger">Từ chối</button>
-                <button type="button" id="confirm-booking" class="btn btn-success">Xác nhận</button>
+
+            <!-- Nút hành động -->
+            <div id="booking-actions" class="modal-footer bg-light border-top-0 d-none">
+                <button type="button" id="reject-booking" class="btn btn-outline-danger fw-bold">Từ chối</button>
+                <button type="button" id="confirm-booking" class="btn btn-success fw-bold px-4" style="background-color: #059669;">Xác nhận Đơn</button>
             </div>
-            <div id="booking-cancel" class="modal-footer d-none flex-column align-items-stretch gap-2">
+            
+            <div id="booking-cancel" class="modal-footer bg-light border-top-0 d-none flex-column align-items-stretch gap-2">
                 <div class="w-100 text-start">
-                    <label for="cancel-reason" class="form-label small fw-semibold text-danger mb-1">Lý do hủy gửi cho khách</label>
-                    <textarea id="cancel-reason" class="form-control form-control-sm" rows="2" maxlength="1000" placeholder="Ví dụ: Sân bảo trì đột xuất, xin lỗi quý khách..."></textarea>
+                    <label for="cancel-reason" class="form-label small fw-bold text-danger mb-1"><i class="fa-solid fa-triangle-exclamation me-1"></i> Lý do hủy gửi cho khách</label>
+                    <textarea id="cancel-reason" class="form-control" rows="2" maxlength="1000" placeholder="Ví dụ: Sân bảo trì đột xuất, xin lỗi quý khách..."></textarea>
                 </div>
-                <button type="button" id="cancel-booking" class="btn btn-danger w-100">Hủy đơn đã xác nhận</button>
+                <button type="button" id="cancel-booking" class="btn btn-danger w-100 fw-bold">Hủy đơn đã xác nhận</button>
             </div>
         </div>
     </div>
@@ -212,10 +307,10 @@
 
         const calendar = new FullCalendar.Calendar(document.getElementById('booking-calendar'), {
             locale: 'vi',
-            initialView: window.innerWidth < 768 ? 'timeGridDay' : 'timeGridWeek',
+            initialView: window.innerWidth < 992 ? 'timeGridDay' : 'timeGridWeek',
             firstDay: 1,
             nowIndicator: true,
-            height: 'auto',
+            height: '100%',
             slotMinTime: '05:00:00',
             slotMaxTime: '24:00:00',
             allDaySlot: false,
@@ -229,14 +324,13 @@
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
-                right: 'timeGridDay,timeGridWeek,dayGridMonth,listWeek',
+                right: 'timeGridDay,timeGridWeek,dayGridMonth',
             },
             buttonText: {
                 today: 'Hôm nay',
                 day: 'Ngày',
                 week: 'Tuần',
-                month: 'Tháng',
-                list: 'Danh sách',
+                month: 'Tháng'
             },
             events: {
                 url: @js(route('owner.web.calendar.events')),
@@ -246,22 +340,17 @@
                     status: statusFilter.value,
                 }),
                 failure: () => {
-                    agendaList.innerHTML = '<div class="agenda-empty text-danger">Không tải được dữ liệu lịch đặt. Vui lòng thử lại.</div>';
+                    agendaList.innerHTML = '<div class="text-center py-5 text-danger fw-bold"><i class="fa-solid fa-triangle-exclamation mb-2 fs-2"></i><br>Không tải được dữ liệu lịch đặt.</div>';
                 },
             },
             eventContent: ({ event, view }) => {
                 const booking = event.extendedProps;
-                const isMonthView = view.type === 'dayGridMonth';
-                const title = isMonthView
-                    ? `${booking.time_label} · ${booking.court_name}`
-                    : `${booking.time_label} · ${booking.court_name}`;
-                const subtitle = booking.customer_name;
-
                 return {
                     html: `
-                        <div class="booking-event" title="${escapeHtml(booking.court_name)} - ${escapeHtml(booking.customer_name)}">
-                            <span class="booking-event-title">${escapeHtml(title)}</span>
-                            <span class="booking-event-subtitle">${escapeHtml(subtitle)}</span>
+                        <div class="p-1 h-100 d-flex flex-column" title="${escapeHtml(booking.court_name)} - ${escapeHtml(booking.customer_name)}">
+                            <div class="fw-bold text-truncate" style="font-size: 11px;">${booking.time_label}</div>
+                            <div class="text-truncate fw-bolder" style="font-size: 12px;">${escapeHtml(booking.court_name)}</div>
+                            <div class="text-truncate opacity-75" style="font-size: 10px;">${escapeHtml(booking.customer_name)}</div>
                         </div>
                     `,
                 };
@@ -280,61 +369,53 @@
         }
 
         function formatDate(date) {
-            return new Intl.DateTimeFormat('vi-VN', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-            }).format(date);
+            return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
         }
 
+        // TỐI ƯU HÓA CARD AGENDA (Hiển thị to rõ Sân & Giờ)
         function renderAgenda(events) {
             const sorted = [...events].sort((a, b) => a.start - b.start);
 
             if (sorted.length === 0) {
-                agendaList.innerHTML = '<div class="agenda-empty">Không có booking nào trong khung thời gian này.</div>';
+                agendaList.innerHTML = '<div class="text-center py-5 text-secondary"><i class="fa-solid fa-mug-hot mb-2 fs-1 opacity-50"></i><br>Không có lịch đặt nào.</div>';
                 return;
             }
 
             agendaList.innerHTML = sorted.map((event) => {
                 const booking = event.extendedProps;
-                const color = event.backgroundColor || '#64748b';
+                const color = event.backgroundColor || '#059669';
 
                 return `
-                    <article class="agenda-item" data-event-id="${event.id}" style="border-left-color:${color}">
-                        <div class="time">${booking.date_label} · ${booking.time_label}</div>
-                        <div class="title">${escapeHtml(booking.court_name)} - ${escapeHtml(booking.customer_name)}</div>
-                        <div class="meta">${escapeHtml(booking.venue_name)}</div>
-                        <div class="d-flex align-items-center justify-content-between gap-2 mt-2">
-                            <span class="status-pill ${statusClasses[booking.status] || 'status-cancelled'}">${escapeHtml(booking.status_label)}</span>
-                            <strong>${escapeHtml(booking.total_price)}</strong>
+                    <div class="agenda-ticket" data-event-id="${event.id}" style="border-left-color:${color}">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="fw-black text-dark" style="font-size: 16px;"><i class="fa-regular fa-clock text-success me-1"></i> ${booking.time_label}</div>
+                            <span class="status-badge ${statusClasses[booking.status] || 'status-cancelled'}">${escapeHtml(booking.status_label)}</span>
                         </div>
-                    </article>
+                        <div class="fw-bold text-dark mb-1" style="font-size: 14px;">${escapeHtml(booking.court_name)}</div>
+                        <div class="text-secondary mb-2" style="font-size: 12px;"><i class="fa-regular fa-user me-1"></i> ${escapeHtml(booking.customer_name)}</div>
+                        <div class="d-flex align-items-center justify-content-between mt-2 pt-2 border-top border-light">
+                            <span class="text-muted text-truncate" style="font-size: 11px; max-width: 60%;">${booking.date_label}</span>
+                            <strong class="text-success">${escapeHtml(booking.total_price)}</strong>
+                        </div>
+                    </div>
                 `;
             }).join('');
 
-            agendaList.querySelectorAll('.agenda-item').forEach((item) => {
+            agendaList.querySelectorAll('.agenda-ticket').forEach((item) => {
                 item.addEventListener('click', () => {
                     const event = calendar.getEventById(item.dataset.eventId);
-                    if (event) {
-                        showBookingDetail(event);
-                    }
+                    if (event) showBookingDetail(event);
                 });
             });
         }
 
         function escapeHtml(value) {
-            return String(value ?? '')
-                .replaceAll('&', '&amp;')
-                .replaceAll('<', '&lt;')
-                .replaceAll('>', '&gt;')
-                .replaceAll('"', '&quot;')
-                .replaceAll("'", '&#039;');
+            return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
         }
 
+        // --- Logic JS giữ nguyên hoàn toàn ---
         function showBookingDetail(event) {
             const booking = event.extendedProps;
-            
-            // FIX QUAN TRỌNG: Gán ID đơn hàng để Lệnh Hủy biết đang thao tác trên đơn nào
             selectedBookingId = booking.booking_id;
 
             document.getElementById('booking-code').textContent = `Mã booking #${booking.booking_id}`;
@@ -359,10 +440,11 @@
             }
 
             document.getElementById('detail-price').textContent = booking.total_price;
-            document.getElementById('detail-status').className = `status-pill ${statusClasses[booking.status] || 'status-cancelled'}`;
-            document.getElementById('detail-status').textContent = booking.status_label;
+            
+            const statusEl = document.getElementById('detail-status');
+            statusEl.className = `status-badge px-2 py-1 fs-6 ${statusClasses[booking.status] || 'status-cancelled'}`;
+            statusEl.textContent = booking.status_label;
 
-            // FIX QUAN TRỌNG: Dùng ĐÚNG tên biến HTML của bạn để chống sập JS
             actionAlert.className = 'alert d-none';
             bookingActions.classList.add('d-none');
             bookingCancel.classList.add('d-none');
@@ -383,24 +465,16 @@
                 detailCancelReason.textContent = booking.cancel_reason || 'Khách tự hủy';
             }
 
-            detailModal.show();
-            // --- BẮT ĐẦU: RENDER DỊCH VỤ TRÊN MODAL CHỦ SÂN ---
-            const svcs = booking.services || []; // Lấy mảng services từ JSON
+            const svcs = booking.services || [];
             const svcLabel = document.getElementById('detail-services-label');
             const svcList = document.getElementById('detail-services-list');
             
             if (svcs.length > 0) {
                 svcLabel.classList.remove('d-none');
                 svcList.classList.remove('d-none');
-                
-                // Dùng Vanilla JS để sinh mã HTML danh sách món đồ
                 svcList.innerHTML = svcs.map(s => {
-                    const isRental = s.pricing_type === 'rental' 
-                        ? '<span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle ms-1" style="font-size: 0.6rem;">Thuê</span>' 
-                        : '<span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle ms-1" style="font-size: 0.6rem;">Mua</span>';
-                    
+                    const isRental = s.pricing_type === 'rental' ? '<span class="badge bg-primary bg-opacity-10 text-primary ms-1">Thuê</span>' : '<span class="badge bg-secondary bg-opacity-10 text-secondary ms-1">Mua</span>';
                     const priceFmt = new Intl.NumberFormat('vi-VN').format(s.pivot.price) + 'đ';
-                    
                     return `
                         <div class="mb-2 pb-2 border-bottom border-light text-sm">
                             <div class="fw-bold text-dark d-flex align-items-center mb-1">
@@ -418,46 +492,35 @@
                 svcList.classList.add('d-none');
                 svcList.innerHTML = '';
             }
-            // --- KẾT THÚC: RENDER DỊCH VỤ ---
+
+            detailModal.show();
         }
 
         async function updateBookingStatus(status) {
             if (!selectedBookingId) return;
-
             const button = status === 'confirmed' ? confirmButton : rejectButton;
             const originalText = button.textContent;
             confirmButton.disabled = true;
             rejectButton.disabled = true;
-            button.textContent = 'Đang xử lý...';
+            button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang xử lý...';
 
             try {
-                const response = await fetch(
-                    statusUrlTemplate.replace('__BOOKING__', selectedBookingId),
-                    {
-                        method: 'PATCH',
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': csrfToken,
-                        },
-                        body: JSON.stringify({ status }),
-                    }
-                );
+                const response = await fetch(statusUrlTemplate.replace('__BOOKING__', selectedBookingId), {
+                    method: 'PATCH',
+                    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                    body: JSON.stringify({ status })
+                });
                 const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.message || 'Không thể cập nhật booking.');
-                }
+                if (!response.ok) throw new Error(data.message || 'Không thể cập nhật booking.');
 
                 const pendingBookingCount = document.getElementById('pending-booking-count');
-                if (pendingBookingCount) {
-                    pendingBookingCount.textContent = data.pending_count;
-                }
+                if (pendingBookingCount) pendingBookingCount.textContent = data.pending_count;
                 detailModal.hide();
                 calendar.refetchEvents();
             } catch (error) {
                 actionAlert.textContent = error.message;
-                actionAlert.className = 'alert alert-danger';
+                actionAlert.className = 'alert alert-danger mb-3';
+                actionAlert.classList.remove('d-none');
             } finally {
                 confirmButton.disabled = false;
                 rejectButton.disabled = false;
@@ -465,54 +528,39 @@
             }
         }
 
-        // THỰC THI TRƯỜNG HỢP A: CHỦ SÂN CHỦ ĐỘNG HỦY CA
-        // Bổ sung tham số (event) để chặn hành vi mặc định của Form
         async function cancelConfirmedBooking(event) {
-            // Ngăn chặn trình duyệt tự động validate popup HTML5 (Chống lỗi validate 2 lần)
             if (event) event.preventDefault();
-
-            // Dùng đúng biến selectedBookingId của bạn
             if (!selectedBookingId) return;
 
-            // Dùng đúng biến cancelReason của bạn
             const reason = cancelReason.value.trim();
             if (!reason) {
                 actionAlert.textContent = 'Vui lòng nhập lý do hủy sân để thông báo cho khách!';
-                actionAlert.className = 'alert alert-danger mt-3';
+                actionAlert.className = 'alert alert-danger mb-3';
                 actionAlert.classList.remove('d-none');
-                cancelReason.focus(); // Tự động trỏ chuột vào ô nhập cho tiện
+                cancelReason.focus();
                 return;
             }
 
             const originalText = cancelButton.innerHTML;
             cancelButton.disabled = true;
             cancelButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang hủy...';
-            actionAlert.classList.add('d-none'); // Ẩn cảnh báo lỗi màu đỏ đi
+            actionAlert.classList.add('d-none');
 
             try {
-                // Dùng đúng biến cancelUrlTemplate của bạn
                 const response = await fetch(cancelUrlTemplate.replace('__BOOKING__', selectedBookingId), {
                     method: 'PATCH',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    },
+                    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                     body: JSON.stringify({ reason: reason })
                 });
-                
                 const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.message || 'Không thể hủy booking.');
-                }
+                if (!response.ok) throw new Error(data.message || 'Không thể hủy booking.');
 
                 alert(data.message);
                 detailModal.hide();
                 calendar.refetchEvents();
             } catch (error) {
                 actionAlert.textContent = error.message;
-                actionAlert.className = 'alert alert-danger mt-3';
+                actionAlert.className = 'alert alert-danger mb-3';
                 actionAlert.classList.remove('d-none');
             } finally {
                 cancelButton.disabled = false;
@@ -528,23 +576,15 @@
             courtOptions.forEach((option) => {
                 option.hidden = venueFilter.value !== '' && option.dataset.venue !== venueFilter.value;
             });
-
             const selectedCourt = courtFilter.selectedOptions[0];
-            if (selectedCourt && selectedCourt.hidden) {
-                courtFilter.value = '';
-            }
-
+            if (selectedCourt && selectedCourt.hidden) courtFilter.value = '';
             calendar.refetchEvents();
         });
 
         courtFilter.addEventListener('change', () => calendar.refetchEvents());
         statusFilter.addEventListener('change', () => calendar.refetchEvents());
-        dateJump.addEventListener('change', () => {
-            if (dateJump.value) {
-                calendar.gotoDate(dateJump.value);
-            }
-        });
-        goToday.addEventListener('click', () => calendar.today());
+        dateJump.addEventListener('change', () => { if (dateJump.value) calendar.gotoDate(dateJump.value); });
+        goToday.addEventListener('click', () => { calendar.today(); dateJump.value = ''; });
 
         calendar.render();
     });
