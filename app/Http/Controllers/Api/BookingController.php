@@ -133,7 +133,7 @@ class BookingController extends Controller
                     ]);
                 }
 
-                $originalPrice = $items->sum('price');
+                $courtOnlyPrice = $items->sum('price');
 
                 // BẮT ĐẦU: TÍNH TIỀN DỊCH VỤ & CHUẨN BỊ MẢNG LƯU DATABASE
                 $serviceListToSave = []; 
@@ -168,7 +168,7 @@ class BookingController extends Controller
                     }
                 }
                 
-                $originalPrice += $servicesTotal;
+                $originalPrice = $courtOnlyPrice + $servicesTotal;
                 // KẾT THÚC: TÍNH TIỀN DỊCH VỤ
 
                 $discount = 0.0;
@@ -178,11 +178,16 @@ class BookingController extends Controller
                     if ($voucher) {
                         $voucherService = app(\App\Services\VoucherService::class);
                         $bookingSlots = $slots->toArray();
-                        $eligibility = $voucherService->checkEligibility($voucher, $request->court_id, $request->slot_date, $bookingSlots, $originalPrice, Auth::id());
+                        // Voucher chỉ giảm trên tiền sân, không bao gồm tiền dịch vụ
+                        $eligibility = $voucherService->checkEligibility($voucher, $request->court_id, $request->slot_date, $bookingSlots, $courtOnlyPrice, Auth::id());
                         if (!$eligibility['eligible']) {
                             throw new HttpException(422, $eligibility['reason']);
                         }
                         $discount = $eligibility['discount'];
+                        // Đảm bảo giảm giá không vượt quá tiền sân
+                        if ($discount > $courtOnlyPrice) {
+                            $discount = $courtOnlyPrice;
+                        }
                     }
                 }
 

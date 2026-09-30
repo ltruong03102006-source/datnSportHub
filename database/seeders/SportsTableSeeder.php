@@ -20,6 +20,9 @@ class SportsTableSeeder extends Seeder
             ['name' => 'Bóng bàn', 'slug' => 'bong-ban', 'icon' => $icon . '1f3d3.svg'],
         ];
 
+        $validSlugs = array_column($sports, 'slug');
+        Sport::whereNotIn('slug', $validSlugs)->delete();
+
         foreach ($sports as $s) {
             Sport::firstOrCreate(
                 ['slug' => $s['slug']],

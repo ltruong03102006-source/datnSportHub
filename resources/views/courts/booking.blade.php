@@ -638,7 +638,7 @@
             summaryDiv.style.display = 'block';
             const totalMins = selectedSlots.reduce((sum, s) => sum + parseInt(s.duration_minutes), 0);
             const totalHours = totalMins / 60;
-            let totalPrice = selectedSlots.reduce((sum, s) => sum + parseInt(s.price), 0);
+            let courtPrice = selectedSlots.reduce((sum, s) => sum + parseInt(s.price), 0);
 
             // LOGIC TÍNH TIỀN DỊCH VỤ
             let serviceCount = 0;
@@ -652,7 +652,7 @@
                 }
             });
 
-            totalPrice += serviceTotal;
+            let totalPrice = courtPrice + serviceTotal;
 
             let textHtml = `<span class="text-emerald-600">${totalMins} phút</span> <span class="text-stone-400 font-medium ml-1">(${selectedSlots.length} ca)</span>`;
             if(serviceCount > 0) textHtml += ` <span class="text-indigo-600 ml-2 text-sm">+${serviceCount} D.Vụ</span>`;
@@ -660,8 +660,8 @@
             summaryText.innerHTML = textHtml;
             submitBtn.disabled = false;
 
-            // Fetch available vouchers
-            fetchVouchers(totalPrice);
+            // Fetch available vouchers (chỉ gửi tiền sân, không gồm dịch vụ)
+            fetchVouchers(courtPrice);
         } else {
             summaryDiv.style.display = 'none';
             document.getElementById('voucherSection').style.display = 'none';
@@ -671,7 +671,7 @@
 
     let selectedVoucher = null;
 
-    async function fetchVouchers(orderTotal) {
+    async function fetchVouchers(courtPrice) {
         const voucherSection = document.getElementById('voucherSection');
         const vouchersContainer = document.getElementById('vouchersContainer');
 
@@ -680,6 +680,19 @@
             selectedVoucher = null;
             return;
         }
+
+        // Tính tổng tiền (sân + dịch vụ) để hiển thị giá chính xác
+        const totalMins = selectedSlots.reduce((sum, s) => sum + parseInt(s.duration_minutes), 0);
+        const totalHours = totalMins / 60;
+        let serviceTotal = 0;
+        Object.values(selectedServices).forEach(svc => {
+            if (svc.type === 'rental') {
+                serviceTotal += svc.price * svc.quantity * totalHours;
+            } else {
+                serviceTotal += svc.price * svc.quantity;
+            }
+        });
+        const orderTotal = courtPrice + serviceTotal;
 
         const selectedDate = datePicker.value;
         const slotsParam = selectedSlots.map(slot => ({
@@ -696,7 +709,8 @@
                 headers.Authorization = `Bearer ${token}`;
             }
 
-            let url = `/courts/${courtId}/available-vouchers?date=${selectedDate}&total_price=${orderTotal}&slots=${encodeURIComponent(JSON.stringify(slotsParam))}`;
+            // Gửi courtPrice (chỉ tiền sân) cho API voucher
+            let url = `/courts/${courtId}/available-vouchers?date=${selectedDate}&total_price=${courtPrice}&slots=${encodeURIComponent(JSON.stringify(slotsParam))}`;
             if (token) {
                 url += `&token=${encodeURIComponent(token)}`;
             }
@@ -712,7 +726,7 @@
             if (vouchers.length === 0) {
                 voucherSection.style.display = 'none';
                 selectedVoucher = null;
-                updatePricingSummary(orderTotal);
+                updatePricingSummary(courtPrice, orderTotal);
                 return;
             }
 
@@ -720,7 +734,7 @@
             vouchersContainer.innerHTML = '';
 
             vouchers.forEach(v => {
-                vouchersContainer.appendChild(createVoucherCard(v, orderTotal));
+                vouchersContainer.appendChild(createVoucherCard(v, courtPrice));
             });
 
             // Validate previously selected voucher
@@ -733,14 +747,14 @@
                 }
             }
 
-            updatePricingSummary(orderTotal);
+            updatePricingSummary(courtPrice, orderTotal);
         } catch (e) {
             console.error('Failed to load vouchers', e);
-            updatePricingSummary(orderTotal);
+            updatePricingSummary(courtPrice, orderTotal);
         }
     }
 
-    function createVoucherCard(v, orderTotal) {
+    function createVoucherCard(v, courtPrice) {
         const div = document.createElement('div');
         const isSelected = selectedVoucher && selectedVoucher.code === v.code;
         const isPercent = v.discount_type === 'percent' || v.discount_type === 'percentage';
@@ -790,8 +804,8 @@
                         <span>Áp dụng: ${applyDaysText} (${timeSlotsText})</span>
                     </div>
                     <div class="flex items-center gap-1.5">
-                        <span class="text-emerald-500">${orderTotal >= (v.min_booking_value || 0) ? '✅' : '❌'}</span>
-                        <span>Đơn từ ${minOrderStr} trở lên</span>
+                        <span class="text-emerald-500">${courtPrice >= (v.min_booking_value || 0) ? '✅' : '❌'}</span>
+                        <span>Tiền sân từ ${minOrderStr} trở lên</span>
                     </div>
                     
                     <div class="flex items-center gap-1.5">
@@ -822,14 +836,16 @@
         updateSummaryUI(); 
     }
 
-    function updatePricingSummary(orderTotal) {
+    // courtPrice = chỉ tiền sân, orderTotal = tiền sân + tiền dịch vụ
+    function updatePricingSummary(courtPrice, orderTotal) {
         const summaryPrice = document.getElementById('summaryPrice');
         const summaryText = document.getElementById('summaryText');
         
         let discount = 0;
         if (selectedVoucher) {
+            // Voucher chỉ giảm trên tiền sân, không giảm tiền dịch vụ
             if (selectedVoucher.discount_type === 'percent' || selectedVoucher.discount_type === 'percentage') {
-                discount = (orderTotal * parseFloat(selectedVoucher.discount_value)) / 100;
+                discount = (courtPrice * parseFloat(selectedVoucher.discount_value)) / 100;
                 const maxAmt = selectedVoucher.max_discount_amount ? parseFloat(selectedVoucher.max_discount_amount) : 0;
                 if (maxAmt > 0 && discount > maxAmt) {
                     discount = maxAmt;
@@ -837,7 +853,8 @@
             } else {
                 discount = parseFloat(selectedVoucher.discount_value);
             }
-            if (discount > orderTotal) discount = orderTotal;
+            // Đảm bảo giảm giá không vượt quá tiền sân
+            if (discount > courtPrice) discount = courtPrice;
         }
 
         const finalPrice = orderTotal - discount;

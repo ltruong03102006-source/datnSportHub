@@ -433,6 +433,15 @@
     </script>
 
     @auth
+    {{-- Đồng bộ Sanctum API token vào localStorage (dùng cho đăng nhập Google/Facebook) --}}
+    @if(session('api_token'))
+    <script>
+        localStorage.setItem('sporthub_token', @json(session('api_token')));
+        @if(session('auth_user'))
+        localStorage.setItem('sporthub_user', @json(json_encode(session('auth_user'))));
+        @endif
+    </script>
+    @endif
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const notificationButton = document.getElementById('notification-button');

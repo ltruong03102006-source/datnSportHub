@@ -41,6 +41,13 @@ class SocialAuthController extends Controller
         Auth::guard('web')->login($user, true);
         request()->session()->regenerate();
 
-        return redirect()->intended(route('home'));
+        // Tạo Sanctum API token để JS phía client có thể gọi các API endpoint
+        // (trang đặt sân gọi /api/bookings cần Bearer token)
+        $user->tokens()->where('name', 'web-app')->delete();
+        $token = $user->createToken('web-app')->plainTextToken;
+
+        return redirect()->intended(route('home'))
+            ->with('api_token', $token)
+            ->with('auth_user', $user->only(['id', 'name', 'email', 'avatar']));
     }
 }

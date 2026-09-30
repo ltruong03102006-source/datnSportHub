@@ -1,174 +1,116 @@
 @extends('layouts.auth')
 
-@section('title', 'Đăng ký chủ sân | SportHub')
+@section('title', 'Đăng ký Đối tác Chủ sân | SportHub')
 
 @section('content')
-    <style>
-        .owner-register-heading {
-            margin-bottom: 32px;
-            text-align: center;
-        }
-
-        .owner-register-heading p {
-            margin: 0;
-            color: #1e40af;
-            font-size: 13px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .owner-register-heading h1 {
-            margin: 8px 0 0;
-            font-size: 32px;
-            line-height: 1.15;
-            letter-spacing: -0.5px;
-            color: #111827;
-        }
-
-        .owner-register-heading span {
-            display: block;
-            margin-top: 12px;
-            color: #6b7280;
-            font-size: 15px;
-            line-height: 1.6;
-        }
-
-        .owner-register-form {
-            display: grid;
-            gap: 20px;
-            margin-bottom: 32px;
-        }
-
-        .owner-submit-button {
-            width: 100%;
-            min-height: 48px;
-            border: 0;
-            border-radius: 8px;
-            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
-            color: #ffffff;
-            cursor: pointer;
-            font: inherit;
-            font-size: 15px;
-            font-weight: 700;
-            padding: 13px 18px;
-            transition: all 200ms ease;
-            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .owner-submit-button:hover {
-            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
-            box-shadow: 0 6px 16px rgba(30, 64, 175, 0.4);
-            transform: translateY(-2px);
-        }
-
-        .owner-submit-button:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 8px rgba(30, 64, 175, 0.3);
-        }
-
-        .owner-submit-button:focus {
-            outline: none;
-            box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.1), 0 4px 12px rgba(30, 64, 175, 0.3);
-        }
-
-        .owner-submit-button:disabled {
-            cursor: not-allowed;
-            background: #9ca3af;
-            box-shadow: none;
-            transform: none;
-        }
-    </style>
-
-    <div class="owner-register-heading">
-        <p>Đối Tác SportHub</p>
-        <h1>Đăng ký làm chủ sân</h1>
-        <span>Điền thông tin để tạo tài khoản chủ sân. Sau đó bạn sẽ tự thiết lập mật khẩu để bắt đầu sử dụng.</span>
+    <div class="form-heading">
+        <span class="role-badge-tag owner">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+            Đăng ký Đối Tác Chủ Sân
+        </span>
+        <h1>Tạo tài khoản Chủ sân</h1>
+        <span>Điền thông tin bên dưới để mở tài khoản quản lý điểm sân thể thao trên SportHub.</span>
     </div>
 
     @if(session('success'))
-        <div style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; padding: 16px; margin-bottom: 24px; color: #065f46;">
-            <strong>✓ {{ session('success') }}</strong>
+        <div class="auth-alert is-success" style="display: flex; margin-bottom: 20px;">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            <span>{{ session('success') }}</span>
         </div>
     @endif
 
     @if(isset($registration) && $registration->status === 'rejected' && $registration->rejection_reason)
-        <div style="background-color: #fef2f2; border: 1px solid #fca5a5; border-radius: 12px; padding: 16px; margin-bottom: 24px; color: #991b1b;">
-            <strong style="display: flex; align-items: center; gap: 8px; font-size: 15px;">
-                ⚠️ Yêu cầu đăng ký trước đó đã bị từ chối:
-            </strong>
-            <div style="margin-top: 6px; font-size: 14px; font-weight: 600; background: white; padding: 10px 12px; border-radius: 8px; border: 1px solid #fecaca; color: #b91c1c;">
+        <div class="auth-alert is-error" style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 24px;">
+            <div style="display: flex; align-items: center; gap: 8px; font-weight: 700;">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Yêu cầu đăng ký trước đó bị từ chối:
+            </div>
+            <div style="font-size: 13.5px; background: rgba(255,255,255,0.8); padding: 8px 12px; border-radius: 6px; border: 1px solid #fecaca; color: #b91c1c; width: 100%;">
                 {{ $registration->rejection_reason }}
             </div>
-            <p style="margin: 8px 0 0 0; font-size: 13px; color: #7f1d1d;">
-                Vui lòng kiểm tra lại thông tin và nộp lại đăng ký để Admin xét duyệt.
+            <p style="font-size: 12.5px; color: #7f1d1d; margin-top: 2px;">
+                Vui lòng kiểm tra lại thông tin và nộp lại yêu cầu để Admin xét duyệt.
             </p>
         </div>
     @endif
 
-    <form method="POST" action="{{ route('owner.register.store') }}" class="owner-register-form" novalidate>
+    <form method="POST" action="{{ route('owner.register.store') }}" class="auth-form" novalidate>
         @csrf
 
-        <div>
+        <div class="field-group">
             <label for="name" class="field-label">Họ và tên chủ sân</label>
-            <input
-                id="name"
-                name="name"
-                type="text"
-                autocomplete="name"
-                required
-                class="field-input"
-                value="{{ old('name', auth()->user()?->name) }}"
-                placeholder="Nguyễn Văn A"
-            >
+            <div class="input-wrapper owner-wrapper">
+                <span class="input-icon">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                </span>
+                <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    autocomplete="name"
+                    required
+                    class="field-input owner-input"
+                    value="{{ old('name', auth()->user()?->name) }}"
+                    placeholder="Nguyễn Văn A"
+                >
+            </div>
             @error('name')
                 <p class="field-error is-visible">{{ $message }}</p>
             @enderror
         </div>
 
-        <div>
-            <label for="phone" class="field-label">Số điện thoại</label>
-            <input
-                id="phone"
-                name="phone"
-                type="tel"
-                autocomplete="tel"
-                required
-                class="field-input"
-                value="{{ old('phone') }}"
-                placeholder="0901234567"
-            >
+        <div class="field-group">
+            <label for="phone" class="field-label">Số điện thoại liên hệ</label>
+            <div class="input-wrapper owner-wrapper">
+                <span class="input-icon">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                </span>
+                <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    autocomplete="tel"
+                    required
+                    class="field-input owner-input"
+                    value="{{ old('phone') }}"
+                    placeholder="0901234567"
+                >
+            </div>
             @error('phone')
                 <p class="field-error is-visible">{{ $message }}</p>
             @enderror
         </div>
 
-        <div>
-            <label for="email" class="field-label">Email liên hệ</label>
-            <input
-                id="email"
-                name="email"
-                type="email"
-                autocomplete="email"
-                required
-                class="field-input"
-                value="{{ old('email', auth()->user()?->email) }}"
-                placeholder="owner@example.com"
-            >
+        <div class="field-group">
+            <label for="email" class="field-label">Email liên hệ & Đăng nhập</label>
+            <div class="input-wrapper owner-wrapper">
+                <span class="input-icon">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                </span>
+                <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autocomplete="email"
+                    required
+                    class="field-input owner-input"
+                    value="{{ old('email', auth()->user()?->email) }}"
+                    placeholder="owner@example.com"
+                >
+            </div>
             @error('email')
                 <p class="field-error is-visible">{{ $message }}</p>
             @enderror
         </div>
 
-        <button type="submit" class="owner-submit-button">
-            Đăng ký ngay
+        <button type="submit" class="submit-btn-owner" style="margin-top: 6px;">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            Gửi Đăng ký Chủ sân
         </button>
     </form>
 
     <p class="auth-switch">
-        Đã có tài khoản?
-        <a href="{{ route('login') }}">Đăng nhập ngay</a>
+        Đã có tài khoản chủ sân?
+        <a href="{{ route('owner.login.page') }}" class="owner-link">Đăng nhập ngay</a>
     </p>
 @endsection
