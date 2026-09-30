@@ -152,7 +152,7 @@ Hệ thống được thiết kế với hơn **45+ Bảng dữ liệu chuẩn h
 4. **Cấu hình Môi trường (.env)**:
    Sao chép file `.env.example` thành `.env`:
    ```bash
-   Copy-Item .env.example .env
+   cp .env.example .env
    ```
    Cập nhật thông số kết nối Database trong `.env`:
    ```env
@@ -175,7 +175,7 @@ Hệ thống được thiết kế với hơn **45+ Bảng dữ liệu chuẩn h
    ```bash
    npm run dev
    ```
-  ```bash
+   ```bash
    php artisan serve
    ```
 
@@ -192,7 +192,7 @@ Sau khi chạy lệnh `php artisan db:seed` (bao gồm `TestAccountsSeeder`), b�
 | :--- | :--- | :--- | :--- |
 | **🛡️ Quản trị viên (Admin)** | `admin@gmail.com` | `12345678` | Truy cập `/admin/login`, quản lý duyệt chủ sân, xem báo cáo ví nền tảng. |
 | **🏟️ Chủ sân (Venue Owner)** | `owner@gmail.com` | `12345678` | Truy cập `/owner/login`, quản lý danh sách sân bóng, ca đặt & doanh thu. |
-| **👤 Khách hàng (User/Player)** | `user@gmail.com` | `12345678` | Truy cập `/login` (đã có sẵn **10.000.000 VNĐ** trong ví để test đặt sân). |
+| **👤 Khách hàng (User/Player)** | `user@gmail.com` | `12345678` | Truy cập `/login`. |
 
 ---
 
