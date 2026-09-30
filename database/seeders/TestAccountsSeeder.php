@@ -19,7 +19,7 @@ class TestAccountsSeeder extends Seeder
             'email' => 'admin@gmail.com',
         ], [
             'name' => 'Admin Test',
-            'password' => Hash::make('123456'),
+            'password' => Hash::make('12345678'),
             'role' => 'admin',
             'status' => 'active',
             'balance' => 0,
@@ -30,7 +30,7 @@ class TestAccountsSeeder extends Seeder
             'email' => 'owner@gmail.com',
         ], [
             'name' => 'Chủ Sân Test',
-            'password' => Hash::make('123456'),
+            'password' => Hash::make('12345678'),
             'role' => 'owner',
             'status' => 'active',
             'balance' => 0,
@@ -41,7 +41,7 @@ class TestAccountsSeeder extends Seeder
             'email' => 'user@gmail.com',
         ], [
             'name' => 'Khách Hàng Test',
-            'password' => Hash::make('123456'),
+            'password' => Hash::make('12345678'),
             'role' => 'user',
             'status' => 'active',
             'balance' => 10000000, // 10 triệu để test thanh toán
